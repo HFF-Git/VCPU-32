@@ -34,12 +34,7 @@ Helmut Fieres
 Version B.00.01
 February, 2024
 
-
-// ??? **note** a partial rewrite !!!!
-
-
-
-
+// ??? **note** rewrite ongoing work...
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -53,7 +48,7 @@ February, 2024
 >
 > "Seriously?“
 >
-> “OK, seriously. A 32bit CPU will give us the same set of design challenges to look into and opportunities to include modern RISC features and learn about instruction sets and pipeline design as any other CPU. Although a vintage design, it will still be a useful CPU. Think back on to our first CPUs we programmed in school, a long time ago. Weren't they fun ?"
+> “OK, seriously. A 32-bit CPU will give us the same set of design challenges to look into and opportunities to include modern RISC features and learn about instruction sets and pipeline design as any other CPU. Although a vintage design, it will still be a useful CPU."
 >
 > "OK, so what do you have in mind ?"
 
@@ -595,7 +590,7 @@ The instruction operation is described in a pseudo C style language using assign
 | **add32( x, y )** | performs a 32-bit addition of x and y. Typically, the "x" operand is an unsigned value while "y" is a signed value. The result of the operation will wrap around is case of overflow.|
 | **rshift( x, amt )** | logical right shift of the bits in x by "amt" bits. |
 | **memLoad( seg, ofs, bitLen )** | loads data from virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. The bitLen is teh number of bits to load. If the bitLen is less than 32, the data is zero sign extended. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to load a word from physical memory.  |
-| **memStore( seg, ofs, val, bitlen )** | store data to virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to store the word "val" from physical memory. |
+| **memStore( seg, ofs, val, bitLen )** | store data to virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to store the word "val" from physical memory. |
 | **loadPhysAdr( seg, ofs )** | returns the physical address for a virtual address. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "ofs" is the physical address in memory. |
 | **searchInstructionTlbEntry( seg, ofs, entry )** | lookup the TLB entry and if found return a pointer to the entry. |
 | **allocateInstructionTlbEntry( seg, ofs, entry )** | allocate an entry in the TLB and return a pointer to the entry. |
@@ -640,9 +635,9 @@ Loads a memory value into a general register.
 #### Format
 
 ```
-	  LDx <GR r>, <GR a>( GR<b> )            ; opMode 0 .. 2
-        LDx <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-        LDx <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
+      LDx <GR r>, <GR a>( GR<b> )            ; opMode 0 .. 2
+      LDx <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
+      LDx <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
 ```
 
 ```
@@ -768,9 +763,9 @@ The load extended instructions will load the operand into the general register "
 #### Operation
 
 ```
-      LDWE: GR[r] <- zeroExtend( memLoad( SR[a] ), add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 32 );
-      LDHE: GR[r] <- zeroExtend( memLoad( SR[a] ), add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 16 );
-      LDBE: GR[r] <- zeroExtend( memLoad( SR[a] ), add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 8  );
+      LDWE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 32 ));
+      LDHE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 16 ));
+      LDBE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 8  ));
 ```
 
 #### Exceptions
@@ -874,9 +869,9 @@ The load absolute instruction will load the content of the physical memory addre
 ```
       if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-      LDWA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 32 );
-      LDHA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 16 );
-      LDBA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 8  );
+      LDWA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 32 ));
+      LDHA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 16 ));
+      LDBA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 8  ));
 ```
 
 #### Exceptions
@@ -953,8 +948,8 @@ Loads the operand into the target register from the address and marks that addre
 #### Format
 
 ```
-        LDWR <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-        LDWR <GR r>, <ofs> ( GR y )             ; opMode 4 .. 7, "y" -> GR4 .. GR7
+      LDWR <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
+      LDWR <GR r>, <ofs> ( GR y )             ; opMode 4 .. 7, "y" -> GR4 .. GR7
 ```
 
 ```
@@ -1026,18 +1021,18 @@ The STWR conditional instruction will store a value in "r" to the memory locatio
 #### Operation
 
 ```
-	if (( lrValid ) && ( lrVal == GR[r])) {
+      if (( lrValid ) && ( lrVal == GR[r])) {
 
          if (( opMode < 3 ) || ( opMode > 7 )) illegalInstructionTrap( );
 
-         seg <- operandAdrSeg( instr );
-         ofs <- operandAdrOfs( instr );
+            seg <- operandAdrSeg( instr );
+            ofs <- operandAdrOfs( instr );
 
-         memStore( seg, ofs, GR[r], 32 );
+            memStore( seg, ofs, GR[r], 32 );
 
-         GR[r] <- 0;
-	}
-	else GR[r] <- 1;
+            GR[r] <- 0;
+	
+      } else GR[r] <- 1;
 ```
 
 #### Exceptions
@@ -1059,9 +1054,9 @@ The "check the access part" is highly implementation dependent. Under constructi
 
 ## Branch Instructions
 
-The control flow instructions are divided into unconditional and conditional branch type instructions. The unconditional branch type instructions allow in addition to altering the control flow, the save of the return point to a general register. A subroutine call would for example compute the target branch address and store this address + 1 in that register. Upon subroutine return, there is a branch instruction to return via a general register content.
+The control flow instructions are divided into unconditional and conditional branch type instructions. The unconditional branch type instructions allow in addition to altering the control flow, the save of the return point to a general register. A subroutine call would for example compute the target branch address and store this address + 4 in that register. Upon subroutine return, there is a branch instruction to return via a general register content.
 
-The **B** and **BL** instruction are the unconditional branch type instruction within a program segment. They add a signed offset to the current instruction address. The BL  instruction additionally saves a return link in a general register. The **BR** and **BLR** instruction behave similar, except that a general register contains the instruction address relative offset. The **BV** and **BVR** are instruction segment absolute instructions. The branch address for the BV instruction is the segment relative value specified in a general register. The BVR instruction features two register, one being the segment relative base and the other a signed offset to be added.
+The **B** and **BL** instruction are the unconditional branch type instruction within a program segment. They add a signed offset to the current instruction address. The BL instruction additionally saves a return link in a general register. The **BR** and **BLR** instruction behave similar, except that a general register contains the instruction address relative offset. The **BV** and **BVR** are instruction segment absolute instructions. The branch address for the BV instruction is the segment relative value specified in a general register. The BVR instruction features two register, one being the segment relative base and the other a signed offset to be added.
 
 The **BE** and **BLE** instruction are the inter-segment branches. The BE instruction branches to a segment absolute address encoded in the segment and general offset register. In addition, a signed offset encoded in the instruction can is added to form the target segment offset. The BLE instruction will in addition return the return address in the segment register SR0 and the offset on the general register GR0.
 
@@ -1095,7 +1090,7 @@ Perform an unconditional IA-relative branch with a static offset.
 
 #### Description
 
-The branch instruction performs a branch to an instruction address relative location. The target address is formed by concatenating adding the "ofs1" and "ofs2" field to form a sign extended immediate value and add it to the current instruction offset. The virtual target address is built from the instruction address segment and offset. If code translation is disabled, the target address is the absolute physical address.
+The branch instruction performs a branch to an instruction address relative location. The target address is formed by concatenating adding the "ofs1" and "ofs2" field to form a sign extended immediate value, shift by 2 to the left and add it to the current instruction offset. The virtual target address is built from the instruction address segment and offset. If code translation is disabled, the target address is the absolute physical address.
 
 #### Operation
 
@@ -1136,13 +1131,13 @@ Perform an unconditional IA-relative branch with a static offset and store the r
 
 #### Description
 
-The branch instruction performs a branch to an instruction address relative location. The target address is formed by concatenating adding the "ofs1" and "ofs2" field to form a sign extended immediate value and add it to the current instruction address offset. The current instruction address offset + 1 is returned in general register "r". If code translation is disabled, the return value is the absolute physical address.
+The branch instruction performs a branch to an instruction address relative location. The target address is formed by concatenating adding the "ofs1" and "ofs2" field to form a sign extended immediate value and add it to the current instruction address offset. The current instruction address offset + 4 is returned in general register "r". If code translation is disabled, the return value is the absolute physical address.
 
 #### Operation
 
 
 ```
-      GR[r] <- add32( IA-OFS, 1 );
+      GR[r] <- add32( IA-OFS, 4 );
       IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ) << 2, 16 ));
 ```
 
@@ -1179,12 +1174,12 @@ Perform an unconditional IA-relative branch with a dynamic offset from a general
 
 #### Description
 
-The branch register instruction performs an unconditional IA-relative branch. The target address is formed by adding the content of register "b" to the current instruction address. If code translation is disabled, the target address is the absolute physical address.
+The branch register instruction performs an unconditional IA-relative branch. The target address is formed by adding the content of register "b" shifted by two bits to the left to the current instruction address. If code translation is disabled, the target address is the absolute physical address.
 
 #### Operation
 
 ```
-      IA-OFS <- add32( IA-OFS, GR[b] );
+      IA-OFS <- add32( IA-OFS, GR[b] << 2 );
 ```
 
 #### Exceptions
@@ -1225,13 +1220,13 @@ The branch register instruction performs an unconditional IA-relative branch. Th
 #### Operation
 
 ```
-      GR[r]  <- add32( IA-OFS, 1 );
+      GR[r]  <- add32( IA-OFS, 4 );
       IA-OFS <- add32( IA-OFS, GR[b] );
 ```
 
 #### Exceptions
 
-- Taken branch trap.
+- Taken branch trap
 
 #### Notes
 
@@ -1264,27 +1259,22 @@ Perform an unconditional branch using a general register containing the base rel
 
 The branch vectored instruction performs an unconditional branch to the target address in register in "b". Register "b" is interpreted as an instruction address in the current code segment. This unconditional jump allows to reach the entire code address range. If code translation is disabled, the resulting offset is the absolute physical address.
 
-If the designated privilege level in GR[b] is lower than the current privilege level, the new level is set to the privilege level found in GR[b], otherwise it remains unchained.
+Since the BV instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level result in the privilege level adjusted in the status register. Otherwise, the privilege level remains unchained.
 
 #### Operation
 
 ```
-// ??? rework ...
-
-      if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];  
-      else priv <- IA-OFS.[P];
-
-      IA-OFS <- ofsSelect( GR[b] ));
-      IA_OFS.[P] <- priv;
+      IA-OFS <- GR[b];
 ```
 
 #### Exceptions
 
-- Taken branch trap.
+- Taken branch trap
+- Instruction memory protection trap
 
 #### Notes
 
-The BV instruction is typically used in a procedure return. The BL instruction left a segment relative address which can directly be used by this unstruction to return to the location after the BL instruction.
+The BV instruction is typically used in a procedure return. The BL instruction left a segment relative address which can directly be used by this instruction to return to the location after the BL instruction.
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -1313,22 +1303,19 @@ Perform an unconditional branch using a base and offset general register for for
 
 The branch vectored instruction performs an unconditional branch by adding the offset register in "a" to the base address in register in "b". The result is interpreted as an instruction address in the current code segment. This unconditional jump allows to reach the entire code address range. If code translation is disabled, the resulting offset is the absolute physical address.
 
-If the designated privilege level in GR[b] is lower than the current privilege level, the new level is set to the privilege level found in GR[b], otherwise it remains unchained.
+Since the BVR instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level result in the privilege level adjusted in the status register. Otherwise, the privilege level remains unchained.
 
 #### Operation
 
 ```
-      if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];    // ??? rework ...
-      else priv <- IA-OFS.[P];
-
-      GR[r] <- add22( IA-OFS, 1 );
-      IA-OFS <- add22( GR[b], GR[a] );
-      IA_OFS.[P] <- priv;
+      GR[r] <- add32( IA-OFS, 4 );
+      IA-OFS <- add32( GR[b], GR[a] );
 ```
 
 #### Exceptions
 
-- Taken branch trap.
+- Taken branch trap
+- Instruction memory protection trap
 
 #### Notes
 
@@ -1362,22 +1349,19 @@ Perform an unconditional external branch.
 
 The branch external instruction branches to a segment relative location in another code segment. The target address is built from the segment register in field "a" and the base register "b" to which the sign extended offset built from "ofs1" and ofs2" is added. If code translation is disabled, the offset is the absolute physical address and the "a" field being ignored.
 
-If the designated privilege level in GR[b] is lower than the current privilege level, the new level is set to the privilege level found in GR[b], otherwise it remains unchained.
+Since the BE instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level result in the privilege level adjusted in the status register. Otherwise, the privilege level remains unchained.
 
 #### Operation
 
 ```
-      if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];  // ??? rework ...
-      else priv <- IA-OFS.[P];
-
       IA-SEG <- GR[a];
-      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 )), 16 );
-      IA_OFS.[P] <- priv;
+      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 )), 16 );  // potential privilege violation or adjustment
 ```
 
 #### Exceptions
 
-- Taken branch trap.
+- Taken branch trap
+- Instruction memory protection trap
 
 #### Notes
 
@@ -1411,25 +1395,22 @@ Perform an unconditional external branch and save the return address.
 
 The branch and link external instruction branches to an absolute location in another code segment. The target address is built from the segment register in field "a" and the base register "b" to which the sign extended offset built from "ofs1" and ofs2" is added. The return address is saved in SR0 and GR0. If code translation is disabled, the offset is the absolute physical address and the "a" field being ignored.
 
-If the designated privilege level in GR[b] is lower than the current privilege level, the new level is set to the privilege level found in GR[b], otherwise it remains unchained.
+Since the BLE instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level result in the privilege level adjusted in the status register. Otherwise, the privilege level remains unchained.
 
 #### Operation
 
 ```
       SR[0] <- IA-SEG;
-      GR[0] <- add22( IA-OFS, 1 );
-
-	  if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];  // ??? rework ...
-      else priv <- IA-OFS.[P];
+      GR[0] <- add22( IA-OFS, 4 );
 
       IA-SEG <- GR[a];
-      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 )), 12 );
-      IA_OFS.[P] <- priv;
+      IA-OFS <- add32( GR[b], signExt( catImm( ofs1, ofs2 )), 16 );
 ```
 
 #### Exceptions
 
-- Taken branch trap.
+- Taken branch trap
+- Instruction memory protection trap
 
 #### Notes
 
@@ -1459,7 +1440,7 @@ Compare two registers and branch on condition.
 
 #### Description
 
-The CBR instruction compares general registers "a" and "b" for the condition specified in the "cond" field. The instruction address relative branch offset is formed by concatenating the fields "ofs1" and ofs2", sign extended. If the condition is met, the target branch address is the offset added to the current instruction address, otherwise execution continues with the next instruction. The conditional branch is predicted taken for a backward branch and predicted not taken for a forward branch.
+The CBR instruction compares general registers "a" and "b" for the condition specified in the "cond" field. The instruction address relative branch offset is formed by concatenating the fields "ofs1" and ofs2", sign extended. If the condition is met, the target branch address is the offset shited by two to the left and added to the current instruction address, otherwise execution continues with the next instruction. The conditional branch is predicted taken for a backward branch and predicted not taken for a forward branch.
 
 #### Branch condition
 
@@ -1487,8 +1468,8 @@ The condition field is encoded as follows:
          case 7: res <- ( GR[a] >>  GR[b]);  break;
       }
 
-      if ( res ) IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 )));
-	  else add22( IA_OFS, 1 );
+      if ( res ) IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ) << 2 ));
+	else add22( IA_OFS, 4 );
 ```
 
 #### Exceptions
@@ -1523,7 +1504,7 @@ Test a register and branch on condition.
 
 #### Description
 
-The TBR instruction tests general register "b" for the condition specified in the "cond" field. The instruction relative branch offset is formed by concatenating the fields "ofs1" and ofs2", sign extended. If the condition is met, the target address is the offset added to the current instruction address, otherwise execution continues with the next instruction. The conditional branch is predicted taken for a backward branch and predicted not taken for a forward branch.
+The TBR instruction tests general register "b" for the condition specified in the "cond" field. The instruction relative branch offset is formed by concatenating the fields "ofs1" and ofs2", sign extended. If the condition is met, the target address is the offset shifted by two to the left and added to the current instruction address. Otherwise, execution continues with the next instruction. The conditional branch is predicted taken for a backward branch and predicted not taken for a forward branch.
 
 #### Branch condition
 
@@ -1549,8 +1530,8 @@ The TBR instruction tests general register "b" for the condition specified in th
          case 7: res <- ( GR[b].[31] );   break;
       }
 
-      if ( res ) IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ), 16 ));
-	else add32( IA_OFS, 1 );
+      if ( res ) IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ), 16 ) << 2 );
+      else add32( IA_OFS, 4 );
 ```
 
 #### Exceptions
@@ -1580,7 +1561,7 @@ The shift and add instruction **SHLA** combines a shift operation with an add op
 
 The **LEA** instruction will return the address offset portion of the operand. The **LDSID** instruction will return the segment id of the operand address. Both instructions are purely computational instruction with no memory reference. Finally. there is also a **NOP** instruction, which has the opcode of zero and performs, you guessed it, a no-operation.
 
-Note that the assembler will use the instruction format *OP GR1,GR2* for the *regR = regR op regB* operation. This should be translated to an operand mode two type instruction of the forn *GR1 <- Gr1 OP GR2*.  The assembler therefore maps the instruction formats *GR1 -> GR1 OP GR2* and *GR1 <- GR2 OP GR3* to operand mode two.
+Note that the assembler will use the instruction format *OP GR1,GR2* for the *regR = regR op regB* operation. This should be translated to an operand mode two type instruction of the form *GR1 <- Gr1 OP GR2*.  The assembler therefore maps the instruction formats *GR1 -> GR1 OP GR2* and *GR1 <- GR2 OP GR3* to operand mode two.
 
 Operand mode one is of the form *GR1 <- 0 OP GR2*, i.e. one argument is zero. This is very useful for building pseudo instructions such as NEG, which for example is a subtract of GR2 from 0. Operand mode one is only used for pseudo instructions that explicitly map to operand mode 1, such as the NEG example shown.
 
@@ -1604,60 +1585,47 @@ Adds the operand to the target register.
       ADD [ .<opt> ] <GR r>, <GR b>                     ; opMode 2
       ADD [ .<opt> ] <GR r>, <GR a>, <GR b>             ; opMode 2
       ADD [ .<opt> ] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-      ADD [ .<opt> ] <GR r>, <ofs> ( GR4 )              ; opMode 4
-      ADD [ .<opt> ] <GR r>, <ofs> ( GR5 )              ; opMode 5
-      ADD [ .<opt> ] <GR r>, <ofs> ( GR6 )              ; opMode 6
-      ADD [ .<opt> ] <GR r>, <ofs> ( GR7 )              ; opMode 7
+      ADD [ .<opt> ] <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : ADD   ( 001 )         : r         : C : L : O : opMode    : opArg                             :
-      :-----------------------:-----------------------------------------------------------------------:
+      : ADD   ( 001 )   : r      :C :L :O : opMode    : opArg                                         :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The instruction fetches the operand and adds it to the general register "r". If the C bit is set, the status register carry bit is added too. The L bit specifies that his is an unsigned add. If the O bit is set, a numeric overflow will cause an overflow trap. Operand mode zero adds a sign extended constant to "r". Operand mode one adds a zero value to the b" content and stores in the result reg "r". The "a" field shoud be set to zero. Operand mode 2 allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address add operation of the form "r" = "a" + "b" as well as a "r" = "r" op "b" can be done. The operations will set the carry/borrow bits in the processor status word. Operand mode 3 to 7 fetch the operand according to the addressing mode and perform a R = R + operand operation.
+The instruction fetches the operand and adds it to the general register "r". If the C bit is set, the status register carry bit is added too. The L bit specifies that his is an unsigned add. If the O bit is set, a numeric overflow will cause an overflow trap. 
 
+There are four major mode groups for this instruction. Operand mode 0 adds a sign extended constant to "r". Operand mode 1 adds a zero value to the b" content and stores in the result reg "r". The "a" field should be set to zero. Operand mode 2 allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address add operation of the form "r" = "a" + "b" as well as a "r" = "r" op "b" can be done. The operations will set the carry/borrow bits in the processor status word. Operand mode 3 to 7 fetch the operand according to the addressing mode and perform a R = R + operand operation.
+
+Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will fetch a word from the computed address, mode 8 - 11 fetch a half-word and mode 12 - 15 a byte. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset. 
 
 #### Operation
 
 ```
       switch( opMode ) {
 
-         case 0: tmpA <- GR[r];
-		         tmpB <- signExt( opArg, 15 );
-				 break;
+         case 0:  tmpA <- GR[r];
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
-         case 1: tmpA <- 0;
-		         tmpB <- GR[b];
-				 break;
+         case 1:  tmpA <- 0;
+		      tmpB <- GR[b];
+			break;
 
-         case 2: tmpA <- GR[a];
-		         tmpB <- GR[b];
-				 break;
+         case 2:  tmpA <- GR[a];
+		      tmpB <- GR[b];
+			break;
 
-         case 3: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[a], add22( GR[b], signExt( instr.[15..17], 3 )); 
-				 break;
-
-         case 4: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[4] ) ], add22( GR[4], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 5: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[5] ) ], add22( GR[5], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 6: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[6] ) ], add22( GR[6], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 7: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[7] ) ], add22( GR[7], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
+         default: seg <- operandAdrSeg( instr );
+                  ofs <- operandAdrOfs( instr );
+                  len <- operandBitLen( instr );
+         
+                  tmpA <- GR[r];
+                  tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
 
       if ( instr.[C] ) res <- tmpA + tmpB + instr.[C];
@@ -1667,7 +1635,7 @@ The instruction fetches the operand and adds it to the general register "r". If 
       else {
 
          GR[r] <- res;
-	     if ( ! instr.[L] ) PSW[C/B] <- carry/borrow Bits;
+         if ( ! instr.[L] ) PSW[C/B] <- carry/borrow Bits;
       }
 ```
 
@@ -1678,6 +1646,7 @@ The instruction fetches the operand and adds it to the general register "r". If 
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignment trap
 
 #### Notes
 
@@ -1701,60 +1670,47 @@ Subtracts the operand from the target register.
       SUB [ .<opt> ] <GR r>, <GR b>                     ; opMode 2
       SUB [ .<opt> ] <GR r>, <GR a>, <GR b>             ; opMode 2
       SUB [ .<opt> ] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-      SUB [ .<opt> ] <GR r>, <ofs> ( GR4 )              ; opMode 4
-      SUB [ .<opt> ] <GR r>, <ofs> ( GR5 )              ; opMode 5
-      SUB [ .<opt> ] <GR r>, <ofs> ( GR6 )              ; opMode 6
-      SUB [ .<opt> ] <GR r>, <ofs> ( GR7 )              ; opMode 7
+      SUB [ .<opt> ] <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
 ```
 
 ```
        00  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : SUB   ( 002 )         : r         : C : L : O : opMode    : opArg                             :
-      :-----------------------:-----------------------------------------------------------------------:
+      : SUB   ( 002 )   : r      :C :L :O : opMode    : opArg                                         :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The instruction fetches the operand and subtracts it from the general register "r". If the C bit is set, the status register carry bit is added too. The L bit specifies that his is an unsigned add. If the O bit is set, a numeric overflow will cause an overflow trap. Operand mode zero subtracts a sign extended constant from "r". Operand mode one subtracts the content of "b" from a zero value and stores in the result reg "r". The "a" field should be set to zero. Operand mode two allows to specify two general register to be the input operands, independent of the target general register in "r".  This way, a three register address add operation of the form "r" = "a" + "b" as well as a "r"regR, regB" can be done. The operations will set the carry/borrow bits in the processor status word. Operand mode 3 to 7 fetch the operand according to the addressing mode and perform a R = R - operand operation.
+The instruction fetches the operand and subtracts it from the general register "r". If the C bit is set, the status register carry bit is added too. The L bit specifies that his is an unsigned add. If the O bit is set, a numeric overflow will cause an overflow trap.
 
+There are four major mode groups for this instruction. Operand mode 0 adds a sign extended constant to "r". Operand mode 1 subtracts a zero value to the b" content and stores in the result reg "r". The "a" field should be set to zero. Operand mode 2 allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address operation of the form "r" = "a" + "b" as well as a "r" = "r" op "b" can be done. The operations will set the carry/borrow bits in the processor status word. Operand mode 3 to 7 fetch the operand according to the addressing mode and perform a R = R + operand operation.
+
+Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will fetch a word from the computed address, mode 8 - 11 fetch a half-word and mode 12 - 15 a byte. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset. 
 
 #### Operation
 
 ```
       switch( opMode ) {
 
-         case 0: tmpA <- GR[r];
-		         tmpB <- signExt( opArg, 15 );
-				 break;
+         case 0:  tmpA <- GR[r];
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
-         case 1: tmpA <- 0;
-		         tmpB <- GR[b];
-				 break;
+         case 1:  tmpA <- 0;
+		      tmpB <- GR[b];
+			break;
 
-         case 2: tmpA <- GR[a];
-		         tmpB <- GR[b];
-				 break;
+         case 2:  tmpA <- GR[a];
+		      tmpB <- GR[b];
+			break;
 
-         case 3: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[a], add22( GR[b], signExt( instr.[15..17], 3 )); 
-				 break;
-
-         case 4: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[4] ) ], add22( GR[4], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 5: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[5] ) ], add22( GR[5], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 6: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[6] ) ], add22( GR[6], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 7: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[7] ) ], add22( GR[7], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
+         default: seg <- operandAdrSeg( instr );
+                  ofs <- operandAdrOfs( instr );
+                  len <- operandBitLen( instr );
+         
+                  tmpA <- GR[r];
+                  tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
 
       if ( instr.[L] )  res <- tmpA + ( ~ tmpB ) + 1;
@@ -1775,6 +1731,7 @@ The instruction fetches the operand and subtracts it from the general register "
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignment trap
 
 #### Notes
 
@@ -1798,59 +1755,47 @@ Performs a bitwise AND of the operand and the target register and stores the res
       AND [ .<opt> ] <GR r>, <GR b>                     ; opMode 2
       AND [ .<opt> ] <GR r>, <GR a>, <GR b>             ; opMode 2
       AND [ .<opt> ] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-      AND [ .<opt> ] <GR r>, <ofs> ( GR4 )              ; opMode 4
-      AND [ .<opt> ] <GR r>, <ofs> ( GR5 )              ; opMode 5
-      AND [ .<opt> ] <GR r>, <ofs> ( GR6 )              ; opMode 6
-      AND [ .<opt> ] <GR r>, <ofs> ( GR7 )              ; opMode 7
+      AND [ .<opt> ] <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
 ```
 
 ```
        00  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : AND   ( 003 )         : r         : N : C : 0 : opMode    : opArg                             :
-      :-----------------------:-----------------------------------------------------------------------:
+      : AND   ( 003 )   : r      :N :C :0 : opMode    : opArg                                         :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The instruction fetches the data specified by the operand and performs a bitwise AND of the general register "r" and the operand fetched. The result is stored in general register "r".  The N bit allows to negate the result making the AND a NAND operation.  The C bit allows to complement ( 1's complement ) the operand input, which is the regB register. Operand mode zero ANDs a sign extended immediate value with the "r" register. In operand mode one, a zero value is AND-ed to the content of "b" and stored in "r". The "a" field should be set to zero. Operand mode two allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address add operation of the form "r" = "a" + "b" as well as a "r"regR, regB" can be done. Operand mode 3 to 7 fetch the operand according to the addressing mode and perform a R = R AND operand operation.
+The instruction fetches the data specified by the operand and performs a bitwise AND of the general register "r" and the operand fetched. The result is stored in general register "r". The N bit allows to negate the result making the AND a NAND operation. The C bit allows to complement ( 1's complement ) the operand input, which is the regB register.
+
+There are four major mode groups for this instruction. Operand mode 0 ANDs a sign extended constant into "r". Operand mode 1 ANDs a zero value to the "b" content and stores in the result reg "r". The "a" field should be set to zero. Operand mode 2 allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address operation of the form "r" = "a" + "b" as well as a "r" = "r" op "b" can be done. The operations will set the carry/borrow bits in the processor status word.
+
+Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will fetch a word from the computed address, mode 8 - 11 fetch a half-word and mode 12 - 15 a byte. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset. 
 
 #### Operation
 
 ```
       switch( opMode ) {
 
-         case 0: tmpA <- GR[r];
-		         tmpB <- signExt( opArg, 15 );
-				 break;
+         case 0:  tmpA <- GR[r];
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
-         case 1: tmpA <- 0;
-		         tmpB <- GR[b];
-				 break;
+         case 1:  tmpA <- 0;
+		      tmpB <- GR[b];
+			break;
 
-         case 2: tmpA <- GR[a];
-		         tmpB <- GR[b];
-				 break;
+         case 2:  tmpA <- GR[a];
+		      tmpB <- GR[b];
+			break;
 
-         case 3: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[a], add22( GR[b], signExt( instr.[15..17], 3 )); 
-				 break;
-
-         case 4: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[4] ) ], add22( GR[4], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 5: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[5] ) ], add22( GR[5], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 6: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[6] ) ], add22( GR[6], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 7: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[7] ) ], add22( GR[7], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
+         default: seg <- operandAdrSeg( instr );
+                  ofs <- operandAdrOfs( instr );
+                  len <- operandBitLen( instr );
+         
+                  tmpA <- GR[r];
+                  tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
 
       if ( instr.[C]) tmpB <- ~ tmpB;
@@ -1866,6 +1811,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignment trap
 
 #### Notes
 
@@ -1888,60 +1834,47 @@ Performs a bitwise OR of the operand and the target register and stores the resu
       OR [ .<opt> ] <GR r>, <GR b>                     ; opMode 2
       OR [ .<opt> ] <GR r>, <GR a>, <GR b>             ; opMode 2
       OR [ .<opt> ] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-      OR [ .<opt> ] <GR r>, <ofs> ( GR4 )              ; opMode 4
-      OR [ .<opt> ] <GR r>, <ofs> ( GR5 )              ; opMode 5
-      OR [ .<opt> ] <GR r>, <ofs> ( GR6 )              ; opMode 6
-      OR [ .<opt> ] <GR r>, <ofs> ( GR7 )              ; opMode 7
+      OR [ .<opt> ] <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : OR    ( 004 )         : r         : N : C : 0 : opMode    : opArg                             :
-      :-----------------------:-----------------------------------------------------------------------:
+      : OR    ( 004 )   : r      :N :C :0 : opMode    : opArg                                         :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The instruction fetches the data specified by the operand and performs a bitwise OR of the general register "r" and the operand fetched. The result is stored in general register "r". The N bit allows to negate the result making the OR a NOR operation. Operand mode zero OR-s a sign extended immediate value with "r". The C bit allows to complement ( 1's complement ) the operand input, which is for operand mode one and two the general register "b". In operand mode one, a zero value is OR-ed with "b" and stored in "r". The "a" field should be set to zero. Operand mode two allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address add operation of the form "r" = "a" + "b" as well as a "r"regR, regB" can be done. Operand mode 3 to 7 fetch the operand according to the addressing mode and perform a R = R OR operand operation.
+The instruction fetches the data specified by the operand and performs a bitwise OR of the general register "r" and the operand fetched. The result is stored in general register "r". The N bit allows to negate the result making the OR a NOR operation. 
 
+There are four major mode groups for this instruction. Operand mode 0 ORs a sign extended constant into "r". Operand mode 1 ORs a zero value to the "b" content and stores in the result reg "r". The "a" field should be set to zero. Operand mode 2 allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address operation of the form "r" = "a" op "b" as well as a "r" = "r" op "b" can be done. 
+
+Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will fetch a word from the computed address, mode 8 - 11 fetch a half-word and mode 12 - 15 a byte. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset. 
 
 #### Operation
 
 ```
       switch( opMode ) {
 
-         case 0: tmpA <- GR[r];
-		         tmpB <- signExt( opArg, 15 );
-				 break;
+         case 0:  tmpA <- GR[r];
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
-         case 1: tmpA <- 0;
-		         tmpB <- GR[b];
-				 break;
+         case 1:  tmpA <- 0;
+		      tmpB <- GR[b];
+			break;
 
-         case 2: tmpA <- GR[a];
-		         tmpB <- GR[b];
-				 break;
+         case 2:  tmpA <- GR[a];
+		      tmpB <- GR[b];
+			break;
 
-         case 3: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[a], add22( GR[b], signExt( instr.[15..17], 3 )); 
-				 break;
-
-         case 4: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[4] ) ], add22( GR[4], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 5: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[5] ) ], add22( GR[5], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 6: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[6] ) ], add22( GR[6], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 7: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[7] ) ], add22( GR[7], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
+         default: seg <- operandAdrSeg( instr );
+                  ofs <- operandAdrOfs( instr );
+                  len <- operandBitLen( instr );
+         
+                  tmpA <- GR[r];
+                  tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
 
       if ( instr.[C]) tmpB <- ~ tmpB;
@@ -1957,6 +1890,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignment trap
 
 #### Notes
 
@@ -1975,66 +1909,52 @@ Performs a bitwise XORing the operand and the target register and stores the res
 
 #### Format
 
-
 ```
       XOR [ .<opt> ] <GR r>, <val>                      ; opMode 0
       XOR [ .<opt> ] <GR r>, <GR b>                     ; opMode 2
       XOR [ .<opt> ] <GR r>, <GR a>, <GR b>             ; opMode 2
       XOR [ .<opt> ] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-      XOR [ .<opt> ] <GR r>, <ofs> ( GR4 )              ; opMode 4
-      XOR [ .<opt> ] <GR r>, <ofs> ( GR5 )              ; opMode 5
-      XOR [ .<opt> ] <GR r>, <ofs> ( GR6 )              ; opMode 6
-      XOR [ .<opt> ] <GR r>, <ofs> ( GR7 )              ; opMode 7
+      XOR [ .<opt> ] <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : XOR   ( 005 )         : r         : N : C : 0 : opMode    : opArg                             :
-      :-----------------------:-----------------------------------------------------------------------:
+      : XOR   ( 005 )   : r      :N :C :0 : opMode    : opArg                                         :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The instruction fetches the data specified by the operand and performs a bitwise XOR of general register "r" and the operand fetched. The result is stored in general register "r". The N bit allows to negate the result making the XOR a XNOR operation. Operand mode zero XOR-s a sign extended immediate value with "r". The C bit allows to complement ( 1's complement ) the operand input, which is for operand mode one and two general register "b". In operand mode one, a zero value is XOR-ed with the content of "b" and stored in "r". The "a" field should be set to zero. Operand mode two allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address add operation of the form "r" = "a" + "b" as well as a "r"regR, regB" can be done. Operand mode 3 to 7 fetch the operand according to the addressing mode and perform a R = R XOR operand operation.
+The instruction fetches the data specified by the operand and performs a bitwise XOR of general register "r" and the operand fetched. The result is stored in general register "r". The N bit allows to negate the result making the XOR a XNOR operation The C bit allows to complement ( 1's complement ) the operand input, which is for operand mode one and two general register "b". 
 
+There are four major mode groups for this instruction. Operand mode 0 XORs a sign extended constant into "r". Operand mode 1 XORs a zero value to the "b" content and stores in the result reg "r". The "a" field should be set to zero. Operand mode 2 allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address operation of the form "r" = "a" op "b" as well as a "r" = "r" op "b" can be done. 
+
+Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will fetch a word from the computed address, mode 8 - 11 fetch a half-word and mode 12 - 15 a byte. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset. 
 
 #### Operation
 
 ```
       switch( opMode ) {
 
-         case 0: tmpA <- GR[r];
-		         tmpB <- signExt( opArg, 15 );
-				 break;
+         case 0:  tmpA <- GR[r];
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
-         case 1: tmpA <- 0;
-		         tmpB <- GR[b];
-				 break;
+         case 1:  tmpA <- 0;
+		      tmpB <- GR[b];
+			break;
 
-         case 2: tmpA <- GR[a];
-		         tmpB <- GR[b];
-				 break;
+         case 2:  tmpA <- GR[a];
+		      tmpB <- GR[b];
+			break;
 
-         case 3: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[a], add22( GR[b], signExt( instr.[15..17], 3 )); 
-				 break;
-
-         case 4: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[4] ) ], add22( GR[4], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 5: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[5] ) ], add22( GR[5], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 6: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[6] ) ], add22( GR[6], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 7: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[7] ) ], add22( GR[7], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
+         default: seg <- operandAdrSeg( instr );
+                  ofs <- operandAdrOfs( instr );
+                  len <- operandBitLen( instr );
+         
+                  tmpA <- GR[r];
+                  tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
 
       if ( instr.[C]) tmpB <- ~ tmpB;
@@ -2049,6 +1969,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignemtn trap
 
 #### Notes
 
@@ -2066,27 +1987,29 @@ Compares a register and an operand and stores the comparison result in the targe
 
 #### Format
 
+
 ```
-      CMP [ .<cond> ] <GR r>, <val>                      ; opMode 0
-      CMP [ .<cond> ] <GR r>, <GR b>                     ; opMode 2
-      CMP [ .<cond> ] <GR r>, <GR a>, <GR b>             ; opMode 2
-      CMP [ .<cond> ] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-      CMP [ .<cond> ] <GR r>, <ofs> ( GR4 )              ; opMode 4
-      CMP [ .<cond> ] <GR r>, <ofs> ( GR5 )              ; opMode 5
-      CMP [ .<cond> ] <GR r>, <ofs> ( GR6 )              ; opMode 6
-      CMP [ .<cond> ] <GR r>, <ofs> ( GR7 )              ; opMode 7
+      CMP [ .<opt> ] <GR r>, <val>                      ; opMode 0
+      CMP [ .<opt> ] <GR r>, <GR b>                     ; opMode 2
+      CMP [ .<opt> ] <GR r>, <GR a>, <GR b>             ; opMode 2
+      CMP [ .<opt> ] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
+      CMO [ .<opt> ] <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : CMP   ( 006 )         : r         : cond      : opMode    : opArg                             :
-      :-----------------------:-----------------------------------------------------------------------:
+      : CMP   ( 006 )   : r      : cond   : opMode    : opArg                                         :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The compare instruction will compare two operands for the condition specified in the "cond" field. A value of one is stored in "r" when the condition is met, otherwise a zero value is stored. A typical code pattern would be to issue the compare instruction with the comparison result in general register "r", followed by a conditional branch instruction. Operand mode zero compares general register "r" with the immediate value in the operand field. Operand mode one compares a zero value with register "b". The "a" field should be set to zero. Operand mode 2 compares general register "a" with general register "b". Operand modes 3 .. 7 will compare general register "r" with the value loaded.
+The compare instruction will compare two operands for the condition specified in the "cond" field. A value of one is stored in "r" when the condition is met, otherwise a zero value is stored. A typical code pattern would be to issue the compare instruction with the comparison result in general register "r", followed by a conditional branch instruction. 
+
+There are four major mode groups for this instruction. Operand mode 0 compares a sign extended constant into "r". Operand mode 1 compares a zero value to the "b" content and stores in the result reg "r". The "a" field should be set to zero. Operand mode 2 allows to compare two general register to be the input operands, independent of the target general register in "r". This way, a three register address operation of the form "r" = "a" op "b" as well as a "r" = "r" op "b" can be done. 
+
+Mode 4 - 7, 8 - 11 and 12 - 16 compute the address of the "b" operand by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will fetch a word from the computed address, mode 8 - 11 fetch a half-word and mode 12 - 15 a byte. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset. 
 
 #### Comparison condition
 
@@ -2104,48 +2027,35 @@ The compare condition are encoded as follows.
 ```
       switch( opMode ) {
 
-        case 0: tmpA <- GR[r];
-		         tmpB <- signExt( opArg, 15 );
-				 break;
+         case 0:  tmpA <- GR[r];
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
-         case 1: tmpA <- 0;
-		         tmpB <- GR[b];
-				 break;
+         case 1:  tmpA <- 0;
+		      tmpB <- GR[b];
+			break;
 
-         case 2: tmpA <- GR[a];
-		         tmpB <- GR[b];
-				 break;
+         case 2:  tmpA <- GR[a];
+		      tmpB <- GR[b];
+			break;
 
-         case 3: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[a], add22( GR[b], signExt( instr.[15..17], 3 )); 
-				 break;
-
-         case 4: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[4] ) ], add22( GR[4], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 5: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[5] ) ], add22( GR[5], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 6: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[6] ) ], add22( GR[6], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
-
-         case 7: tmpA <- GR[r];
-		         tmpB <- memLoad( SR[ segSelect( GR[7] ) ], add22( GR[7], signExt( catImm( opArg, ofs2 ), 12 )));
-				 break;
+         default: seg <- operandAdrSeg( instr );
+                  ofs <- operandAdrOfs( instr );
+                  len <- operandBitLen( instr );
+         
+                  tmpA <- GR[r];
+                  tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
 
       switch ( cond ) {
 
          case 0: res <- tmpA ==  tmpB; break;
-	     case 1: res <- tmpA <   tmpB; break;
-	     case 2: res <- tmpA >   tmpB; break;
-	     case 3: res <- tmpA <<= tmpB; break;
-	     case 4: res <- tmpA !=  tmpB; break;
-	     case 5: res <- tmpA <=  tmpB; break;
-	     case 6: res <- tmpA >=  tmpB; break;
+	   case 1: res <- tmpA <   tmpB; break;
+         case 2: res <- tmpA >   tmpB; break;
+         case 3: res <- tmpA <<= tmpB; break;
+         case 4: res <- tmpA !=  tmpB; break;
+         case 5: res <- tmpA <=  tmpB; break;
+	 case 6: res <- tmpA >=  tmpB; break;
          case 7: res <- tmpA >>  tmpB; break;
       }
 
@@ -2158,6 +2068,7 @@ The compare condition are encoded as follows.
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignment trap
 
 #### Notes
 
@@ -2184,13 +2095,13 @@ Test a general register for a condition and conditionally move a register value 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : CMR   ( 052 )         : r         : cond      : I : 0     : val1      : a         : b         :
+      : CMR   ( 052 )   : r      : cond   :I : val                                  : a      : b      :
       :-----------------------:-----------------------------------------------------------------------:
 ```
 
 #### Description
 
-The conditional move instruction will test register "b" for the condition. If the condition is met, general register "a" is moved to "r". The "I" bit indicates to use an immediate value constructed from the "val1" field concatenated with the "a" field of the instruction instead of the contents of register "a".
+The conditional move instruction will test register "b" for the condition. If the condition is met, general register "a" is moved to "r". The "I" bit indicates to use an immediate value constructed from the "val" field concatenated with the "a" field of the instruction instead of the contents of register "a".
 
 #### Comparison condition codes
 
@@ -2212,11 +2123,11 @@ The conditional move instruction will test register "b" for the condition. If th
          case 0: res <- ( GR[b] == 0 );   break;
          case 1: res <- ( GR[b] > 0 );    break;
          case 2: res <- ( GR[b] < 0 );    break;
-         case 3: res <- ( ~ GR[b].[23] ); break;
+         case 3: res <- ( ~ GR[b].[31] ); break;
          case 4: res <- ( GR[b] != 0 );   break;
          case 5: res <- ( GR[b] <= 0 );   break;
          case 6: res <- ( GR[b] >= 0 );   break;
-         case 7: res <- ( GR[b].[23] );   break;
+         case 7: res <- ( GR[b].[31] );   break;
       }
 
       if ( res ) GR[r] <- GR[a];
@@ -2249,6 +2160,8 @@ CMR    R1,R4,R1  ; test R1 and store R4 when condition is met
 
 <hr>
 
+// ??? **note** rework to have a bit for using SA...
+
 Performs a bit field extract from a general register and stores the result in the targetReg.
 
 #### Format
@@ -2260,7 +2173,7 @@ Performs a bit field extract from a general register and stores the result in th
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : EXTR  ( 012 )         : r         : len               : pos               : S : 0 : b         :
+      : EXTR  ( 012 )   : r      : len               : pos               : S : 0 : b         :
       :-----------------------:-----------------------------------------------------------------------:
 ```
 
@@ -2299,20 +2212,22 @@ The VCPU-32 instruction set does not have dedicated instructions for left and ri
 
 <hr>
 
+// ??? **note** rework to have a bit for using SA...
+
 Performs a bit field deposit of the value extracted from a bit field in reg "B" and stores the result in the targetReg.
 
 #### Format
 
 ```
       DEP [ .<opt> ] <GR r>, <GR b>, <pos, <len>
-	  DEP [ .<opt> ] <GR r>, <val>, <pos>, <len>
+	DEP [ .<opt> ] <GR r>, <val>, <pos>, <len>
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : DEP   ( 013 )         : r         : len               : pos               : Z : I : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : DEP   ( 013 )   : r      : len               : pos               : Z : I : b         :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -2352,6 +2267,8 @@ The VCPU-32 instruction set does not have dedicated instructions for left and ri
 
 <hr>
 
+// ??? **note** rework to have a bit for using SA...
+
 Performs a right shift of two concatenated registers for shift amount bits and stores the result in the target register.
 
 #### Format
@@ -2363,8 +2280,8 @@ Performs a right shift of two concatenated registers for shift amount bits and s
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : DSR   ( 014 )         : r         : shamt             : 0             : a         : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : DSR   ( 014 )   : r      :                    : shamt        : 0            : a      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -2399,20 +2316,22 @@ The VCPU-32 instruction set does not have dedicated instructions for shift and r
 
 <hr>
 
+// ??? **note** rework to new format ...
+
 Performs a combined shift left and add operation and stores the result into the target register.
 
 #### Format
 
 ```
       SHLA [ .<opt> ] <GR r>, <GR a>, <GR b>, <smAmt>
-	  SHLA [ .<opt> ] <GR r>, <GR a>, <val>, <smAmt>
+      SHLA [ .<opt> ] <GR r>, <GR a>, <val>, <smAmt>
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : SHLA  ( 015 )         : r         : I : L : O : 0 : sa    : 0         : a         : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : SHLA  ( 015 )   : r      :I :L :O : 0         : sa  : 0                     : a      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -2459,20 +2378,20 @@ Loads an immediate value into the target register.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDI   ( 007 )         : r         :  val2     : Z : L : 0 : val1                              :
-      :-----------------------:-----------------------------------------------------------------------:
+      : LDI   ( 007 )   : r      :Z :L :0 : 0         : val                                           :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The load immediate instruction loads a 12-bit immediate value embedded in the instruction into the general register "r". The "Z" bit specifies to clear the target register first. The "L" bit specifies that the concatenated value from fields "val1" and "val2" value is to be stored into the upper half of the target register without affecting the lower half of the target register. Using the "L" option, two LDI instructions can thus set any immediate value.
+The load immediate instruction loads a 12-bit immediate value embedded in the instruction into the general register "r". The "Z" bit specifies to clear the target register first. The "L" bit specifies that the value is to be stored into the upper half of the target register without affecting the lower half of the target register. Using the "L" option, two LDI instructions can thus set any immediate value.
 
 #### Operation
 
 ```
       if ( instr.[Z] GR[r] = 0;
       tmp = catImm( val1, val2 );
-      if ( instr.[L] ) tmp =  tmp << 12;
+      if ( instr.[L] ) tmp =  tmp << 16;
       GR[r] = GR[r] | tmp;
 ```
 
@@ -2493,46 +2412,37 @@ None.
 
 <hr>
 
+// ??? **note** needs reworking ... should there be a mode 0 .. 2 like LDW ?
+
 Loads the effective address of the operand.
 
 #### Format
 
 ```
-	  LEA <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-	  LEA <GR r>, <ofs> ( GR4 )              ; opMode 4
-	  LEA <GR r>, <ofs> ( GR5 )              ; opMode 5
-	  LEA <GR r>, <ofs> ( GR6 )              ; opMode 6
-	  LEA <GR r>, <ofs> ( GR7 )              ; opMode 7
+      LEA <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
+      LEA <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LEA    ( 010 )        : r         : ofs2      : opMode    :     opArg                         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : LEA    ( 010 )  : r      :        : opMode    :     opArg                                     :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The LEA instruction loads the computed address offset into general register "r". It just performs the address computation part comparable to the LD/ST instruction, however with no memory access. Operand mode 0, 1 and 2 are undefined for this instruction. Operand mode 3 to 7 concatenate the immediate with the "ofs2" field to form a larger offset.
+The LEA instruction loads the computed address offset into general register "r". It just performs the address computation part comparable to the LDx/STx instruction, however with no memory access.
 
 #### Operation
 
 ```
-   switch( opMode ) {
-
-      case 3: GR[r] <- add24( GR[b], signExt( catImm( instr.[15..17, ofs ), 6 }); break;
-      case 4: GR[r] <- add22( GR[4], signExt( catImm( opArg, ofs2 ), 12 }); break;
-      case 5: GR[r] <- add22( GR[5], signExt( catImm( opArg, ofs2 ), 12 )); break;
-      case 6: GR[r] <- add22( GR[6], signExt( catImm( oparg, ofs2 ), 12 }); break;
-      case 7: GR[r] <- add22( GR[7], signExt( catImm( opArg, ofs2 ), 12 }); break;
-      default: illegalInstructionTrap( );
-   }
+      GR[ r ] <- operandAdrOfs( instr );
 ```
 
 #### Exceptions
 
-- illegalInstructionTrap
+- Illegal Instruction Trap
 
 #### Notes
 
@@ -2558,7 +2468,7 @@ Load the segment identifier for a logical address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LSID ( 011 )          : r         : 0                                             : b         :
+      : LSID ( 011 )    : r      : 0                                                         : b      :
       :-----------------------:-----------------------------------------------------------------------:
 ```
 
@@ -2569,7 +2479,7 @@ The LSID instruction returns the segment identifier of the segment encoded in th
 #### Operation
 
 ```
-      GR[r] <- SR[ segSelect( GR[b] );
+      GR[r] <- SR[ segSelect( GR[b] ) ];
 ```
 
 #### Exceptions
