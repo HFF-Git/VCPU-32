@@ -53,13 +53,13 @@ February, 2024
 >
 > "Seriously?“
 >
-> “OK, seriously. A 32bit CPU will give us the same set of design challenges to look into and opportunities to include modern RISC features and learn about instruction sets and pipeline design as any other CPU. Although a vintage design, it will still be a useful CPU. Think back on to our first CPUs we progarmmed in school, a long time ago. Weren't they fun ?"
+> “OK, seriously. A 32bit CPU will give us the same set of design challenges to look into and opportunities to include modern RISC features and learn about instruction sets and pipeline design as any other CPU. Although a vintage design, it will still be a useful CPU. Think back on to our first CPUs we programmed in school, a long time ago. Weren't they fun ?"
 >
 > "OK, so what do you have in mind ?"
 
 Welcome to VCPU-32. VCPU-32 is a simple 32-bit CPU with a register-memory model and a segmented virtual memory. The design is heavily influenced by Hewlett Packard's PA_RISC architecture, which was initially a 32 bit RISC-style register-register load-store machine. Many of the key architecture features came from there. However, other processors, the Data General MV8000, the DEC Alpha, and the IBM PowerPc, were also influential.
 
-The original design goal that started this work was to truly understand the design process and implementation tradeoff for a simple pipelined CPU. While it is not a design goal to build a competitive CPU, the CPU should nevertheless be useful and largely follow established common practices. For example, instructions should not be invented because they seem to be useful, but rather designed with the assembler and compilers in mind. Instruction set design is also CPU design. Register memory architecturs in the 80s were typically micro-coded complex instructon machine. In contrast, VCPU-32 instructions will be hard coded and should be in general "pipeline friendly" and avoid data and control hazards and stalls where possible.
+The original design goal that started this work was to truly understand the design process and implementation tradeoff for a simple pipelined CPU. While it is not a design goal to build a competitive CPU, the CPU should nevertheless be useful and largely follow established common practices. For example, instructions should not be invented because they seem to be useful, but rather designed with the assembler and compilers in mind. Instruction set design is also CPU design. Register memory architectures in the 80s were typically micro-coded complex instruction machine. In contrast, VCPU-32 instructions will be hard coded and should be in general "pipeline friendly" and avoid data and control hazards and stalls where possible.
 
 The instruction set design guidelines center around the following principles. First, in the interest of a simple and efficient instruction decoding step, instructions are of fixed length. A machine word is the instruction word length. As a consequence, address offsets are rather short and addressing modes are required for reaching the entire address range. Instead of a multitude of addressing modes, typically found in the CPUs of the 80s and 90s, VCPU-32 offers very few addressing modes with a simple base address - offset calculation model. No indirection or any addressing mode that would require to read a memory content for address calculation is part of the architecture.
 
@@ -69,7 +69,7 @@ Modern RISC CPUs are load/store CPUs and feature a large number of general regis
 
 VCPU-32 offers a large address range, organized into segments. Segment and offset into the segment form a virtual address. In addition, a short form of a virtual address, called a logical address, will select a segment register from the upper logical address bits to form a virtual address. Segments are also associated with access rights and protection identifies. The CPU itself can run in user and privilege mode.
 
-This document describes the architecture, instruction set and runtime for VCPU-32. It is organized into several chapters. The first chapter will give an overview on the architecture. It presents the memory model, registers sets and basic operation modes. The major part of the document then presents the instruction set. Memory reference instructions, branch instructions, computational instructions and system control instructions are described in detail. These chapters are the authoritative reference of the instruction set. The runtime enviroment chapters present the runtime architecture. Finally, the remainder of the chapters summarize the instructions defined and also offer an instruction and runtime commentary to illustrate key points on the design choices taken.
+This document describes the architecture, instruction set and runtime for VCPU-32. It is organized into several chapters. The first chapter will give an overview on the architecture. It presents the memory model, registers sets and basic operation modes. The major part of the document then presents the instruction set. Memory reference instructions, branch instructions, computational instructions and system control instructions are described in detail. These chapters are the authoritative reference of the instruction set. The runtime environment chapters present the runtime architecture. Finally, the remainder of the chapters summarize the instructions defined and also offer an instruction and runtime commentary to illustrate key points on the design choices taken.
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -87,7 +87,7 @@ VCPU-32 implements a **register memory architecture**. For most of the instructi
 REG <- REG op OPERAND
 ```
 
-In contrast to similar historical register-memory designs, there is no operation which does a read and write operation to memory in the same instruction. For example, there is no "increment memory" instruction, since this would require two memory operations and is not pipeline friendly. Memory access is performed on a machine word, half-word or byte basis. Besides the implicit operand fetch in an instruction, there are dedicated memory load / store instructions. Computational operations and memory refrence operations use a common addressing model, also called **operand mode**. In additon to the memory register mode, one operand mode supports also a three operand model ( Rs = Ra OP Rb ), specifying two registers and a result register, which allows to perform three address register for computational operations as well. The machine can therefore operate in a memory register model as well as a load / store register model.
+In contrast to similar historical register-memory designs, there is no operation which does a read and write operation to memory in the same instruction. For example, there is no "increment memory" instruction, since this would require two memory operations and is not pipeline friendly. Memory access is performed on a machine word, half-word or byte basis. Besides the implicit operand fetch in an instruction, there are dedicated memory load / store instructions. Computational operations and memory reference operations use a common addressing model, also called **operand mode**. In addition to the memory register mode, one operand mode supports also a three operand model ( Rs = Ra OP Rb ), specifying two registers and a result register, which allows to perform three address register for computational operations as well. The machine can therefore operate in a memory register model as well as a load / store register model.
 
 ### Memory and IO Address Model
 
@@ -126,7 +126,7 @@ In a multi-processor system, all memory banks 1 to N and the bank zero data addr
 
 ### Data Types
 
-VCPU-32 is a big endian 32-bit machine. The fundamental data type is a 32-bit machine word with the most significant bit being left. Bits are numbered from left to right, starting with bit 0 as the MSB bit. Memory access is performed on a word, half-word or byte basis. All address are howver expressed in bytes adresses.
+VCPU-32 is a big endian 32-bit machine. The fundamental data type is a 32-bit machine word with the most significant bit being left. Bits are numbered from left to right, starting with bit 0 as the MSB bit. Memory access is performed on a word, half-word or byte basis. All address are however expressed as bytes addresses.
 
 ```
           MSB                                                      LSB
@@ -258,7 +258,7 @@ The VCPU-32 memory model features a **segmented memory model**. The address spac
 
 ### Address Translation
 
-VCPU-32 defines three types of addresses. At the programmer's level there is the **logical address**. The logical address is a 32-bit word, which contains a 2-bit segment register selector and a 30-bit offset. During data access the segment selector selects from the segment register set SR4 to SR7 and forms together with the 30-bit offset a virtual address. The **virtual address** is the concatenation of a segment and an offset. Together they form a maiximum address range of 2^32 segments with 2^32 bits each. Once the virtual address is formed, the translation process is the same for both virtual addressing modes. The following figure shows the translation process for a logical address. A virtual address is translated to a **physical address**. A logical address is an address with the upper two bits indicating which segment register to use and the offset an unsigned index into the segment. The resulting virtual address will have in this case the upper two bits set to zero.
+VCPU-32 defines three types of addresses. At the programmer's level there is the **logical address**. The logical address is a 32-bit word, which contains a 2-bit segment register selector and a 30-bit offset. During data access the segment selector selects from the segment register set SR4 to SR7 and forms together with the 30-bit offset a virtual address. The **virtual address** is the concatenation of a segment and an offset. Together they form a maximum address range of 2^32 segments with 2^32 bits each. Once the virtual address is formed, the translation process is the same for both virtual addressing modes. The following figure shows the translation process for a logical address. A virtual address is translated to a **physical address**. A logical address is an address with the upper two bits indicating which segment register to use and the offset an unsigned index into the segment. The resulting virtual address will have in this case the upper two bits set to zero.
 
 ```
                                                       0    1 2                                 31
@@ -288,7 +288,7 @@ VCPU-32 defines three types of addresses. At the programmer's level there is the
                                   (optional )         \_______ physical page ___/\__ page ofs ___/
 ```
 
-Address translation can be enabled separately for instruction and data address translation. If virtual address translation for the instruction or data access is disabled, the 32 bit offset portion represents a physical address. A virtual address with a segment portion of zero will directly address the the physical memory, i.e the virtual adress offset is the physical address. In a single CPU implementation, the physical address is the memory address. The maximum memory size is 4 Bbytes, unless memory banks are supported. Within a multi-CPU arrangement, the physical address can be augmented with a CPU ID which allows a set of CPUs share their physical range.
+Address translation can be enabled separately for instruction and data address translation. If virtual address translation for the instruction or data access is disabled, the 32 bit offset portion represents a physical address. A virtual address with a segment portion of zero will directly address physical memory, i.e the virtual address offset is the physical address. In a single CPU implementation, the physical address is the memory address. The maximum memory size is 4 Bbytes, unless memory banks are supported. Within a multi-CPU arrangement, the physical address can be augmented with a CPU ID which allows a set of CPUs share their physical range.
 
 ### Access Control
 
@@ -550,14 +550,14 @@ for the LDx instruction, modes 0 .. 2 are of the following format:
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
-The machine addresses memory with a byte address. The **mode** field indicates which addressing mode is used. Mode 0 is the immediate mode, where the operand is a sign-exended value. Mode 1 and 2 are the register modes. Either one or two regsiters can be speciifed. Mode 3 features an extended addressing mode, which will allow to access a word in a segment. Modes 4 to 15 are the indexed modes. They fetch a word, a half-word or a byte. The address must be aligned with the size of data to fetch. The address is built from selecting an index register. General register 4 maps to mode 4, 8 nd 12, general register 5 to 5, 9 and 13 and so on. The LD instruction features in modes 0 to 2 a register indexed addressing, which takes a registers as base register and adds another register to it to form the final address.
+The machine addresses memory with a byte address. The **mode** field indicates which addressing mode is used. Mode 0 is the immediate mode, where the operand is a sign-extended value. Mode 1 and 2 are the register modes. Either one or two registers can be specified. Mode 3 features an extended addressing mode, which will allow to access a word in a segment. Modes 4 to 15 are the indexed modes. They fetch a word, a half-word or a byte. The address must be aligned with the size of data to fetch. The address is built from selecting an index register. General register 4 maps to mode 4, 8 and 12, general register 5 to 5, 9 and 13 and so on. The LD instruction features in modes 0 to 2 a register indexed addressing, which takes a registers as base register and adds another register to it to form the final address.
 
 
 ### Memory Reference Instructions
 
 Memory reference instruction load or store a word to memory. The unit of transfer is a word, a half-word or a byte. The instructions use a **W** for word, a **H** for half-word and a **B** for byte operand size. The LDx and STx instruction are load and store a register portion using the operand encoding to specify the logical address. Using logical addresses restricts the segment size to 30-bits address range. To access the full virtual 64-bit address range of a segment, the LDEx and STEx instructions allow to specify a segment and an offset register to access the virtual memory. The LDAx  and STAx instruction implement access to the physical memory using a general register as the physical address to access. For supporting atomic operations two instructions are provided. The LDWR instruction loads a value form memory and remember this access. The STWC instruction will store a value to the same location that the LR instructions used and return a failure if the value was modified since the last LR access. This CPU pipeline friendly pair of instructions allow to build higher level atomic operations on top.
 
-Memory reference instructions can be issued when data translation is on and off. When address translation is turned off, the memory reference instructions will ignore the segment part and replce it witha zero value. It is an architectural requirement that a virtual address with a segment Id of zero maps to an absolute address with the same offset. The absolute address mode instruction also works with translation turned on and off. The extended address mode instructions will raise a trap.
+Memory reference instructions can be issued when data translation is on and off. When address translation is turned off, the memory reference instructions will ignore the segment part and replace it with a zero value. It is an architectural requirement that a virtual address with a segment Id of zero maps to an absolute address with the same offset. The absolute address mode instruction also works with translation turned on and off. The extended address mode instructions will raise a trap.
 
 
 ### Control flow Instructions
@@ -587,12 +587,15 @@ The instruction operation is described in a pseudo C style language using assign
 | **signExtend( x, len )** | performs a sign extension of the value "x". The "len" parameter specifies the number of bits in the immediate. The sign bit is the leftmost bit. |
 | **zeroExtend( x, len )** | performs a zero bit extension of the value "x". The "len" parameter specifies the number of bits in the immediate.|
 | **segSelect( x )** | returns the segment register number based on the leftmost three bits of the argument "x". |
+| **operandAdrSeg( instr )** | computes the segment Id from the instruction and mode information. ( See the operand encoding diagram for modes ) |
+| **operandAdrOfs( instr )** | computes the offset portion from the instruction and mode information. ( See the operand encoding diagram for modes ) |
+| **operandBitLen( instr )** | computes the operand bit length from the instruction and mode information. ( See the operand encoding diagram for modes ) |
 | **ofsSelect( x )** | returns the 30-bit offset portion of the argument "x". |
 | **add30( x, y )** | performs a 30-bit addition of x and y. The result does not overflow into the leftmost 2 bits of the result word. Typically, the "x" operand is an unsigned value while "y" is a signed value. The result of the operation will wrap around is case of overflow.|
 | **add32( x, y )** | performs a 32-bit addition of x and y. Typically, the "x" operand is an unsigned value while "y" is a signed value. The result of the operation will wrap around is case of overflow.|
 | **rshift( x, amt )** | logical right shift of the bits in x by "amt" bits. |
-| **memLoad( seg, ofs )** | load a word from virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to load a word from physical memory.  |
-| **memStore( seg, ofs, val )** | store a word "val" to virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to store the word "val" from physical memory. |
+| **memLoad( seg, ofs, bitLen )** | loads data from virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. The bitLen is teh number of bits to load. If the bitLen is less than 32, the data is zero sign extended. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to load a word from physical memory.  |
+| **memStore( seg, ofs, val, bitlen )** | store data to virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to store the word "val" from physical memory. |
 | **loadPhysAdr( seg, ofs )** | returns the physical address for a virtual address. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "ofs" is the physical address in memory. |
 | **searchInstructionTlbEntry( seg, ofs, entry )** | lookup the TLB entry and if found return a pointer to the entry. |
 | **allocateInstructionTlbEntry( seg, ofs, entry )** | allocate an entry in the TLB and return a pointer to the entry. |
@@ -637,11 +640,9 @@ Loads a memory value into a general register.
 #### Format
 
 ```
-	  LDx <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-	  LDx <GR r>, <ofs> ( GR4 )              ; opMode 4
-	  LDx <GR r>, <ofs> ( GR5 )              ; opMode 5
-	  LDx <GR r>, <ofs> ( GR6 )              ; opMode 6
-	  LDx <GR r>, <ofs> ( GR7 )              ; opMode 7
+	  LDx <GR r>, <GR a>( GR<b> )            ; opMode 0 .. 2
+        LDx <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
+        LDx <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
 ```
 
 ```
@@ -653,25 +654,16 @@ Loads a memory value into a general register.
 
 #### Description
 
-The load instruction will load the operand into the general register "r". 
-
-
-
-
-Operand mode 0, 1 and 2 are undefined for this instruction. Operand mode 3 creates a virtual address from a segment register "a" and the base address in register "b" plus an offset embedded in the instruction. Operand mode 4 to 7 concatenate the immediate with the "ofs2" field to form a larger offset. The offset embedded in the instruction is added to the index register GR4 - GR7.
+The load instruction will load the operand into the general register "r". There are four major modes for this instruction. Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will fetch a word from the computed address, mode 8 - 11 fetch a half-word and mode 12 - 15 a byte. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset. Operand mode 0 - 2 form the operand address by using "a" as the base register and add the signed offset in "b" to it. Mode 0 will fetch a word, mode 1 a half-word and mode 2 a byte. The fetched half-word or byte operand is zero sign extended and stored in "r".
 
 #### Operation
 
 ```
-   switch( opMode ) {
+   seg <- operandAdrSeg( instr );
+   ofs <- operandAdrOfs( instr );
+   len <- operandBitLen( instr );
 
-      case 3: GR[r] <- memLoad( SR[a], add24( GR[b], signExt( catImm( instr.[15..17], ofs2 ), 6 ))); break;
-      case 4: GR[r] <- memLoad( SR[segSelect( GR[4] )], add22( GR[4], signExt( catImm( opArg, ofs2), 12 ))); break;
-      case 5: GR[r] <- memLoad( SR[segSelect( GR[5] )], add22( GR[5], signExt( catImm( opArg, ofs2), 12 ))); break;
-      case 6: GR[r] <- memLoad( SR[segSelect( GR[6] )], add22( GR[6], signExt( catImm( opArg, ofs2), 12 ))); break;
-      case 7: GR[r] <- memLoad( SR[segSelect( GR[7] )|, add22( GR[7], signExt( catImm( opArg, ofs2), 12 ))); break;
-      default: illegalInstructionTrap( );
-   }
+   GR[ r ] <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
 ```
 
 #### Exceptions
@@ -681,6 +673,7 @@ Operand mode 0, 1 and 2 are undefined for this instruction. Operand mode 3 creat
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignment trap
 
 #### Notes
 
@@ -690,7 +683,7 @@ None.
 
 <div style="page-break-before: always;"></div>
 
-### ST
+### STW, STH, STB
 
 <hr>
 
@@ -699,37 +692,31 @@ Stores a general register value into memory
 #### Format
 
 ```
-      ST <ofs> ( <SR a>, <GR b> ), <GR r>   ; opMode 3
-      ST <ofs> ( GR4 ), <GR r>              ; opMode 4
-      ST <ofs> ( GR5 ), <GR r>              ; opMode 5
-      ST <ofs> ( GR6 ), <GR r>              ; opMode 6
-      ST <ofs> ( GR7 ), <GR r>              ; opMode 7
+      STx <ofs> ( <SR a>, <GR b> ), <GR r>   ; opMode 3
+      STx <ofs> ( GR y ), <GR r>             ; opMode 4 .. 15, "y" -> GR4 .. GR7
 ```
 
 ```
-      0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : ST    ( 021 )         : r         : ofs2      : opMode    :     opArg                         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : STx     ( 021 ) : r      :        : opMode    :  opArg                                        :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The store instruction will store the content of general register "r" to the address specified by the operand. Operand mode 0, 1 and 2 are undefined for this instruction. Operand mode 3 creates a virtual address from a segment register "a" and the base address in register "b" plus an offset embedded in the instruction. Operand mode 4 to 7 concatenate the immediate with the "ofs2" field to form a larger offset. The offset embedded in the instruction is added to the index register GR4 - GR7.
+The load instruction will store the data in general register "r" to memory. There are four major modes for this instruction. Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will store the general register to the computed address, mode 8 - 11 store bits 16 - 31 to memory and mode 12 - 15 store bits 24 .. 31 to memory. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset.The operand size for mode 3 is a word. Operand mode 0 - 2 is undefined for this instruction.
 
 #### Operation
 
 ```
-     switch( opMode ) {
+      if ( opMode < 3  ) illegalInstructionTrap( );
 
-        case 3: memStore( SR[a], add24( GR[b], signExt( catImm( instr.[15..17], ofs2 ), 6 )), GR[r] ); break;
-        case 4: memStore( SR[segSelect( GR[4] )], add22( GR[4], signExt( catImm( opArg, ofs2 ), 12 ))), GR[r] ); break;
-        case 5: memStore( SR[segSelect( GR[5] )], add22( GR[5], signExt( catImm( opArg, ofs2 ), 12 ))), GR[r] ); break;
-        case 6: memStore( SR[segSelect( GR[6] )], add22( GR[6], signExt( catImm( opArg, ofs2 ), 12 ))), GR[r] ); break;
-        case 7: memStore( SR[segSelect( GR[7] )], add22( GR[7], signExt( catImm( opArg, ofs2 ), 12 ))), GR[r] ); break;
-        default: illegalInstructionTrap( );
-     }
-}
+      seg <- operandAdrSeg( instr );
+      ofs <- operandAdrOfs( instr );
+      len <- operandBitLen( instr );
+
+      memStore( seg, ofs, GR< r >, len );
 ```
 
 #### Exceptions
@@ -739,6 +726,7 @@ The store instruction will store the content of general register "r" to the addr
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignment trap
 
 #### Notes
 
@@ -749,7 +737,7 @@ None.
 
 <div style="page-break-before: always;"></div>
 
-### LDE
+### LDWE, LDHE, LDBE
 
 <hr>
 
@@ -758,24 +746,31 @@ Loads the memory content into a general register using a virtual address.
 #### Format
 
 ```
-      LDE <GR r>, <ofs> ( <SR a>, <GR b> )
+      LDxE <GR r>, <ofs> ( <SR a>, <GR b> )
+      
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDE   ( 024 )         : r         : ofs2                  : ofs1      : a         : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : LDWE   ( 0xx )  : r      : ofs2               : ofs1                        : a      : b      :
+      ------------------:-----------------------------------------------------------------------------:
+      : LDHE   ( 0xx )  : r      : ofs2               : ofs1                        : a      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
+      : LDBE   ( 0xx )  : r      : ofs2               : ofs1                        : a      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The load extended instruction will load the operand into the general register "r" using a virtual address. The virtual address is formed by the segment register "a" and the general register "b" plus the signed offset built from "ofs1" and "ofs2".
+The load extended instructions will load the operand into the general register "r" using a virtual address. The virtual address is formed by the segment register "a" and the general register "b" plus the signed offset built from "ofs1" and "ofs2". There are three instrcutions for loading a word a half-word or byte. Half-word and byte data is zero sign extended.
 
 #### Operation
 
 ```
-   GR[r] <- memLoad( SR[a] ), add24( GR[b], signExtend( catImm( ofs1, ofs2 ), 9 )));
+      LDWE: GR[r] <- zeroExtend( memLoad( SR[a] ), add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 32 );
+      LDHE: GR[r] <- zeroExtend( memLoad( SR[a] ), add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 16 );
+      LDBE: GR[r] <- zeroExtend( memLoad( SR[a] ), add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 8  );
 ```
 
 #### Exceptions
@@ -784,6 +779,7 @@ The load extended instruction will load the operand into the general register "r
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignment trap
 
 #### Notes
 
@@ -794,7 +790,7 @@ None.
 
 <div style="page-break-before: always;"></div>
 
-### STE
+### STWE, STWH, STWB
 
 <hr>
 
@@ -803,24 +799,30 @@ Stores a general register value into memory using a virtual address.
 #### Format
 
 ```
-      STE <ofs> ( <SR a>, <GR b> ), <GR r>
+      STxE <ofs> ( <SR a>, <GR b> ), <GR r>
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : STE   ( 025 )         : r         : ofs2                  : ofs1      : a         : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : STWE   ( 0xx )  : r      : ofs2               : ofs1                        : a      : b      :
+      ------------------:-----------------------------------------------------------------------------:
+      : STHE   ( 0xx )  : r      : ofs2               : ofs1                        : a      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
+      : STBE   ( 0xx )  : r      : ofs2               : ofs1                        : a      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The store extended instruction will store the general register "r" into memory using a virtual address. The virtual address is formed by the segment register "a" and the general register "b" plus the signed offset built from "ofs1" and "ofs2".
+The store extended instructions will store data from general register "r" using a virtual address. The virtual address is formed by the segment register "a" and the general register "b" plus the signed offset built from "ofs1" and "ofs2". There are three instructions for storing a word a half-word or byte. A half-word store takes bits 16 .. 31 from the general register "r", a byte store bits 24 .. 31.
 
 #### Operation
 
 ```
-      memStore( SR[a], add24( GR[b], signExtend( catImm( ofs1, ofs2 ), 9 )), GR[r] );
+      STWE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 32 );
+      STHE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 16 );
+      STBE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 8  );
 ```
 
 #### Exceptions
@@ -829,6 +831,7 @@ The store extended instruction will store the general register "r" into memory u
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignment trap
 
 #### Notes
 
@@ -839,7 +842,7 @@ None.
 
 <div style="page-break-before: always;"></div>
 
-### LDA
+### LDWA, LDHA, LDBA
 
 <hr>
 
@@ -848,30 +851,38 @@ Loads the memory content into a general register using an absolute address.
 #### Format
 
 ```
-      LDA <GR r>, <ofs> ( <GR b> )
+      LDxA <GR r>, <ofs> ( <GR b> )
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDA   ( 026 )         : r         : ofs2                  : ofs1                  : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : LDWA   ( 0xx )  : r      : ofs2               : ofs1                                 : b      :
+      :-----------------:-----------------------------------------------------------------------------:
+      : LDHA   ( 0xx )  : r      : ofs2               : ofs1                                 : b      :
+      :-----------------:-----------------------------------------------------------------------------:
+      : LDBA   ( 0xx )  : r      : ofs2               : ofs1                                 : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The load absolute instruction will load the content of the physical memory address into the general register "r". The absolute 24-bit address is computed from adding the signed offset formed by concatenating the "ofs1" and "ofs2" fields to general register "b". The LDA instruction is a privileged instruction.
+The load absolute instruction will load the content of the physical memory address into the general register "r". The absolute 32-bit address is computed from adding the signed offset formed by concatenating the "ofs1" and "ofs2" fields to general register "b". There are three instructions for loading a word a half-word or byte. Half-word and byte data is zero sign extended. The LDxA instructions are privileged instructions.
 
 #### Operation
 
 ```
-     if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
-     GR[r] <- memLoad( 0, add24( GR[b], signExtend( catImm( ofs1, ofs2 ), 12 )));
+      if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
+
+      LDWA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 32 );
+      LDHA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 16 );
+      LDBA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 8  );
 ```
 
 #### Exceptions
 
-- Privileged operation trap.
+- Privileged operation trap
+- Alignment trap
 
 #### Notes
 
@@ -882,40 +893,47 @@ None.
 
 <div style="page-break-before: always;"></div>
 
-### STA
+### STWA, STHA, STBA
 
 <hr>
 
-Stores the target register value into memory using an absolute physical address.
+Stores a general register value into memory using an absolute physical address.
 
 #### Format
 
 ```
-      STA <ofs> ( <SR a>, <GR b> ), <GR r>
+      STxA <ofs> ( <SR a>, <GR b> ), <GR r>
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : SDA   ( 027 )         : r         : ofs2                  : ofs1                  : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : STWA   ( 0xx )  : r      : ofs2               : ofs1                                 : b      :
+      :-----------------:-----------------------------------------------------------------------------:
+      : STHA   ( 0xx )  : r      : ofs2               : ofs1                                 : b      :
+      :-----------------:-----------------------------------------------------------------------------:
+      : STBA   ( 0xx )  : r      : ofs2               : ofs1                                 : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The store absolute instruction will store the target register into memory using a physical address. The absolute 24-bit address is computed from adding the signed offset formed by concatenating the "ofs1" and "ofs2" fields. The STA instruction is a privileged instruction.
+The store absolute instruction will store the target register into memory using a physical address. The absolute 32-bit address is computed from adding the signed offset formed by concatenating the "ofs1" and "ofs2" fields. There are three instructions for storing a word a half-word or byte. A half-word store takes bits 16 .. 31 from the general register "r", a byte store bits 24 .. 31. The STxA instructions are a privileged instruction.
 
 #### Operation
 
 ```
-
       if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
-      memStore( 0, add24( GR[b], signExtend( catImm( ofs1, ofs2 ), 12 )), GR[r] );
+
+      STWA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 32 );
+      STHA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 16 );
+      STBA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 8  );
 ```
 
 #### Exceptions
 
-- Privileged operation trap.
+- Privileged operation trap
+- Alignment trap
 
 #### Notes
 
@@ -926,7 +944,7 @@ None.
 
 <div style="page-break-before: always;"></div>
 
-### LR
+### LDWR
 
 <hr>
 
@@ -935,39 +953,32 @@ Loads the operand into the target register from the address and marks that addre
 #### Format
 
 ```
-      LR <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-      LR <GR r>, <ofs> ( GR4 )              ; opMode 4
-      LR <GR r>, <ofs> ( GR5 )              ; opMode 5
-      LR <GR r>, <ofs> ( GR6 )              ; opMode 6
-      LR <GR r>, <ofs> ( GR7 )              ; opMode 7
+        LDWR <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
+        LDWR <GR r>, <ofs> ( GR y )             ; opMode 4 .. 7, "y" -> GR4 .. GR7
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LR   ( 022 )          : r         : ofs2      : opMode    :     opArg                         :
+      : LDWR   ( 022 )  : r      : 0      : opMode    : opArg                                         :
       :-----------------------:-----------------------------------------------------------------------:
 ```
 
 #### Description
 
-The LR instruction is used for implementing semaphore type operations. Operand mode 0, 1 and 2 are undefined for this instruction. Operand mode 3 creates a virtual address from a segment register "a" and the base address in register "b" plus an offset embedded in the instruction. Operand mode 4 to 7 concatenate the immediate with the "ofs2" field to form the signed offset. The first part of the instruction behaves exactly like the LD instruction. A logical memory address is computed. Next, the memory content is loaded into general register "r". The second part remembers the address and will detect any modifying reference to it.
+The LDWR instruction is used for implementing semaphore type operations. Operand mode 0, 1, 2 and 8 .. 15 are undefined for this instruction. Operand mode 3 creates a virtual address from a segment register "a" and the base address in register "b" plus an offset embedded in the instruction. Operand mode 4 to 7 concatenate the immediate with the "ofs2" field to form the signed offset. The first part of the instruction behaves exactly like the LDW instruction. A logical memory address is computed. Next, the memory content is loaded into general register "r". The second part remembers the address and will detect any modifying reference to it.
 
 #### Operation
 
 ```
-    switch( opMode ) {
+      seg <- operandAdrSeg( instr );
+      ofs <- operandAdrOfs( instr );
+      len <- operandBitLen( instr );
 
-      case 3: GR[r] <- memLoad( SR[a], add24( GR[b], signExt( catImm( instr.[15..17], ofs2 ), 6 ))); break;
-      case 4: GR[r] <- memLoad( SR[ segSelect( GR[4] )], add22( GR[4], signExt( catImm( opArg, ofs2 ), 12 ))); break;
-      case 5: GR[r] <- memLoad( SR[ segSelect( GR[5] )], add22( GR[5], signExt( catImm( opArg, ofs2 ), 12 ))); break;
-      case 6: GR[r] <- memLoad( SR[ segSelect( GR[6] )], add22( GR[6], signExt( catImm( opArg, ofs2 ), 12 ))); break;
-      case 7: GR[r] <- memLoad( SR[ segSelect( GR[7] )], add22( GR[7], signExt( catImm( opArg, ofs2 ), 12 ))); break;
-      default: illegalInstructionTrap( );
-   }
-
-   lrValid = true;
-   lrArg   = GR[r];
+      GR[ r ] <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
+      
+      lrValid = true;
+      lrArg   = GR[r];
 ```
 
 #### Exceptions
@@ -977,6 +988,7 @@ The LR instruction is used for implementing semaphore type operations. Operand m
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignment trap
 
 #### Notes
 
@@ -987,7 +999,7 @@ The "remember the access part" is highly implementation dependent. Under constru
 
 <div style="page-break-before: always;"></div>
 
-### SC
+### STWC
 
 <hr>
 
@@ -996,42 +1008,36 @@ Conditionally store a value to memory.
 #### Format
 
 ```
-      SC <ofs> ( <SR a>, <GR b> ), <GR r>   ; opMode 3
-      SC <ofs> ( GR4 ), <GR r>              ; opMode 4
-      SC <ofs> ( GR5 ), <GR r>              ; opMode 5
-      SC <ofs> ( GR6 ), <GR r>              ; opMode 6
-      SC <ofs> ( GR7 ), <GR r>              ; opMode 7
+      STWC <ofs> ( <SR a>, <GR b> ), <GR r>   ; opMode 3
+      STWC <ofs> ( GR y ), <GR r>             ; opMode 4 .. 7, "y" -> GR4 .. GR7
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : SC   ( 023 )          : r         : ofs2      : opMode    :     opArg                         :
+      : LDWR   ( 023 )  : r      : 0      : opMode    : opArg                                         :
       :-----------------------:-----------------------------------------------------------------------:
 ```
 
 #### Description
 
-The store conditional instruction will store a value in "r" to the memory location specified by the operand address. The store is however only performed when the data location has not been written to since the last load reference instruction execution for that address. If the operation is successful a value of zero is returned otherwise a value of one. Operand mode 3 creates a virtual address from a segment register "a" and the base address in register "b" plus an offset embedded in the instruction.Operand mode 4 to 7 concatenate the immediate with the "ofs2" field to form the signed offset. Operand mode 0, 1 and 2 are undefined for this instruction.
+The STWR conditional instruction will store a value in "r" to the memory location specified by the operand address. The store is however only performed when the data location has not been written to since the last load reference instruction execution for that address. If the operation is successful a value of zero is returned otherwise a value of one. Operand mode 3 creates a virtual address from a segment register "a" and the base address in register "b" plus an offset embedded in the instruction.Operand mode 4 to 7 concatenate the immediate with the "ofs2" field to form the signed offset. Operand mode 0, 1 and 2 are undefined for this instruction.
 
 #### Operation
 
 ```
-	  if (( lrValid ) && ( lrVal == GR[r])) {
+	if (( lrValid ) && ( lrVal == GR[r])) {
 
-	     switch( opMode ) {
+         if (( opMode < 3 ) || ( opMode > 7 )) illegalInstructionTrap( );
 
-            case 3: memStore( SR[a], add24( GR[b], signExt( catImm( instr.[15..17], ofs2 ), 6 )),  GR[r] ); break;
-            case 4: memStore( SR[ segSelect( GR[4] ], add22( GR[4], signExt( catImm( opArg, ofs2 ), 12 ))), GR[r] ); break;
-            case 5: memStore( SR[ segSelect( GR[5] ], add22( GR[5], signExt( catImm( opArg, ofs2 ), 12 ))), GR[r] ); break;
-            case 6: memStore( SR[ segSelect( GR[6] ], add22( GR[6], signExt( catImm( opArg, ofs2 ), 12 ))), GR[r] ); break;
-            case 7: memStore( SR[ segSelect( GR[7] ], add22( GR[7], signExt( catImm( opArg, ofs2 ), 12 ))), GR[r] ); break;
-            default: illegalInstructionTrap( );
-         }
+         seg <- operandAdrSeg( instr );
+         ofs <- operandAdrOfs( instr );
 
-		 GR[r] <- 0;
-	  }
-	  else GR[r] <- 1;
+         memStore( seg, ofs, GR[r], 32 );
+
+         GR[r] <- 0;
+	}
+	else GR[r] <- 1;
 ```
 
 #### Exceptions
@@ -1041,6 +1047,7 @@ The store conditional instruction will store a value in "r" to the memory locati
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
+- Alignment trap
 
 #### Notes
 
@@ -1082,8 +1089,8 @@ Perform an unconditional IA-relative branch with a static offset.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : B     ( 040 )         : 0         : ofs2                  : ofs1                              :
-      :-----------------------:-----------------------------------------------------------------------:
+      : B     ( 040 )   : 0      : ofs2               : ofs1                                          :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1092,9 +1099,8 @@ The branch instruction performs a branch to an instruction address relative loca
 
 #### Operation
 
-
 ```
-      IA-OFS <- add22( IA-OFS, signExt( catImm( ofs1, ofs2 ), 15 ));
+      IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ) << 2, 16 ));
 ```
 
 #### Exceptions
@@ -1124,8 +1130,8 @@ Perform an unconditional IA-relative branch with a static offset and store the r
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BL    ( 041 )         : r         : ofs2                  : ofs1                              :
-      :-----------------------:-----------------------------------------------------------------------:
+      : BL    ( 041 )   : r      : ofs2               : ofs1                                          :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1136,8 +1142,8 @@ The branch instruction performs a branch to an instruction address relative loca
 
 
 ```
-      GR[r] <- add22( IA-OFS, 1 );
-      IA-OFS <- add22( IA-OFS, signExt( catImm( ofs1, ofs2 ), 15 ));
+      GR[r] <- add32( IA-OFS, 1 );
+      IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ) << 2, 16 ));
 ```
 
 #### Exceptions
@@ -1167,8 +1173,8 @@ Perform an unconditional IA-relative branch with a dynamic offset from a general
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BR    ( 042 )         : 0                                                         : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : BR    ( 042 )   : 0                                                                  : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1178,7 +1184,7 @@ The branch register instruction performs an unconditional IA-relative branch. Th
 #### Operation
 
 ```
-      IA-OFS <- add22( IA-OFS, GR[b] );
+      IA-OFS <- add32( IA-OFS, GR[b] );
 ```
 
 #### Exceptions
@@ -1208,8 +1214,8 @@ Perform an unconditional IA-relative branch with a dynamic offset stored in a ge
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BLR   ( 043 )         : r         : 0                                             : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : BLR   ( 043 )   : r      : 0                                                         : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1219,8 +1225,8 @@ The branch register instruction performs an unconditional IA-relative branch. Th
 #### Operation
 
 ```
-      GR[r]  <- add22( IA-OFS, 1 );
-      IA-OFS <- add22( IA-OFS, GR[b] );
+      GR[r]  <- add32( IA-OFS, 1 );
+      IA-OFS <- add32( IA-OFS, GR[b] );
 ```
 
 #### Exceptions
@@ -1250,8 +1256,8 @@ Perform an unconditional branch using a general register containing the base rel
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BV    ( 044 )         : 0                                                         : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : BV    ( 044 )   : 0                                                                  : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1263,7 +1269,9 @@ If the designated privilege level in GR[b] is lower than the current privilege l
 #### Operation
 
 ```
-      if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];
+// ??? rework ...
+
+      if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];  
       else priv <- IA-OFS.[P];
 
       IA-OFS <- ofsSelect( GR[b] ));
@@ -1297,8 +1305,8 @@ Perform an unconditional branch using a base and offset general register for for
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BVR   ( 045 )         : 0                                             : a         : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : BVR   ( 045 )   : 0                                                         : a      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1310,7 +1318,7 @@ If the designated privilege level in GR[b] is lower than the current privilege l
 #### Operation
 
 ```
-      if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];
+      if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];    // ??? rework ...
       else priv <- IA-OFS.[P];
 
       GR[r] <- add22( IA-OFS, 1 );
@@ -1346,8 +1354,8 @@ Perform an unconditional external branch.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BE    ( 046 )         : ofs2                              : ofs1      : a         : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : BE    ( 046 )   : ofs2                        : ofs1                        : a      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1359,11 +1367,11 @@ If the designated privilege level in GR[b] is lower than the current privilege l
 #### Operation
 
 ```
-      if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];
+      if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];  // ??? rework ...
       else priv <- IA-OFS.[P];
 
       IA-SEG <- GR[a];
-      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 )), 12 );
+      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 )), 16 );
       IA_OFS.[P] <- priv;
 ```
 
@@ -1395,8 +1403,8 @@ Perform an unconditional external branch and save the return address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BLE   ( 047 )         : ofs2                              : ofs1      : a         : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : BLE   ( 047 )   : ofs2                        : ofs1                        : a      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1411,7 +1419,7 @@ If the designated privilege level in GR[b] is lower than the current privilege l
       SR[0] <- IA-SEG;
       GR[0] <- add22( IA-OFS, 1 );
 
-	  if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];
+	  if ( IA-OFS.[P] < GR[b].[P] ) priv <- GR[P];  // ??? rework ...
       else priv <- IA-OFS.[P];
 
       IA-SEG <- GR[a];
@@ -1445,8 +1453,8 @@ Compare two registers and branch on condition.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : CBR ( 050 )           : cond      : ofs2                  :  ofs1     : a         : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : CBR ( 050 )     : cond   : ofs2               :  ofs1                       : a      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1479,7 +1487,7 @@ The condition field is encoded as follows:
          case 7: res <- ( GR[a] >>  GR[b]);  break;
       }
 
-      if ( res ) IA-OFS <- add22( IA-OFS, signExt( catImm( ofs1, ofs2 )));
+      if ( res ) IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 )));
 	  else add22( IA_OFS, 1 );
 ```
 
@@ -1509,8 +1517,8 @@ Test a register and branch on condition.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : TBR ( 051 )           : cond      : ofs2                  :  ofs1     : 0         : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : TBR ( 051 )     : cond   : ofs2               :  ofs1                       : 0      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1534,15 +1542,15 @@ The TBR instruction tests general register "b" for the condition specified in th
          case 0: res <- ( GR[b] == 0 );   break;
          case 1: res <- ( GR[b] >  0 );   break;
          case 2: res <- ( GR[b] <  0 );   break;
-         case 3: res <- ( ~ GR[b].[23] ); break;
+         case 3: res <- ( ~ GR[b].[31] ); break;
          case 4: res <- ( GR[b] != 0 );   break;
          case 5: res <- ( GR[b] <= 0 );   break;
          case 6: res <- ( GR[b] >= 0 );   break;
-         case 7: res <- ( GR[b].[23] );   break;
+         case 7: res <- ( GR[b].[31] );   break;
       }
 
-      if ( res ) IA-OFS <- add22( IA-OFS, signExt( catImm( ofs1, ofs2 )));
-	   else add22( IA_OFS, 1 );
+      if ( res ) IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ), 16 ));
+	else add32( IA_OFS, 1 );
 ```
 
 #### Exceptions
