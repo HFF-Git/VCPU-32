@@ -28,7 +28,7 @@
 <!--------------------------------------------------------------------------------------------------------->
 
 # VCPU-32
-# Architecture and Instruction Set Reference
+# System Architecture and Instruction Set Reference
 
 Helmut Fieres
 Version B.00.01
@@ -265,7 +265,7 @@ VCPU-32 defines three types of addresses. At the programmer's level there is the
                         v                                              v
        0                                        31    0    1 2                  20             31
       :-------------------------------------------:  :------:------------------------------------:
-      :  segment Id                               :  : 0    : offset                             :    virtual
+      :  segment Id                               :  : sReg : offset                             :    virtual
       :-------------------------------------------:  :------:------------------------------------:
       \______________________________ virtual page ____________________________/\__ page ofs ___/
 
@@ -480,8 +480,8 @@ The control register I-BASE-ADR holds the absolute address of the interrupt vect
 | 14 | **Data memory access rights trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
 | 15 | **Data memory protection trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
 | 16 | **Page reference trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
-| 17 | **Break instruction trap** | IA of the current instruction | instr | - | - | |
-| 18 | **Alignment trap** | the memory reference address is no aligned with the operand size. |
+| 17 | **Break instruction trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
+| 18 | **Alignment trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
 | 19 .. 31 | reserved | | | | | | |
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -530,18 +530,6 @@ At the highest level the processor works with logical addresses. There are sever
       : opCode          : r      :        : 8 - 11    : S : ofs                                       :  indexed, half-word
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r      :        : 12 - 15   : S : ofs                                       :  indexed, byte
-      :-----------------:-----------------------------------------------------------------------------:
-
-for the LDx instruction, modes 0 .. 2 are of the following format:
-
-                         <-res -> <-opt -> <- mode  -> <--------- operand --------------------------->
-       0                 6        9        12          16             20             26       29    31
-      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : opCode          : r      :        : 0         : 0                           : a      : b      :  reg indexed, word
-      :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r      :        : 1         : 0                           : a      : b      :  reg indexed, half-word
-      :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r      :        : 2         : 0                           : a      : b      :  reg indexed, bytes
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -643,7 +631,7 @@ Loads a memory value into a general register.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDx     ( 020 ) : r      :        : opMode    :  opArg                                        :
+      : LDx     ( 020 ) : r      : 0      : opMode    :  opArg                                        :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -694,7 +682,7 @@ Stores a general register value into memory
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : STx     ( 021 ) : r      :        : opMode    :  opArg                                        :
+      : STx     ( 021 ) : r      : 0      : opMode    :  opArg                                        :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -763,9 +751,9 @@ The load extended instructions will load the operand into the general register "
 #### Operation
 
 ```
-      LDWE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 32 ));
-      LDHE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 16 ));
-      LDBE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 8  ));
+      LDWE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 32 ));
+      LDHE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 16 ));
+      LDBE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 8  ));
 ```
 
 #### Exceptions
@@ -815,9 +803,9 @@ The store extended instructions will store data from general register "r" using 
 #### Operation
 
 ```
-      STWE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 32 );
-      STHE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 16 );
-      STBE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 8  );
+      STWE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 32 );
+      STHE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 16 );
+      STBE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 8  );
 ```
 
 #### Exceptions
@@ -869,9 +857,9 @@ The load absolute instruction will load the content of the physical memory addre
 ```
       if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-      LDWA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 32 ));
-      LDHA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 16 ));
-      LDBA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), 8  ));
+      LDWA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), 32 ));
+      LDHA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), 16 ));
+      LDBA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), 8  ));
 ```
 
 #### Exceptions
@@ -920,9 +908,9 @@ The store absolute instruction will store the target register into memory using 
 ```
       if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-      STWA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 32 );
-      STHA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 16 );
-      STBA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 16 )), GR[r], 8  );
+      STWA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), GR[r], 32 );
+      STHA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), GR[r], 16 );
+      STBA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), GR[r], 8  );
 ```
 
 #### Exceptions
@@ -1024,14 +1012,9 @@ The STWR conditional instruction will store a value in "r" to the memory locatio
       if (( lrValid ) && ( lrVal == GR[r])) {
 
          if (( opMode < 3 ) || ( opMode > 7 )) illegalInstructionTrap( );
+         memStore( operandAdrSeg( instr ), operandAdrOfs( instr ), GR[r], 32 );
+         GR[r] <- 0;
 
-            seg <- operandAdrSeg( instr );
-            ofs <- operandAdrOfs( instr );
-
-            memStore( seg, ofs, GR[r], 32 );
-
-            GR[r] <- 0;
-	
       } else GR[r] <- 1;
 ```
 
@@ -1095,7 +1078,7 @@ The branch instruction performs a branch to an instruction address relative loca
 #### Operation
 
 ```
-      IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ) << 2, 16 ));
+      IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ) << 2, 23 ));
 ```
 
 #### Exceptions
@@ -1138,7 +1121,7 @@ The branch instruction performs a branch to an instruction address relative loca
 
 ```
       GR[r] <- add32( IA-OFS, 4 );
-      IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ) << 2, 16 ));
+      IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ) << 2, 23 ));
 ```
 
 #### Exceptions
@@ -1179,7 +1162,7 @@ The branch register instruction performs an unconditional IA-relative branch. Th
 #### Operation
 
 ```
-      IA-OFS <- add32( IA-OFS, GR[b] << 2 );
+      IA-OFS <- add32( IA-OFS, ( GR[b] << 2 ));
 ```
 
 #### Exceptions
@@ -1215,7 +1198,7 @@ Perform an unconditional IA-relative branch with a dynamic offset stored in a ge
 
 #### Description
 
-The branch register instruction performs an unconditional IA-relative branch. The target address is formed adding the content of register "b" to the current instruction address. If code translation is disabled, the target address is the absolute physical address. The current instruction address offset + 1 is returned in general register "r".
+The branch register instruction performs an unconditional IA-relative branch. The target address is formed adding the content of register "b" to the current instruction address. If code translation is disabled, the target address is the absolute physical address. The current instruction address offset + 4 is returned in general register "r".
 
 #### Operation
 
@@ -1355,7 +1338,7 @@ Since the BE instruction is a segment base relative branch, a branch to page wit
 
 ```
       IA-SEG <- GR[a];
-      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 )), 16 );  // potential privilege violation or adjustment
+      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 )), 20 );
 ```
 
 #### Exceptions
@@ -1401,10 +1384,10 @@ Since the BLE instruction is a segment base relative branch, a branch to page wi
 
 ```
       SR[0] <- IA-SEG;
-      GR[0] <- add22( IA-OFS, 4 );
+      GR[0] <- add32( IA-OFS, 4 );
 
       IA-SEG <- GR[a];
-      IA-OFS <- add32( GR[b], signExt( catImm( ofs1, ofs2 )), 16 );
+      IA-OFS <- add32( GR[b], signExt( catImm( ofs1, ofs2 )),20 );
 ```
 
 #### Exceptions
@@ -1468,7 +1451,7 @@ The condition field is encoded as follows:
          case 7: res <- ( GR[a] >>  GR[b]);  break;
       }
 
-      if ( res ) IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ) << 2 ));
+    if ( res ) IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ), 17 ) << 2 ));
 	else add22( IA_OFS, 4 );
 ```
 
@@ -1530,7 +1513,7 @@ The TBR instruction tests general register "b" for the condition specified in th
          case 7: res <- ( GR[b].[31] );   break;
       }
 
-      if ( res ) IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ), 16 ) << 2 );
+      if ( res ) IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ), 17 ) << 2 ));
       else add32( IA_OFS, 4 );
 ```
 
@@ -1601,7 +1584,7 @@ The instruction fetches the operand and adds it to the general register "r". If 
 
 There are four major mode groups for this instruction. Operand mode 0 adds a sign extended constant to "r". Operand mode 1 adds a zero value to the b" content and stores in the result reg "r". The "a" field should be set to zero. Operand mode 2 allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address add operation of the form "r" = "a" + "b" as well as a "r" = "r" op "b" can be done. The operations will set the carry/borrow bits in the processor status word. Operand mode 3 to 7 fetch the operand according to the addressing mode and perform a R = R + operand operation.
 
-Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will fetch a word from the computed address, mode 8 - 11 fetch a half-word and mode 12 - 15 a byte. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset. 
+Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will fetch a word from the computed address, mode 8 - 11 fetch a half-word and mode 12 - 15 a byte. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset.
 
 #### Operation
 
@@ -1609,21 +1592,21 @@ Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset t
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
-		      break;
+	              tmpB <- signExt( opArg, 16 );
+		          break;
 
          case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          case 2:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
                   len <- operandBitLen( instr );
-         
+
                   tmpA <- GR[r];
                   tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
@@ -1694,21 +1677,21 @@ Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset t
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
-		      break;
+	              tmpB <- signExt( opArg, 16 );
+		          break;
 
          case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          case 2:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
                   len <- operandBitLen( instr );
-         
+
                   tmpA <- GR[r];
                   tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
@@ -1771,7 +1754,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
 
 There are four major mode groups for this instruction. Operand mode 0 ANDs a sign extended constant into "r". Operand mode 1 ANDs a zero value to the "b" content and stores in the result reg "r". The "a" field should be set to zero. Operand mode 2 allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address operation of the form "r" = "a" + "b" as well as a "r" = "r" op "b" can be done. The operations will set the carry/borrow bits in the processor status word.
 
-Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will fetch a word from the computed address, mode 8 - 11 fetch a half-word and mode 12 - 15 a byte. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset. 
+Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset to an index registers. Mode 4, 8 and 12 refer to index register GR4, mode 5, 9, 13 to index register GR5 and so on. The upper two bits of the selected index register are used to select from the segment registers SR 4 to 7. Mode 4 - 7 will fetch a word from the computed address, mode 8 - 11 fetch a half-word and mode 12 - 15 a byte. Mode 3 is the extended address mode. The "a" field contains the segment register, and "b" the unsigned offset.
 
 #### Operation
 
@@ -1779,21 +1762,21 @@ Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset t
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
-		      break;
+	              tmpB <- signExt( opArg, 16 );
+		          break;
 
          case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          case 2:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
                   len <- operandBitLen( instr );
-         
+
                   tmpA <- GR[r];
                   tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
@@ -1858,21 +1841,21 @@ Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset t
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
-		      break;
+	              tmpB <- signExt( opArg, 16 );
+		          break;
 
          case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          case 2:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
                   len <- operandBitLen( instr );
-         
+
                   tmpA <- GR[r];
                   tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
@@ -1938,21 +1921,21 @@ Mode 4 - 7, 8 - 11 and 12 - 16 compute the address by adding the signed offset t
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
-		      break;
+	              tmpB <- signExt( opArg, 16 );
+		          break;
 
          case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          case 2:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
                   len <- operandBitLen( instr );
-         
+
                   tmpA <- GR[r];
                   tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
@@ -2028,21 +2011,21 @@ The compare condition are encoded as follows.
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
-		      break;
+	              tmpB <- signExt( opArg, 16 );
+		          break;
 
          case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          case 2:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
+		          tmpB <- GR[b];
+			      break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
                   len <- operandBitLen( instr );
-         
+
                   tmpA <- GR[r];
                   tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
       }
@@ -2050,12 +2033,12 @@ The compare condition are encoded as follows.
       switch ( cond ) {
 
          case 0: res <- tmpA ==  tmpB; break;
-	   case 1: res <- tmpA <   tmpB; break;
+         case 1: res <- tmpA <   tmpB; break;
          case 2: res <- tmpA >   tmpB; break;
          case 3: res <- tmpA <<= tmpB; break;
          case 4: res <- tmpA !=  tmpB; break;
          case 5: res <- tmpA <=  tmpB; break;
-	 case 6: res <- tmpA >=  tmpB; break;
+	     case 6: res <- tmpA >=  tmpB; break;
          case 7: res <- tmpA >>  tmpB; break;
       }
 
@@ -2096,12 +2079,14 @@ Test a general register for a condition and conditionally move a register value 
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
       : CMR   ( 052 )   : r      : cond   :I : val                                  : a      : b      :
-      :-----------------------:-----------------------------------------------------------------------:
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
 The conditional move instruction will test register "b" for the condition. If the condition is met, general register "a" is moved to "r". The "I" bit indicates to use an immediate value constructed from the "val" field concatenated with the "a" field of the instruction instead of the contents of register "a".
+
+// ??? **note** decide on the value field position and length
 
 #### Comparison condition codes
 
@@ -2160,8 +2145,6 @@ CMR    R1,R4,R1  ; test R1 and store R4 when condition is met
 
 <hr>
 
-// ??? **note** rework to have a bit for using SA...
-
 Performs a bit field extract from a general register and stores the result in the targetReg.
 
 #### Format
@@ -2173,21 +2156,19 @@ Performs a bit field extract from a general register and stores the result in th
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : EXTR  ( 012 )   : r      : len               : pos               : S : 0 : b         :
-      :-----------------------:-----------------------------------------------------------------------:
+      : EXTR  ( 012 )   : r      :S :A : 0            : len          : pos          : 0      : b      :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The instruction performs a bit field extract specified by the position and length instruction data from general register "b". The "pos" field specifies the rightmost bit of the bitfield to extract. The "pos" field range is from 0 to 23 for a bit position. A value of 31 is interpreted as using the shift amount control register for the actual bit position. A value of 24 to 30 results in an illegal instruction trap. The "len" field specifies the bit size if the field to extract. The extracted bit field is stored right justified in the general register "r". If set, the "S" bit allows to sign extend the extracted bit field.
+The instruction performs a bit field extract specified by the position and length instruction data from general register "b". The "pos" field specifies the rightmost bit of the bitfield to extract. The "len" field specifies the bit size if the field to extract. The extracted bit field is stored right justified in the general register "r". If set, the "S" bit allows to sign extend the extracted bit field. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
 
 #### Operation
 
 ```
-      if ( pos == 31 ) tmpPos <- SHAMT.[19..23];
+      if ( instr.[A] ) tmpPos <- SHAMT.[27..31];
       else tmpPos <- pos;
-
-      if ( tmpPos > 23 ) illegalInstructionTrap( );
 
       GR[r] <= extract( GR[b], pos, len );
 
@@ -2212,35 +2193,33 @@ The VCPU-32 instruction set does not have dedicated instructions for left and ri
 
 <hr>
 
-// ??? **note** rework to have a bit for using SA...
-
 Performs a bit field deposit of the value extracted from a bit field in reg "B" and stores the result in the targetReg.
 
 #### Format
 
 ```
       DEP [ .<opt> ] <GR r>, <GR b>, <pos, <len>
-	DEP [ .<opt> ] <GR r>, <val>, <pos>, <len>
+	  DEP [ .<opt> ] <GR r>, <val>, <pos>, <len>
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : DEP   ( 013 )   : r      : len               : pos               : Z : I : b         :
+      : DEP  ( 013 )    : r      :Z :A :I :           : len          : pos          : 0      : b      :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The instruction extracts the right justified bit field of length "len" in general register "b" and deposits this field in the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. The "pos" field range is from 0 to 23 for a bit position. A value of 31 is interpreted as using the shift amount control register for the actual bit position. A value of 24 to 30 results in an illegal instruction trap. The "len" field specifies the bit size if the field to deposit. The Z bit clears the targetReg before storing the bit field, the I bit specifies that the "b" instruction field contains a three bit immediate value instead of a register.
+The instruction extracts the right justified bit field of length "len" in general register "b" and deposits this field in the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. The "len" field specifies the bit size if the field to extract. The extracted bit field is stored right justified in the general register "r". The Z bit clears the target register "r" before storing the bit field, the I bit specifies that the "b" instruction field contains a three bit immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
+
+// ??? **note** decide on teh immeidate value field and len
 
 #### Operation
 
 ```
-      if ( pos == 31 ) tmpPos <- SHAMT.[19..23];
+      if ( instr.[A] ) tmpPos <- SHAMT.[27..31];
       else tmpPos <- pos;
-
-      if ( tmpPos > 23 ) illegalInstructionTrap( );
 
       if ( instr.[Z] ) GR[r] <- 0;
 
@@ -2267,8 +2246,6 @@ The VCPU-32 instruction set does not have dedicated instructions for left and ri
 
 <hr>
 
-// ??? **note** rework to have a bit for using SA...
-
 Performs a right shift of two concatenated registers for shift amount bits and stores the result in the target register.
 
 #### Format
@@ -2280,21 +2257,19 @@ Performs a right shift of two concatenated registers for shift amount bits and s
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : DSR   ( 014 )   : r      :                    : shamt        : 0            : a      : b      :
+      : DSR   ( 014 )   : r      :  :A : 0            : shamt        : 0            : a      : b      :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The double shift right instruction concatenates the general registers specified by "b" and "a" and performs a right shift operation of "shamt" bits. register "b" is the left part, register "a" the right part. The lower 24bits of the result are stored in the general register "r". The "shamt" field range is from 0 to 23 for the shift amount. A value of 31 is interpreted as using the shift amount control register for the actual shift amount, which allows a variable shift operation.
+The double shift right instruction concatenates the general registers specified by "b" and "a" and performs a right shift operation of "shamt" bits. register "b" is the left part, register "a" the right part. The lower 32 bits of the result are stored in the general register "r". The "shamt" field range is from 0 to 31 for the shift amount. If the "A" bit is set, the shift amount is taken from the shift amount control register.
 
 #### Operation
 
 ```
-      if ( shamt == 31 ) tmpShAmt <- SHAMT.[19..23];
-      else tmpShAmt <- instr.[shamt];
-
-      if ( tmpShAmt > 23 ) illegalInstructionTrap( );
+      if ( instr.[A] ) tmpShAmt <- SHAMT.[27..31];
+      else tmpShAmt <- shamt;
 
       GR[r] <- rshift( cat( GR[b], GR[a] ), shamt );
 ```
@@ -2316,8 +2291,6 @@ The VCPU-32 instruction set does not have dedicated instructions for shift and r
 
 <hr>
 
-// ??? **note** rework to new format ...
-
 Performs a combined shift left and add operation and stores the result into the target register.
 
 #### Format
@@ -2337,6 +2310,8 @@ Performs a combined shift left and add operation and stores the result into the 
 #### Description
 
 The shift left and add instruction will shift general register "a" left by the bits specified in the "sa" field, add the content of general register "b" to it and store the result in general register "r". This combined operation allows for an efficient multiplication operation for multiplying a value with a small integer value. The "I" bit, when set, uses a value stored in the "b" instead of the "b" register content. The "L" bit indicates that this is an operation on unsigned quantities. The "O" bit is set to raise a trap if the instruction either shifts beyond the number range of general register "r" or when the addition of the shifted general register "a" plus the value in general register "b" results in a signed overflow.
+
+// ??? **note** decide on the length of the immediate value case...
 
 #### Operation
 
@@ -2384,15 +2359,18 @@ Loads an immediate value into the target register.
 
 #### Description
 
-The load immediate instruction loads a 12-bit immediate value embedded in the instruction into the general register "r". The "Z" bit specifies to clear the target register first. The "L" bit specifies that the value is to be stored into the upper half of the target register without affecting the lower half of the target register. Using the "L" option, two LDI instructions can thus set any immediate value.
+The load immediate instruction loads a 16-bit immediate value embedded in the instruction into the general register "r". The "Z" bit specifies to clear the target register first. The "L" bit specifies that the value is to be stored into the upper half of the target register without affecting the lower half of the target register. Using the "L" option, two LDI instructions can thus set any immediate value.
 
 #### Operation
 
 ```
       if ( instr.[Z] GR[r] = 0;
-      tmp = catImm( val1, val2 );
-      if ( instr.[L] ) tmp =  tmp << 16;
-      GR[r] = GR[r] | tmp;
+      tmpA = catImm( val1, val2 );
+
+      if ( instr.[L] ) tmpB =  GR[r] << 16;
+      else             tmpB = GR[r] & 0xFFFF;
+
+      GR[r] = tmpA | tmpB;
 ```
 
 #### Exceptions
@@ -2411,8 +2389,6 @@ None.
 ### LEA
 
 <hr>
-
-// ??? **note** needs reworking ... should there be a mode 0 .. 2 like LDW ?
 
 Loads the effective address of the operand.
 
@@ -2433,6 +2409,9 @@ Loads the effective address of the operand.
 #### Description
 
 The LEA instruction loads the computed address offset into general register "r". It just performs the address computation part comparable to the LDx/STx instruction, however with no memory access.
+
+// ??? **note** needs reworking ... should there be a mode 0 .. 2 like LDW ?
+
 
 #### Operation
 
