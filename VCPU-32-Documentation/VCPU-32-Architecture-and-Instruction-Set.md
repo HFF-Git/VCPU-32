@@ -516,7 +516,7 @@ At the highest level the processor works with logical addresses. There are sever
 
 ```
                          <-res -> <-opt -> <- mode  -> <--------- operand --------------------------->
-       0                 6        9        12          16             20             26       29    31
+       0                 6        9        12          16                            26       29    31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
       : opCode          : r      :        : 0         : S : val                                       :  immediate
       :-----------------:-----------------------------------------------------------------------------:
@@ -1000,7 +1000,7 @@ Conditionally store a value to memory.
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
       : LDWR   ( 0xx )  : r      : 0      : opMode    : opArg                                         :
-      :-----------------------:-----------------------------------------------------------------------:
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -2265,7 +2265,7 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : DEP  ( 0xx )    : r      :Z :A :I :           : len          : pos          : 0      : b      :
+      : DEP  ( 0xx )    : r      :Z :A :I : 0         : len          : pos          : 0      : b      :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2409,7 +2409,7 @@ Loads an immediate value into the target register.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDI   ( 0xx )   : r      :Z :L :0 : 0         : val                                           :
+      : LDI   ( 0xx )   : r      :Z :L :0             : val                                           :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2459,7 +2459,7 @@ Loads the effective address of the operand.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LEA    ( 0xx )  : r      :        : opMode    :     opArg                                     :
+      : LEA    ( 0xx )  : r      : 0      : opMode    :     opArg                                     :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2503,7 +2503,7 @@ Load the segment identifier for a logical address.
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
       : LSID ( 0xx )    : r      : 0                                                         : b      :
-      :-----------------------:-----------------------------------------------------------------------:
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -2571,7 +2571,7 @@ Copy data from or to a segment or control register.
 
 #### Description
 
-The move register instruction MR copies data from a segment or control register to a general register "r" and vice versa. If the "D" bit is set, the copy direction is from "r" to a segment or control register, otherwise from these registers to "r". The "M" bit indicates whether a segment register or a control register is moved. The "Z" option uses a zero value for the source. Setting a value for a privileged segment or control register is a privileged operation.
+The move register instruction MR copies data from a segment or control register "s" to a general register "r" and vice versa. If the "D" bit is set, the copy direction is from "r" to a segment or control register, otherwise from these registers to "r". The "M" bit indicates whether a segment register or a control register is moved. The "Z" option uses a zero value for the source. Setting a value for a privileged segment or control register is a privileged operation.
 
 #### Operation
 
@@ -3405,7 +3405,7 @@ This appendix lists all instructions by instruction group.
 ### Computational Instructions
 
 ```
-       0                 6        9        12          16             20             26       29    31
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
       : ADD     ( 0x00 ): r      :C :L :O : opMode    : opArg                                         :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3440,7 +3440,7 @@ This appendix lists all instructions by instruction group.
 ### Memory Reference Instruction
 
 ```
-       0                 6        9        12          16             20             26       29    31
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
       : LDW/H/B ( 0x00 ): r      : 0      : opMode    : opArg                                         :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3491,7 +3491,7 @@ This appendix lists all instructions by instruction group.
 ### Control Flow Instructions
 
 ```
-       0                 6        9        12          16             20             26       29    31
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
       : B       ( 0x00 ): 0      : ofs2               : ofs1                                          :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3511,16 +3511,16 @@ This appendix lists all instructions by instruction group.
       :-----------------:-----------------------------------------------------------------------------:
       : BLE     ( 0x00 ): ofs2                        : ofs1                        : a      : b      :
       :-----------------:-----------------------------------------------------------------------------:
-      : CBR     ( 0x00 ): cond      : ofs2            : ofs1                        : a      : b      :
+      : CBR     ( 0x00 ): cond   : ofs2               : ofs1                        : a      : b      :
       :-----------------:-----------------------------------------------------------------------------:
-      : TBR     ( 0x00 ): cond      : ofs2            : ofs1                        : 0      : b      :
+      : TBR     ( 0x00 ): cond   : ofs2               : ofs1                        : 0      : b      :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
 ### System Control Instructions
 
 ```
-       0                 6        9        12          16             20             26       29    31
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
       : MR      ( 0x00 ): r      :T : 0                                             : g      : b      :
       :-----------------:-----------------------------------------------------------------------------:
