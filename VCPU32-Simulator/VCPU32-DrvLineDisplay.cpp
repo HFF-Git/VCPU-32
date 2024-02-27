@@ -73,11 +73,11 @@ void CPU24DrvLineDisplay::displayHalfWord( uint32_t val, TokId fmtType ) {
 // options on title and how many are displayed in a row. Note that this routine does not a lot of checking.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvLineDisplay::displayRegsAndLabel( CPU24RegClass regSetId,
-                                              int regStart,
-                                              int numOfRegs,
-                                              char *lineLabel,
-                                              TokId fmt ) {
+void CPU24DrvLineDisplay::displayRegsAndLabel( RegClass regSetId,
+                                              int       regStart,
+                                              int       numOfRegs,
+                                              char      *lineLabel,
+                                              TokId     fmt ) {
     
     if ( strlen( lineLabel ) > 0 ) fprintf( stdout, "%s", lineLabel );
     
@@ -217,7 +217,7 @@ void CPU24DrvLineDisplay::displayMemObjRegSet( CPU24Mem *mem, TokId fmt ) {
     fprintf( stdout, "\n" );
 }
 
-void CPU24DrvLineDisplay::displayTlbObjRegSet( CPU24Tlb *tlb, TokId fmt ) {
+void CPU24DrvLineDisplay::displayTlbObjRegSet( CpuTlb *tlb, TokId fmt ) {
     
     fprintf( stdout, "Display TLB reg set ... to do ... \n" );
 }
@@ -241,7 +241,7 @@ void CPU24DrvLineDisplay::displayAllRegSets( TokId fmt ) {
 // This routine will print a TLB entry with each field formatted.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvLineDisplay::displayTlbEntry( CPU24TlbEntry *entry, TokId fmt ) {
+void CPU24DrvLineDisplay::displayTlbEntry( TlbEntry *entry, TokId fmt ) {
     
     fprintf( stdout, "[" );
     if ( entry -> tValid( ))            fprintf( stdout, "V" ); else fprintf( stdout, "v" );
@@ -274,7 +274,7 @@ void CPU24DrvLineDisplay::displayTlbEntry( CPU24TlbEntry *entry, TokId fmt ) {
 // "displayTlbEntries" displays a set of TLB entries, line by line.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvLineDisplay::displayTlbEntries( CPU24Tlb *tlb, uint32_t index, uint32_t len, TokId fmt ) {
+void CPU24DrvLineDisplay::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, TokId fmt ) {
     
     if ( index + len <= tlb -> getTlbSize( )) {
         
@@ -283,7 +283,7 @@ void CPU24DrvLineDisplay::displayTlbEntries( CPU24Tlb *tlb, uint32_t index, uint
             displayWord( i, fmt  );
             fprintf( stdout, ": " );
             
-            CPU24TlbEntry *ptr = tlb -> getTlbEntry( i );
+            TlbEntry *ptr = tlb -> getTlbEntry( i );
             if ( ptr != nullptr ) displayTlbEntry( ptr, fmt );
             
             fprintf( stdout, "\n" );
@@ -304,7 +304,7 @@ void CPU24DrvLineDisplay::displayCacheEntries( CPU24Mem *cPtr, uint32_t index, u
     uint32_t            blockEntries    = cPtr -> getBlockEntries( );
     uint32_t            blockSize       = cPtr -> getBlockSize( );
     uint16_t            blockSets       = cPtr -> getBlockSets( );
-    CPU24MemTagEntry    *tagPtr         = nullptr;
+    MemTagEntry    *tagPtr         = nullptr;
     uint32_t        *dataPtr        = nullptr;
    
     if ( index + len <=  blockEntries ) {

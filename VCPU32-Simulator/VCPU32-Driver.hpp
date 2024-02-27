@@ -519,7 +519,7 @@ public:
 private:
     
     int             winType = 0;
-    CPU24Tlb        *tlb    = nullptr;
+    CpuTlb        *tlb    = nullptr;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -710,19 +710,19 @@ public:
     void        displayPlExecuteRegSet( TokId fmt = TOK_DEF );
     void        displayPlRegSets( TokId fmt = TOK_DEF );
     void        displayAllRegSets( TokId fmt = TOK_DEF );
-    void        displayTlbEntry( CPU24TlbEntry *entry, TokId fmt = TOK_DEF );
-    void        displayTlbEntries( CPU24Tlb *tlb, uint32_t index, uint32_t len, TokId fmt = TOK_DEF );
+    void        displayTlbEntry( TlbEntry *entry, TokId fmt = TOK_DEF );
+    void        displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, TokId fmt = TOK_DEF );
     void        displayCacheEntries( CPU24Mem *cache, uint32_t index, uint32_t len, TokId fmt = TOK_DEF );
     void        displayMemObjRegSet( CPU24Mem *mem, TokId fmt = TOK_DEF );
-    void        displayTlbObjRegSet( CPU24Tlb *tlb, TokId fmt = TOK_DEF );
+    void        displayTlbObjRegSet( CpuTlb *tlb, TokId fmt = TOK_DEF );
     
 private:
     
-    void        displayRegsAndLabel( CPU24RegClass  regSetId,
-                                    int             regStart,
-                                    int             numOfRegs   = 4,
-                                    char            *LineLabel  = ((char *)"" ),
-                                    TokId           fmt         = TOK_DEF );
+    void        displayRegsAndLabel( RegClass   regSetId,
+                                    int         regStart,
+                                    int         numOfRegs   = 4,
+                                    char        *LineLabel  = ((char *)"" ),
+                                    TokId       fmt         = TOK_DEF );
     
     CPU24Globals *glb = nullptr;
 };
@@ -842,7 +842,7 @@ struct CPU24Globals {
     CPU24DrvWinDisplay      *winDisplay     = nullptr;
     CPU24DrvCmds            *cmds           = nullptr;
 
-    CPU24Core               *cpu            = nullptr;
+    CpuCore               *cpu            = nullptr;
 };
 
 #endif /* CPU24Driver_hpp */

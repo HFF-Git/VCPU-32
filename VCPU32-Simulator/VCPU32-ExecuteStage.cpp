@@ -80,7 +80,7 @@ bool compareCond( uint32_t instr, uint32_t valA, uint32_t valB ) {
 // A little helper function to compare 0 to a register value for the TBR instruction. This is a bit tricky as
 // we run on a 32-bit machine. First, we sign extend to a 32-bt value and then do teh requested comparison.
 //
-//‐‐‐‐‐uint32_t‐‐uint32_t‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+//‐‐‐‐‐‐---------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool testCond( uint32_t instr, uint32_t val ) {
     
     int32_t tmp = signExt32( val );
@@ -106,7 +106,7 @@ bool testCond( uint32_t instr, uint32_t val ) {
 // files.
 //
 //------------------------------------------------------------------------------------------------------------
-ExecuteStage::ExecuteStage( CPU24Core *core ) {
+ExecuteStage::ExecuteStage( CpuCore *core ) {
     
     this -> core = core;
 }

@@ -1391,7 +1391,7 @@ void CPU24DrvWinTlb::drawLine( int index ) {
     }
     else {
         
-        CPU24TlbEntry   *tEntry  = tlb -> getTlbEntry( index );
+        TlbEntry   *tEntry  = tlb -> getTlbEntry( index );
         char            tmpBuf[ 32 ];
         
         printTextField((( tEntry -> tValid( )) ? (char *) "V" : (char *) "v" ), fmtDesc );
@@ -1519,7 +1519,7 @@ void CPU24DrvWinCache::drawLine( int index ) {
     }
     else {
         
-        CPU24MemTagEntry    *tagPtr     = cPtr -> getMemTagEntry( index, winToggleVal );
+        MemTagEntry    *tagPtr     = cPtr -> getMemTagEntry( index, winToggleVal );
         uint32_t        *dataPtr    = cPtr -> getMemBlockEntry( index, winToggleVal );
         uint32_t            blockSize   = cPtr -> getBlockSize( );
         

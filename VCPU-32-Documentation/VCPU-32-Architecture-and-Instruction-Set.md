@@ -481,8 +481,8 @@ The control register I-BASE-ADR holds the absolute address of the interrupt vect
 | 14 | **Data memory access rights trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
 | 15 | **Data memory protection trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
 | 16 | **Page reference trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
-| 17 | **Break instruction trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
-| 18 | **Alignment trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
+| 17 | **Alignment trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
+| 18 | **Break instruction trap** | IA of the current instruction | instr | data adr segID | data adr Ofs| |
 | 19 .. 31 | reserved | | | | | | |
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1620,7 +1620,7 @@ Adds the operand to the target register.
 #### Format
 
 ```
-      ADD [ .<opt> ] <GR r>, <val>                      ; opMode 0
+      ADD[(W|H|B).<opt>] <GR r>, <val>                  ; opMode 0
       ADD [ .<opt> ] <GR r>, <GR b>                     ; opMode 2
       ADD [ .<opt> ] <GR r>, <GR a>, <GR b>             ; opMode 2
       ADD [ .<opt> ] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
@@ -3528,7 +3528,7 @@ This appendix lists all instructions by instruction group.
       :-----------------:-----------------------------------------------------------------------------:
       : LDPA    ( 0x00 ): r      :L : 0                                             : a      : b      :
       :-----------------:-----------------------------------------------------------------------------:
-      : PRBx    ( 0x00 ): r      :L :R : 0                                          : a      : b      :
+      : PRB     ( 0x00 ): r      :L :R : 0                                          : a      : b      :
       :-----------------:-----------------------------------------------------------------------------:
       : ITLB    ( 0x00 ): r      :L :T :M : 0                                       : a      : b      :
       :-----------------:-----------------------------------------------------------------------------:

@@ -387,6 +387,8 @@ enum instrFlags : uint32_t {
 //
 // ??? decide which way to go... no flags or all kinds of flags...
 //------------------------------------------------------------------------------------------------------------
+// ??? rework this table ... or get rid of it ...
+
 const struct opCodeInfo {
     
     char        mnemonic[ 8 ] ;

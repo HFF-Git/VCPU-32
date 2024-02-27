@@ -31,9 +31,9 @@
 // memory objects and the pipeline stages.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24Core::CPU24Core( CPU24CoreDesc *cfg ) {
+CpuCore::CpuCore( CpuCoreDesc *cfg ) {
     
-    memcpy( &cpuDesc, cfg, sizeof( CPU24CoreDesc ));
+    memcpy( &cpuDesc, cfg, sizeof( CpuCoreDesc ));
   
     stReg.init( 0, false );
     for ( uint8_t i = 0; i < 8; i++  )  gReg[ i ].init( 0, false );
@@ -43,14 +43,14 @@ CPU24Core::CPU24Core( CPU24CoreDesc *cfg ) {
     
     if ( cfg -> tlbOptions == VMEM_T_SPLIT_TLB ) {
         
-        iTlb = new CPU24Tlb( &cfg -> iTlbDesc );
-        dTlb = new CPU24Tlb( &cfg -> dTlbDesc );
+        iTlb = new CpuTlb( &cfg -> iTlbDesc );
+        dTlb = new CpuTlb( &cfg -> dTlbDesc );
     }
     else if ( cfg -> tlbOptions == VMEM_T_UNIFIED_TLB ) {
         
         // ??? what is the proper way to model a joint TLB ?
-        iTlb = new CPU24Tlb( &cfg -> iTlbDesc );
-        dTlb = new CPU24Tlb( &cfg -> dTlbDesc );
+        iTlb = new CpuTlb( &cfg -> iTlbDesc );
+        dTlb = new CpuTlb( &cfg -> dTlbDesc );
     }
     
     mem = new CPU24Mem( &cfg -> memDesc );
@@ -78,7 +78,7 @@ CPU24Core::CPU24Core( CPU24CoreDesc *cfg ) {
 // "clearStats" resets the statistic counters in all cpu core objects.
 //
 //------------------------------------------------------------------------------------------------------------
-void  CPU24Core::clearStats( ) {
+void  CpuCore::clearStats( ) {
     
     iTlb -> clearStats( );
     dTlb -> clearStats( );
@@ -99,7 +99,7 @@ void  CPU24Core::clearStats( ) {
 // execution is in physical mode, privileged and at the architected address.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Core::reset( ) {
+void CpuCore::reset( ) {
     
     stReg.reset( );
     for ( uint8_t i = 0; i < 8; i++  )  gReg[ i ].reset( );
@@ -139,7 +139,7 @@ void CPU24Core::reset( ) {
 // and store any result in the latch input of the registers and then do the tick to make the results visible".
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Core::clockStep( uint32_t numOfSteps) {
+void CpuCore::clockStep( uint32_t numOfSteps) {
  
     while ( numOfSteps > 0 ) {
       
@@ -191,7 +191,7 @@ void CPU24Core::clockStep( uint32_t numOfSteps) {
 //------------------------------------------------------------------------------------------------------------
 const uint32_t MAX_CYCLE_PER_INSTR = 100000;
 
-void CPU24Core::instrStep( uint32_t numOfInstr ) {
+void CpuCore::instrStep( uint32_t numOfInstr ) {
     
     uint32_t    previousIaSeg   = 0;
     uint32_t    previousIaOfs   = 0;
@@ -225,7 +225,7 @@ void CPU24Core::instrStep( uint32_t numOfInstr ) {
 // CPU programmer visible register set.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t CPU24Core::getReg( CPU24RegClass regClass, uint8_t regNum ) {
+uint32_t CpuCore::getReg( RegClass regClass, uint8_t regNum ) {
     
     switch ( regClass ) {
             
@@ -257,7 +257,7 @@ uint32_t CPU24Core::getReg( CPU24RegClass regClass, uint8_t regNum ) {
     }
 }
 
-void CPU24Core::setReg( CPU24RegClass regClass, uint8_t regNum, uint32_t val ) {
+void CpuCore::setReg( RegClass regClass, uint8_t regNum, uint32_t val ) {
     
     switch ( regClass ) {
             
@@ -294,7 +294,7 @@ void CPU24Core::setReg( CPU24RegClass regClass, uint8_t regNum, uint32_t val ) {
 // at any priviledge level. Beyond that, there are checks for write access.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Core::isPrivRegForAccMode( CPU24RegClass regClass, uint32_t regId, AccessModes mode ) {
+bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessModes mode ) {
     
     switch ( regClass ) {
             
@@ -329,7 +329,7 @@ bool CPU24Core::isPrivRegForAccMode( CPU24RegClass regClass, uint32_t regId, Acc
 //
 // Note: one day we may expand to handle external interrupts... this would follow the same logic.
 //------------------------------------------------------------------------------------------------------------
-void CPU24Core::handleTraps( ) {
+void CpuCore::handleTraps( ) {
     
     if (( cReg[ CR_TEMP_1 ].get( ) != NO_TRAP ) &&
         ( cReg[ CR_TRAP_INSTR_SEG ].get( ) == exStage -> psInstrSeg.get( )) &&

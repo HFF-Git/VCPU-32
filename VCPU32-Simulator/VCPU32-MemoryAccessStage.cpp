@@ -49,7 +49,7 @@ namespace {
 // The address generation and memory access stage object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-MemoryAccessStage::MemoryAccessStage( CPU24Core *core ) {
+MemoryAccessStage::MemoryAccessStage( CpuCore *core ) {
     
     this -> core = core;
 }
@@ -430,7 +430,7 @@ void MemoryAccessStage::process( ) {
             
         case OP_ITLB: {
             
-            CPU24Tlb *tlbPtr    = ( CPU24Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
+            CpuTlb *tlbPtr    = ( CPU24Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
             uint32_t tlbSeg = (( CPU24Instr::tlbAdrModeField( instr )) ?
                                    core -> sReg[ CPU24Instr::segSelect( valB )].get( ) :
                                    core -> sReg[ CPU24Instr::regAIdField( instr ) ].get( ));
@@ -453,7 +453,7 @@ void MemoryAccessStage::process( ) {
             
         case OP_PTLB: {
             
-            CPU24Tlb        *tlbPtr  = ( CPU24Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
+            CpuTlb        *tlbPtr  = ( CPU24Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
             uint32_t    tlbSeg = (( CPU24Instr::tlbAdrModeField( instr )) ?
                                       core -> sReg[ CPU24Instr::segSelect( valB )].get( ) :
                                       core -> sReg[ CPU24Instr::regAIdField( instr ) ].get( ));
@@ -468,7 +468,7 @@ void MemoryAccessStage::process( ) {
             
         case OP_PCA: {
             
-            CPU24Tlb        *tlbPtr = ( CPU24Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
+            CpuTlb        *tlbPtr = ( CPU24Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
             CPU24Mem        *cPtr   = ( CPU24Instr::pcaKindField( instr )) ?  core -> dCacheL1 : core -> iCacheL1;
             uint32_t    seg     = 0;
             uint32_t    ofs     = 0;
@@ -484,7 +484,7 @@ void MemoryAccessStage::process( ) {
                 ofs = valB;
             }
             
-            CPU24TlbEntry *tlbEntryPtr = tlbPtr -> lookupTlbEntry( seg, ofs );
+            TlbEntry *tlbEntryPtr = tlbPtr -> lookupTlbEntry( seg, ofs );
             if ( tlbEntryPtr == nullptr ) {
                 
                 setupTrapData(( CPU24Instr::pcaKindField( instr ) ? ITLB_NON_ACCESS_TRAP : DTLB_NON_ACCESS_TRAP ),
@@ -515,7 +515,7 @@ void MemoryAccessStage::process( ) {
         
         if ( core -> stReg.get( ) & ST_DATA_TRANSLATION_ENABLE ) {
             
-            CPU24TlbEntry   *tlbEntryPtr = core -> dTlb -> lookupTlbEntry( valS, valX );
+            TlbEntry   *tlbEntryPtr = core -> dTlb -> lookupTlbEntry( valS, valX );
             if ( tlbEntryPtr == nullptr ) {
                 
                 setupTrapData( DTLB_MISS_TRAP, valS, valX, core -> stReg.get( ));

@@ -33,7 +33,7 @@
 // and Cache subsystems.
 //
 //------------------------------------------------------------------------------------------------------------
-enum CPU24VmemOptions : uint32_t {
+enum VmemOptions : uint32_t {
     
     VMEM_T_NIL                  = 0,
     VMEM_T_SPLIT_TLB            = 1,
@@ -41,7 +41,6 @@ enum CPU24VmemOptions : uint32_t {
     VMEM_T_L1_SPLIT_CACHE       = 3,
     VMEM_T_L2_UNIFIED_CACHE     = 4
 };
-
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -61,7 +60,7 @@ const uint16_t  MAX_BLOCK_SETS          = 4;
 // A register belongs to a class or registers.
 //
 //------------------------------------------------------------------------------------------------------------
-enum CPU24RegClass : uint32_t {
+enum RegClass : uint32_t {
     
     RC_REG_SET_NIL      = 0,
     RC_GEN_REG_SET      = 1,
@@ -84,7 +83,7 @@ enum CPU24RegClass : uint32_t {
 //
 // ??? not clear how a dual ported will be modelled yet ...
 //------------------------------------------------------------------------------------------------------------
-enum CPU24TlbType : uint32_t {
+enum TlbType : uint32_t {
     
     TLB_T_NIL           = 0,
     TLB_T_L1_INSTR      = 1,
@@ -96,7 +95,7 @@ enum CPU24TlbType : uint32_t {
 // intended for the dual ported TLB model.
 //
 //------------------------------------------------------------------------------------------------------------
-enum CPU24TlbAccessType : uint32_t {
+enum TlbAccessType : uint32_t {
     
     TLB_AT_NIL                   = 0,
     TLB_AT_FULLY_ASSOCIATIVE     = 1,
@@ -109,10 +108,10 @@ enum CPU24TlbAccessType : uint32_t {
 // cycle.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24TlbDesc {
+struct TlbDesc {
     
-    CPU24TlbType        type        = TLB_T_NIL;
-    CPU24TlbAccessType  accessType  = TLB_AT_NIL;
+    TlbType        type        = TLB_T_NIL;
+    TlbAccessType  accessType  = TLB_AT_NIL;
     uint16_t            entries     = 0;
     uint16_t            latency     = 0;
 };
@@ -124,7 +123,7 @@ struct CPU24TlbDesc {
 // The idea is that a unified approach to memory allows for a flexible configuration of the layers.
 //
 //------------------------------------------------------------------------------------------------------------
-enum CPU24MemType : uint32_t {
+enum CpuMemType : uint32_t {
     
     MEM_T_NIL         = 0,
     MEM_T_L1_INSTR    = 1,
@@ -138,7 +137,7 @@ enum CPU24MemType : uint32_t {
 // directly index access type is intended for the physical memory.
 //
 //------------------------------------------------------------------------------------------------------------
-enum CPU24MemAccessType : uint32_t {
+enum CpuMemAccessType : uint32_t {
     
     MEM_AT_NIL                  = 0,
     MEM_AT_DIRECT_INDEXED       = 1,
@@ -152,10 +151,10 @@ enum CPU24MemAccessType : uint32_t {
 // how many clock cycles it will take to perform the respective operation.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24MemDesc {
+struct CpuMemDesc {
     
-    CPU24MemType        type            = MEM_T_NIL;
-    CPU24MemAccessType  accessType      = MEM_AT_NIL;
+    CpuMemType          type            = MEM_T_NIL;
+    CpuMemAccessType    accessType      = MEM_AT_NIL;
     uint32_t            blockEntries    = 0;
     uint16_t            blockSize       = 0;
     uint16_t            blockSets       = 0;
@@ -168,21 +167,21 @@ struct CPU24MemDesc {
 // descriptors for each nuilding block.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24CoreDesc {
+struct CpuCoreDesc {
     
-    uint32_t            flags           = 0;
+    uint32_t        flags           = 0;
     
-    CPU24VmemOptions    tlbOptions      = VMEM_T_NIL;
-    CPU24VmemOptions    cacheL1Options  = VMEM_T_NIL;
-    CPU24VmemOptions    cacheL2Options  = VMEM_T_NIL;
+    VmemOptions     tlbOptions      = VMEM_T_NIL;
+    VmemOptions     cacheL1Options  = VMEM_T_NIL;
+    VmemOptions     cacheL2Options  = VMEM_T_NIL;
     
-    CPU24MemDesc        iCacheDescL1;
-    CPU24MemDesc        dCacheDescL1;
-    CPU24MemDesc        uCacheDescL2;
-    CPU24MemDesc        memDesc;
+    CpuMemDesc      iCacheDescL1;
+    CpuMemDesc      dCacheDescL1;
+    CpuMemDesc      uCacheDescL2;
+    CpuMemDesc      memDesc;
     
-    CPU24TlbDesc        iTlbDesc;
-    CPU24TlbDesc        dTlbDesc;
+    TlbDesc         iTlbDesc;
+    TlbDesc         dTlbDesc;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -193,11 +192,11 @@ struct CPU24CoreDesc {
 // designated as a register only accessible in privileged mode.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24Reg {
+struct CpuReg {
     
 public:
     
-    CPU24Reg( uint32_t val = 0, bool isPriv = false );
+    CpuReg( uint32_t val = 0, bool isPriv = false );
     
     void        init( uint32_t val = 0, bool isPriv = false );
     void        reset( );
@@ -235,36 +234,38 @@ private:
 //
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24TlbEntry {
+struct TlbEntry {
     
 public:
     
-    inline bool         tValid( ) { return ( pInfo & 0400000000 ); }
-    inline void         setValid( bool arg ) { if ( arg ) pInfo |= 0400000000; else  pInfo &= ~ 0400000000; }
+    // ??? fix the bit positions ...
     
-    inline bool         tDirty( ) { return( pInfo & 0040000000 ); }
-    inline bool         tUncachable( ) { return( pInfo & 020000000 ); }
-    inline bool         tTrapPage( ) { return( pInfo & 010000000 ); }
+    inline bool     tValid( ) { return ( pInfo & 0400000000 ); }
+    inline void     setValid( bool arg ) { if ( arg ) pInfo |= 0400000000; else  pInfo &= ~ 0400000000; }
     
-    inline bool         tTrapDataPage( ) { return( pInfo & 002000000 ); }
-    inline bool         tModifyExPage( ) { return( pInfo & 010000000 ); }
+    inline bool     tDirty( ) { return( pInfo & 0040000000 ); }
+    inline bool     tUncachable( ) { return( pInfo & 020000000 ); }
+    inline bool     tTrapPage( ) { return( pInfo & 010000000 ); }
     
-    inline int          tPageType( ) { return(( pInfo >> 18 ) & 03 ); }
-    inline uint8_t      tPrivL1( ) { return(( pInfo & 000100000 ) ? 1 : 0 ); }
-    inline uint8_t      tPrivL2( ) { return(( pInfo & 000040000 ) ? 1 : 0 ); }
-    inline uint16_t     tProtectId( ) { return( pInfo & 000037777 ); }
+    inline bool     tTrapDataPage( ) { return( pInfo & 002000000 ); }
+    inline bool     tModifyExPage( ) { return( pInfo & 010000000 ); }
     
-    inline uint32_t     tPhysAdrTag( ) { return ( aInfo << 12 ); }
+    inline int      tPageType( ) { return(( pInfo >> 18 ) & 03 ); }
+    inline uint8_t  tPrivL1( ) { return(( pInfo & 000100000 ) ? 1 : 0 ); }
+    inline uint8_t  tPrivL2( ) { return(( pInfo & 000040000 ) ? 1 : 0 ); }
+    inline uint16_t tProtectId( ) { return( pInfo & 000037777 ); }
     
-    inline uint16_t     tPhysPage( ) { return(( aInfo >> 12 ) & 000007777 ); }
-    inline uint8_t      tPhysMemBank( ) { return(( aInfo >> 12 ) & 017 ); }
-    inline uint8_t      tCpuId( ) { return(( aInfo >> 16 ) & 017 ); }
+    inline uint32_t tPhysAdrTag( ) { return ( aInfo << 12 ); }
+    
+    inline uint16_t tPhysPage( ) { return(( aInfo >> 12 ) & 000007777 ); }
+    inline uint8_t  tPhysMemBank( ) { return(( aInfo >> 12 ) & 017 ); }
+    inline uint8_t  tCpuId( ) { return(( aInfo >> 16 ) & 017 ); }
  
-    uint32_t            vpnHigh;
-    uint32_t            vpnLow;
-    uint32_t            pInfo;
-    uint32_t            aInfo;
-    uint32_t            adrtag;
+    uint32_t        vpnHigh;
+    uint32_t        vpnLow;
+    uint32_t        pInfo;
+    uint32_t        aInfo;
+    uint32_t        adrtag;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -274,54 +275,51 @@ public:
 // of statistics to keep track of hits, misses, wait cycles and so on.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24Tlb {
+struct CpuTlb {
     
 public:
     
-    CPU24Tlb( CPU24TlbDesc *cfg );
+    CpuTlb( TlbDesc *cfg );
     
-    void                reset( );
-    void                tick( );
-    void                process( );
-    void                clearStats( );
+    void            reset( );
+    void            tick( );
+    void            process( );
+    void            clearStats( );
     
-    void                abortTlbOp( );
-    uint16_t            hashAdr( uint32_t seg, uint32_t ofs );
+    void            abortTlbOp( );
+    uint16_t        hashAdr( uint32_t seg, uint32_t ofs );
     
-    bool                insertTlbEntryAdr( uint32_t seg, uint32_t ofs, uint32_t data );
-    bool                insertTlbEntryProt( uint32_t seg, uint32_t ofs, uint32_t data );
-    bool                purgeTlbEntry( uint32_t seg, uint32_t ofs );
+    bool            insertTlbEntryAdr( uint32_t seg, uint32_t ofs, uint32_t data );
+    bool            insertTlbEntryProt( uint32_t seg, uint32_t ofs, uint32_t data );
+    bool            purgeTlbEntry( uint32_t seg, uint32_t ofs );
     
-    CPU24TlbEntry       *lookupTlbEntry( uint32_t seg, uint32_t ofs );
-    CPU24TlbEntry       *getTlbEntry( uint32_t index );
+    TlbEntry        *lookupTlbEntry( uint32_t seg, uint32_t ofs );
+    TlbEntry        *getTlbEntry( uint32_t index );
     
-    bool                purgeTlbEntryData( uint32_t seg, uint32_t ofs );
-    bool                insertTlbEntryData( uint32_t seg,
-                                            uint32_t ofs,
-                                            uint32_t argAcc,
-                                            uint32_t argAdr );
+    bool            purgeTlbEntryData( uint32_t seg, uint32_t ofs );
+    bool            insertTlbEntryData( uint32_t seg, uint32_t ofs, uint32_t argAcc, uint32_t argAdr );
     
-    uint16_t            getTlbSize ( );
-    uint32_t            getTlbInserts( );
-    uint32_t            getTlbDeletes( );
-    uint32_t            getTlbAccess( );
-    uint32_t            getTlbMiss( );
-    uint32_t            getTlbWaitCycles( );
+    uint16_t        getTlbSize ( );
+    uint32_t        getTlbInserts( );
+    uint32_t        getTlbDeletes( );
+    uint32_t        getTlbAccess( );
+    uint32_t        getTlbMiss( );
+    uint32_t        getTlbWaitCycles( );
     
-    uint32_t            getTlbCtrlReg( uint8_t tReg );
-    void                setTlbCtrlReg( uint8_t tReg, uint32_t val );
+    uint32_t        getTlbCtrlReg( uint8_t tReg );
+    void            setTlbCtrlReg( uint8_t tReg, uint32_t val );
     
 private:
     
-    CPU24TlbDesc        tlbDesc;
+    TlbDesc         tlbDesc;
     
     uint32_t        tlbOpState          = 0;
     uint32_t        reqOp               = 0;
     uint32_t        reqData             = 0;
     uint32_t        reqDelayCnt         = 0;
     
-    CPU24TlbEntry   *reqTlbEntry        = nullptr;
-    CPU24TlbEntry   *tlbArray           = nullptr;
+    TlbEntry        *reqTlbEntry        = nullptr;
+    TlbEntry        *tlbArray           = nullptr;
     
     uint32_t        tlbInserts         = 0;
     uint32_t        tlbDeletes         = 0;
@@ -339,11 +337,11 @@ private:
 // version just stores the physical block address with the block size bits set to zero as the tag.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24MemTagEntry {
+struct MemTagEntry {
     
-    bool        valid   = false;
-    bool        dirty   = false;
-    uint32_t    tag     = 0;
+    bool            valid   = false;
+    bool            dirty   = false;
+    uint32_t        tag     = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -366,78 +364,78 @@ struct CPU24MemTagEntry {
 //------------------------------------------------------------------------------------------------------------
 struct CPU24Mem {
     
-    CPU24Mem( CPU24MemDesc *mDesc, CPU24Mem *lowerMem = nullptr );
+    CPU24Mem( CpuMemDesc *mDesc, CPU24Mem *lowerMem = nullptr );
     
-    void                reset( );
-    void                tick( );
-    void                process( );
-    void                clearStats( );
+    void            reset( );
+    void            tick( );
+    void            process( );
+    void            clearStats( );
     
-    void                abortMemOp( );
+    void            abortMemOp( );
     
-    bool                readWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t *word );
-    bool                writeWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t word );
+    bool            readWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t *word );
+    bool            writeWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t word );
     
-    bool                flushBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag );
-    bool                purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag );
+    bool            flushBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag );
+    bool            purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag );
     
-    bool                readWordPhys( uint32_t adr, uint32_t *word, uint16_t pri = 0 );
-    bool                writeWordPhys( uint32_t adr, uint32_t word, uint16_t pri = 0 );
+    bool            readWordPhys( uint32_t adr, uint32_t *word, uint16_t pri = 0 );
+    bool            writeWordPhys( uint32_t adr, uint32_t word, uint16_t pri = 0 );
+
+    bool            readBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri = 0 );
+    bool            writeBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri = 0 );
+    bool            flushBlockPhys(  uint32_t adr, uint16_t pri = 0 );
+    bool            purgeBlockPhys(  uint32_t adr, uint16_t pri = 0 );
     
-    bool                readBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri = 0 );
-    bool                writeBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri = 0 );
-    bool                flushBlockPhys(  uint32_t adr, uint16_t pri = 0 );
-    bool                purgeBlockPhys(  uint32_t adr, uint16_t pri = 0 );
+    int             mapAdr( uint32_t seg, uint32_t ofs );
+    MemTagEntry     *getMemTagEntry( uint32_t index, uint8_t set = 0 );
+    uint32_t        *getMemBlockEntry( uint32_t index, uint8_t set = 0 );
     
-    int                 mapAdr( uint32_t seg, uint32_t ofs );
-    CPU24MemTagEntry    *getMemTagEntry( uint32_t index, uint8_t set = 0 );
-    uint32_t            *getMemBlockEntry( uint32_t index, uint8_t set = 0 );
+    uint32_t        getBlockEntries( );
+    uint16_t        getBlockSize( );
+    uint16_t        getBlockSets( );
+    uint32_t        getMissCnt( );
+    uint32_t        getDirtyMissCnt( );
+    uint32_t        getAccessCnt( );
+    uint32_t        getWaitCycleCnt( );
     
-    uint32_t            getBlockEntries( );
-    uint16_t            getBlockSize( );
-    uint16_t            getBlockSets( );
-    uint32_t            getMissCnt( );
-    uint32_t            getDirtyMissCnt( );
-    uint32_t            getAccessCnt( );
-    uint32_t            getWaitCycleCnt( );
-    
-    uint32_t            getMemCtrlReg( uint8_t mReg );
-    void                setMemCtrlReg( uint8_t mReg, uint32_t val );
-    char                *getMemOpStr( uint32_t opArg );
+    uint32_t        getMemCtrlReg( uint8_t mReg );
+    void            setMemCtrlReg( uint8_t mReg, uint32_t val );
+    char            *getMemOpStr( uint32_t opArg );
     
 private:
     
-    CPU24MemDesc        cDesc;
+    CpuMemDesc      cDesc;
     
-    uint16_t            matchTag( uint32_t index, uint32_t tag );
-    void                processL1CacheRequest( );
-    void                processL2CacheRequest( );
-    void                processMemRequest( );
+    uint16_t        matchTag( uint32_t index, uint32_t tag );
+    void            processL1CacheRequest( );
+    void            processL2CacheRequest( );
+    void            processMemRequest( );
     
-    CPU24Reg            opState             = 0;
-    uint16_t            reqPri              = 0;
-    uint32_t            reqSeg              = 0;
-    uint32_t            reqOfs              = 0;
-    uint32_t            reqTag              = 0;
-    uint32_t            *reqPtr             = 0;
-    uint32_t            reqLen              = 0;
-    uint32_t            reqLatency          = 0;
-    uint16_t            reqTargetSet        = 0;
-    uint32_t            reqTargetBlockIndex = 0;
+    CpuReg          opState             = 0;
+    uint16_t        reqPri              = 0;
+    uint32_t        reqSeg              = 0;
+    uint32_t        reqOfs              = 0;
+    uint32_t        reqTag              = 0;
+    uint32_t        *reqPtr             = 0;
+    uint32_t        reqLen              = 0;
+    uint32_t        reqLatency          = 0;
+    uint16_t        reqTargetSet        = 0;
+    uint32_t        reqTargetBlockIndex = 0;
     
-    uint16_t            blockBits           = 0;
-    uint32_t            blockBitMask        = 0;
-    uint16_t            memObjPriority      = 0;
+    uint16_t        blockBits           = 0;
+    uint32_t        blockBitMask        = 0;
+    uint16_t        memObjPriority      = 0;
     
-    uint32_t            accessCnt           = 0;;
-    uint32_t            missCnt             = 0;
-    uint32_t            dirtyMissCnt        = 0;
-    uint32_t            waitCyclesCnt       = 0;
+    uint32_t        accessCnt           = 0;;
+    uint32_t        missCnt             = 0;
+    uint32_t        dirtyMissCnt        = 0;
+    uint32_t        waitCyclesCnt       = 0;
     
-    CPU24MemTagEntry    *tagArray[ MAX_BLOCK_SETS ]     = { nullptr };
-    uint32_t            *dataArray[ MAX_BLOCK_SETS ]    = { nullptr };
-    CPU24Mem            *lowerMem                       = nullptr;
-    void                ( CPU24Mem::*stateMachine )( )  = nullptr;
+    MemTagEntry     *tagArray[ MAX_BLOCK_SETS ]     = { nullptr };
+    uint32_t        *dataArray[ MAX_BLOCK_SETS ]    = { nullptr };
+    CPU24Mem        *lowerMem                       = nullptr;
+    void            ( CPU24Mem::*stateMachine )( )  = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -446,13 +444,13 @@ private:
 //
 // ??? just the statistics for the CPU itself ...
 //------------------------------------------------------------------------------------------------------------
-struct CPU24Statistics {
+struct CpuStatistics {
     
-    uint32_t    clockCntr               = 0;
-    uint32_t    instrCntr               = 0;
+    uint32_t        clockCntr               = 0;
+    uint32_t        instrCntr               = 0;
     
-    uint32_t    branchesTaken           = 0;
-    uint32_t    branchesMispredicted    = 0;
+    uint32_t        branchesTaken           = 0;
+    uint32_t        branchesMispredicted    = 0;
     
     // ??? what else ....
 };
@@ -463,7 +461,7 @@ struct CPU24Statistics {
 // core is also the elements that is visible to the simulator.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24Core {
+struct CpuCore {
     
 public:
     
@@ -471,29 +469,29 @@ public:
     // The visible part of the CPU24 object.
     //
     //--------------------------------------------------------------------------------------------------------
-    CPU24Core( CPU24CoreDesc *cfg );
+    CpuCore( CpuCoreDesc *cfg );
     
     void            reset( );
     void            clearStats( );
     void            clockStep( uint32_t numOfSteps = 1 );
     void            instrStep( uint32_t numOfInstr = 1 );
     
-    uint32_t        getReg( CPU24RegClass regClass, uint8_t regId );
-    void            setReg( CPU24RegClass regClass, uint8_t regId, uint32_t val );
+    uint32_t        getReg( RegClass regClass, uint8_t regId );
+    void            setReg( RegClass regClass, uint8_t regId, uint32_t val );
     
     //--------------------------------------------------------------------------------------------------------
     // The CPU core objects. Since the driver needs access to all of them frequently, we could either have
     // a ton of getter functions, or make the public. Let's go for the latter
     //
     //--------------------------------------------------------------------------------------------------------
-    CPU24Tlb        *iTlb                       = nullptr;
-    CPU24Tlb        *dTlb                       = nullptr;
-    CPU24Mem        *iCacheL1                   = nullptr;
-    CPU24Mem        *dCacheL1                   = nullptr;
-    CPU24Mem        *uCacheL2                   = nullptr;
-    CPU24Mem        *mem                        = nullptr;
+    CpuTlb          *iTlb       = nullptr;
+    CpuTlb          *dTlb       = nullptr;
+    CPU24Mem        *iCacheL1   = nullptr;
+    CPU24Mem        *dCacheL1   = nullptr;
+    CPU24Mem        *uCacheL2   = nullptr;
+    CPU24Mem        *mem        = nullptr;
     
-    CPU24Statistics stats;
+    CpuStatistics stats;
     
 private:
     
@@ -501,19 +499,19 @@ private:
     // The CPU configuration descritpor and the CPU registers.
     //
     //--------------------------------------------------------------------------------------------------------
-    CPU24CoreDesc   cpuDesc;
+    CpuCoreDesc     cpuDesc;
     
-    CPU24Reg        gReg[ MAX_GREGS ]           = { 0 };
-    CPU24Reg        sReg[ MAX_SREGS ]           = { 0 };
-    CPU24Reg        cReg[ MAX_CREGS ]           = { 0 };
-    CPU24Reg        stReg;
+    CpuReg          gReg[ MAX_GREGS ];
+    CpuReg          sReg[ MAX_SREGS ];
+    CpuReg          cReg[ MAX_CREGS ];
+    CpuReg          stReg;
     
     //--------------------------------------------------------------------------------------------------------
     // Utility routines.
     //
     // ??? put priv reg check local to each file ?
     //--------------------------------------------------------------------------------------------------------
-    bool            isPrivRegForAccMode( CPU24RegClass regClass, uint32_t regId, AccessModes mode );
+    bool            isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessModes mode );
     void            handleTraps( );
     
     //--------------------------------------------------------------------------------------------------------
@@ -531,4 +529,4 @@ private:
     struct          ExecuteStage        *exStage    = nullptr;
 };
 
-#endif /* CPU24Core_h */
+#endif

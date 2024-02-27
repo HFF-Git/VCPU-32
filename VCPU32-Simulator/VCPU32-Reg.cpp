@@ -32,47 +32,47 @@
 // can also be marked as a priviledge write access register.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24Reg::CPU24Reg( uint32_t val, bool isPriv ) {
+CpuReg::CpuReg( uint32_t val, bool isPriv ) {
     
     this -> regIn   = val;
     this -> regOut  = val;
     this -> isPriv  = isPriv;
 }
 
-void CPU24Reg::init( uint32_t val, bool isPriv ) {
+void CpuReg::init( uint32_t val, bool isPriv ) {
     
     this -> regIn   = 0;
     this -> regOut  = 0;
     this -> isPriv  = isPriv;
 }
 
-void CPU24Reg::reset( ) {
+void CpuReg::reset( ) {
     
     regIn  = 0;
     regOut = 0;
 }
 
-void CPU24Reg::tick( ) {
+void CpuReg::tick( ) {
     
     regOut = regIn;
 }
 
-void CPU24Reg::load( uint32_t val ) {
+void CpuReg::load( uint32_t val ) {
     
     regIn = regOut = val;
 }
 
-void CPU24Reg::set( uint32_t val ) {
+void CpuReg::set( uint32_t val ) {
     
     regIn = val;
 }
 
-uint32_t CPU24Reg::get( ) {
+uint32_t CpuReg::get( ) {
  
     return( regOut );
 }
 
-bool CPU24Reg::isPrivReg( ) {
+bool CpuReg::isPrivReg( ) {
     
     return( isPriv );
 }

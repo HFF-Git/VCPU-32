@@ -71,7 +71,7 @@ struct CPU24Debug {
 
 public:
 
-    CPU24Debug ( CPU24Core *core );
+    CPU24Debug ( CpuCore *core );
     void                initDebug ( );
     
     int                 addBreakPoint( uint32_t seg, uint32_t ofs, uint32_t instr );
@@ -91,7 +91,7 @@ public:
 private:
     
     CPU24Breakpoint     *breakPointTab = nullptr;
-    CPU24Core           * core         = nullptr;
+    CpuCore           * core         = nullptr;
 };
 
 

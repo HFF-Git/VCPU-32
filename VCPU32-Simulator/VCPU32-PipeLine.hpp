@@ -49,7 +49,7 @@ struct FetchDecodeStage {
     
 public:
     
-    FetchDecodeStage( CPU24Core *core );
+    FetchDecodeStage( CpuCore *core );
     
     void                reset( );
     void                tick( );
@@ -70,8 +70,8 @@ public:
     uint32_t            getPipeLineReg( uint8_t pReg );
     void                setPipeLineReg( uint8_t pReg, uint32_t val );
    
-    CPU24Reg            psInstrSeg;
-    CPU24Reg            psInstrOfs;
+    CpuReg            psInstrSeg;
+    CpuReg            psInstrOfs;
     
     uint8_t             regIdForValA;
     uint8_t             regIdForValB;
@@ -86,7 +86,7 @@ public:
     
 private:
     
-    CPU24Core           *core   = nullptr;
+    CpuCore           *core   = nullptr;
     bool                stalled = false;
     
     uint32_t        instrSeg;
@@ -118,7 +118,7 @@ struct MemoryAccessStage {
     
 public:
     
-    MemoryAccessStage( CPU24Core *core );
+    MemoryAccessStage( CpuCore *core );
     
     void                reset( );
     void                tick( );
@@ -140,16 +140,16 @@ public:
     uint32_t            getPipeLineReg( uint8_t pReg );
     void                setPipeLineReg( uint8_t pReg, uint32_t val );
     
-    CPU24Reg            psInstrSeg;
-    CPU24Reg            psInstrOfs;
-    CPU24Reg            psInstr;
+    CpuReg            psInstrSeg;
+    CpuReg            psInstrOfs;
+    CpuReg            psInstr;
     uint32_t            instrPrivLevel;
-    CPU24Reg            psValA;
-    CPU24Reg            psValB;
-    CPU24Reg            psValX;
-    CPU24Reg            psRegIdForValA;
-    CPU24Reg            psRegIdForValB;
-    CPU24Reg            psRegIdForValX;
+    CpuReg            psValA;
+    CpuReg            psValB;
+    CpuReg            psValX;
+    CpuReg            psRegIdForValA;
+    CpuReg            psRegIdForValB;
+    CpuReg            psRegIdForValX;
     
     uint8_t             regIdForValA;
     uint8_t             regIdForValB;
@@ -159,7 +159,7 @@ public:
  
 private:
     
-    CPU24Core           *core       = nullptr;
+    CpuCore           *core       = nullptr;
     bool                stalled     = false;
     
     uint32_t        instrSeg;
@@ -181,7 +181,7 @@ struct ExecuteStage {
     
 public:
     
-    ExecuteStage( CPU24Core *core );
+    ExecuteStage( CpuCore *core );
     
     void            reset( );
     void            tick( );
@@ -203,12 +203,12 @@ public:
                                        uint32_t p2 = 0,
                                        uint32_t p3 = 0 );
     
-    CPU24Reg        psInstr;
-    CPU24Reg        psInstrSeg;
-    CPU24Reg        psInstrOfs;
-    CPU24Reg        psValA;
-    CPU24Reg        psValB;
-    CPU24Reg        psValX;
+    CpuReg        psInstr;
+    CpuReg        psInstrSeg;
+    CpuReg        psInstrOfs;
+    CpuReg        psValA;
+    CpuReg        psValB;
+    CpuReg        psValX;
     
     uint8_t         regIdForValR;
     uint32_t        valR;
@@ -220,7 +220,7 @@ public:
     
 private:
     
-    CPU24Core       *core       = nullptr;
+    CpuCore       *core       = nullptr;
     bool            stalled     = false;
     
     uint32_t        instrSeg;

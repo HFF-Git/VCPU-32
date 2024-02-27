@@ -72,7 +72,7 @@ bool maStageConsumesRegValBorX( uint32_t instr ) {
 // The instruction fetch and decode stage object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-FetchDecodeStage::FetchDecodeStage( CPU24Core *core ) {
+FetchDecodeStage::FetchDecodeStage( CpuCore *core ) {
     
     this -> core = core;
 }
@@ -271,7 +271,7 @@ void FetchDecodeStage::process( ) {
     uint8_t         opCode          = OP_NOP;
     uint32_t    pAdr            = instrOfs;
     uint32_t    pOfs            = instrOfs & PAGE_BIT_MASK;
-    CPU24TlbEntry   *tlbEntryPtr    = nullptr;
+    TlbEntry   *tlbEntryPtr    = nullptr;
     bool            unCacheable     = false;
     
     setStalled( false );

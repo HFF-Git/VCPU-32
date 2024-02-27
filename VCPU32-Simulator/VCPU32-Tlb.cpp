@@ -85,12 +85,12 @@ uint16_t hashTlb( uint32_t seg, uint32_t ofs, uint32_t tlbSize ) {
 // get to an entry. The TLB size is rounded up to the nearest power of 2 from the passed TLB size.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24Tlb::CPU24Tlb( CPU24TlbDesc *cfg ) {
+CpuTlb::CpuTlb( TlbDesc *cfg ) {
     
-    memcpy( &tlbDesc, cfg, sizeof( CPU24TlbDesc ));
+    memcpy( &tlbDesc, cfg, sizeof( TlbDesc ));
     
     tlbDesc.entries = roundUp( tlbDesc.entries );
-    tlbArray        = (CPU24TlbEntry *) calloc( tlbDesc.entries, sizeof( CPU24TlbEntry ));
+    tlbArray        = (TlbEntry *) calloc( tlbDesc.entries, sizeof( TlbEntry ));
     
     reset( );
 }
@@ -99,7 +99,7 @@ CPU24Tlb::CPU24Tlb( CPU24TlbDesc *cfg ) {
 // Clear the TLB. This is just a simple clear of all entries in the array.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Tlb::reset( ) {
+void CpuTlb::reset( ) {
     
     for ( uint16_t i = 0; i < tlbDesc.entries; i++ ) tlbArray[ i ].setValid( false );
 }
@@ -108,7 +108,7 @@ void CPU24Tlb::reset( ) {
 // Clear the TLB. This is just a simple clear of all entries in the array.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Tlb::clearStats( ) {
+void CpuTlb::clearStats( ) {
     
     tlbInserts      = 0;
     tlbDeletes      = 0;
@@ -122,7 +122,7 @@ void CPU24Tlb::clearStats( ) {
 // time for inserts and deletes in CPU cycles.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Tlb::tick( ) {
+void CpuTlb::tick( ) {
     
     if ( tlbOpState != TO_IDLE ) {
         
@@ -130,7 +130,7 @@ void CPU24Tlb::tick( ) {
     }
 }
 
-void CPU24Tlb::process( ) {
+void CpuTlb::process( ) {
     
     
 }
@@ -142,9 +142,9 @@ void CPU24Tlb::process( ) {
 // count decremented on each tick. If the tick is zero, let's do the work.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Tlb::insertTlbEntryAdr( uint32_t seg, uint32_t ofs, uint32_t data ) {
+bool CpuTlb::insertTlbEntryAdr( uint32_t seg, uint32_t ofs, uint32_t data ) {
     
-    CPU24TlbEntry *ptr = getTlbEntry( hashAdr( seg, ofs ));
+    TlbEntry *ptr = getTlbEntry( hashAdr( seg, ofs ));
     
     if ( tlbOpState == TO_IDLE ) {
         
@@ -180,9 +180,9 @@ bool CPU24Tlb::insertTlbEntryAdr( uint32_t seg, uint32_t ofs, uint32_t data ) {
 // zero, let's do the work.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Tlb::insertTlbEntryProt( uint32_t seg, uint32_t ofs, uint32_t data ) {
+bool CpuTlb::insertTlbEntryProt( uint32_t seg, uint32_t ofs, uint32_t data ) {
     
-    CPU24TlbEntry *ptr = getTlbEntry( hashAdr( seg, ofs ));
+    TlbEntry *ptr = getTlbEntry( hashAdr( seg, ofs ));
     
     if ( tlbOpState == TO_IDLE ) {
         
@@ -214,9 +214,9 @@ bool CPU24Tlb::insertTlbEntryProt( uint32_t seg, uint32_t ofs, uint32_t data ) {
 // tick. If the tick is zero, let's do the work.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Tlb::purgeTlbEntry( uint32_t seg, uint32_t ofs ) {
+bool CpuTlb::purgeTlbEntry( uint32_t seg, uint32_t ofs ) {
     
-    CPU24TlbEntry *ptr = getTlbEntry( hashAdr( seg, ofs ));
+    TlbEntry *ptr = getTlbEntry( hashAdr( seg, ofs ));
     
     if ( tlbOpState == TO_IDLE ) {
         
@@ -245,7 +245,7 @@ bool CPU24Tlb::purgeTlbEntry( uint32_t seg, uint32_t ofs ) {
 // a fetching of an instruction that we never execute.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Tlb::abortTlbOp( ) {
+void CpuTlb::abortTlbOp( ) {
     
     if ( tlbOpState != TO_IDLE ) {
         
@@ -260,9 +260,9 @@ void CPU24Tlb::abortTlbOp( ) {
 // entry.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Tlb::insertTlbEntryData( uint32_t seg, uint32_t ofs, uint32_t argAcc, uint32_t argAdr ) {
+bool CpuTlb::insertTlbEntryData( uint32_t seg, uint32_t ofs, uint32_t argAcc, uint32_t argAdr ) {
     
-    CPU24TlbEntry *ptr = getTlbEntry( hashAdr( seg, ofs ));
+    TlbEntry *ptr = getTlbEntry( hashAdr( seg, ofs ));
     if ( ptr != nullptr ) {
         
         ptr -> pInfo    = argAcc;
@@ -280,9 +280,9 @@ bool CPU24Tlb::insertTlbEntryData( uint32_t seg, uint32_t ofs, uint32_t argAcc, 
 // teh data from the TLB.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Tlb::purgeTlbEntryData( uint32_t seg, uint32_t ofs ) {
+bool CpuTlb::purgeTlbEntryData( uint32_t seg, uint32_t ofs ) {
     
-    CPU24TlbEntry *ptr = getTlbEntry( hashAdr( seg, ofs ));
+    TlbEntry *ptr = getTlbEntry( hashAdr( seg, ofs ));
     if ( ptr != nullptr ) {
         
         ptr -> pInfo    = 0;
@@ -300,9 +300,9 @@ bool CPU24Tlb::purgeTlbEntryData( uint32_t seg, uint32_t ofs ) {
 // We are passed the full virtual address including the page offset.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24TlbEntry *CPU24Tlb::lookupTlbEntry( uint32_t seg, uint32_t ofs ) {
+TlbEntry *CpuTlb::lookupTlbEntry( uint32_t seg, uint32_t ofs ) {
     
-    CPU24TlbEntry *ptr = &tlbArray[ hashAdr( seg, ofs ) ];
+    TlbEntry *ptr = &tlbArray[ hashAdr( seg, ofs ) ];
     
    tlbAccess++;
     
@@ -322,13 +322,13 @@ CPU24TlbEntry *CPU24Tlb::lookupTlbEntry( uint32_t seg, uint32_t ofs ) {
 // actual request data. Note that not all "registers" can be modified.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t CPU24Tlb::getTlbCtrlReg( uint8_t tReg ) {
+uint32_t CpuTlb::getTlbCtrlReg( uint8_t tReg ) {
     
   
     return( 0 );
 }
 
-void CPU24Tlb::setTlbCtrlReg( uint8_t mReg, uint32_t val ) {
+void CpuTlb::setTlbCtrlReg( uint8_t mReg, uint32_t val ) {
     
     
 }
@@ -337,7 +337,7 @@ void CPU24Tlb::setTlbCtrlReg( uint8_t mReg, uint32_t val ) {
 // The get TLB entry method returns a pointer to the TLB emtry by index.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24TlbEntry *CPU24Tlb::getTlbEntry( uint32_t index ) {
+TlbEntry *CpuTlb::getTlbEntry( uint32_t index ) {
     
     return(( index < tlbDesc.entries ) ? &tlbArray[ index ] : nullptr );
 }
@@ -346,7 +346,7 @@ CPU24TlbEntry *CPU24Tlb::getTlbEntry( uint32_t index ) {
 // A utility method to get the hash value for a virtual address.
 //
 //------------------------------------------------------------------------------------------------------------
-uint16_t CPU24Tlb::hashAdr( uint32_t seg, uint32_t ofs ) {
+uint16_t CpuTlb::hashAdr( uint32_t seg, uint32_t ofs ) {
     
     return( ::hashTlb( seg, ofs, tlbDesc.entries ));
 }
@@ -355,32 +355,32 @@ uint16_t CPU24Tlb::hashAdr( uint32_t seg, uint32_t ofs ) {
 // Getters.
 //
 //------------------------------------------------------------------------------------------------------------
-uint16_t CPU24Tlb::getTlbSize ( ) {
+uint16_t CpuTlb::getTlbSize ( ) {
     
     return( tlbDesc.entries );
 }
 
-uint32_t CPU24Tlb::getTlbInserts( ) {
+uint32_t CpuTlb::getTlbInserts( ) {
     
   return( tlbInserts );
 }
 
-uint32_t CPU24Tlb::getTlbDeletes( ) {
+uint32_t CpuTlb::getTlbDeletes( ) {
     
     return( tlbDeletes );
 }
 
-uint32_t CPU24Tlb::getTlbAccess( ) {
+uint32_t CpuTlb::getTlbAccess( ) {
     
     return( tlbAccess );
 }
 
-uint32_t CPU24Tlb::getTlbMiss( ) {
+uint32_t CpuTlb::getTlbMiss( ) {
     
     return( tlbMiss );
 }
 
-uint32_t CPU24Tlb::getTlbWaitCycles( ) {
+uint32_t CpuTlb::getTlbWaitCycles( ) {
     
    return( tlbWaitCycles );
 }

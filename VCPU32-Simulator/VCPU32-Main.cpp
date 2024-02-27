@@ -34,7 +34,7 @@
 int main( int argc, const char* argv[ ] ) {
     
     CPU24Globals        glbDesc;
-    CPU24CoreDesc       cpuDesc;
+    CpuCoreDesc       cpuDesc;
 
     cpuDesc.flags                       = 0;
     
@@ -78,7 +78,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.memDesc.blockSets           = 1;
     cpuDesc.memDesc.latency             = 2;
     
-    glbDesc.cpu                         = new CPU24Core( &cpuDesc );
+    glbDesc.cpu                         = new CpuCore( &cpuDesc );
     
     glbDesc.env                         = new CPU24DrvEnv( &glbDesc );
     glbDesc.cmds                        = new CPU24DrvCmds( &glbDesc );

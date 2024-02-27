@@ -1489,7 +1489,7 @@ void CPU24DrvCmds::purgeTLBCmd( char *cmdBuf ) {
         return;
     }
     
-    CPU24Tlb *tlbPtr = ( tlbTypId == TOK_I ) ? glb -> cpu -> iTlb : glb -> cpu -> dTlb;
+    CpuTlb *tlbPtr = ( tlbTypId == TOK_I ) ? glb -> cpu -> iTlb : glb -> cpu -> dTlb;
     if ( ! tlbPtr -> purgeTlbEntryData( seg, ofs )) printf( "Purge TLB data failed\n" );
 }
 
@@ -1522,7 +1522,7 @@ void CPU24DrvCmds::insertTLBCmd( char *cmdBuf ) {
         return;
     }
     
-    CPU24Tlb *tlbPtr = ( tlbTypId == TOK_I ) ? glb -> cpu -> iTlb : glb -> cpu -> dTlb;
+    CpuTlb *tlbPtr = ( tlbTypId == TOK_I ) ? glb -> cpu -> iTlb : glb -> cpu -> dTlb;
     if ( ! tlbPtr -> insertTlbEntryData( seg, ofs, argAcc, argAdr )) printf( "Insert TLB data failed\n" );
 }
 
@@ -1626,7 +1626,7 @@ void  CPU24DrvCmds::purgeCacheCmd( char *cmdBuf ) {
             return;
         }
         
-        CPU24MemTagEntry  *tagEntry = cPtr -> getMemTagEntry( index, set );
+        MemTagEntry  *tagEntry = cPtr -> getMemTagEntry( index, set );
         if ( tagEntry != nullptr ) {
             
             tagEntry -> valid = false;

@@ -128,9 +128,9 @@ uint32_t getBlockBitMask( uint16_t blockSize ) {
 // memory layer, if applicable.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24Mem::CPU24Mem( CPU24MemDesc *cfg, CPU24Mem *mem ) {
+CPU24Mem::CPU24Mem( CpuMemDesc *cfg, CPU24Mem *mem ) {
     
-    memcpy( &cDesc, cfg, sizeof( CPU24MemDesc ));
+    memcpy( &cDesc, cfg, sizeof( CpuMemDesc ));
     
     uint32_t limit = (( cDesc.type == MEM_T_PHYS_MEM ) ? MAX_MEM_BLOCK_ENTRIES : MAX_CACHE_BLOCK_ENTRIES );
    
@@ -147,7 +147,7 @@ CPU24Mem::CPU24Mem( CPU24MemDesc *cfg, CPU24Mem *mem ) {
         ( cDesc.type == MEM_T_L2_UNIFIED    )) {
         
         for ( uint32_t i = 0; i < cDesc.blockSets; i++ )
-            tagArray[ i ] = (CPU24MemTagEntry *) calloc( cDesc.blockEntries, sizeof( CPU24MemTagEntry));
+            tagArray[ i ] = (MemTagEntry *) calloc( cDesc.blockEntries, sizeof( MemTagEntry));
     }
     
     for ( uint32_t i = 0; i < cDesc.blockSets; i++ )
@@ -276,7 +276,7 @@ uint16_t CPU24Mem::matchTag( uint32_t index, uint32_t tag ) {
    
     for ( uint32_t i = 0; i < cDesc.blockSets; i++ ) {
        
-        CPU24MemTagEntry *ptr = &tagArray[ i ] [ index ];
+        MemTagEntry *ptr = &tagArray[ i ] [ index ];
         if (( ptr -> valid ) && (( tag & ( ~ blockBitMask )) == ( ptr -> tag & ( ~ blockBitMask )))) {
             
             return( i );
@@ -381,7 +381,7 @@ bool CPU24Mem::flushBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
         
         if ( matchSet < cDesc.blockSets ) {
           
-            CPU24MemTagEntry *tagPtr = &tagArray[ matchSet ] [ blockIndex ];
+            MemTagEntry *tagPtr = &tagArray[ matchSet ] [ blockIndex ];
             
             if ( tagPtr -> dirty ) {
                 
@@ -609,7 +609,7 @@ void CPU24Mem::processL1CacheRequest( ) {
         
             for ( uint16_t i = 0; i < cDesc.blockSets; i++ ) {
                 
-                CPU24MemTagEntry *tagPtr = &tagArray[ i ] [ reqTargetBlockIndex ];
+                MemTagEntry *tagPtr = &tagArray[ i ] [ reqTargetBlockIndex ];
                 if ( ! tagPtr -> valid ) {
                     
                     reqTargetSet = i;
@@ -619,7 +619,7 @@ void CPU24Mem::processL1CacheRequest( ) {
             
             if ( reqTargetSet >= cDesc.blockSets ) reqTargetSet = random( ) % cDesc.blockSets;
           
-            CPU24MemTagEntry *tagPtr = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
+            MemTagEntry *tagPtr = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
          
             if (( tagPtr -> valid ) && ( tagPtr -> dirty )) opState.set( MO_WRITE_BACK_BLOCK_VIRT );
             else                                            opState.set( MO_READ_BLOCK_VIRT );
@@ -628,7 +628,7 @@ void CPU24Mem::processL1CacheRequest( ) {
             
         case MO_READ_BLOCK_VIRT: {
          
-            CPU24MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
+                MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
             uint32_t     *dataPtr   = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
             
             if ( lowerMem -> readBlockPhys( reqTag, dataPtr, cDesc.blockSize, memObjPriority )) {
@@ -644,7 +644,7 @@ void CPU24Mem::processL1CacheRequest( ) {
             
         case MO_WRITE_BACK_BLOCK_VIRT: {
            
-            CPU24MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
+            MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
             uint32_t     *dataPtr   = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
             
             if ( lowerMem -> writeBlockPhys( reqTag, dataPtr, cDesc.blockSize, memObjPriority )) {
@@ -661,7 +661,7 @@ void CPU24Mem::processL1CacheRequest( ) {
           
             if ( reqTargetSet < cDesc.blockSets ) {
               
-                CPU24MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
+                MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
                 uint32_t     *dataPtr   = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
                 
                 if ( lowerMem -> writeBlockPhys( reqTag, dataPtr, cDesc.blockSize, memObjPriority )) {
@@ -697,7 +697,7 @@ void CPU24Mem::processL2CacheRequest( ) {
     
     uint32_t            blockIndex  = ( reqTag & 0x0FFFFFFF ) >> blockBits;
     uint16_t            blockSet    = matchTag( blockIndex, (( reqSeg < 24 ) | ( reqOfs & 0xFFFFFF )));
-    CPU24MemTagEntry    *tagPtr     = nullptr;
+    MemTagEntry    *tagPtr     = nullptr;
     uint32_t        *dataPtr    = nullptr;
     bool                tagMatch    = blockSet < MAX_BLOCK_SETS;
     
@@ -905,7 +905,7 @@ char *CPU24Mem::getMemOpStr( uint32_t opArg ) {
 // If the tag array does not exists or the indexed is out of range, a nullpr will be returned.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24MemTagEntry  *CPU24Mem::getMemTagEntry( uint32_t index, uint8_t set ) {
+MemTagEntry  *CPU24Mem::getMemTagEntry( uint32_t index, uint8_t set ) {
     
     if ( index >= cDesc.blockEntries )  return( nullptr );
     if ( set >= cDesc.blockSets )       return( nullptr );
