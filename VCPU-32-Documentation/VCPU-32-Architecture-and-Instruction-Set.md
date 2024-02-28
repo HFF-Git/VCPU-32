@@ -313,7 +313,6 @@ The second dimension of protection is a **protection ID**. A protection ID is a 
 
 Protection IDs are typically used to form a grouping of access. A good example is a stack data segment, which is accessible at user privilege level in read and write access from every thread that has R/W access with user privilege. However, only the corresponding user thread should be allowed to access the stack data segment. If a protection ID is assigned to the user thread, this can easily be accomplished. In addition, the protection ID also features a write disable bit, for allowing a model where many threads can read the protected segment but only few or one can write to it.
 
-
 ### Adress translation and caching
 
 The previous section depicted the virtual address translation. While the CPU architects the logical, virtual and physical address scheme, it does not specify how exactly the hardware supports the translation process. A very common model is to have for performance reasons TLBs for caching translation results and Caches for data caching. However, split TLBS and unified TLBs, L1 and L2 caches and other schemes are models to consider. This section just outline the common architecture and instructions to manage these CPU components.
@@ -511,38 +510,51 @@ Throughout the remainder of this document numbers are shown in three numeric for
 
 ### Operand Encoding
 
-At the highest level the processor works with logical addresses. There are several address modes that are used to form an operand address. Most instructions have an operand mode and and operand data field which encodes the address mode and size of data to fetch. There are sixteen address modes for instructions that use the operand encoding format.
-
+At the highest level the processor works with logical addresses. There are several address modes that are used to form an operand address. Most instructions have an operand mode and and operand data field which encodes the address mode and size of data to fetch. There are 32 address modes for instructions that use the operand encoding format. They can be grouped in four sets. Modes 0 .. 7 contains the immediate, register and extended address options. Modes 8 .. 15, 16 .. 23 and 24 .. 31 are the indexed adressing groups. They form the same address for the operand and only differ in the data size fetched. The following figure gives an overview of the instruction layout for instructions with an operand encoding. 
 
 ```
-                         <-res -> <-opt -> <- mode  -> <--------- operand --------------------------->
-       0                 6        9        12          16                            26       29    31
+                         <-  res  -> <-opt -> <-   mode   -> <--------- operand --------------------->
+       0                 6           10       13             18                24          28       31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : opCode          : r      :        : 0         : S : val                                       :  immediate
+      : opCode          : r         :        : 0            : S : val                                 :  immediate
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r      :        : 1         : 0                                    : b      :  one register
+      : opCode          : r         :        : 1            : 0                           : b         :  one register
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r      :        : 2         : 0                           : a      : b      :  two registers
+      : opCode          : r         :        : 2            : 0               : a         : 0         :  one register
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r      :        : 3         : S : ofs                     : a      : b      :  extended, word
+      : opCode          : r         :        : 3            : 0               : a         : b         :  two registers
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r      :        : 4 - 7     : S : ofs                                       :  indexed, word
+      : opCode          : r         :        : 4 - 7        : S : ofs         : a         : b         :  extended, word
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r      :        : 8 - 11    : S : ofs                                       :  indexed, half-word
+      : opCode          : r         :        : 8            : 0               : a         : b         :  register indexed, word
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r      :        : 12 - 15   : S : ofs                                       :  indexed, byte
+      : opCode          : r         :        : 9 - 15       : S : ofs                                 :  indexed, word
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 16           : 0               : a         : b         :  register indexed, half-word
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 17 - 23      : S : ofs                                 :  indexed, half-word
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 24           : 0               : a         : b         :  register indexed, byte
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 25 - 31      : S : ofs                                 :  indexed, byte
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
-The machine addresses memory with a byte address. The **mode** field indicates which addressing mode is used. Mode 0 is the immediate mode, where the operand is a sign-extended value. Mode 1 and 2 are the register modes. Either one or two registers can be specified. Mode 3 features an extended addressing mode, which will allow to access a word in a segment. Modes 4 to 15 are the indexed modes. They fetch a word, a half-word or a byte. The address must be aligned with the size of data to fetch. The address is built from selecting an index register. General register 4 maps to mode 4, 8 and 12, general register 5 to 5, 9 and 13 and so on. The LD instruction features in modes 0 to 2 a register indexed addressing, which takes a registers as base register and adds another register to it to form the final address.
+The machine addresses memory with a byte address. The **mode** field indicates which addressing mode is used. Mode 0 is the immediate mode, where the operand is a sign-extended 14-bit value. Mode 1,2 and 3 are the register modes. Either one or two registers can be specified. For mode 1 and 2 either "a" or "b" is a zero value. Mode 3 uses both rgister fields "a" and "b".
 
+Mode 4 - 7 features the extended addressing modes, which will allow to access a data item in a segment. Mode 4 refers to bytes, mode 5 to half-words and mode 6 to bytes. Mode 7 is resereved.
+
+Modes 8 to 31 are the indexed modes. They fetch a word, a half-word or a byte. The address must be aligned with the size of data to fetch. The address is built from selecting an index register. With the exception of general register zero, all general registers can be used as an indexing register. Modes 9, 17 and 25 map to GR1, 10, 18 and 26 to GR2 and so on up to GR7. The selected index register formas teh base to which the signed offset is added. 
+
+Modes 8, 16 and 24 are the register indxed modes. Instead of using an offset value, the "a" field contains the index regsiter to use and "b" the register with the signed offset. Similar to the other indexing modes, mode 8 refers to a word, 16 to a half-word and 24 to a byte to be  accessed.
+
+// ??? **note** review and change all layouts that follow accordingly... 
 
 ### Memory Reference Instructions
 
 Memory reference instruction load or store a word to memory. The unit of transfer is a word, a half-word or a byte. The instructions use a **W** for word, a **H** for half-word and a **B** for byte operand size. The LDx and STx instruction are load and store a register portion using the operand encoding to specify the logical address. Using logical addresses restricts the segment size to 30-bits address range. To access the full virtual 64-bit address range of a segment, the LDEx and STEx instructions allow to specify a segment and an offset register to access the virtual memory. The LDAx  and STAx instruction implement access to the physical memory using a general register as the physical address to access. For supporting atomic operations two instructions are provided. The LDWR instruction loads a value form memory and remember this access. The STWC instruction will store a value to the same location that the LR instructions used and return a failure if the value was modified since the last LR access. This CPU pipeline friendly pair of instructions allow to build higher level atomic operations on top.
 
 Memory reference instructions can be issued when data translation is on and off. When address translation is turned off, the memory reference instructions will ignore the segment part and replace it with a zero value. It is an architectural requirement that a virtual address with a segment Id of zero maps to an absolute address with the same offset. The absolute address mode instruction also works with translation turned on and off. The extended address mode instructions will raise a trap.
-
 
 ### Control flow Instructions
 
