@@ -3,7 +3,7 @@
 // VCPU32 - A 32-bit CPU - A memory layer for VCPU-32
 //
 //------------------------------------------------------------------------------------------------------------
-// This class simulates the CPU24 cache and memory hierarchy. L1 Caches are virtually indexed, physically
+// This class simulates the VCPU32 cache and memory hierarchy. L1 Caches are virtually indexed, physically
 // tagged. L2 caches are physically indexed and tagged. Finally memory is just physically indexed. All caches
 // and the physical memory are build using this generic class. The CPU simulator implements a layered memory
 // model. On top are always the L1 caches on the bottom is always the memory layer. Optionally, there can be

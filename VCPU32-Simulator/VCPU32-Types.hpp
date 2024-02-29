@@ -290,7 +290,7 @@ enum InstrOpCode {
     
     // ??? sort to new scheme ...
     
-    // ??? NOP gioes, becomes BRK
+    // ??? NOP goes, becomes BRK
     
     OP_NOP          = 000,      // the no-operation instruction.
     
@@ -484,9 +484,13 @@ const struct opCodeInfo {
 //------------------------------------------------------------------------------------------------------------
 #define EXTR( i, p, l ) ((( i  ) >> ( 31 - p )) & (( 1U << l )))
 
+// #define DEP ( i, a, p, l )
+
 struct CPU24Instr {
     
 public:
+    
+    // ??? change for new fields....
     
     static inline uint32_t  opCodeField( uint32_t instr )           { return( EXTR( instr, 5, 6 )); }
     static inline uint32_t  regRIdField( uint32_t instr )           { return( EXTR( instr, 8, 3 )); }
@@ -540,7 +544,7 @@ public:
     static inline uint32_t immGen0S16( uint32_t instr ) {
         
         uint32_t tmp = EXTR( instr, 31, 16 );
-        return ( EXTR( instr, 16, 1) ? ( tmp | 0xFFFF0000 ) : ( tmp ));
+        return ( EXTR( instr, 18, 1) ? ( tmp | 0xFFFF0000 ) : ( tmp ));
     }
     
     static inline uint32_t immGen0S10( uint32_t instr ) {

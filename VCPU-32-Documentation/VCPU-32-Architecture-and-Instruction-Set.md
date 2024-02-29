@@ -46,7 +46,7 @@ February, 2024
 >
 > "Seriously?“
 >
-> “OK, seriously. Designers of the eighties CPUs almost all used a microcoded approach with hundreds of instructions. But what if the RISC principles had found their way earlier into these designs? What if a large virtual address space, a fixed instruction length and simple pipeline friendly instructions had found their way into these designs ?
+> “OK, seriously. Designers of the eighties CPUs almost all used a micro-coded approach with hundreds of instructions. But what if the RISC principles had found their way earlier into these designs? What if a large virtual address space, a fixed instruction length and simple pipeline friendly instructions had found their way into these designs ?
 >
 > A 32-bit vintage CPU will give us a good set of design challenges to look into and opportunities to include modern RISC features and learn about instruction sets and pipeline design as any other CPU. Although not a modern design, it will still be a useful CPU."
 >
@@ -102,16 +102,16 @@ VCPU-32 features a physical memory address range of 32-bits. The picture below d
       :                                           :
       :                                           :
       :                                           :          +-- 0xF0000000 -> :-------------------------------------------:
-      :                                           :          |                 : Processor dependent code (256Mb )         :
+      :                                           :          |                 : Processor dependent code (16Mb )          :
       :                                           :          |                 :                                           :
       :                                           :          |   0xF1000000 -> :-------------------------------------------:
-      :                                           :          |                 : I/O Channel 1 (256Mb )                    :
+      :                                           :          |                 : I/O Channel 1 (16Mb )                     :
       :                                           :          |                 :                                           :
       :                                           :          |   0xF2000000 -> :-------------------------------------------:
       :-------------------------------------------: ---------+                 :               . . .                       :
       :                                           :                            :                                           : 
       :            IO                             :              0xFF000000 -> :-------------------------------------------:
-      :                                           :                            : I/O Channel 15 (256Mb )                   :
+      :                                           :                            : I/O Channel 15 (16Mb )                    :
       :                                           :                            :                                           :
       :-------------------------------------------: 0xFFFFFFFF --------------->:-------------------------------------------:
 ```
@@ -138,21 +138,31 @@ VCPU-32 is a big endian 32-bit machine. The fundamental data type is a 32-bit ma
 
 ### General Register Model
 
-VCPU-32 features a set of registers. They are grouped in general registers, segment registers and control registers. There are eight general registers, labeled GR0 to GR7, and eight segment registers, labeled SR0 to SR7. All general registers can do arithmetic and logical operations. Register GR4 to GR7 are additionally labelled index registers, which are used in the addressing modes. The eight segment registers hold the segment part of the virtual address. The control registers contain system level information such as protection registers and interrupt and trap data registers.
+VCPU-32 features a set of registers. They are grouped in general registers, segment registers and control registers. There are eight general registers, labeled GR0 to GR15, and eight segment registers, labeled SR0 to SR7. All general registers can do arithmetic and logical operations. Register GR10 to GR15 are additionally labelled index registers, which are used in the addressing modes. The eight segment registers hold the segment part of the virtual address. The control registers contain system level information such as protection registers and interrupt and trap data registers.
 
 ```
                Segment                         General                           Control
-
            0                     31          0                     31          0                     31
           :------------------------:        :------------------------:        :------------------------:
           :         SR0            :        :          GR0           :        :        CR0             :
           :------------------------:        :------------------------:        :------------------------:
           :                        :        :                        :        :                        :
-          :         ...            :        :          ...           :        :                        :
+          :         ...            :        :                        :        :                        :
           :                        :        :                        :        :                        :
-          :------------------------:        :------------------------:        :                        :
-          :         SR7            :        :          GR7           :        :          ...           :
-          :------------------------:        :------------------------:        :                        :
+          :------------------------:        :                        :        :                        :
+          :         SR7            :        :                        :        :          ...           :
+          :------------------------:        :                        :        :                        :
+                                            :         ...            :        :                        :
+                                            :                        :        :                        :
+                                            :                        :        :                        :
+                                            :                        :        :                        :
+                                            :                        :        :                        :
+                                            :                        :        :                        :
+                                            :                        :        :                        :
+                                            :------------------------:        :                        :
+                                            :          GR15          :        :                        :
+                                            :------------------------:        :                        :
+                                                                              :                        :
                                                                               :                        :
           :------------------------:        :------------------------:        :                        :
           :         IA Seg         :        :          IA Ofs        :        :                        :
@@ -336,8 +346,6 @@ TLB fields (example):
       :-----------------------------------------------------------------------------------------------:
 ```
 
-// ??? **note** perhaps a better field name for "X" ?
-
 | Field | Purpose |
 |:---|:---|
 | **V** | the entry is valid. |
@@ -354,7 +362,7 @@ TLB fields (example):
 | **PPN-BANK** | the memory bank number. ( to be defined ) |
 | **CPU-ID** | the CPU ID number. ( to be defined ) |
 
-When address translation is disabled, the respective TLB is is bypassed and the address represents a physical address in bank zero at the local CPU as described before. Also, protection ID checking is disabled. The U,D,T,B only apply to a data TLB. The X bit is only applies to the instruction TLB. When the processor cannot find the address translation in the TLB, a TLB miss trap will invoke a software handler. The handler will walk the page table for an entry that matches the virtual address and update the TLB with the corresponding physical address and access right information, otherwise the virtual page is not in main memory and there will be a page fault to be handled by the operating system. In a sense the TLB is the cache for the address translations found in the page table. The implementation of the TLB is hardware dependent.
+When address translation is disabled, the respective TLB is is bypassed and the address represents a physical address in bank zero at the local CPU as described before. Also, protection ID checking is disabled. The U, D, T, B only apply to a data TLB. The X bit is only applies to the instruction TLB. When the processor cannot find the address translation in the TLB, a TLB miss trap will invoke a software handler. The handler will walk the page table for an entry that matches the virtual address and update the TLB with the corresponding physical address and access right information, otherwise the virtual page is not in main memory and there will be a page fault to be handled by the operating system. In a sense the TLB is the cache for the address translations found in the page table. The implementation of the TLB is hardware dependent.
 
 ### Caches
 
@@ -524,29 +532,31 @@ At the highest level the processor works with logical addresses. There are sever
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 3            : 0               : a         : b         :  two registers
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 4 - 7        : S : ofs         : a         : b         :  extended, word
+      : opCode          : r         :        : 4 - 7        :                                         :  reserved
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 8            : 0               : a         : b         :  register indexed, word
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 9 - 15       : S : ofs                                 :  indexed, word
+      : opCode          : r         :        : 9            : S : ofs         : a         : b         :  extended indexed, word
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 16           : 0               : a         : b         :  register indexed, half-word
+      : opCode          : r         :        : 10 - 15      : S : ofs                                 :  indexed, word
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 17 - 23      : S : ofs                                 :  indexed, half-word
+      : opCode          : r         :        : 16            :0               : a         : b         :  register indexed, half-word
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 17           : S : ofs         : a         : b         :  extended indexed, half-word
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 18 - 23      : S : ofs                                 :  indexed, half-word
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 24           : 0               : a         : b         :  register indexed, byte
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 25 - 31      : S : ofs                                 :  indexed, byte
+      : opCode          : r         :        : 25           : S : ofs         : a         : b         :  extended indexed, byte
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 26 - 31      : S : ofs                                 :  indexed, byte
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
-The machine addresses memory with a byte address. The **mode** field indicates which addressing mode is used. Mode 0 is the immediate mode, where the operand is a sign-extended 14-bit value. Mode 1,2 and 3 are the register modes. Either one or two registers can be specified. For mode 1 and 2 either "a" or "b" is a zero value. Mode 3 uses both register fields "a" and "b".
+The machine addresses memory with a byte address. The **mode** field indicates which addressing mode is used. Mode 0 is the immediate mode, where the operand is a sign-extended 14-bit value. Mode 1,2 and 3 are the register modes. Either one or two registers can be specified. For mode 1 and 2 either "a" or "b" is a zero value. Mode 3 uses both register fields "a" and "b" allowing a three register operation. Mode 4 - 7 is undefined and result in illegal instruction trap.
 
-Mode 4 - 7 features the extended addressing modes, which will allow to access a data item in a segment. Mode 4 refers to bytes, mode 5 to half-words and mode 6 to bytes. Mode 7 is reserved.
-
-Modes 8 to 31 are the indexed modes. They fetch a word, a half-word or a byte. The address must be aligned with the size of data to fetch. The address is built from selecting an index register. With the exception of general register zero, all general registers can be used as an indexing register. Modes 9, 17 and 25 map to GR1, 10, 18 and 26 to GR2 and so on up to GR7. The selected index register forms the base to which the signed offset is added. 
-
-Modes 8, 16 and 24 are the register indexed modes. Instead of using an offset value, the "a" field contains the index register to use and "b" the register with the signed offset. Similar to the other indexing modes, mode 8 refers to a word, 16 to a half-word and 24 to a byte to be  accessed.
+Modes 8 to 31 are the indexed modes structured in three groups, which access a word, a half-word or a byte. The computed address must be aligned with the size of data to fetch. The first mode in each group, i.e. 8, 16 or 24 is the register indexed mode. A register holding a signed offset is added to a base general register to form the address. The second mode, mode 9, 17 or 25 is the extended mode. The address is formed from the segment register in "a" and the base offset in "b" to which a signed offset can be added. The remaining modes, 10 .. 15, 18 . 23 and 26 .. 31 use a corresponding index register GR10 .. GR15 as the base register to which the signed offset is added. With the exception of the extended indexing mode, the final virtual address is built from the computed logical address and the segment register SR 4 .. SR 7 selected by the upper two bits of the logical address. 
 
 ### Memory Reference Instructions
 
@@ -634,25 +644,27 @@ Loads a memory value into a general register.
 #### Format
 
 ```
-      LDx <GR r>, <GR a>( GR<b> )            ; opMode 0 .. 2
-      LDx <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-      LDx <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
+      LDx <GR r>, <GR a>( GR<b> )            ; opMode 8, 16, 24
+      LDx <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
+      LDx <GR r>, <ofs> ( GR y )             ; opMode 10 .. 15, 18 .. 23, 26 .. 31, "y" -> GR10 .. GR15
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDx     ( 0xx ) : r         : 0         : opMode    :  opArg                                  :
+      : LDx     ( 0xx ) : r         : 0         : opMode    : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The load instruction will load the operand into the general register "r". See the section on operand encoding for the defined operand modes. 
+The load instruction will load the operand into the general register "r". See the section on operand encoding for the defined operand modes. Opmodes 0 to 7 are undefined and result in an illegal instruction trap.
 
 #### Operation
 
 ```
+   if ( opMode < 8 ) illegalInstructionTrap( );
+
    seg <- operandAdrSeg( instr );
    ofs <- operandAdrOfs( instr );
    len <- operandBitLen( instr );
@@ -686,8 +698,8 @@ Stores a general register value into memory
 #### Format
 
 ```
-      STx <ofs> ( <SR a>, <GR b> ), <GR r>   ; opMode 3
-      STx <ofs> ( GR y ), <GR r>             ; opMode 4 .. 15, "y" -> GR4 .. GR7
+      STx <ofs> ( <SR a>, <GR b> ), <GR r>   ; opMode 9, 17, 25
+      STx <ofs> ( GR y ), <GR r>             ; opMode 10 .. 15, 18 .. 23, 26 .. 31, "y" -> GR10 .. GR15
 ```
 
 ```
@@ -699,12 +711,12 @@ Stores a general register value into memory
 
 #### Description
 
-The load instruction will store the data in general register "r" to memory. See the section on operand encoding for the defined operand modes. Operand modes 0 - 3 are undefined for this instruction.
+The load instruction will store the data in general register "r" to memory. See the section on operand encoding for the defined operand modes. Operand modes 0 - 7, 8, 16, and 24 are undefined for this instruction and result in illegal instruction trap. Note that there is no register indexed mode for the STx instruction. In contrast to the LDx instruction, the STx instruction would need to access three registers ( the value to store, the base and index register ), which whould require a greater hardware effort.
 
 #### Operation
 
 ```
-      if ( opMode < 3  ) illegalInstructionTrap( );
+      if (( opMode < 8 ) || ( opMode == 8   ) || ( opMode == 16  ) || ( opMode == 24  )) illegalInstructionTrap( );
 
       seg <- operandAdrSeg( instr );
       ofs <- operandAdrOfs( instr );
@@ -762,9 +774,9 @@ The load extended instructions will load the operand into the general register "
 #### Operation
 
 ```
-      LDWE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 32 ));
-      LDHE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 16 ));
-      LDBE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 8  ));
+      LDWE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), 32 ));
+      LDHE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), 16 ));
+      LDBE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), 8  ));
 ```
 
 #### Exceptions
@@ -814,9 +826,9 @@ The store extended instructions will store data from general register "r" using 
 #### Operation
 
 ```
-      STWE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 32 );
-      STHE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 16 );
-      STBE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 8  );
+      STWE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), GR[r], 32 );
+      STHE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), GR[r], 16 );
+      STBE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), GR[r], 8  );
 ```
 
 #### Exceptions
@@ -868,9 +880,9 @@ The load absolute instruction will load the content of the physical memory addre
 ```
       if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-      LDWA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), 32 ));
-      LDHA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), 16 ));
-      LDBA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), 8  ));
+      LDWA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 32 ));
+      LDHA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 16 ));
+      LDBA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 8  ));
 ```
 
 #### Exceptions
@@ -919,9 +931,9 @@ The store absolute instruction will store the target register into memory using 
 ```
       if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-      STWA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), GR[r], 32 );
-      STHA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), GR[r], 16 );
-      STBA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 20 )), GR[r], 8  );
+      STWA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 32 );
+      STHA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 16 );
+      STBA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 8  );
 ```
 
 #### Exceptions
@@ -947,8 +959,9 @@ Loads the operand into the target register from the address and marks that addre
 #### Format
 
 ```
-      LDWR <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-      LDWR <GR r>, <ofs> ( GR y )             ; opMode 4 .. 7, "y" -> GR4 .. GR7
+      LDWR <GR r>, <GR a>( GR<b> )            ; opMode 8
+      LDWR <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9
+      LDWR <GR r>, <ofs> ( GR y )             ; opMode 10 .. 15, "y" -> GR10 .. GR15
 ```
 
 ```
@@ -960,16 +973,17 @@ Loads the operand into the target register from the address and marks that addre
 
 #### Description
 
-The LDWR instruction is used for implementing semaphore type operations. See the section on operand encoding for the defined operand modes. Operand mode 0 - 3 and 16 - 31 are undefined for this instruction. The LDWR instruction operates on words only. The first part of the instruction behaves exactly like the LDW instruction. A logical memory address is computed. Next, the memory content is loaded into general register "r". The second part remembers the address and will detect any modifying reference to it.
+The LDWR instruction is used for implementing semaphore type operations. See the section on operand encoding for the defined operand mode encoding. Operand modes 0 .. 7 and 16 .. 31 are undefined and result in illegal instruction trap. The LDWR instruction only operate on words. The first part of the instruction behaves exactly like the LDW instruction. A logical memory address is computed. Next, the memory content is loaded into general register "r". The second part remembers the address and will detect any modifying reference to it.
 
 #### Operation
 
 ```
+      if (( opMode < 8 ) && ( opMode > 15 )) illegalInstructionTrap( );
+
       seg <- operandAdrSeg( instr );
       ofs <- operandAdrOfs( instr );
-      len <- operandBitLen( instr );
 
-      GR[ r ] <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
+      GR[ r ] <- zeroExtend( memLoad( seg, ofs, len ), 32 );
       
       lrValid = true;
       lrArg   = GR[r];
@@ -1002,8 +1016,8 @@ Conditionally store a value to memory.
 #### Format
 
 ```
-      STWC <ofs> ( <SR a>, <GR b> ), <GR r>   ; opMode 3
-      STWC <ofs> ( GR y ), <GR r>             ; opMode 4 .. 7, "y" -> GR4 .. GR7
+      STWC <ofs> ( <SR a>, <GR b> ), <GR r>   ; opMode 9
+      STWC <ofs> ( GR y ), <GR r>             ; opMode 10 .. 15, "y" -> GR10 .. GR15
 ```
 
 ```
@@ -1015,11 +1029,13 @@ Conditionally store a value to memory.
 
 #### Description
 
-The STWR conditional instruction will store a value in "r" to the memory location specified by the operand address. The store is however only performed when the data location has not been written to since the last load reference instruction execution for that address. If the operation is successful a value of zero is returned otherwise a value of one. Operand mode 0 - 3 and 16 - 31 are undefined for this instruction. The STWC instruction operates on words only.
+The STWR conditional instruction will store a value in "r" to the memory location specified by the operand address. The store is however only performed when the data location has not been written to since the last load reference instruction execution for that address. If the operation is successful a value of zero is returned otherwise a value of one. See the section on operand encoding for the defined operand mode encoding. Operand modes 0 .. 7 and 16 .. 31 are undefined and result in illegal instruction trap. The LDWR instruction only operate on words.
 
 #### Operation
 
 ```
+      if (( opMode < 8 ) && ( opMode > 15 )) illegalInstructionTrap( );
+
       if (( lrValid ) && ( lrVal == GR[r])) {
 
          if (( opMode < 3 ) || ( opMode > 7 )) illegalInstructionTrap( );
@@ -1091,7 +1107,7 @@ The branch instruction performs a branch to an instruction address relative loca
 #### Operation
 
 ```
-      IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ) << 2, 23 ));
+       IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ) << 2 ), 8 ));
 ```
 
 #### Exceptions
@@ -1134,7 +1150,7 @@ The branch instruction performs a branch to an instruction address relative loca
 
 ```
       GR[r] <- add32( IA-OFS, 4 );
-      IA-OFS <- add32( IA-OFS, signExt( catImm( ofs1, ofs2 ) << 2, 23 ));
+      IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ) << 2 ), 8 ));
 ```
 
 #### Exceptions
@@ -1351,7 +1367,7 @@ Since the BE instruction is a segment base relative branch, a branch to page wit
 
 ```
       IA-SEG <- GR[a];
-      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 )), 20 );
+      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 ) << 2 ), 12 );
 ```
 
 #### Exceptions
@@ -1400,7 +1416,7 @@ Since the BLE instruction is a segment base relative branch, a branch to page wi
       GR[0] <- add32( IA-OFS, 4 );
 
       IA-SEG <- GR[a];
-      IA-OFS <- add32( GR[b], signExt( catImm( ofs1, ofs2 )),20 );
+      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 ) << 2 ), 12 );
 ```
 
 #### Exceptions
@@ -1443,17 +1459,18 @@ The GATE instruction computes the target address concatenating the fields "ofs1"
 #### Operation
 
 ```
-      GR[r] <- cat( IA-OFS.[P], ofsSelect( GR[r] );
+      GR[r] <- IA-OFS.[P];
 
       if ( ST.[C] ) {
 
          searchInstructionTlbEntry( seg, ofs, &entry );
-	     if ( entry.[PageType] == 3 ) priv <- entry.[ PL1 ];
-	     else priv <- IA-OFS.[P];
+
+	   if ( entry.[PageType] == 3 ) priv <- entry.[ PL1 ];
+         else                         priv <- IA-OFS.[P];
       }
       else priv <- 0;
 
-      IA-OFS <- add22( ofsSelect( IA-OFS ), signExt( catImm( ofs1, ofs2 ), 15 ));
+      IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ) << 2 ), 8 ));
       IA-OFS.[P] <- priv;
 ```
 
@@ -1517,8 +1534,8 @@ The condition field is encoded as follows:
          case 7: res <- ( GR[a] >>  GR[b]);  break;
       }
 
-    if ( res ) IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ), 17 ) << 2 ));
-    else add22( IA_OFS, 4 );
+    if ( res ) IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ) << 2 ), 19 ));
+    else add32( IA_OFS, 4 );
 ```
 
 #### Exceptions
@@ -1579,7 +1596,7 @@ The TBR instruction tests general register "b" for the condition specified in th
          case 7: res <- ( GR[b].[31] );   break;
       }
 
-      if ( res ) IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ), 17 ) << 2 ));
+      if ( res ) IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ) << 2 ), 19 ));
       else add32( IA_OFS, 4 );
 ```
 
@@ -1630,12 +1647,13 @@ Adds the operand to the target register.
 #### Format
 
 ```
-      ADD[(W|H|B).<opt>] <GR r>, <val>                      ; opMode 0
-      ADD[(W|H|B).<opt>] <GR r>, <GR b>                     ; opMode 3
-      ADD[(W|H|B).<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
-      ADD[(W|H|B).<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 4 .. 7
-      ADD[(W|H|B).<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
-      ADD[(W|H|B).<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 9 .. 15, 17 .. 23, 25 .. 31 "y" -> GR1 .. GR7
+      ADD[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
+	ADD[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
+      ADD[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
+ 
+      ADD[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
+      ADD[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
+      ADD[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
 ```
 
 ```
@@ -1647,9 +1665,7 @@ Adds the operand to the target register.
 
 #### Description
 
-The instruction fetches the operand and adds it to the general register "r". If the C bit is set, the status register carry bit is added too. The L bit specifies that his is an unsigned add. If the O bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes.
-
-Operand mode 1 adds a zero value to the "b" content and stores in the result reg "r". Likewise operand mode 2 adds a zero value to "a" and stores in the result reg "r". Operand mode 3 allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address add operation of the form "r" = "a" op "b" as well as a "r" = "r" op "b" can be done. All other operand modes perform an "r" <- "r" ADD "operand" operation. The operations will set the carry/borrow bits in the processor status word. 
+The instruction fetches the operand and adds it to the general register "r". If the C bit is set, the status register carry bit is added too. The L bit specifies that his is an unsigned add. If the O bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes. The operations will set the carry/borrow bits in the processor status word. 
 
 #### Operation
 
@@ -1657,16 +1673,18 @@ Operand mode 1 adds a zero value to the "b" content and stores in the result reg
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	              tmpB <- signExt( opArg, 16 );
-		          break;
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
          case 1:  tmpA <- 0;
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
 
          case 2:  tmpA <- GR[a];
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
+
+         case 4 .. 7: illegalInstructionTrap( );
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1712,13 +1730,15 @@ None.
 Subtracts the operand from the target register.
 
 #### Format
+
 ```
-      SUB[(W|H|B).<opt>] <GR r>, <val>                      ; opMode 0
-      SUB[(W|H|B).<opt>] <GR r>, <GR b>                     ; opMode 3
-      SUB[(W|H|B).<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
-      SUB[(W|H|B).<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 4 .. 7
-      SUB[(W|H|B).<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
-      SUB[(W|H|B).<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 9 .. 15, 17 .. 23, 25 .. 31 "y" -> GR1 .. GR7
+      SUB[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
+	SUB[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
+      SUB[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
+ 
+      SUB[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
+      SUB[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
+      SUB[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
 ```
 
 ```
@@ -1730,9 +1750,7 @@ Subtracts the operand from the target register.
 
 #### Description
 
-The instruction fetches the operand and subtracts it from the general register "r". If the C bit is set, the status register carry bit is added too. The L bit specifies that his is an unsigned add. If the O bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes.
-
-Operand mode 1 subtracts a zero value from "b" and stores in the result reg "r". Likewise operand mode 2 subtracts a zero value from "a" and stores in the result reg "r". Operand mode 3 allows to specify two general register to be the input operands, independent of the target general register in "r". This way, a three register address add operation of the form "r" = "a" op "b" as well as a "r" = "r" op "b" can be done. All other operand modes perform an "r" <- "r" SUB "operand" operation. The operations will set the carry/borrow bits in the processor status word. 
+The instruction fetches the operand and subtracts it from the general register "r". If the C bit is set, the status register carry bit is added too. The L bit specifies that his is an unsigned add. If the O bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes. The operations will set the carry/borrow bits in the processor status word. 
 
 #### Operation
 
@@ -1740,16 +1758,18 @@ Operand mode 1 subtracts a zero value from "b" and stores in the result reg "r".
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	              tmpB <- signExt( opArg, 16 );
-		          break;
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
          case 1:  tmpA <- 0;
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
 
          case 2:  tmpA <- GR[a];
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
+
+         case 4 .. 7: illegalInstructionTrap( );
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1797,12 +1817,13 @@ Performs a bitwise AND of the operand and the target register and stores the res
 #### Format
 
 ```
-      AND[(W|H|B).<opt>] <GR r>, <val>                      ; opMode 0
-      AND[(W|H|B).<opt>] <GR r>, <GR b>                     ; opMode 3
-      AND[(W|H|B).<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
-      AND[(W|H|B).<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 4 .. 7
-      AND[(W|H|B).<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
-      AND[(W|H|B).<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 9 .. 15, 17 .. 23, 25 .. 31 "y" -> GR1 .. GR7
+      AND[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
+	AND[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
+      AND[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
+ 
+      AND[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
+      AND[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
+      AND[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
 ```
 
 ```
@@ -1822,16 +1843,18 @@ The instruction fetches the data specified by the operand and performs a bitwise
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	              tmpB <- signExt( opArg, 16 );
-		          break;
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
          case 1:  tmpA <- 0;
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
 
          case 2:  tmpA <- GR[a];
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
+
+         case 4 .. 7: illegalInstructionTrap( );
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1858,7 +1881,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
 
 #### Notes
 
-Complementing the operand input allows to perform a bit clear in a register word by complementing the bit mask stored in the operand before performing the AND. Typically this is done in a program in two steps, which are first to complement the mask and then AND to the target variable. The C option allows to do this more elegantly in one step. In operand mode one, regB is AND-ed to a zero value and stored in the result reg. This is equivalent to a clear word instruction. A pseudo instruction for this could be a "CLR reg". Also, negating the result could be an efficient way to set all bits in a word to one. Finally, the AND instrcution can also serve as a NOP instruction. AND.C R0, #0 will "AND" R0 with R0 and an immediate with all bits set. 
+Complementing the operand input allows to perform a bit clear in a register word by complementing the bit mask stored in the operand before performing the AND. Typically this is done in a program in two steps, which are first to complement the mask and then AND to the target variable. The C option allows to do this more elegantly in one step. In operand mode one, regB is AND-ed to a zero value and stored in the result reg. This is equivalent to a clear word instruction. A pseudo instruction for this could be a "CLR reg". Also, negating the result could be an efficient way to set all bits in a word to one. Finally, the AND instruction can also serve as a NOP instruction. AND.C R0, #0 will "AND" R0 with R0 and an immediate with all bits set. 
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -1873,12 +1896,13 @@ Performs a bitwise OR of the operand and the target register and stores the resu
 #### Format
 
 ```
-      OR[(W|H|B).<opt>] <GR r>, <val>                      ; opMode 0
-      OR[(W|H|B).<opt>] <GR r>, <GR b>                     ; opMode 3
-      OR[(W|H|B).<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
-      OR[(W|H|B).<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 4 .. 7
-      OR[(W|H|B).<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
-      OR[(W|H|B).<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 9 .. 15, 17 .. 23, 25 .. 31 "y" -> GR1 .. GR7
+      OR[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
+	OR[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
+      OR[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
+ 
+      OR[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
+      OR[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
+      OR[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
 ```
 
 ```
@@ -1898,16 +1922,18 @@ The instruction fetches the data specified by the operand and performs a bitwise
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	              tmpB <- signExt( opArg, 16 );
-		          break;
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
          case 1:  tmpA <- 0;
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
 
          case 2:  tmpA <- GR[a];
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
+
+         case 4 .. 7: illegalInstructionTrap( );
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1950,12 +1976,13 @@ Performs a bitwise XORing the operand and the target register and stores the res
 #### Format
 
 ```
-      XOR[(W|H|B).<opt>] <GR r>, <val>                      ; opMode 0
-      XOR[(W|H|B).<opt>] <GR r>, <GR b>                     ; opMode 3
-      XOR[(W|H|B).<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
-      XOR[(W|H|B).<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 4 .. 7
-      XOR[(W|H|B).<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
-      XOR[(W|H|B).<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 9 .. 15, 17 .. 23, 25 .. 31 "y" -> GR1 .. GR7
+      XOR[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
+	XOR[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
+      XOR[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
+ 
+      XOR[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
+      XOR[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
+      XOR[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
 ```
 
 ```
@@ -1975,16 +2002,18 @@ The instruction fetches the data specified by the operand and performs a bitwise
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	              tmpB <- signExt( opArg, 16 );
-		          break;
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
          case 1:  tmpA <- 0;
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
 
          case 2:  tmpA <- GR[a];
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
+
+         case 4 .. 7: illegalInstructionTrap( );
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -2025,12 +2054,13 @@ Compares a register and an operand and stores the comparison result in the targe
 #### Format
 
 ```
-      CMP[(W|H|B).<opt>] <GR r>, <val>                      ; opMode 0
-      CMP[(W|H|B).<opt>] <GR r>, <GR b>                     ; opMode 3
-      CMP[(W|H|B).<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
-      CMP[(W|H|B).<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 4 .. 7
-      CMP[(W|H|B).<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
-      CMP[(W|H|B).<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 9 .. 15, 17 .. 23, 25 .. 31 "y" -> GR1 .. GR7
+      CMP[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
+	CMP[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
+      CMP[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
+ 
+      CMP[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
+      CMP[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
+      CMP[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
 ```
 
 ```
@@ -2061,16 +2091,18 @@ The compare condition are encoded as follows.
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	              tmpB <- signExt( opArg, 16 );
-		          break;
+	            tmpB <- signExt( opArg, 16 );
+		      break;
 
          case 1:  tmpA <- 0;
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
 
          case 2:  tmpA <- GR[a];
-		          tmpB <- GR[b];
-			      break;
+		      tmpB <- GR[b];
+			break;
+
+         case 4 .. 7: illegalInstructionTrap( );
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -2411,7 +2443,7 @@ The load immediate instruction loads a 16-bit immediate value embedded in the in
 #### Operation
 
 ```
-      if ( instr.[Z] GR[r] = 0;
+      if ( instr.[Z] ) GR[r] = 0;
       tmpA = catImm( val1, val2 );
 
       if ( instr.[L] ) tmpB =  GR[r] << 16;
@@ -2442,9 +2474,9 @@ Loads the effective address of the operand.
 #### Format
 
 ```
-      LDE <GR r>, <GR a>( GR<b> )            ; opMode 0 .. 2
-      LEA <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 3
-      LEA <GR r>, <ofs> ( GR y )             ; opMode 4 .. 15, "y" -> GR4 .. GR7
+      LEA[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
+      LEA[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
+      LEA[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
 ```
 
 ```
