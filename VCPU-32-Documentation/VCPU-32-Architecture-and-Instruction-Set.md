@@ -2887,7 +2887,6 @@ Depending on the "T" bit, the protection information part or the address part is
       :-----------------------------------------------------------------------------------------------:
 ```
 
-
 #### Operation
 
 ```
@@ -3118,7 +3117,7 @@ Issues commands to hardware specific components and implementation features.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : DIAG   ( 076 )  : 0                                                                           :
+      : DIAG   ( 076 )  : r         :                                         : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3126,7 +3125,7 @@ Issues commands to hardware specific components and implementation features.
 
 The DIAG instruction sends a command to an implementation hardware specific components.
 
-// ??? **note** under construction...
+// ??? **note** under construction... as we go along with hardware. In general, we should use "a" and "b" for passing arguments and "r" for a return status.
 
 #### Operation
 
@@ -3172,7 +3171,7 @@ Trap to the debugger subsystem.
 
 The BRK instruction raises a debug breakpoint trap and enters the debug trap handler. The "info" field is a 14-bit value to pass to the debug subsystem.
 
-// ??? **note** explain what you can actually debug ...
+// ??? **note** explain what you can actually debug ... only when translation is enabled, i.e. virtual mode ?
 // ??? **note** perhaps two info fields ?
 
 #### Operation
@@ -3563,7 +3562,7 @@ This appendix lists all instructions by instruction group.
       :-----------------:-----------------------------------------------------------------------------:
       : RFI     ( 0x00 ): 0                                                                           :
       :-----------------:-----------------------------------------------------------------------------:
-      : DIAG    ( 0x00 ): 0                                                                           :
+      : DIAG    ( 0x00 ): r         :                                         : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
       : BRK     ( 0x00 ): 0                                 : info                                    :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3577,6 +3576,10 @@ This appendix lists all instructions by instruction group.
 
 // ??? **note** a new chapter on the subject ?
 
+### Joint TLBs
+
+### L1 and L2 Caches
+
 <!--------------------------------------------------------------------------------------------------------->
 
 <div style="page-break-before: always;"></div>
@@ -3584,6 +3587,12 @@ This appendix lists all instructions by instruction group.
 ## VCPU-32 Runtime Environment
 
 // ??? **note** a new chapter on the subject ?
+
+### Stack Frame
+
+### Calling Convention
+
+### External Calls
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -3607,39 +3616,31 @@ Note that this is perhaps one of many ways to implement a pipeline. The three ma
 
 ### Register - Memory Model
 
-Register - memory machines typically offer computational instructions that are of the form ***REGx <- REGx op Operand*** where the operand is either another register or a memory location. Instruction sets are of variable length, depending on the addressing modes offered. VCPU-32 does offer several addressing modes for the "operand" combined with a fixed instruction word length. As a consequence, the number of registers and the offset width are limited. Instead of 32 register found in modern RISC architectures, VCPU-32 has eight general registers with four of them capable to be used as index registers in the indexed addressing mode. Having only eight registers also implies that register zero is a valid register and not a source of zero or target of a null store. This in turn means that there must be another way to encode a zero when needed. Most of the instructions that could make use of a "zero" register have a bit "Z" to indicate using a zero value instead of a register value.
+Register - memory machines typically offer computational instructions that are of the form ***REGx <- REGx op Operand*** where the operand is either another register or a memory location. Instruction sets are of variable length, depending on the addressing modes offered. VCPU-32 does offer several addressing modes for the "operand" combined with a fixed instruction word length. As a consequence, the number of registers and the offset width are limited. Instead of 32 register found in modern RISC architectures, VCPU-32 has eight general registers with four of them capable to be used as index registers in the indexed addressing mode. Having only sixteen registers also implies that register zero is a valid register and not a source of zero or target of a null store. This in turn means that there must be another way to encode a zero when needed. Most of the instructions that could make use of a "zero" register have a bit "Z" to indicate using a zero value instead of a register value.
 
 ### Memory Reference Instructions
 
-Memory reference instruction operate on memory and a general register. In that sense the architecture is a typical load/store architecture. However, in contrast to a load/store architecture VCPU-32 load / store instructions are not the only instructions that access memory. Being a register/memory architecture, all instructions with an operand field encoding, will access memory as well. There are no instructions that will access data memory access for reading and writing back an operand. Due to the operand instruction format and the requirement to offer a fixed length instruction word, the offset for an address operation is rather limited but still covers a large address range.
+Memory reference instruction operate on memory and a general register. In that sense the architecture is a typical load/store architecture. However, in contrast to a load/store architecture VCPU-32 load / store instructions are not the only instructions that access memory. Being a register/memory architecture, all instructions with an operand field encoding, will access memory as well. There are no instructions that will access data memory access for reading and writing back an operand. Due to the operand instruction format and the requirement to offer a fixed length instruction word, the offset for an address operation is limited but still covers a large address range.
 
 ### Absolute, Virtual and Logical Address
 
-VCPU-32 features a rather large **virtual address** range of 64 bits. The range is divided into a 32-bit segment identifier and a 32-bit offset. Implementations may choose to only offer 16 bits or 24 bits as the segment identifier range. The memory address range is 32-bit which allows for a 4 Gbyte memory. 
+VCPU-32 features a large **virtual address** range of 64 bits. The range is divided into a 32-bit segment identifier and a 32-bit offset. Implementations may choose to only offer 16 bits or 24 bits as the segment identifier range. The memory address range is 32-bit which allows for a 4 Gbyte memory. 
 
-To accommodate an even larger physical memory, a memory bank identifier was added. Up to 16 banks are allowed. However, the LDA/STA instructions can only access the first bank, the bank with a zero identifier. All other banks can only be reached with a virtual address. The TLB contains a bank and the physical offset for as translation result. 
+To accommodate an even larger physical memory, a memory bank identifier was added. Up to 16 banks are allowed. However, the LDA/STA instructions can only access the first bank, the bank with a zero identifier. All other banks can only be reached with a virtual address. The maximum physical memory is thus 64 Gbytes. The TLB contains a bank and the physical offset for as translation result. 
 
 In addition, it is envisioned that several CPUs, up to 16 CPUs, can be connected to form a cluster. The CPU-ID the also becomes part of the physical address, referring to an address located on another CPU bank and offset. Right now, this feature is not supported yet.
 
-For performance reasons, one would not like to carry around the full virtual address for parameter passing, data access and so on. A **logical address** concept complements the virtual and physical address. A logical address is a 32-bit word, with the upper two bits selecting one of the segment registers SR4 to SR7. From a logical to virtual translation perspective, the logical address needs to be loaded into any of the four index registers GR4 to GR7. For example, loading a logical address into GR7, an index register, would allow to access a virtual address computed from the logical address, by using the index addressing mode 7, 11 or 15, which specifies to use GR7 as the index register. The upper two bits then select the segment register.
+For performance reasons, one would not like to carry around the full virtual address for parameter passing, data access and so on. A **logical address** concept complements the virtual and physical address. A logical address is a 32-bit word, with the upper two bits selecting one of the segment registers SR4 to SR7. From a logical to virtual translation perspective, the logical address needs to be loaded into an index registers GR10 to GR15. For example, loading a logical address into GR11, an index register, The upper two bits then select the segment register.
+
+There are eight segment registers. All segment registers can be specified in the respective instruction field. Typically it is the field "a" which will hold the segment register number. SR4 .. SR7 are the selection target for the logical addresses. They are selected by the upper two bits of the logical address. SR6 and SR7 are also privileged registers, which can only be written by privileged code. Finally, SR0 is the target for the return link segment ID for the BLE instruction.
 
 ### Operand modes
 
-An operand field in the respective instruction encodes several operand modes. It needs to support the idea of an immediate value, a combination of a zero and a general register, two general registers, a segment and general register combination and an index register with a a signed offset. Operand modes also need to distinguish word, half-word and byte size content access. 
+An operand field in the respective instruction encodes several operand modes. It needs to support the idea of an immediate value, a combination of a zero and a general register, two general registers, a segment and general register combination and an index register with a a signed offset. Operand modes also need to distinguish word, half-word and byte size content access. This leads to a rich set of operand modes. The operand modes are grouped in four sections to eight modes. Operand mode group zero is the register and immediate value group. Register fields "a" and "b" can be either set to a zero value or both used as registers. For example, using mode 1 will set "a" to zero and an SUB instruction will then compute zero minus "b", which is a negation of the input. Operand mode 3 will use both "a" and "b" storing the result in "r", which is the classic three address model. The CPU pipeline implements all of the immediate and register modes in selecting the correct inputs to the ALU. From a hardware perspective, all computational operations are of the form Reg-R <- Reg-A op Reg-B. The general register reads take place in the instruction fetch / decode stage. The general register store in the execution stage.
 
-There are no auto pre/post offset adjustment or indirect modes. Indirect addressing modes are not pipeline friendly, they require an additional memory access. Pre or post offset adjustments have not been implemented so far, the bits needed for encoding are rather used to widen the operand mode offset itself. Nevertheless, auto pre/post adjustment would be an option for the load/store type instructions.
+Operand mode groups 1 .. 3 are the indexing group. They are identical except that group 1 operates on a word, mode 2 on a half-word and mode 3 on a byte. The address computed is in all three cases therefore the same. The first mode in such a group, i.e. mode 8, 16 and 24 allow to use two registers as base and offset register, reaching any place in the segment. The second operand mode in an indexing group features a segment register in "a" and the offset in "b", to which a small offset embedded in the instruction is added. This operand mode can reach any data in the virtual address space. The remaining 6 modes in an indexing group will select from the index register GR10 to GR15. The address is formed by selecting the index register and adding an offset embedded in the instruction to it. The runtime reserves some index register for pointing to the current stack frame, globals and so on.
 
-Operand mode 3 featuring two general registers is an addition to a typical register memory architecture. It allows to perform computation with two arbitrary general registers, storing the result into a general register. Operand mode 1 and 2 features a  combination of a zero and a general register as computation operands, which allows to use a zero value in an operation. For example, the SUB instruction using this operand mode, will perform a zero minus REG operation, i.e. a negate operation. The CPU pipeline implements all of the immediate and register modes in selecting the correct inputs to the ALU. From a hardware perspective, all computational operations are of the form Reg-R <- Reg-A op Reg-B. The general register reads take place in the instruction fetch / decode stage. The general register store in the execution stage.
-
-Operand mode 4..7 are the extended addressing modes to access a word, half-word and byte. They allow to use any data location in the entire virtual address range of the architecture. 
-
-Operand modes 8 .. 31 are the indexed addressing modes. The are three groups that only differ in that they operate on a word, a half-word or byte. A group of eight features as the first mode, i.e. 8, 16 or 24, the register indexed mode, which allows to use a register as a base and another one as the signed offset to form the operand address. The remaining seven operand modes select GR1 to GR7 as the base register and add the embedded offset to it. Note that any index register can hold a value to select any of the four segment registers. It is the upper two bits that select the segment register. 
-
-### Eight or sixteen general registers ?
-
-The current implementation features eight general registers. However, the bit fields in the instruction already are 4-bits wide, so there could be 16 general registers. In the case of 16 general registers, only registers 9 .. 15 would be index register mapping to the operand modes as described before. The register indexed operand modes 8, 16 and 24, however could use all 16 registers to form an address. The number of segment registers would still be eight.
-
-So, is this an option ? 
+There are no auto pre/post offset adjustment or indirect modes. Indirect addressing modes are not pipeline friendly, they require an additional memory access. Pre or post offset adjustments have not been implemented so far. Nevertheless, auto pre/post adjustment would be an option for the load/store type instructions.
 
 ### Branch Instructions
 
@@ -3661,6 +3662,8 @@ In contrast to PA-RISC, VCPU-32 implement only two privilege levels, **user** an
 
 Computational instructions feature the basic set of arithmetic, logical and bit operations. Option bits in the respective instructions allow for a great flexibility of how an instruction is executed. For example, negating the output of a logical operation reverses the logic and an ADD would become a NAND operation.
 
+// ??? **note** what other "useful" instructions could we add with a 32-bit instruction word ?
+
 ### Bit Operations Instructions
 
 The instruction set does not explicitly offer any shift and rotate instructions. Instead bit field extract and deposit operations allow to implement these functions. Additionally, as bit field extract and deposit operations are very common, a sequence of shift and masking operations are elegantly replaced by single extract and deposit instructions.
@@ -3679,6 +3682,8 @@ A fundamental requirement is the ability to set instruction and data breakpoints
 Since a code is non-writeable, there needs to be a mechanism to allow the temporary modification of the instruction. One approach is to change the page type temporarily to a data page and do the modification and change it back again. Care has to be taken to ensure the caches are properly flushed, since a modification ends up in the data cache. Another approach is to allocate a debug bit for the page table. The continuous instruction privilege check would also check the debug bit and in this case allow to write to a code page. All these modifications only take place at the highest privilege level. When resuming the debugger, the original instruction executes and after execution, the break point instruction needs to be set again, if desired. This would be the second  trap, but this time only the break point is set again.
 
 Data breakpoints are traps that are taken when a data reference to the page is done. They do not modify the instruction stream. Depending on the data access, the trap could happen before or after the instruction that accesses the data. A write operation is trapped before the data is written, a read instruction is trapped after the instruction took place.
+
+// ??? **note** need a simple way of putting the BRK instruction back in the code stream but not trap on it when returning from the debugger.
 
 <!--------------------------------------------------------------------------------------------------------->
 
