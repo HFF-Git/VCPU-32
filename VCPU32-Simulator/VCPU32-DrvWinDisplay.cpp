@@ -775,9 +775,9 @@ void CPU24DrvWinProgState::setDefaults( ) {
     
     setWinType( WT_PS_WIN );
     setEnable( true );
-    setRows( 3 );
-    setColumns( 84 );
-    setDefColumns( 84 );
+    setRows( 4 );
+    setColumns( 88 );
+    setDefColumns( 88 );
     setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
 }
 
@@ -822,12 +822,12 @@ void CPU24DrvWinProgState::drawBody( ) {
     uint32_t fmtDesc = FMT_DEF_ATTR;
     
     setWinCursor( 2, 1 );
-    printTextField((char *) "GR0= ", ( fmtDesc | FMT_BOLD ));
+    printTextField((char *) "GR0=  ", ( fmtDesc | FMT_BOLD ));
     
     for ( int i = 0; i < 4; i++ )
         printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc, 9 );
     
-    printTextField((char *) " GR4= ", ( fmtDesc | FMT_BOLD ));
+    printTextField((char *) " GR4=  ", ( fmtDesc | FMT_BOLD ));
     
     for ( int i = 4; i < 8; i++ )
         printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc, 9 );
@@ -835,12 +835,25 @@ void CPU24DrvWinProgState::drawBody( ) {
     padLine( fmtDesc );
     
     setWinCursor( 3, 1 );
-    printTextField((char *) "SR0= ", ( fmtDesc | FMT_BOLD ));
+    printTextField((char *) "GR8=  ", ( fmtDesc | FMT_BOLD ));
+    
+    for ( int i = 8; i < 12; i++ )
+        printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc, 9 );
+    
+    printTextField((char *) " GR12= ", ( fmtDesc | FMT_BOLD ));
+    
+    for ( int i = 12; i < 16; i++ )
+        printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc, 9 );
+    
+    padLine( fmtDesc );
+    
+    setWinCursor( 4, 1 );
+    printTextField((char *) "SR0=  ", ( fmtDesc | FMT_BOLD ));
     
     for ( int i = 0; i < 4; i++ )
         printNumericField( glb -> cpu -> getReg( RC_SEG_REG_SET, i ), fmtDesc, 9 );
     
-    printTextField((char *) " SR4= ", ( fmtDesc | FMT_BOLD ));
+    printTextField((char *) " SR4=  ", ( fmtDesc | FMT_BOLD ));
     
     for ( int i = 4; i < 8; i++ )
         printNumericField( glb -> cpu -> getReg( RC_SEG_REG_SET, i ), fmtDesc, 9 );

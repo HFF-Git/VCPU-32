@@ -406,11 +406,11 @@ void ExecuteStage::process( ) {
             if ( extrOpPos == WORD_SIZE ) core -> cReg[ CR_SHIFT_AMOUNT ].get( );
            
             uint32_t extrOpBitMask   = (( 1U << extrOpLen ) - 1 );
-            valR = (( valB >> ( 23 - extrOpPos )) & extrOpBitMask );
+            valR = (( valB >> ( 31 - extrOpPos )) & extrOpBitMask );
             
             if ( CPU24Instr::extrSignedField( instr )) {
                 
-                if ( valR >> ( extrOpLen - 1 ) & 0x1 ) valR |= ( ~ extrOpBitMask ) & 0x00FFFFFF;
+                if ( valR >> ( extrOpLen - 1 ) & 0x1 ) valR |= ( ~ extrOpBitMask );
             }
             
         } break;
@@ -424,10 +424,10 @@ void ExecuteStage::process( ) {
             if ( depOpPos == WORD_SIZE ) core -> cReg[ CR_SHIFT_AMOUNT ].get( );
            
             uint32_t    depOpBitMask    = (( 1U << depOpLen ) - 1 );
-            uint32_t    temp1           = ( valB & depOpBitMask ) << ( 23 - depOpPos );
-            uint32_t    temp2           = ( valA & ( ~ ( depOpBitMask << ( 23 - depOpPos ))));
+            uint32_t    temp1           = ( valB & depOpBitMask ) << ( 31 - depOpPos );
+            uint32_t    temp2           = ( valA & ( ~ ( depOpBitMask << ( 31 - depOpPos ))));
             
-            valR  = (( CPU24Instr::depInZeroField( instr )) ? ( temp1 ) : ( temp1 | temp2 )) & 0x00FFFFFF;
+            valR  = (( CPU24Instr::depInZeroField( instr )) ? ( temp1 ) : ( temp1 | temp2 ));
             
         } break;
             
@@ -439,7 +439,7 @@ void ExecuteStage::process( ) {
             if ( shAmtLen == WORD_SIZE ) core -> cReg[ CR_SHIFT_AMOUNT ].get( );
         
             // ??? fix ...
-            valR = (( valA >> shAmtLen ) | ( WORD_SIZE - shAmtLen )) & 0x00FFFFFF;
+            valR = (( valA >> shAmtLen ) | ( WORD_SIZE - shAmtLen ));
             
         } break;
             

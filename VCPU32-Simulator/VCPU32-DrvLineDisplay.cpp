@@ -98,6 +98,8 @@ void CPU24DrvLineDisplay::displayGeneralRegSet( TokId fmt ) {
     
     displayRegsAndLabel( RC_GEN_REG_SET, 0, 8, ((char *) "R0=   " ), fmt );
     fprintf( stdout, "\n" );
+    displayRegsAndLabel( RC_GEN_REG_SET, 8, 8, ((char *) "R8=   " ), fmt );
+    fprintf( stdout, "\n" );
 }
 
 void CPU24DrvLineDisplay::displaySegmentRegSet( TokId fmt ) {
@@ -225,15 +227,13 @@ void CPU24DrvLineDisplay::displayTlbObjRegSet( CpuTlb *tlb, TokId fmt ) {
 void CPU24DrvLineDisplay::displayAllRegSets( TokId fmt ) {
     
     displayGeneralRegSet( fmt );
+    fprintf( stdout, "\n" );
     displaySegmentRegSet( fmt );
     fprintf( stdout, "\n" );
-    
     displayControlRegSet( fmt );
     fprintf( stdout, "\n" );
-    
     displayPStateRegSet( fmt );
     fprintf( stdout, "\n" );
-    
     displayPlRegSets( fmt );
 }
 

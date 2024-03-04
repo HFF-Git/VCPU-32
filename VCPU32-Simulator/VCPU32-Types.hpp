@@ -46,7 +46,7 @@ const uint32_t  MAX_CPU_IDS     = 16U;
 
 const uint32_t  MAX_MEMORY_SIZE  = 3072U * 1024U * 1024U;
 
-const uint32_t  MAX_GREGS = 8;
+const uint32_t  MAX_GREGS = 16;
 const uint32_t  MAX_SREGS = 8;
 const uint32_t  MAX_CREGS = 32;
 
@@ -482,12 +482,12 @@ const struct opCodeInfo {
 // To simplify the decoding, a macro will accept position and length and perform the extract.
 //
 //------------------------------------------------------------------------------------------------------------
-#define EXTR( i, p, l ) ((( i  ) >> ( 31 - p )) & (( 1U << l )))
-
-// #define DEP ( i, a, p, l )
+#define MASK( m ) (( 1U << m ) - 1 )
+#define EXTR( i, p, l ) ((( i ) >> ( 31 - p )) & ( MASK( l )))
+#define DEP( i, a, p, l ) i = ((( i ) & (( ~ MASK( l )) << ( 31 - p ))) | (( a ) & (( MASK( l )) << ( 31 - p ))));
 
 struct CPU24Instr {
-    
+  
 public:
     
     // ??? change for new fields....
