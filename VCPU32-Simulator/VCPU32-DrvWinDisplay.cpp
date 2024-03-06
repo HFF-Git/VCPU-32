@@ -80,8 +80,8 @@ namespace {
 // Fundamental constants for the window system.
 //
 //------------------------------------------------------------------------------------------------------------
-const int NUMERIC_L_FIELD_LEN   = 8;
-const int NUMERIC_S_FIELD_LEN   = 4;
+const int NUMERIC_L_FIELD_LEN   = 12;
+const int NUMERIC_S_FIELD_LEN   = 7;
 const int MAX_TEXT_FIELD_LEN    = 132;
 const int MAX_TEXT_LINE_SIZE    = 256;
 
@@ -173,8 +173,8 @@ enum fmtDescOptions : uint32_t {
 // user definable windows are added and removed dynamically.
 //
 //-----------------------------------------------------------------------------------------------------------
-CPU24DrvWin         *windowList[ MAX_WINDOWS ];
-CPU24DrvWinCommands *cmdWin;
+DrvWin         *windowList[ MAX_WINDOWS ];
+DrvWinCommands *cmdWin;
 
 //-----------------------------------------------------------------------------------------------------------
 // All fprintf calls are routed through this routine. I want to see if any of the fprintf function calls
@@ -204,6 +204,7 @@ template<typename... Args> int winPrintf( FILE *stream, const char *fmt, Args...
             exit( errno );
         }
     }
+    
     while ( len < 0 );
     
     do {
@@ -288,39 +289,54 @@ void setFieldAtributes( uint32_t fmtDesc ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Routine for putting out a 24-bit machine word at the current cursor position. We will just print out the
-// data using the radix passed. A machine word of CPU24 will always occupy a length of eight characters.
-// ( HEX: 0xXXXXXX, OCT: 000000000, DEC: xxxxxxx0 );
+// Routine to figure out what size we need for a numeric word in a given radix. Decimals needs 10 digits,
+// octals need 12 digits and hexadcimals need 10 digits. For a 16-bit word, the numbers are reduced to 5, 7
+// and 6.
 //
 //------------------------------------------------------------------------------------------------------------
-void printWord( uint32_t val, TokId radix = TOK_DEC ) {
+int strlenForNum( TokId rdx, bool halfWord ) {
     
-    if      ( radix == TOK_DEC )  winPrintf( stdout, "%8d", val );
-    else if ( radix == TOK_OCT )  winPrintf( stdout, "%08o", val );
-    else if ( radix == TOK_HEX )  {
-        
-        if ( val == 0 ) winPrintf( stdout, "0x000000" );
-        else winPrintf( stdout, "%#08x", val );
-    }
-    else winPrintf( stdout, "**num***" );
+    if      ( rdx == TOK_DEC ) return(( halfWord ) ? 5 : 10 );
+    else if ( rdx == TOK_OCT ) return(( halfWord ) ? 7 : 12 );
+    else if ( rdx == TOK_HEX ) return(( halfWord ) ? 6 : 10 );
+    else return( 10 );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Routine for putting out a 12-bit machine word at the current cursor position. We will just print out the
-// data using the radix passed. A machine word of CPU24 will always occupy a length of four characters.
-// ( HEX: 0xXXX, OCT: 00000, DEC: xxx0 );
+// Routine for putting out a 32-bit or 16-bit machine word at the current cursor position. We will just print
+// out the data using the radix passed. ( HEX: 0xdddddddd, OCT: 0ddddddddddd, DEC: dddddddddd );
 //
 //------------------------------------------------------------------------------------------------------------
-void printHalfWord( uint32_t val, TokId radix = TOK_DEC ) {
+int printWord( uint32_t val, TokId radix = TOK_HEX, bool half = false ) {
     
-    if      ( radix == TOK_DEC )  winPrintf( stdout, "%4d", val );
-    else if ( radix == TOK_OCT  )  winPrintf( stdout, "%04o", val );
-    else if ( radix == TOK_HEX )  {
+    int len;
+    
+    if ( radix == TOK_DEC ) {
         
-        if ( val == 0 ) winPrintf( stdout, "0x000" );
-        else winPrintf( stdout, "%#04x", val );
+        if ( half ) len = winPrintf( stdout, "%5d", val );
+        else        len = winPrintf( stdout, "%10d", val );
     }
-    else winPrintf( stdout, "**num***" );
+    else if ( radix == TOK_OCT ) {
+        
+        if ( half ) len = winPrintf( stdout, "%07o", val );
+        else        len = winPrintf( stdout, "%#012o", val );
+    }
+    else if ( radix == TOK_HEX ) {
+        
+        if ( val == 0 ) {
+            
+            if ( half ) len = winPrintf( stdout, "0x0000" );
+            else        len = winPrintf( stdout, "0x00000000" );
+            
+        } else {
+            
+            if ( half ) len = winPrintf( stdout, "%#06x", val );
+            else        len = winPrintf( stdout, "%#010x", val );
+        }
+    }
+    else len = winPrintf( stdout, "**num***" );
+    
+    return( len );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -328,10 +344,10 @@ void printHalfWord( uint32_t val, TokId radix = TOK_DEC ) {
 // size could be.
 //
 //------------------------------------------------------------------------------------------------------------
-void printText( char *text, int len ) {
+int printText( char *text, int len ) {
     
-    if ( strlen( text ) < MAX_TEXT_FIELD_LEN ) winPrintf( stdout, "%s", text );
-    else winPrintf( stdout, "***Text***" );
+    if ( strlen( text ) < MAX_TEXT_FIELD_LEN ) return( winPrintf( stdout, "%s", text ));
+    else return( winPrintf( stdout, "***Text***" ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -390,36 +406,55 @@ TokId setRadix( TokId rdx ) {
 // Object constructor and destructor. We need themm as we ccreate and destroy user definable windows.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWin::CPU24DrvWin( CPU24Globals *glb ) { this -> glb = glb; }
-CPU24DrvWin:: ~CPU24DrvWin( ) { }
+DrvWin::DrvWin( VCPU32Globals *glb ) { this -> glb = glb; }
+DrvWin:: ~DrvWin( ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // Getter/Setter methods for window attributes.
 //
 //------------------------------------------------------------------------------------------------------------
-void    CPU24DrvWin::setWinType( int arg ) { winType = arg; }
-int     CPU24DrvWin::getWinType( ) { return( winType ); }
+void    DrvWin::setWinType( int arg ) { winType = arg; }
+int     DrvWin::getWinType( ) { return( winType ); }
 
-void    CPU24DrvWin::setWinIndex( int arg ) { winUserIndex = arg; }
-int     CPU24DrvWin::getWinIndex( ) { return( winUserIndex ); }
+void    DrvWin::setWinIndex( int arg ) { winUserIndex = arg; }
+int     DrvWin::getWinIndex( ) { return( winUserIndex ); }
 
-void    CPU24DrvWin::setEnable( bool arg ) { winEnabled = arg; }
-bool    CPU24DrvWin::isEnabled( ) { return( winEnabled ); }
+void    DrvWin::setEnable( bool arg ) { winEnabled = arg; }
+bool    DrvWin::isEnabled( ) { return( winEnabled ); }
 
-void    CPU24DrvWin::setRows( int arg ) { winRows = (( arg > MAX_WIN_ROW_SIZE ) ? MAX_WIN_ROW_SIZE : arg ); }
-int     CPU24DrvWin::getRows( ) { return( winRows ); }
+void    DrvWin::setRows( int arg ) { winRows = (( arg > MAX_WIN_ROW_SIZE ) ? MAX_WIN_ROW_SIZE : arg ); }
+int     DrvWin::getRows( ) { return( winRows ); }
 
-void    CPU24DrvWin::setColumns( int arg ) { winColumns = arg; }
-int     CPU24DrvWin::getColumns( ) { return( winColumns ); }
+void    DrvWin::setColumns( int arg ) { winColumns = arg; }
+int     DrvWin::getColumns( ) { return( winColumns ); }
 
-void    CPU24DrvWin::setDefColumns( int arg ) { winDefColumns = arg; }
-int     CPU24DrvWin::getDefColumns( ) { return( winDefColumns ); }
+void    DrvWin::setRadix( TokId rdx ) { winRadix = ::setRadix( rdx ); }
+TokId   DrvWin::getRadix( ) { return( winRadix ); }
 
-void    CPU24DrvWin::setRadix( TokId rdx ) { winRadix = ::setRadix( rdx ); }
-TokId   CPU24DrvWin::getRadix( ) { return( winRadix ); }
+int     DrvWin::getWinStack( ) { return( winStack ); }
+void    DrvWin::setWinStack( int wCol ) { winStack = wCol; }
 
-int     CPU24DrvWin::getWinStack( ) { return( windowColumn ); }
-void    CPU24DrvWin::setWinStack( int wCol ) { windowColumn = wCol; }
+int DrvWin::getDefColumns( TokId rdx ) {
+    
+    switch ( rdx ) {
+            
+        case TOK_HEX: return( winDefColumnsHex );
+        case TOK_OCT: return( winDefColumnsOct );
+        case TOK_DEC: return( winDefColumnsDec );
+        default:      return( winDefColumnsHex );
+    }
+}
+
+void DrvWin::setDefColumns( int arg, TokId rdx ) {
+    
+    switch ( rdx ) {
+            
+        case TOK_HEX: winDefColumnsHex = arg;  break;
+        case TOK_OCT:  winDefColumnsOct = arg; break;
+        case TOK_DEC:  winDefColumnsDec = arg; break;
+        default: winDefColumnsHex = winDefColumnsOct = winDefColumnsDec = arg;
+    }
+}
 
 //------------------------------------------------------------------------------------------------------------
 // "setWinOrigin" sets the absolute cursor position for the terminal screen. We maintain absolute positions,
@@ -427,7 +462,7 @@ void    CPU24DrvWin::setWinStack( int wCol ) { windowColumn = wCol; }
 // rows and column cursor position are set at (1,1).
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWin::setWinOrigin( int row, int col ) {
+void DrvWin::setWinOrigin( int row, int col ) {
     
     winAbsCursorRow = row;
     winAbsCursorCol = col;
@@ -441,7 +476,7 @@ void CPU24DrvWin::setWinOrigin( int row, int col ) {
 // absolute row and column on the terminal screen plus the window relative row and column.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWin::setWinCursor( int row, int col ) {
+void DrvWin::setWinCursor( int row, int col ) {
     
     if ( row == 0 ) row = lastRowPos;
     if ( col == 0 ) col = lastColPos;
@@ -455,8 +490,8 @@ void CPU24DrvWin::setWinCursor( int row, int col ) {
     lastColPos = col;
 }
 
-int CPU24DrvWin::getWinCursorRow( ) { return( lastRowPos ); }
-int CPU24DrvWin::getWinCursorCol( ) { return( lastColPos ); }
+int DrvWin::getWinCursorRow( ) { return( lastRowPos ); }
+int DrvWin::getWinCursorCol( ) { return( lastColPos ); }
 
 //------------------------------------------------------------------------------------------------------------
 // Print out a numeric field. Each call will set the format options passed via the format descriptor. If the
@@ -466,14 +501,15 @@ int CPU24DrvWin::getWinCursorCol( ) { return( lastColPos ); }
 // ??? shouldn't we feed into printFieldText to unify field printing ?
 // ??? add radix to override default setting ?
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWin::printNumericField( uint32_t val, uint32_t fmtDesc, int fLen, int row, int col ) {
+void DrvWin::printNumericField( uint32_t val, uint32_t fmtDesc, int fLen, int row, int col ) {
     
     if ( row == 0 )                     row     = lastRowPos;
     if ( col == 0 )                     col     = lastColPos;
     if ( fmtDesc & FMT_LAST_FIELD )     col     = winColumns - fLen;
-    if ( fLen == 0 ) fLen    = (( fmtDesc & FMT_HALF_WORD ) ? NUMERIC_S_FIELD_LEN : NUMERIC_L_FIELD_LEN );
     
-    int maxLen = (( fmtDesc & FMT_HALF_WORD ) ? NUMERIC_S_FIELD_LEN : NUMERIC_L_FIELD_LEN );
+    int maxLen = strlenForNum( getRadix( ), ( fmtDesc & FMT_HALF_WORD ));
+    
+    if ( fLen == 0 ) fLen = maxLen;
     
     setFieldAtributes( fmtDesc );
     setWinCursor( row, col );
@@ -482,24 +518,16 @@ void CPU24DrvWin::printNumericField( uint32_t val, uint32_t fmtDesc, int fLen, i
         
         if ( fmtDesc & FMT_ALIGN_LFT ) {
             
-            if ( fmtDesc & FMT_HALF_WORD )  printHalfWord( val, winRadix );
-            else                            printWord( val, winRadix );
-            
+           printWord( val, winRadix, ( fmtDesc & FMT_HALF_WORD ));
             padField( maxLen, fLen );
         }
         else {
             
             padField( maxLen, fLen );
-            
-            if ( fmtDesc & FMT_HALF_WORD )  printHalfWord( val, winRadix );
-            else                            printWord( val, winRadix );
+           printWord( val, winRadix, ( fmtDesc & FMT_HALF_WORD ));
         }
     }
-    else {
-        
-        if ( fmtDesc & FMT_HALF_WORD )  printHalfWord( val, winRadix );
-        else                            printWord( val, winRadix );
-    }
+    else printWord( val, winRadix, ( fmtDesc & FMT_HALF_WORD ));
     
     lastRowPos  = row;
     lastColPos  = col + fLen;
@@ -511,7 +539,7 @@ void CPU24DrvWin::printNumericField( uint32_t val, uint32_t fmtDesc, int fLen, i
 // left or right justified in the field. If teh data is larger than the field, it will be truncated.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWin::printTextField( char *text, uint32_t fmtDesc, int fLen, int row, int col ) {
+void DrvWin::printTextField( char *text, uint32_t fmtDesc, int fLen, int row, int col ) {
     
     if ( row == 0 ) row = lastRowPos;
     if ( col == 0 ) col = lastColPos;
@@ -567,7 +595,7 @@ void CPU24DrvWin::printTextField( char *text, uint32_t fmtDesc, int fLen, int ro
 // body is presented. This field is when used always printed as the last field in the banner line.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWin::printRadixField( uint32_t fmtDesc, int fLen, int row, int col ) {
+void DrvWin::printRadixField( uint32_t fmtDesc, int fLen, int row, int col ) {
     
     setFieldAtributes( fmtDesc );
     
@@ -586,7 +614,7 @@ void CPU24DrvWin::printRadixField( uint32_t fmtDesc, int fLen, int row, int col 
 // A user defined window has a field that shows the window number as well as this is the current window.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWin::printUserIndexField( int index, bool current, uint32_t fmtDesc, int row, int col ) {
+void DrvWin::printUserIndexField( int index, bool current, uint32_t fmtDesc, int row, int col ) {
     
     if ( row == 0 ) row = lastRowPos;
     if ( col == 0 ) col = lastColPos;
@@ -609,7 +637,7 @@ void CPU24DrvWin::printUserIndexField( int index, bool current, uint32_t fmtDesc
 // of the screen column size.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWin::padLine( uint32_t fmtDesc ) {
+void DrvWin::padLine( uint32_t fmtDesc ) {
     
     setFieldAtributes( fmtDesc );
     padField( lastColPos, winColumns );
@@ -620,7 +648,7 @@ void CPU24DrvWin::padLine( uint32_t fmtDesc ) {
 // the child classes.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWin::reDraw( ) {
+void DrvWin::reDraw( ) {
     
     if ( winEnabled ) {
         
@@ -634,7 +662,7 @@ void CPU24DrvWin::reDraw( ) {
 // entirely up to the specific window. On the "WT" command, this function wil be called.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWin::toggleWin( ) { }
+void DrvWin::toggleWin( ) { }
 
 //***********************************************************************************************************
 //***********************************************************************************************************
@@ -648,23 +676,23 @@ void CPU24DrvWin::toggleWin( ) { }
 // Object creator.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinScrollable::CPU24DrvWinScrollable( CPU24Globals *glb ) : CPU24DrvWin( glb ) { }
+DrvWinScrollable::DrvWinScrollable( VCPU32Globals *glb ) : DrvWin( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // Getter/Setter methods for scrollable window attributes.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinScrollable::setHomeItemAdr( int adr ) { homeItemAdr = adr; }
-int  CPU24DrvWinScrollable::getHomeItemAdr( ) { return( homeItemAdr ); }
+void DrvWinScrollable::setHomeItemAdr( int adr ) { homeItemAdr = adr; }
+int  DrvWinScrollable::getHomeItemAdr( ) { return( homeItemAdr ); }
 
-void CPU24DrvWinScrollable::setCurrentItemAdr( int adr ) { currentItemAdr = adr; }
-int  CPU24DrvWinScrollable::getCurrentItemAdr( ) { return( currentItemAdr ); }
+void DrvWinScrollable::setCurrentItemAdr( int adr ) { currentItemAdr = adr; }
+int  DrvWinScrollable::getCurrentItemAdr( ) { return( currentItemAdr ); }
 
-void CPU24DrvWinScrollable::setLimitItemAdr( int adr ) { limitItemAdr = adr; }
-int  CPU24DrvWinScrollable::getLimitItemAdr( ) { return( limitItemAdr ); }
+void DrvWinScrollable::setLimitItemAdr( int adr ) { limitItemAdr = adr; }
+int  DrvWinScrollable::getLimitItemAdr( ) { return( limitItemAdr ); }
 
-void CPU24DrvWinScrollable::setItemsPerLine( int arg ) { itemsPerLine = arg; }
-int  CPU24DrvWinScrollable::getItemsPerLine( ) { return( itemsPerLine ); }
+void DrvWinScrollable::setItemsPerLine( int arg ) { itemsPerLine = arg; }
+int  DrvWinScrollable::getItemsPerLine( ) { return( itemsPerLine ); }
 
 //------------------------------------------------------------------------------------------------------------
 // The scrollable window inherits from the general window. While the banner part of a window is expected to
@@ -677,7 +705,7 @@ int  CPU24DrvWinScrollable::getItemsPerLine( ) { return( itemsPerLine ); }
 // window needs to be divided by that value.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinScrollable::drawBody( ) {
+void DrvWinScrollable::drawBody( ) {
     
     int numOfItemLines = ( getRows( ) - 1 );
     
@@ -695,7 +723,7 @@ void CPU24DrvWinScrollable::drawBody( ) {
 // will be the limit address minus the number of lines times the number of items on the line.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinScrollable::winHome( int pos ) {
+void DrvWinScrollable::winHome( int pos ) {
     
     if ( pos > 0 ) {
         
@@ -713,7 +741,7 @@ void CPU24DrvWinScrollable::winHome( int pos ) {
 // address. A position argument of zero will set the window back to the current home item adress.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinScrollable::winJump( int pos ) {
+void DrvWinScrollable::winJump( int pos ) {
     
     if ( pos > 0 )  currentItemAdr = pos;
     else            currentItemAdr = homeItemAdr;
@@ -726,7 +754,7 @@ void CPU24DrvWinScrollable::winJump( int pos ) {
 // will be corrected with the last computed line being the last line on the screen.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinScrollable::winForward( int amt ) {
+void DrvWinScrollable::winForward( int amt ) {
     
     if ( amt == 0 ) amt = ( getRows( ) - 1 ) * itemsPerLine;
     
@@ -739,7 +767,7 @@ void CPU24DrvWinScrollable::winForward( int amt ) {
     else if ( currentItemAdr < 0 ) currentItemAdr = 0;
 }
 
-void CPU24DrvWinScrollable::winBackward( int amt ) {
+void DrvWinScrollable::winBackward( int amt ) {
     
     if ( amt == 0 ) amt = ( getRows( ) - 1 ) * itemsPerLine;
     
@@ -764,21 +792,35 @@ void CPU24DrvWinScrollable::winBackward( int amt ) {
 // Object creator.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinProgState::CPU24DrvWinProgState( CPU24Globals *glb ) : CPU24DrvWin( glb ) { }
+DrvWinProgState::DrvWinProgState( VCPU32Globals *glb ) : DrvWin( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // The default values are the initial settings when windows is brought up the first time, or for the WDEF
 // command.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinProgState::setDefaults( ) {
+void DrvWinProgState::setDefaults( ) {
     
+    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+    
+    setDefColumns( 12 + ( 8 * 11 ), TOK_HEX );
+    setDefColumns( 12 + ( 8 * 13 ), TOK_OCT );
+    setDefColumns( 12 + ( 8 * 11 ), TOK_DEC );
+    setColumns( getDefColumns( getRadix( )));
+    setRows( 4 );
+
     setWinType( WT_PS_WIN );
     setEnable( true );
-    setRows( 4 );
-    setColumns( 88 );
-    setDefColumns( 88 );
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The window overrides the setRadix method to set the column width according to the radix choosen.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWinProgState::setRadix( TokId rdx ) {
+    
+    DrvWin::setRadix( rdx );
+    setColumns( getDefColumns( getRadix( )));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -787,17 +829,17 @@ void CPU24DrvWinProgState::setDefaults( ) {
 // status word.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinProgState::drawBanner( ) {
+void DrvWinProgState::drawBanner( ) {
     
-    uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE;
+    uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE | FMT_ALIGN_LFT ;
     
     setWinCursor( 1, 1 );
-    printTextField((char *) "Program State", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
-    printTextField((char *) "Seg: ", fmtDesc );
-    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_SEG ), fmtDesc, 8 );
-    printTextField((char *) "Ofs: ", fmtDesc, 8 );
-    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS ), fmtDesc, 8 );
-    printTextField((char *) "ST:", fmtDesc, 8 );
+    printTextField((char *) "Program State", ( fmtDesc ), 16 );
+    printTextField((char *) "Seg:", fmtDesc, 5 );
+    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_SEG ), fmtDesc, 12 );
+    printTextField((char *) "Ofs:", fmtDesc, 5 );
+    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS ), fmtDesc, 12 );
+    printTextField((char *) "ST:", fmtDesc, 4 );
     
     uint32_t stat = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_STATUS );
     
@@ -817,47 +859,65 @@ void CPU24DrvWinProgState::drawBanner( ) {
 // program state window body lists the general and segment registers.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinProgState::drawBody( ) {
+void DrvWinProgState::drawBody( ) {
     
     uint32_t fmtDesc = FMT_DEF_ATTR;
     
     setWinCursor( 2, 1 );
-    printTextField((char *) "GR0=  ", ( fmtDesc | FMT_BOLD ));
+    printTextField((char *) "GR0=", ( fmtDesc | FMT_BOLD | FMT_ALIGN_LFT ), 6 );
     
-    for ( int i = 0; i < 4; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc, 9 );
+    for ( int i = 0; i < 4; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc );
+        printTextField((char *) " ", fmtDesc );
+    }
+       
+    printTextField((char *) "GR4=", ( fmtDesc | FMT_BOLD | FMT_ALIGN_LFT ), 6 );
     
-    printTextField((char *) " GR4=  ", ( fmtDesc | FMT_BOLD ));
-    
-    for ( int i = 4; i < 8; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc, 9 );
-    
+    for ( int i = 4; i < 8; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc );
+        printTextField((char *) " ", fmtDesc );
+    }
+       
     padLine( fmtDesc );
     
     setWinCursor( 3, 1 );
-    printTextField((char *) "GR8=  ", ( fmtDesc | FMT_BOLD ));
+    printTextField((char *) "GR8=", ( fmtDesc | FMT_BOLD | FMT_ALIGN_LFT ), 6 );
     
-    for ( int i = 8; i < 12; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc, 9 );
+    for ( int i = 8; i < 12; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
+        
+    printTextField((char *) "GR12=", ( fmtDesc | FMT_BOLD | FMT_ALIGN_LFT ), 6 );
     
-    printTextField((char *) " GR12= ", ( fmtDesc | FMT_BOLD ));
-    
-    for ( int i = 12; i < 16; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc, 9 );
-    
+    for ( int i = 12; i < 16; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_GEN_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
+        
     padLine( fmtDesc );
     
     setWinCursor( 4, 1 );
-    printTextField((char *) "SR0=  ", ( fmtDesc | FMT_BOLD ));
+    printTextField((char *) "SR0=", ( fmtDesc | FMT_BOLD | FMT_ALIGN_LFT ), 6 );
     
-    for ( int i = 0; i < 4; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_SEG_REG_SET, i ), fmtDesc, 9 );
+    for ( int i = 0; i < 4; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_SEG_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
+        
+    printTextField((char *) "SR4=", ( fmtDesc | FMT_BOLD | FMT_ALIGN_LFT ), 6 );
     
-    printTextField((char *) " SR4=  ", ( fmtDesc | FMT_BOLD ));
+    for ( int i = 4; i < 8; i++ ) {
     
-    for ( int i = 4; i < 8; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_SEG_REG_SET, i ), fmtDesc, 9 );
-    
+        printNumericField( glb -> cpu -> getReg( RC_SEG_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
+        
     padLine( fmtDesc );
 }
 
@@ -873,28 +933,42 @@ void CPU24DrvWinProgState::drawBody( ) {
 // Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinSpecialRegs::CPU24DrvWinSpecialRegs( CPU24Globals *glb )  : CPU24DrvWin( glb ) { }
+DrvWinSpecialRegs::DrvWinSpecialRegs( VCPU32Globals *glb )  : DrvWin( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // The default values are the initial settings when windows is brought up the first time, or for the WDEF
 // command.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinSpecialRegs::setDefaults( ) {
+void DrvWinSpecialRegs::setDefaults( ) {
     
+    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+    
+    setDefColumns( 12 + ( 8 * 11 ), TOK_HEX );
+    setDefColumns( 12 + ( 8 * 13 ), TOK_OCT );
+    setDefColumns( 12 + ( 8 * 11 ), TOK_DEC );
+    setColumns( getDefColumns( getRadix( )));
+    setRows( 5 );
+
     setWinType( WT_CR_WIN );
     setEnable( false );
-    setRows( 5 );
-    setColumns( 84 );
-    setDefColumns( 84 );
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The window overrides the setRadix method to set the column width according to the radix choosen.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWinSpecialRegs::setRadix( TokId rdx ) {
+    
+    DrvWin::setRadix( rdx );
+    setColumns( getDefColumns( getRadix( )));
 }
 
 //------------------------------------------------------------------------------------------------------------
 // The banner line for the special register window.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinSpecialRegs::drawBanner( ) {
+void DrvWinSpecialRegs::drawBanner( ) {
     
     uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE;
     
@@ -910,53 +984,85 @@ void CPU24DrvWinSpecialRegs::drawBanner( ) {
 // with respect to their content.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinSpecialRegs::drawBody( ) {
+void DrvWinSpecialRegs::drawBody( ) {
     
     uint32_t fmtDesc = FMT_ALIGN_LFT;
     
     setWinCursor( 2, 1 );
     printTextField((char *) "CR0=  ", ( fmtDesc | FMT_BOLD ));
     
-    for ( int i = 0; i < 4; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc, 9 );
-    padLine( fmtDesc );
-    
+    for ( int i = 0; i < 4; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
+   
     printTextField((char *) "CR4=  ", ( fmtDesc | FMT_BOLD ));
     
-    for ( int i = 4; i < 8; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc, 9 );
+    for ( int i = 4; i < 8; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
+        
     padLine( fmtDesc );
     
     setWinCursor( 3, 1 );
     printTextField((char *) "CR8=  ", ( fmtDesc | FMT_BOLD ));
-    for ( int i = 8; i < 12; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc, 9 );
-    padLine( fmtDesc );
     
+    for ( int i = 8; i < 12; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
+   
     printTextField((char *) "CR12= ", ( fmtDesc | FMT_BOLD ));
-    for ( int i = 12; i < 16; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc, 9 );
+    
+    for ( int i = 12; i < 16; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
+    
     padLine( fmtDesc );
     
     setWinCursor( 4, 1 );
     printTextField((char *) "CR16= ", ( fmtDesc | FMT_BOLD ));
-    for ( int i = 16; i < 20; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc, 9 );
-    padLine( fmtDesc );
+    
+    for ( int i = 16; i < 20; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
     
     printTextField((char *) "CR20= ", ( fmtDesc | FMT_BOLD ));
-    for ( int i = 20; i < 24; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc, 9 );
+    
+    
+    for ( int i = 20; i < 24; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
+    
     padLine( fmtDesc );
     
     setWinCursor( 5, 1 );
     printTextField((char *) "CR24= ", ( fmtDesc | FMT_BOLD ));
-    for ( int i = 24; i < 28; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc, 9 );
     
+    for ( int i = 24; i < 28; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
+   
     printTextField((char *) "CR28= ", ( fmtDesc | FMT_BOLD ));
-    for ( int i = 28; i < 32; i++ )
-        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc, 9 );
+    
+    for ( int i = 28; i < 32; i++ ) {
+        
+        printNumericField( glb -> cpu -> getReg( RC_CTRL_REG_SET, i ), fmtDesc );
+        printTextField((char *) " " );
+    }
+    
     padLine( fmtDesc );
 }
 
@@ -972,33 +1078,51 @@ void CPU24DrvWinSpecialRegs::drawBody( ) {
 // Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinPipeLineRegs::CPU24DrvWinPipeLineRegs( CPU24Globals *glb ) : CPU24DrvWin( glb ) { }
+DrvWinPipeLineRegs::DrvWinPipeLineRegs( VCPU32Globals *glb ) : DrvWin( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // The default values are the initial settings when windows is brought up the first time, or for the WDEF
 // command.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinPipeLineRegs::setDefaults( ) {
+void DrvWinPipeLineRegs::setDefaults( ) {
+    
+    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+    
+    setDefColumns( 84, TOK_HEX );
+    setDefColumns( 106, TOK_OCT );
+    setDefColumns( 84, TOK_DEC );
+    setColumns( getDefColumns( getRadix( )));
+    setRows( 4 );
     
     setWinType( WT_PL_WIN );
     setEnable( false );
-    setRows( 4 );
-    setColumns( 84 );
-    setDefColumns( 84 );
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The banner line for the pipeline register window.
+// The window overrides the setRadix method to set the column width according to the radix choosen.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinPipeLineRegs::drawBanner( ) {
+void DrvWinPipeLineRegs::setRadix( TokId rdx ) {
+    
+    DrvWin::setRadix( rdx );
+    setColumns( getDefColumns( getRadix( )));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The banner line for the pipeline register window. We show the cycle counter in the banner.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWinPipeLineRegs::drawBanner( ) {
     
     uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE;
     
     setWinCursor( 1, 1 );
     printTextField((char *) "Pipeline", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
+    
+    printTextField((char *) "ClockSteps: ", fmtDesc );
+    printNumericField( glb -> cpu -> stats.clockCntr, fmtDesc );
+    
     padLine( fmtDesc );
     printRadixField( fmtDesc | FMT_LAST_FIELD );
 }
@@ -1007,7 +1131,7 @@ void CPU24DrvWinPipeLineRegs::drawBanner( ) {
 // The pipeline window shows the pipeline registers of the three stages.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinPipeLineRegs::drawBody( ) {
+void DrvWinPipeLineRegs::drawBody( ) {
     
     uint32_t fmtDesc = FMT_DEF_ATTR;
     
@@ -1034,17 +1158,17 @@ void CPU24DrvWinPipeLineRegs::drawBody( ) {
         printTextField((char *) "MA:   ", ( fmtDesc | FMT_ALIGN_LFT | FMT_BOLD ), 8 );
     
     printTextField(( char *) "IA: ", ( fmtDesc | FMT_ALIGN_LFT ), 4 );
-    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_IA_SEG ) );
-    printTextField(( char *) ".");
-    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_IA_OFS ) );
+    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_IA_SEG ));
+    printTextField(( char *) "." );
+    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_IA_OFS ));
     printTextField(( char *) "  I: " );
-    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_INSTR ) );
+    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_INSTR ));
     printTextField(( char *) "  A: " );
-    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_A ) );
+    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_A ));
     printTextField(( char *) "  B: " );
-    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_B ) );
+    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_B ));
     printTextField(( char *) "  X: " );
-    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_X ) );
+    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_X ));
     padLine( fmtDesc );
     
     setWinCursor( 4, 1 );
@@ -1057,15 +1181,15 @@ void CPU24DrvWinPipeLineRegs::drawBody( ) {
     printTextField(( char *) "IA: ", ( fmtDesc | FMT_ALIGN_LFT ), 4 );
     printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_IA_SEG ));
     printTextField(( char *) ".");
-    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_IA_OFS ) );
+    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_IA_OFS ));
     printTextField(( char *) "  I: " );
-    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_INSTR ) );
+    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_INSTR ));
     printTextField(( char *) "  A: " );
-    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_A ) );
+    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_A ));
     printTextField(( char *) "  B: " );
-    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_B ) );
+    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_B ));
     printTextField(( char *) "  X: " );
-    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_X ) );
+    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_X ));
     padLine( fmtDesc );
 }
 
@@ -1081,14 +1205,14 @@ void CPU24DrvWinPipeLineRegs::drawBody( ) {
 // Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinStatistics::CPU24DrvWinStatistics( CPU24Globals *glb ) : CPU24DrvWin( glb ) { }
+DrvWinStatistics::DrvWinStatistics( VCPU32Globals *glb ) : DrvWin( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // The default values are the initial settings when windows is brought up the first time, or for the WDEF
 // command.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinStatistics::setDefaults( ) {
+void DrvWinStatistics::setDefaults( ) {
     
     setWinType( WT_ST_WIN );
     setEnable( false );
@@ -1102,7 +1226,7 @@ void CPU24DrvWinStatistics::setDefaults( ) {
 // The banner line for the statistics window.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinStatistics::drawBanner( ) {
+void DrvWinStatistics::drawBanner( ) {
     
     uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE;
     
@@ -1117,7 +1241,7 @@ void CPU24DrvWinStatistics::drawBanner( ) {
 //
 // ??? work in progress...
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinStatistics::drawBody( ) {
+void DrvWinStatistics::drawBody( ) {
     
     uint32_t fmtDesc = FMT_DEF_ATTR;
     
@@ -1140,7 +1264,7 @@ void CPU24DrvWinStatistics::drawBody( ) {
 // Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinPhysMem::CPU24DrvWinPhysMem( CPU24Globals *glb ) : CPU24DrvWinScrollable( glb ) { }
+DrvWinPhysMem::DrvWinPhysMem( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // The default values are the intial settings when windows is brought up the first time, or for the WDEF
@@ -1148,18 +1272,33 @@ CPU24DrvWinPhysMem::CPU24DrvWinPhysMem( CPU24Globals *glb ) : CPU24DrvWinScrolla
 // minimum is the default number of lines.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinPhysMem::setDefaults( ) {
+void DrvWinPhysMem::setDefaults( ) {
+    
+    
+    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+    
+    setDefColumns( 12 + ( 8 * 11 ), TOK_HEX );
+    setDefColumns( 14 + ( 8 * 13 ), TOK_OCT );
+    setDefColumns( 12 + ( 8 * 11 ), TOK_DEC );
+    setColumns( getDefColumns( getRadix( )));
     
     setWinType( WT_PM_WIN );
     setEnable( false );
     setRows( 5 );
-    setColumns( 84 );
-    setDefColumns( 84 );
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
     setHomeItemAdr( 0 );
     setCurrentItemAdr( 0 );
     setItemsPerLine( 8 );
     setLimitItemAdr( 0 );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The window overrides the setRadix method to set the column width according to the radix choosen.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWinPhysMem::setRadix( TokId rdx ) {
+    
+    DrvWin::setRadix( rdx );
+    setColumns( getDefColumns( getRadix( )));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1168,7 +1307,7 @@ void CPU24DrvWinPhysMem::setDefaults( ) {
 // outside the windows system, better set it every time.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinPhysMem::drawBanner( ) {
+void DrvWinPhysMem::drawBanner( ) {
     
     uint32_t    fmtDesc         = FMT_BOLD | FMT_INVERSE;
     bool        isCurrent       = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
@@ -1195,19 +1334,20 @@ void CPU24DrvWinPhysMem::drawBanner( ) {
 // memory address is computed by multiplying the item adress with the memory words, i.e. items, per line.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinPhysMem::drawLine( int itemAdr ) {
+void DrvWinPhysMem::drawLine( int itemAdr ) {
     
-    CPU24Mem        *mem            = glb -> cpu -> mem;
-    uint32_t        blockSize       = mem -> getBlockSize( );
+    CPU24Mem    *mem            = glb -> cpu -> mem;
+    uint32_t    blockSize       = mem -> getBlockSize( );
     uint32_t    *dataPtr        = mem -> getMemBlockEntry( itemAdr / blockSize ) + (( itemAdr ) % blockSize );
-    uint32_t        fmtDesc         = FMT_DEF_ATTR;
+    uint32_t    fmtDesc         = FMT_DEF_ATTR;
     
     printNumericField( itemAdr, fmtDesc );
     printTextField((char *) ": ", fmtDesc );
     
     for ( int i = 0; i <  getItemsPerLine( ); i++ ) {
     
-        printNumericField( dataPtr[ i ], fmtDesc, 9 );
+        printNumericField( dataPtr[ i ], fmtDesc );
+        printTextField((char *) " " );
     }
 }
 
@@ -1223,7 +1363,7 @@ void CPU24DrvWinPhysMem::drawLine( int itemAdr ) {
 // Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinCode::CPU24DrvWinCode( CPU24Globals *glb ) : CPU24DrvWinScrollable( glb ) { }
+DrvWinCode::DrvWinCode( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // The default values are the initial settings when windows is brought up the first time, or for the WDEF
@@ -1231,18 +1371,19 @@ CPU24DrvWinCode::CPU24DrvWinCode( CPU24Globals *glb ) : CPU24DrvWinScrollable( g
 // the minimum is the default number of lines.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinCode::setDefaults( ) {
-  
-    setWinType( WT_PC_WIN );
-    setEnable( false );
-    setRows( 9 );
+void DrvWinCode::setDefaults( ) {
+    
+    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
     setColumns( 84 );
     setDefColumns( 84 );
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+    setRows( 9 );
+
     setHomeItemAdr( 0 );
     setCurrentItemAdr( 0 );
     setItemsPerLine( 1 );
     setLimitItemAdr( 0 );
+    setWinType( WT_PC_WIN );
+    setEnable( false );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1252,7 +1393,7 @@ void CPU24DrvWinCode::setDefaults( ) {
 // by examining the current command and adjust the current item address to scroll to the next lines to show.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinCode::drawBanner( ) {
+void DrvWinCode::drawBanner( ) {
     
     uint32_t    fmtDesc             = FMT_BOLD | FMT_INVERSE;
     int         currentItemAdr      = getCurrentItemAdr( );
@@ -1291,7 +1432,7 @@ void CPU24DrvWinCode::drawBanner( ) {
 // sure that both parts are nicely aligned.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinCode::drawLine( int itemAdr ) {
+void DrvWinCode::drawLine( int itemAdr ) {
     
     CPU24Mem        *mem            = glb -> cpu -> mem;
     uint32_t        blockSize       = mem -> getBlockSize( );
@@ -1329,7 +1470,7 @@ void CPU24DrvWinCode::drawLine( int itemAdr ) {
 // Object constructor. All we do is to remember what kind of TLB this is.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinTlb::CPU24DrvWinTlb( CPU24Globals *glb, int winType ) : CPU24DrvWinScrollable( glb ) {
+DrvWinTlb::DrvWinTlb( VCPU32Globals *glb, int winType ) : DrvWinScrollable( glb ) {
     
     this -> winType = winType;
 }
@@ -1340,14 +1481,18 @@ CPU24DrvWinTlb::CPU24DrvWinTlb( CPU24Globals *glb, int winType ) : CPU24DrvWinSc
 // where the number of lines to display can be set. However, the minimum is the default number of lines.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinTlb::setDefaults( ) {
+void DrvWinTlb::setDefaults( ) {
+    
+    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+    
+    setDefColumns( 84, TOK_HEX );
+    setDefColumns( 102, TOK_OCT );
+    setDefColumns( 84, TOK_DEC );
+    setColumns( getDefColumns( getRadix( )));
     
     setWinType( winType );
     setEnable( false );
     setRows( 5 );
-    setColumns( 84 );
-    setDefColumns( 84 );
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
     setCurrentItemAdr( 0 );
     setItemsPerLine( 1 );
     setLimitItemAdr( 0 );
@@ -1357,12 +1502,22 @@ void CPU24DrvWinTlb::setDefaults( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// The window overrides the setRadix method to set the column width according to the radix choosen.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWinTlb::setRadix( TokId rdx ) {
+    
+    DrvWin::setRadix( rdx );
+    setColumns( getDefColumns( getRadix( )));
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Each window consist of a banner and a body. The banner line is always shown in inverse and contains
 // summary or head data for the window. We also need to set the item adress limit. As this can change with
 // some commands outside the windows system, better set it every time.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinTlb::drawBanner( ) {
+void DrvWinTlb::drawBanner( ) {
     
     uint32_t    fmtDesc     = FMT_BOLD | FMT_INVERSE;
     bool        isCurrent   = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
@@ -1389,7 +1544,7 @@ void CPU24DrvWinTlb::drawBanner( ) {
 // number of lines can vary. A line represents an entry in the respective TLB.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinTlb::drawLine( int index ) {
+void DrvWinTlb::drawLine( int index ) {
     
     uint32_t  fmtDesc = FMT_DEF_ATTR;
     
@@ -1443,7 +1598,7 @@ void CPU24DrvWinTlb::drawLine( int index ) {
 // Object constructor. All we do is to remember what kind of Cache this is.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinCache::CPU24DrvWinCache( CPU24Globals *glb, int winType ) : CPU24DrvWinScrollable( glb ) {
+DrvWinCache::DrvWinCache( VCPU32Globals *glb, int winType ) : DrvWinScrollable( glb ) {
     
     this -> winType = winType;
 }
@@ -1454,11 +1609,18 @@ CPU24DrvWinCache::CPU24DrvWinCache( CPU24Globals *glb, int winType ) : CPU24DrvW
 // where the number of lines to display can be set. However, the minimum is the default number of lines.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinCache::setDefaults( ) {
+void DrvWinCache::setDefaults( ) {
     
     if      ( winType == WT_ICACHE_WIN )    cPtr = glb -> cpu -> iCacheL1;
     else if ( winType == WT_DCACHE_WIN )    cPtr = glb -> cpu -> dCacheL1;
     else if ( winType == WT_UCACHE_WIN )    cPtr = glb -> cpu -> uCacheL2;
+    
+    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+    setDefColumns( 30 + ( cPtr -> getBlockSize( ) * 9 ), TOK_HEX );
+    setDefColumns( 30 + ( cPtr -> getBlockSize( ) * 11 ), TOK_OCT );
+    setDefColumns( 30 + ( cPtr -> getBlockSize( ) * 9 ), TOK_DEC );
+    setColumns( getDefColumns( getRadix( )));
+    setRows( 6 );
     
     setWinType( winType );
     setEnable( false );
@@ -1466,18 +1628,24 @@ void CPU24DrvWinCache::setDefaults( ) {
     setCurrentItemAdr( 0 );
     setItemsPerLine( 1 );
     setLimitItemAdr( 0 );
-    setRows( 6 );
-    setDefColumns( 30 + cPtr -> getBlockSize( ) * 9 );
-    setColumns( 30 + cPtr -> getBlockSize( ) * 9 );
-    
     winToggleVal = 0;
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The window overrides the setRadix method to set the column width according to the radix choosen.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWinCache::setRadix( TokId rdx ) {
+    
+    DrvWin::setRadix( rdx );
+    setColumns( getDefColumns( getRadix( )));
 }
 
 //------------------------------------------------------------------------------------------------------------
 // We allow for toggling through the sets if the cache is an n-way associative cache.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinCache::toggleWin( ) {
+void DrvWinCache::toggleWin( ) {
     
     uint32_t blockSize   = cPtr -> getBlockSets( );
     winToggleVal = ( winToggleVal + 1 ) % blockSize;
@@ -1489,7 +1657,7 @@ void CPU24DrvWinCache::toggleWin( ) {
 // some commands outside the windows system, better set it every time.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinCache::drawBanner( ) {
+void DrvWinCache::drawBanner( ) {
     
     uint32_t    fmtDesc     = FMT_BOLD | FMT_INVERSE;
     bool        isCurrent   = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
@@ -1518,7 +1686,7 @@ void CPU24DrvWinCache::drawBanner( ) {
 // are up to two sets of cache data.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinCache::drawLine( int index ) {
+void DrvWinCache::drawLine( int index ) {
     
     uint32_t  fmtDesc   = FMT_DEF_ATTR;
  
@@ -1532,9 +1700,9 @@ void CPU24DrvWinCache::drawLine( int index ) {
     }
     else {
         
-        MemTagEntry    *tagPtr     = cPtr -> getMemTagEntry( index, winToggleVal );
-        uint32_t        *dataPtr    = cPtr -> getMemBlockEntry( index, winToggleVal );
-        uint32_t            blockSize   = cPtr -> getBlockSize( );
+        MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( index, winToggleVal );
+        uint32_t    *dataPtr    = cPtr -> getMemBlockEntry( index, winToggleVal );
+        uint32_t    blockSize   = cPtr -> getBlockSize( );
         
         printNumericField( index, fmtDesc );
         printTextField((char *) ":[", fmtDesc );
@@ -1546,7 +1714,8 @@ void CPU24DrvWinCache::drawLine( int index ) {
         
         for ( uint32_t i = 0; i < blockSize; i++ ) {
             
-            printNumericField( dataPtr[ i ], fmtDesc, 9 );
+            printNumericField( dataPtr[ i ], fmtDesc );
+            printTextField((char *) " " );
         }
     }
 }
@@ -1563,7 +1732,7 @@ void CPU24DrvWinCache::drawLine( int index ) {
 // Object constructor. All we do is to remember what kind of memory object this is.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinMemController::CPU24DrvWinMemController( CPU24Globals *glb, int winType ) : CPU24DrvWin( glb ) {
+DrvWinMemController::DrvWinMemController( VCPU32Globals *glb, int winType ) : DrvWin( glb ) {
     
     this -> winType = winType;
 }
@@ -1572,7 +1741,7 @@ CPU24DrvWinMemController::CPU24DrvWinMemController( CPU24Globals *glb, int winTy
 // Set up reasonlable defaults and the reference to the actual memory object.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinMemController::setDefaults( ) {
+void DrvWinMemController::setDefaults( ) {
     
     if      ( winType == WT_ICACHE_S_WIN )  cPtr = glb -> cpu -> iCacheL1;
     else if ( winType == WT_DCACHE_S_WIN )  cPtr = glb -> cpu -> dCacheL1;
@@ -1591,7 +1760,7 @@ void CPU24DrvWinMemController::setDefaults( ) {
 // Draw the memory object banner. We will display the static configuration data for the memory object.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinMemController::drawBanner( ) {
+void DrvWinMemController::drawBanner( ) {
     
     uint32_t    fmtDesc     = FMT_BOLD | FMT_INVERSE;
     bool        isCurrent   = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
@@ -1632,7 +1801,7 @@ void CPU24DrvWinMemController::drawBanner( ) {
 // Display the memory object machine state and the actual requests.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinMemController::drawBody( ) {
+void DrvWinMemController::drawBody( ) {
     
     uint32_t fmtDesc = FMT_DEF_ATTR;
     
@@ -1696,12 +1865,12 @@ void CPU24DrvWinMemController::drawBody( ) {
 // file name. The text window has a destructor method as well. We need to close a potentially opened file.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinText::CPU24DrvWinText( CPU24Globals *glb, char *fName ) : CPU24DrvWinScrollable( glb ) {
+DrvWinText::DrvWinText( VCPU32Globals *glb, char *fName ) : DrvWinScrollable( glb ) {
     
     strcpy( fileName, fName );
 }
 
-CPU24DrvWinText:: ~CPU24DrvWinText( ) {
+DrvWinText:: ~DrvWinText( ) {
     
     if ( textFile != nullptr ) {
         
@@ -1714,7 +1883,7 @@ CPU24DrvWinText:: ~CPU24DrvWinText( ) {
 // command.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinText::setDefaults( ) {
+void DrvWinText::setDefaults( ) {
     
     setWinType( WT_TEXT_WIN );
     setEnable( true );
@@ -1735,7 +1904,7 @@ void CPU24DrvWinText::setDefaults( ) {
 // the file. Lines shown on teh display start with one, internally we start at zero.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinText::drawBanner( ) {
+void DrvWinText::drawBanner( ) {
     
     uint32_t    fmtDesc     = FMT_BOLD | FMT_INVERSE;
     bool        isCurrent   = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
@@ -1759,7 +1928,7 @@ void CPU24DrvWinText::drawBanner( ) {
 // of the window object.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinText::drawLine( int index ) {
+void DrvWinText::drawLine( int index ) {
     
     uint32_t    fmtDesc = FMT_DEF_ATTR;
     char        lineBuf[ MAX_TEXT_LINE_SIZE ];
@@ -1786,7 +1955,7 @@ void CPU24DrvWinText::drawLine( int index ) {
 // window. All will be remembered of course.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24DrvWinText::openTextFile( ) {
+bool DrvWinText::openTextFile( ) {
     
     if ( textFile == nullptr ) {
         
@@ -1815,7 +1984,7 @@ bool CPU24DrvWinText::openTextFile( ) {
 // If equal, we just re-read the current line.
 //
 //------------------------------------------------------------------------------------------------------------
-int CPU24DrvWinText::readTextFileLine( int linePos, char *lineBuf, int bufLen  ) {
+int DrvWinText::readTextFileLine( int linePos, char *lineBuf, int bufLen  ) {
  
     if ( textFile != nullptr ) {
         
@@ -1858,14 +2027,14 @@ int CPU24DrvWinText::readTextFileLine( int linePos, char *lineBuf, int bufLen  )
 // Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvWinCommands::CPU24DrvWinCommands( CPU24Globals *glb ) : CPU24DrvWin( glb ) { }
+DrvWinCommands::DrvWinCommands( VCPU32Globals *glb ) : DrvWin( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // The default values are the intial settings when windows is brought up the first time, or for the WDEF
 // command.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinCommands::setDefaults( ) {
+void DrvWinCommands::setDefaults( ) {
     
     setWinType( WT_CMD_WIN );
     setEnable( true );
@@ -1879,7 +2048,7 @@ void CPU24DrvWinCommands::setDefaults( ) {
 // The banner line for command window.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinCommands::drawBanner( ) {
+void DrvWinCommands::drawBanner( ) {
     
     uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE;
     
@@ -1894,7 +2063,7 @@ void CPU24DrvWinCommands::drawBanner( ) {
 // any character drawing attribute.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvWinCommands::drawBody( ) {
+void DrvWinCommands::drawBody( ) {
     
     setFieldAtributes( FMT_DEF_ATTR );
 }
@@ -1912,17 +2081,17 @@ void CPU24DrvWinCommands::drawBody( ) {
 // of the window list is used by the user defined windows.
 //
 //-----------------------------------------------------------------------------------------------------------
-CPU24DrvWinDisplay::CPU24DrvWinDisplay( CPU24Globals *glb ) {
+DrvWinDisplay::DrvWinDisplay( VCPU32Globals *glb ) {
     
     this -> glb = glb;
     
     for ( int i = 0; i < MAX_WINDOWS; i++ ) windowList[ i ] = nullptr;
     
-    windowList[ PS_REG_WIN ]    = new CPU24DrvWinProgState( glb );
-    windowList[ CTRL_REG_WIN ]  = new CPU24DrvWinSpecialRegs( glb );
-    windowList[ PL_REG_WIN ]    = new CPU24DrvWinPipeLineRegs( glb );
-    windowList[ STATS_WIN ]     = new CPU24DrvWinStatistics( glb );
-    cmdWin                      = new CPU24DrvWinCommands( glb );
+    windowList[ PS_REG_WIN ]    = new DrvWinProgState( glb );
+    windowList[ CTRL_REG_WIN ]  = new DrvWinSpecialRegs( glb );
+    windowList[ PL_REG_WIN ]    = new DrvWinPipeLineRegs( glb );
+    windowList[ STATS_WIN ]     = new DrvWinStatistics( glb );
+    cmdWin                      = new DrvWinCommands( glb );
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -1931,12 +2100,12 @@ CPU24DrvWinDisplay::CPU24DrvWinDisplay( CPU24Globals *glb ) {
 // number, which includes fixed and user numbers.
 //
 //-----------------------------------------------------------------------------------------------------------
-int  CPU24DrvWinDisplay::getCurrentUserWindow( ) {
+int  DrvWinDisplay::getCurrentUserWindow( ) {
     
     return( currentUserWinNum );
 }
 
-void CPU24DrvWinDisplay::setCurrentUserWindow( int winNum ) {
+void DrvWinDisplay::setCurrentUserWindow( int winNum ) {
     
     currentUserWinNum = winNum;
 }
@@ -1947,22 +2116,22 @@ void CPU24DrvWinDisplay::setCurrentUserWindow( int winNum ) {
 // is within the list portion reserved for user defined windows.
 //
 //-----------------------------------------------------------------------------------------------------------
-bool CPU24DrvWinDisplay::validWindowNum( int winNum ) {
+bool DrvWinDisplay::validWindowNum( int winNum ) {
     
     return(( winNum <= LAST_UWIN ) && ( windowList[ winNum ] != nullptr ));
 }
 
-bool CPU24DrvWinDisplay::validUserWindowNum( int winNum ) {
+bool DrvWinDisplay::validUserWindowNum( int winNum ) {
     
     return(( winNum >= FIRST_UWIN ) && ( winNum <= LAST_UWIN ) && ( windowList[ winNum ] != nullptr ));
 }
 
-bool CPU24DrvWinDisplay::validWindowStackNum( int stackNum ) {
+bool DrvWinDisplay::validWindowStackNum( int stackNum ) {
     
     return(( stackNum >= 0 ) && ( stackNum < MAX_WIN_STACKS ));
 }
 
-bool CPU24DrvWinDisplay::validUserWindowType( TokId winType ) {
+bool DrvWinDisplay::validUserWindowType( TokId winType ) {
     
     return(( winType == TOK_PM )    || ( winType == TOK_PC )    || ( winType == TOK_IT ) ||
            ( winType == TOK_DT )    || ( winType == TOK_IC )    || ( winType == TOK_DC ) ||
@@ -1970,7 +2139,7 @@ bool CPU24DrvWinDisplay::validUserWindowType( TokId winType ) {
            ( winType == TOK_UCR )   || ( winType == TOK_MCR )   || ( winType == TOK_TX ));
 }
 
-bool CPU24DrvWinDisplay::isCurrentWin( int winNum ) {
+bool DrvWinDisplay::isCurrentWin( int winNum ) {
     
     return(( validUserWindowNum( winNum ) && ( currentUserWinNum == winNum )));
 }
@@ -1981,7 +2150,7 @@ bool CPU24DrvWinDisplay::isCurrentWin( int winNum ) {
 // list for a given stack and determines the widest column needed for that stack.
 //
 //-----------------------------------------------------------------------------------------------------------
-int CPU24DrvWinDisplay::computeColumnsNeeded( int winStack ) {
+int DrvWinDisplay::computeColumnsNeeded( int winStack ) {
     
     int columnSize = 0;
     
@@ -1991,7 +2160,7 @@ int CPU24DrvWinDisplay::computeColumnsNeeded( int winStack ) {
             ( windowList[ i ] -> isEnabled( )) &&
             ( windowList[ i ] -> getWinStack( ) == winStack )) {
             
-            int columns = windowList[ i ] -> getDefColumns( );
+            int columns = windowList[ i ] -> getDefColumns( windowList[ i ] -> getRadix( ));
             if ( columns > columnSize ) columnSize = columns;
         }
     }
@@ -2004,7 +2173,7 @@ int CPU24DrvWinDisplay::computeColumnsNeeded( int winStack ) {
 // size in all those windows, so that they print nicely with a common end of line picture.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::setWindowColumns( int winStack, int columnSize ) {
+void DrvWinDisplay::setWindowColumns( int winStack, int columnSize ) {
     
     for ( int i = 0; i < MAX_WINDOWS; i++ ) {
         
@@ -2023,7 +2192,7 @@ void CPU24DrvWinDisplay::setWindowColumns( int winStack, int columnSize ) {
 // and sums up the rows needed for a given stack.
 //
 //-----------------------------------------------------------------------------------------------------------
-int CPU24DrvWinDisplay::computeRowsNeeded( int winStack ) {
+int DrvWinDisplay::computeRowsNeeded( int winStack ) {
     
     int rowSize = 0;
     
@@ -2046,7 +2215,7 @@ int CPU24DrvWinDisplay::computeRowsNeeded( int winStack ) {
 // the passed stack the absolute row and column position for the window in the terminal screen.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::setWindowOrigins( int winStack, int rowOffset, int colOffset ) {
+void DrvWinDisplay::setWindowOrigins( int winStack, int rowOffset, int colOffset ) {
     
     int tmpRow = rowOffset;
     
@@ -2081,7 +2250,7 @@ void CPU24DrvWinDisplay::setWindowOrigins( int winStack, int rowOffset, int colO
 // across all visibloe stacks.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::reDraw( bool mustRedraw ) {
+void DrvWinDisplay::reDraw( bool mustRedraw ) {
     
     int winStackColumns[ MAX_WIN_STACKS ]   = { 0 };
     int winStackRows[ MAX_WIN_STACKS ]      = { 0 };
@@ -2130,8 +2299,8 @@ void CPU24DrvWinDisplay::reDraw( bool mustRedraw ) {
     }
     else maxRowsNeeded += cmdWin -> getRows( );
     
-    if ( winStacksOn ) cmdWin -> setColumns( maxColumnsNeeded - stackColumnGap );
-    else  cmdWin -> setColumns( maxColumnsNeeded );
+    if ( winStacksOn )  cmdWin -> setColumns( maxColumnsNeeded - stackColumnGap );
+    else                cmdWin -> setColumns( maxColumnsNeeded );
     
     cmdWin -> setWinOrigin( maxRowsNeeded - cmdWin -> getRows( ) + 1, 1 );
   
@@ -2157,7 +2326,6 @@ void CPU24DrvWinDisplay::reDraw( bool mustRedraw ) {
     }
     
     cmdWin -> reDraw( );
-    
     setAbsCursor( actualRowSize, 1 );
 }
 
@@ -2169,17 +2337,17 @@ void CPU24DrvWinDisplay::reDraw( bool mustRedraw ) {
 // a function to enable or disable the window stacks feature.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowsOn( ) {
+void DrvWinDisplay::windowsOn( ) {
     
 }
 
-void CPU24DrvWinDisplay::windowsOff( ) {
+void DrvWinDisplay::windowsOff( ) {
     
     clearScrollArea( );
     clearScreen( );
 }
 
-void CPU24DrvWinDisplay::windowDefaults( ) {
+void DrvWinDisplay::windowDefaults( ) {
     
     for ( int i = 0; i < MAX_WINDOWS; i++ ) {
         
@@ -2189,7 +2357,7 @@ void CPU24DrvWinDisplay::windowDefaults( ) {
     cmdWin -> setDefaults( );
 }
 
-void CPU24DrvWinDisplay::winStacksEnable( bool arg ) {
+void DrvWinDisplay::winStacksEnable( bool arg ) {
     
     winStacksOn = arg;
 }
@@ -2200,7 +2368,7 @@ void CPU24DrvWinDisplay::winStacksEnable( bool arg ) {
 // window number in its command will also set the current value. The user window becomes the actual window.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowCurrent( TokId winCmd, int winNum ) {
+void DrvWinDisplay::windowCurrent( TokId winCmd, int winNum ) {
     
     if ( validUserWindowNum( winNum )) currentUserWinNum = winNum;
 }
@@ -2211,7 +2379,7 @@ void CPU24DrvWinDisplay::windowCurrent( TokId winCmd, int winNum ) {
 // could have many stacks, numbered 0 to MAX_STACKS - 1. Realistically, 3 to 4 stacks will fit on a screen.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowSetStack( int winNum, int winStack ) {
+void DrvWinDisplay::windowSetStack( int winNum, int winStack ) {
     
     if ( winNum == 0 ) winNum = getCurrentUserWindow( );
     
@@ -2230,7 +2398,7 @@ void CPU24DrvWinDisplay::windowSetStack( int winNum, int winStack ) {
 // which is used when there are user defined windows for locating the window object.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowEnable( TokId winCmd, int winNum ) {
+void DrvWinDisplay::windowEnable( TokId winCmd, int winNum ) {
     
     switch( winCmd ) {
             
@@ -2260,7 +2428,7 @@ void CPU24DrvWinDisplay::windowEnable( TokId winCmd, int winNum ) {
 // which is used when there are user defined windows for locating the window object.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowDisable( TokId winCmd, int winNum ) {
+void DrvWinDisplay::windowDisable( TokId winCmd, int winNum ) {
     
     switch( winCmd ) {
             
@@ -2288,19 +2456,19 @@ void CPU24DrvWinDisplay::windowDisable( TokId winCmd, int winNum ) {
 //-----------------------------------------------------------------------------------------------------------
 // For the numeric values in a window, we can set the radix. The token ID for the format option is mapped to
 // the actual radix value.We are passed an optional windows number, which is used when there are user defined
-// windows for locating the window object.
+// windows for locating the window object. Changing the radix potetntially means tha the window layout needs
+// to change.
 //
+// ??? force redraw here ? All windows need to provide the "setRadix" if they change the column width.
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowRadix( TokId winCmd, TokId fmtId, int winNum ) {
-    
-    TokId tmp = ::setRadix( fmtId );
+void DrvWinDisplay::windowRadix( TokId winCmd, TokId fmtId, int winNum ) {
     
     switch( winCmd ) {
             
-        case CMD_PSR: windowList[ PS_REG_WIN ] -> setRadix( tmp );      break;
-        case CMD_SRR: windowList[ CTRL_REG_WIN ] -> setRadix( tmp );    break;
-        case CMD_PLR: windowList[ PL_REG_WIN ] -> setRadix( tmp );      break;
-        case CMD_SWR: windowList[ STATS_WIN ] -> setRadix( tmp );       break;
+        case CMD_PSR: windowList[ PS_REG_WIN ] -> setRadix( fmtId );    break;
+        case CMD_SRR: windowList[ CTRL_REG_WIN ] -> setRadix( fmtId );  break;
+        case CMD_PLR: windowList[ PL_REG_WIN ] -> setRadix( fmtId );    break;
+        case CMD_SWR: windowList[ STATS_WIN ] -> setRadix( fmtId );     break;
      
         case CMD_WR: {
             
@@ -2308,7 +2476,7 @@ void CPU24DrvWinDisplay::windowRadix( TokId winCmd, TokId fmtId, int winNum ) {
             
             if ( validUserWindowNum( winNum )) {
                 
-                windowList[ winNum ] -> setRadix( tmp );
+                windowList[ winNum ] -> setRadix( fmtId );
                 setCurrentUserWindow( winNum );
             }
            
@@ -2316,6 +2484,8 @@ void CPU24DrvWinDisplay::windowRadix( TokId winCmd, TokId fmtId, int winNum ) {
             
         default: ;
     }
+    
+    reDraw( true );
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -2324,7 +2494,7 @@ void CPU24DrvWinDisplay::windowRadix( TokId winCmd, TokId fmtId, int winNum ) {
 // window object.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowSetRows( TokId winCmd, int rows, int winNum ) {
+void DrvWinDisplay::windowSetRows( TokId winCmd, int rows, int winNum ) {
     
     switch ( winCmd ) {
             
@@ -2353,13 +2523,13 @@ void CPU24DrvWinDisplay::windowSetRows( TokId winCmd, int rows, int winNum ) {
 // which is used when there are user defined windows for locating the window object.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowHome( TokId winCmd, int pos, int winNum ) {
+void DrvWinDisplay::windowHome( TokId winCmd, int pos, int winNum ) {
     
     if ( winNum == 0 ) winNum = getCurrentUserWindow( );
     
     if ( validUserWindowNum( winNum )) {
         
-        ((CPU24DrvWinScrollable *) windowList[ winNum ] ) -> winHome( pos );
+        ((DrvWinScrollable *) windowList[ winNum ] ) -> winHome( pos );
         setCurrentUserWindow( winNum );
     }
 }
@@ -2370,13 +2540,13 @@ void CPU24DrvWinDisplay::windowHome( TokId winCmd, int pos, int winNum ) {
 // when there are user defined windows for locating the window object.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowForward( TokId winCmd, int amt, int winNum ) {
+void DrvWinDisplay::windowForward( TokId winCmd, int amt, int winNum ) {
     
     if ( winNum == 0 ) winNum = getCurrentUserWindow( );
     
     if ( validUserWindowNum( winNum )) {
         
-        ((CPU24DrvWinScrollable *) windowList[ winNum ] ) -> winForward( amt );
+        ((DrvWinScrollable *) windowList[ winNum ] ) -> winForward( amt );
         setCurrentUserWindow( winNum );
     }
 }
@@ -2387,13 +2557,13 @@ void CPU24DrvWinDisplay::windowForward( TokId winCmd, int amt, int winNum ) {
 // when there are user defined windows for locating the window object.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowBackward( TokId winCmd, int amt, int winNum ) {
+void DrvWinDisplay::windowBackward( TokId winCmd, int amt, int winNum ) {
     
     if ( winNum == 0 ) winNum = getCurrentUserWindow( );
     
     if ( validUserWindowNum( winNum )) {
         
-        ((CPU24DrvWinScrollable *) windowList[ winNum ] ) -> winBackward( amt );
+        ((DrvWinScrollable *) windowList[ winNum ] ) -> winBackward( amt );
         setCurrentUserWindow( winNum );
     }
 }
@@ -2404,7 +2574,7 @@ void CPU24DrvWinDisplay::windowBackward( TokId winCmd, int amt, int winNum ) {
 // there are user defined windows for locating the window object.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowJump( TokId winCmd, int pos, int winNum ) {
+void DrvWinDisplay::windowJump( TokId winCmd, int pos, int winNum ) {
     
     if ( winNum == 0 ) winNum = getCurrentUserWindow( );
     
@@ -2412,7 +2582,7 @@ void CPU24DrvWinDisplay::windowJump( TokId winCmd, int pos, int winNum ) {
         
         if ( winNum == 0 ) winNum = getCurrentUserWindow( );
         
-        ((CPU24DrvWinScrollable *) windowList[ winNum ] ) -> winJump( pos );
+        ((DrvWinScrollable *) windowList[ winNum ] ) -> winJump( pos );
         setCurrentUserWindow( winNum );
     }
 }
@@ -2423,7 +2593,7 @@ void CPU24DrvWinDisplay::windowJump( TokId winCmd, int pos, int winNum ) {
 // there are user defined windows for locating the window object.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowToggle( TokId winCmd, int winNum ) {
+void DrvWinDisplay::windowToggle( TokId winCmd, int winNum ) {
     
     switch( winCmd ) {
             
@@ -2438,7 +2608,7 @@ void CPU24DrvWinDisplay::windowToggle( TokId winCmd, int winNum ) {
                 
                 if ( winNum == 0 ) winNum = getCurrentUserWindow( );
                 
-                ((CPU24DrvWinScrollable *) windowList[ winNum ] ) -> toggleWin( );
+                ((DrvWinScrollable *) windowList[ winNum ] ) -> toggleWin( );
                 setCurrentUserWindow( winNum );
             }
             
@@ -2455,7 +2625,7 @@ void CPU24DrvWinDisplay::windowToggle( TokId winCmd, int winNum ) {
 // user window.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowNew( TokId winCmd, TokId winType, char *argStr ) {
+void DrvWinDisplay::windowNew( TokId winCmd, TokId winType, char *argStr ) {
     
     int i = 0;
     
@@ -2468,18 +2638,18 @@ void CPU24DrvWinDisplay::windowNew( TokId winCmd, TokId winType, char *argStr ) 
         
         switch ( winType ) {
                 
-            case TOK_PM: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinPhysMem( glb ); break;
-            case TOK_PC: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinCode( glb ); break;
-            case TOK_IT: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinTlb( glb, WT_ITLB_WIN ); break;
-            case TOK_DT: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinTlb( glb, WT_DTLB_WIN ); break;
-            case TOK_IC: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinCache( glb, WT_ICACHE_WIN ); break;
-            case TOK_DC: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinCache( glb, WT_DCACHE_WIN ); break;
-            case TOK_UC: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinCache( glb, WT_UCACHE_WIN ); break;
-            case TOK_TX: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinText( glb, argStr ); break;
-            case TOK_ICR: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinMemController( glb, WT_ICACHE_S_WIN ); break;
-            case TOK_DCR: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinMemController( glb, WT_DCACHE_S_WIN ); break;
-            case TOK_UCR: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinMemController( glb, WT_UCACHE_S_WIN ); break;
-            case TOK_MCR: windowList[ i ] = ( CPU24DrvWin * ) new CPU24DrvWinMemController( glb, WT_MEM_S_WIN ); break;
+            case TOK_PM: windowList[ i ] = ( DrvWin * ) new DrvWinPhysMem( glb ); break;
+            case TOK_PC: windowList[ i ] = ( DrvWin * ) new DrvWinCode( glb ); break;
+            case TOK_IT: windowList[ i ] = ( DrvWin * ) new DrvWinTlb( glb, WT_ITLB_WIN ); break;
+            case TOK_DT: windowList[ i ] = ( DrvWin * ) new DrvWinTlb( glb, WT_DTLB_WIN ); break;
+            case TOK_IC: windowList[ i ] = ( DrvWin * ) new DrvWinCache( glb, WT_ICACHE_WIN ); break;
+            case TOK_DC: windowList[ i ] = ( DrvWin * ) new DrvWinCache( glb, WT_DCACHE_WIN ); break;
+            case TOK_UC: windowList[ i ] = ( DrvWin * ) new DrvWinCache( glb, WT_UCACHE_WIN ); break;
+            case TOK_TX: windowList[ i ] = ( DrvWin * ) new DrvWinText( glb, argStr ); break;
+            case TOK_ICR: windowList[ i ] = ( DrvWin * ) new DrvWinMemController( glb, WT_ICACHE_S_WIN ); break;
+            case TOK_DCR: windowList[ i ] = ( DrvWin * ) new DrvWinMemController( glb, WT_DCACHE_S_WIN ); break;
+            case TOK_UCR: windowList[ i ] = ( DrvWin * ) new DrvWinMemController( glb, WT_UCACHE_S_WIN ); break;
+            case TOK_MCR: windowList[ i ] = ( DrvWin * ) new DrvWinMemController( glb, WT_MEM_S_WIN ); break;
            
             default: return;
         }
@@ -2497,13 +2667,13 @@ void CPU24DrvWinDisplay::windowNew( TokId winCmd, TokId winType, char *argStr ) 
 // We just pick the first used entry in the user range.
 //
 //-----------------------------------------------------------------------------------------------------------
-void CPU24DrvWinDisplay::windowKill( TokId winCmd, int winNum ) {
+void DrvWinDisplay::windowKill( TokId winCmd, int winNum ) {
     
     if ( winNum == 0 ) winNum = getCurrentUserWindow( );
     
     if (( validWindowNum( winNum )) && ( winNum >= FIRST_UWIN )) {
         
-        delete ( CPU24DrvWin * ) windowList[ winNum ];
+        delete ( DrvWin * ) windowList[ winNum ];
         windowList[ winNum ] = nullptr;
         
         if ( getCurrentUserWindow( ) == winNum ) {

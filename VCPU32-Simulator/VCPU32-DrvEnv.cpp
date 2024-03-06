@@ -57,7 +57,7 @@ struct EnvTabEntry {
     
 } envTab[ ] = {
     
-    { .name = "FMT-DEF", .          envId = ENV_FMT_DEF,            .envTyp = ENV_TYP_TOK,  .rOnly = false,  .tVal = TOK_OCT  },
+    { .name = "FMT-DEF",            .envId = ENV_FMT_DEF,           .envTyp = ENV_TYP_TOK,  .rOnly = false,  .tVal = TOK_HEX },
     
     { .name = "SHOW-CMD-CNT",       .envId = ENV_SHOW_CMD_CNT,      .envTyp = ENV_TYP_BOOL, .rOnly = false,  .bVal = true      },
     { .name = "CMD-CNT",            .envId = ENV_CMD_CNT,           .envTyp = ENV_TYP_INT,  .rOnly = true,   .iVal = 0         },
@@ -95,6 +95,19 @@ struct EnvTabEntry {
 
 const int ENV_TAB_SIZE  = sizeof( envTab ) / sizeof( *envTab );
 
+//------------------------------------------------------------------------------------------------------------
+// A little helper function to upshift a string in place.
+//
+//------------------------------------------------------------------------------------------------------------
+void upshiftStr( char *str ) {
+    
+    size_t len = strlen( str );
+    
+    if ( len > 0 ) {
+        
+        for ( size_t i = 0; i < len; i++ ) str[ i ] = (char) toupper((int) str[ i ] );
+    }
+}
 
 //------------------------------------------------------------------------------------------------------------
 // A local function to display an environment variable.
@@ -127,7 +140,7 @@ void displayEnvTabEntry( EnvTabEntry *entry ) {
 // Object creator.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvEnv::CPU24DrvEnv( CPU24Globals *glb ) {
+DrvEnv::DrvEnv( VCPU32Globals *glb ) {
     
     this -> glb = glb;
 }
@@ -136,12 +149,28 @@ CPU24DrvEnv::CPU24DrvEnv( CPU24Globals *glb ) {
 // ENV functions to get the type, attribute, and to get and set value.
 //
 //------------------------------------------------------------------------------------------------------------
-int CPU24DrvEnv::getEnvTabSize( ) {
+int DrvEnv::getEnvTabSize( ) {
     
     return ( ENV_TAB_SIZE );
 }
 
-TokId CPU24DrvEnv::getEnvType( TokId envId ) {
+TokId DrvEnv::lookupEnvTokId( char *str, TokId def ) {
+    
+    if (( strlen( str ) == 0 ) || ( strlen ( str ) > MAX_ENV_STR_SIZE )) return( def );
+    
+    char tmpStr[ MAX_ENV_STR_SIZE ];
+    strncpy( tmpStr, str, strlen( str ) + 1 );
+    upshiftStr( tmpStr );
+    
+    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
+        
+        if ( strcmp( tmpStr, envTab[ i ].name ) == 0 ) return( envTab[ i ].envId );
+    }
+    
+    return( def );
+}
+
+TokId DrvEnv::getEnvType( TokId envId ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
@@ -151,7 +180,7 @@ TokId CPU24DrvEnv::getEnvType( TokId envId ) {
     return( TOK_NIL );
 }
 
-bool CPU24DrvEnv::isReadOnly( TokId envId ) {
+bool DrvEnv::isReadOnly( TokId envId ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
@@ -161,7 +190,7 @@ bool CPU24DrvEnv::isReadOnly( TokId envId ) {
     return( true );
 }
 
-TokId CPU24DrvEnv::getEnvValTok( TokId envId ) {
+TokId DrvEnv::getEnvValTok( TokId envId ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
@@ -172,7 +201,7 @@ TokId CPU24DrvEnv::getEnvValTok( TokId envId ) {
     return( TOK_NIL );
 }
 
-int CPU24DrvEnv::getEnvValInt( TokId envId ) {
+int DrvEnv::getEnvValInt( TokId envId ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
@@ -183,7 +212,7 @@ int CPU24DrvEnv::getEnvValInt( TokId envId ) {
     return( 0 );
 }
 
-bool CPU24DrvEnv::getEnvValBool( TokId envId ) {
+bool DrvEnv::getEnvValBool( TokId envId ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
@@ -194,7 +223,7 @@ bool CPU24DrvEnv::getEnvValBool( TokId envId ) {
     return( false );
 }
 
-char *CPU24DrvEnv::getEnvValStr( TokId envId ) {
+char *DrvEnv::getEnvValStr( TokId envId ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
@@ -205,7 +234,7 @@ char *CPU24DrvEnv::getEnvValStr( TokId envId ) {
     return((char *) "" );
 }
 
-void CPU24DrvEnv::setEnvVal( TokId envId, TokId val ) {
+void DrvEnv::setEnvVal( TokId envId, TokId val ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
@@ -216,7 +245,7 @@ void CPU24DrvEnv::setEnvVal( TokId envId, TokId val ) {
     }
 }
 
-void CPU24DrvEnv::setEnvVal( TokId envId, int val ) {
+void DrvEnv::setEnvVal( TokId envId, int val ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
@@ -225,7 +254,7 @@ void CPU24DrvEnv::setEnvVal( TokId envId, int val ) {
     }
 }
 
-void CPU24DrvEnv::setEnvVal( TokId envId, bool val ) {
+void DrvEnv::setEnvVal( TokId envId, bool val ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
@@ -234,7 +263,7 @@ void CPU24DrvEnv::setEnvVal( TokId envId, bool val ) {
     }
 }
 
-void CPU24DrvEnv::setEnvVal( TokId envId, char *str ) {
+void DrvEnv::setEnvVal( TokId envId, char *str ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
@@ -257,13 +286,13 @@ void CPU24DrvEnv::setEnvVal( TokId envId, char *str ) {
 // Finally, we want to list the ENV table as well as an individual entry.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t CPU24DrvEnv::displayEnvTable( ) {
+uint8_t DrvEnv::displayEnvTable( ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) ::displayEnvTabEntry( &envTab[ i ] );
     return( 0 );
 }
 
-uint8_t CPU24DrvEnv::displayEnvTabEntry( TokId envId ) {
+uint8_t DrvEnv::displayEnvTabEntry( TokId envId ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         

@@ -33,7 +33,7 @@
 //------------------------------------------------------------------------------------------------------------
 int main( int argc, const char* argv[ ] ) {
     
-    CPU24Globals        glbDesc;
+    VCPU32Globals     glbDesc;
     CpuCoreDesc       cpuDesc;
 
     cpuDesc.flags                       = 0;
@@ -80,11 +80,11 @@ int main( int argc, const char* argv[ ] ) {
     
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
     
-    glbDesc.env                         = new CPU24DrvEnv( &glbDesc );
-    glbDesc.cmds                        = new CPU24DrvCmds( &glbDesc );
-    glbDesc.lineDisplay                 = new CPU24DrvLineDisplay( &glbDesc );
-    glbDesc.winDisplay                  = new CPU24DrvWinDisplay( &glbDesc );
-    glbDesc.disAsm                      = new CPU24DrvDisAsm( &glbDesc );
+    glbDesc.env                         = new DrvEnv( &glbDesc );
+    glbDesc.cmds                        = new DrvCmds( &glbDesc );
+    glbDesc.lineDisplay                 = new DrvLineDisplay( &glbDesc );
+    glbDesc.winDisplay                  = new DrvWinDisplay( &glbDesc );
+    glbDesc.disAsm                      = new DrvDisAsm( &glbDesc );
     
     glbDesc.cmds -> processCmdLineArgs( argc, argv );
     glbDesc.cmds -> printWelcome( );

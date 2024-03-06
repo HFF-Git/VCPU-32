@@ -126,14 +126,6 @@ struct {
     { "WS",                 "",         CMD_SET,            CMD_WS                  },
     { "WT",                 "",         CMD_SET,            CMD_WT                  },
     
-    { "CMD-CNT",            "",         ENV_SET,            ENV_CMD_CNT             },
-    { "FMT-DEF",            "",         ENV_SET,            ENV_FMT_DEF             },
-    { "SHOW-CMD-CNT",       "",         ENV_SET,            ENV_SHOW_CMD_CNT        },
-    { "EXIT-CODE",          "",         ENV_SET,            ENV_EXIT_CODE           },
-    { "WORDS-PER-LINE",     "",         ENV_SET,            ENV_WORDS_PER_LINE      },
-    { "VERSION",            "",         ENV_SET,            ENV_PROG_VERSION        },
-    { "STEP-IN-CLOCKS",     "",         ENV_SET,            ENV_STEP_IN_CLOCKS      },
-    
     { "TRUE",               "",         SET_NIL,            TOK_TRUE                },
     { "FALSE",              "",         SET_NIL,            TOK_FALSE               },
     { "ALL",                "",         SET_NIL,            TOK_ALL                 },
@@ -475,7 +467,7 @@ TokId matchReg( char *argStr, TokId def = TOK_NIL ) {
 // The object constructor. We just remember where globals are.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvCmds::CPU24DrvCmds( CPU24Globals *glb ) {
+DrvCmds::DrvCmds( VCPU32Globals *glb ) {
     
     this -> glb = glb;
 }
@@ -484,7 +476,7 @@ CPU24DrvCmds::CPU24DrvCmds( CPU24Globals *glb ) {
 // Return the current command entered.
 //
 //------------------------------------------------------------------------------------------------------------
-TokId CPU24DrvCmds::getCurrentCmd( ) {
+TokId DrvCmds::getCurrentCmd( ) {
     
     return( currentCmd );
 }
@@ -494,7 +486,7 @@ TokId CPU24DrvCmds::getCurrentCmd( ) {
 //
 // ??? add all the other text over time ....
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::printErrMsg( ErrMsgId errNum, char *argStr ) {
+void DrvCmds::printErrMsg( ErrMsgId errNum, char *argStr ) {
     
     switch ( errNum ) {
             
@@ -525,11 +517,11 @@ void CPU24DrvCmds::printErrMsg( ErrMsgId errNum, char *argStr ) {
 // enviroment variable table.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::printWelcome( ) {
+void DrvCmds::printWelcome( ) {
     
     glb -> env -> setEnvVal( ENV_PROG_VERSION, (char *) VERSION );
     glb -> env -> setEnvVal( ENV_PROG_PATCH_LEVEL, PATCH_LEVEL );
-    glb -> env -> setEnvVal( ENV_FMT_DEF, TOK_OCT );
+    // glb -> env -> setEnvVal( ENV_FMT_DEF, TOK_HEX );
     glb -> env -> setEnvVal( ENV_EXIT_CODE, 0 );
     
     if ( isatty( fileno( stdin ))) {
@@ -546,7 +538,7 @@ void CPU24DrvCmds::printWelcome( ) {
 //
 // ??? to do ...
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::processCmdLineArgs( int argc, const char *argv[ ] ) {
+void DrvCmds::processCmdLineArgs( int argc, const char *argv[ ] ) {
     
     while ( argc > 0 ) {
         
@@ -560,7 +552,7 @@ void CPU24DrvCmds::processCmdLineArgs( int argc, const char *argv[ ] ) {
 // comes from a terminal and not an input file.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::promptCmdLine( ) {
+void DrvCmds::promptCmdLine( ) {
     
     if ( isatty( fileno( stdin ))) {
         
@@ -577,7 +569,7 @@ void CPU24DrvCmds::promptCmdLine( ) {
 // yes/no or cancel. A positive result is a "yes" a negative result a "no", anything else a "cancel".
 //
 //------------------------------------------------------------------------------------------------------------
-int CPU24DrvCmds::promptYesNoCancel( char *promptStr ) {
+int DrvCmds::promptYesNoCancel( char *promptStr ) {
     
     fprintf( stdout, FMT_STR_1S, promptStr );
     fprintf( stdout, " -> " );
@@ -607,7 +599,7 @@ int CPU24DrvCmds::promptYesNoCancel( char *promptStr ) {
 // ??? still sometimes the window mode hangs. Another mystery...
 // ??? try adding a clearerr( stdin ) before fgets ? ?
 //------------------------------------------------------------------------------------------------------------
-bool CPU24DrvCmds::readCmdLine( char *cmdBuf ) {
+bool DrvCmds::readCmdLine( char *cmdBuf ) {
     
     while ( true ) {
         
@@ -638,7 +630,7 @@ bool CPU24DrvCmds::readCmdLine( char *cmdBuf ) {
 // the command loop.
 //
 //------------------------------------------------------------------------------------------------------------
-void  CPU24DrvCmds::execCmdsFromFile( char* fileName ) {
+void  DrvCmds::execCmdsFromFile( char* fileName ) {
     
     char cmdLineBuf[ CMD_LINE_BUF_SIZE ] = "";
     
@@ -666,7 +658,7 @@ void  CPU24DrvCmds::execCmdsFromFile( char* fileName ) {
 // specific help on the topic is given.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::helpCmd( char *cmdBuf ) {
+void DrvCmds::helpCmd( char *cmdBuf ) {
     
     const char FMT_STR[ ] = "%-50s%s\n";
     
@@ -711,7 +703,7 @@ void CPU24DrvCmds::helpCmd( char *cmdBuf ) {
 // Display the window specific help.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winHelpCmd( char *cmdBuf ) {
+void DrvCmds::winHelpCmd( char *cmdBuf ) {
     
     const char FMT_STR[ ] = "%-20s%s\n";
     
@@ -766,7 +758,7 @@ void CPU24DrvCmds::winHelpCmd( char *cmdBuf ) {
 // Invalid command handler.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::invalidCmd( char *cmdBuf ) {
+void DrvCmds::invalidCmd( char *cmdBuf ) {
     
     glb -> env -> setEnvVal( ENV_EXIT_CODE, -1 );
     printErrMsg( INVALID_CMD_ERR );
@@ -778,7 +770,7 @@ void CPU24DrvCmds::invalidCmd( char *cmdBuf ) {
 //
 // EXIT <code>
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::exitCmd( char *cmdBuf ) {
+void DrvCmds::exitCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ]     = "";
     char    arg1Str[ TOK_NAME_SIZE ]    = "";
@@ -803,7 +795,7 @@ void CPU24DrvCmds::exitCmd( char *cmdBuf ) {
 // any script file to insert comments in that file.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::commentCmd( char *cmdBuf ) {
+void DrvCmds::commentCmd( char *cmdBuf ) {
     
     fprintf( stdout, "%s\n", cmdBuf );
 }
@@ -814,7 +806,7 @@ void CPU24DrvCmds::commentCmd( char *cmdBuf ) {
 //
 // ENV [ <envId> [ <val> ]]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::envCmd( char *cmdBuf ) {
+void DrvCmds::envCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ]         = "";
     char    arg1Str[ TOK_NAME_SIZE ]        = "";
@@ -832,7 +824,9 @@ void CPU24DrvCmds::envCmd( char *cmdBuf ) {
     }
     else if ( args == 3 ) {
         
-        TokId arg1Id  = lookupTokId( arg1Str );
+        // TokId arg1Id  = lookupTokId( arg1Str );
+        
+        TokId arg1Id  = glb -> env -> lookupEnvTokId( arg1Str );
         
         if ( glb -> env -> getEnvType( arg1Id ) == TOK_NIL ) {
             
@@ -893,7 +887,7 @@ void CPU24DrvCmds::envCmd( char *cmdBuf ) {
 //
 // EXEC <filename>
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::execFileCmd( char *cmdBuf ) {
+void DrvCmds::execFileCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE + 1 ]         = "";
     char    arg1Str[ TOK_LARGE_STR_SIZE + 1 ]   = "";
@@ -907,7 +901,7 @@ void CPU24DrvCmds::execFileCmd( char *cmdBuf ) {
 //
 // RESET ( CPU | MEM | STATS | ALL )
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::resetCmd( char *cmdBuf ) {
+void DrvCmds::resetCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE + 1 ]     = "";
     char    arg1Str[ TOK_NAME_SIZE + 1 ]    = "";
@@ -955,7 +949,7 @@ void CPU24DrvCmds::resetCmd( char *cmdBuf ) {
 //
 // RUN
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::runCmd( char *cmdBuf ) {
+void DrvCmds::runCmd( char *cmdBuf ) {
     
     fprintf( stdout, "RUN command to come ... \n" );
     
@@ -971,7 +965,7 @@ void CPU24DrvCmds::runCmd( char *cmdBuf ) {
 //
 // STEP [ <num> ] [I|C]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::stepCmd( char *cmdBuf ) {
+void DrvCmds::stepCmd( char *cmdBuf ) {
     
     char            cmdStr[ TOK_NAME_SIZE ]     = "";
     uint32_t    numOfSteps                  = 1;
@@ -1008,7 +1002,7 @@ void CPU24DrvCmds::stepCmd( char *cmdBuf ) {
 //
 // B <seg> <ofs>
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::setBreakPointCmd( char *cmdBuf ) {
+void DrvCmds::setBreakPointCmd( char *cmdBuf ) {
     
 }
 
@@ -1016,7 +1010,7 @@ void CPU24DrvCmds::setBreakPointCmd( char *cmdBuf ) {
 //
 // BD <seg> <ofs>
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::deleteBreakPointCmd( char *cmdBuf ){
+void DrvCmds::deleteBreakPointCmd( char *cmdBuf ){
     
 }
 
@@ -1024,7 +1018,7 @@ void CPU24DrvCmds::deleteBreakPointCmd( char *cmdBuf ){
 //
 // BL
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::listBreakPointsCmd( char *cmdBuf ) {
+void DrvCmds::listBreakPointsCmd( char *cmdBuf ) {
     
 }
 
@@ -1035,7 +1029,7 @@ void CPU24DrvCmds::listBreakPointsCmd( char *cmdBuf ) {
 // TREQ <reg> <val> <fail-str> [ <pass-str>  ]
 // TRNE <reg> <val> <fail-str> [ <pass-str>  ]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::testRegCmd( char *cmdBuf ) {
+void DrvCmds::testRegCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ]         = "";
     char    arg1Str[ TOK_NAME_SIZE ]        = "";
@@ -1113,7 +1107,7 @@ void CPU24DrvCmds::testRegCmd( char *cmdBuf ) {
 // TMEQ <ofs> <val> <fail-str> [ <pass-str>  ]
 // TMNE <ofs> <val> <fail-str> [ <pass-str>  ]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::testMemCmd( char *cmdBuf ) {
+void DrvCmds::testMemCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ]         = "";
     char    arg1Str[ TOK_NAME_SIZE ]        = "";
@@ -1179,7 +1173,7 @@ void CPU24DrvCmds::testMemCmd( char *cmdBuf ) {
 //
 // DIS <instr> [ fmt ]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::disAssembleCmd( char *cmdBuf ) {
+void DrvCmds::disAssembleCmd( char *cmdBuf ) {
     
     char            cmdStr[ TOK_NAME_SIZE ]     = "";
     uint32_t    instr                       = 0;
@@ -1222,7 +1216,7 @@ void CPU24DrvCmds::disAssembleCmd( char *cmdBuf ) {
 //
 // DR [<regSet>|<reg>] <fmt>]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::displayRegCmd( char *cmdBuf ) {
+void DrvCmds::displayRegCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ]     = "";
     char    arg1Str[ TOK_NAME_SIZE ]    = "";
@@ -1354,7 +1348,7 @@ void CPU24DrvCmds::displayRegCmd( char *cmdBuf ) {
 //
 // MR <reg> <val>
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::modifyRegCmd( char *cmdBuf ) {
+void DrvCmds::modifyRegCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ]     = "";
     char    arg1Str[ TOK_NAME_SIZE ]    = "";
@@ -1411,7 +1405,7 @@ void CPU24DrvCmds::modifyRegCmd( char *cmdBuf ) {
 //
 // HVA <seg> <ofs>
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::hashVACmd( char *cmdBuf ) {
+void DrvCmds::hashVACmd( char *cmdBuf ) {
     
     char            cmdStr[ TOK_NAME_SIZE + 1 ] = "";
     uint32_t    seg                         = 0;
@@ -1430,7 +1424,7 @@ void CPU24DrvCmds::hashVACmd( char *cmdBuf ) {
 //
 // D-TLB ( D | I ) [ <index> ] [ <len> ] [ <fmt> ] - if no index, list all entries ? practical ?
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::displayTLBCmd( char *cmdBuf ) {
+void DrvCmds::displayTLBCmd( char *cmdBuf ) {
     
     char            cmdStr[ TOK_NAME_SIZE + 1 ]     = "";
     char            tlbTypStr[ TOK_NAME_SIZE + 1 ]  = "";
@@ -1475,7 +1469,7 @@ void CPU24DrvCmds::displayTLBCmd( char *cmdBuf ) {
 //
 // P-TLB <I|D|U> <seg> <ofs>
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::purgeTLBCmd( char *cmdBuf ) {
+void DrvCmds::purgeTLBCmd( char *cmdBuf ) {
     
     char            cmdStr[ TOK_NAME_SIZE ]     = "";
     char            tlbTypStr[ TOK_NAME_SIZE ]  = "";
@@ -1506,7 +1500,7 @@ void CPU24DrvCmds::purgeTLBCmd( char *cmdBuf ) {
 //
 // I-TLB <D|I> <seg> <ofs> <arg-acc> <arg-adr>
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::insertTLBCmd( char *cmdBuf ) {
+void DrvCmds::insertTLBCmd( char *cmdBuf ) {
     
     char            cmdStr[ TOK_NAME_SIZE ]     = "";
     char            tlbTypStr[ TOK_NAME_SIZE ]  = "";
@@ -1539,7 +1533,7 @@ void CPU24DrvCmds::insertTLBCmd( char *cmdBuf ) {
 //
 // D-CACHE ( I|D|U ) [ <index> ] [ <len> ] [ <fmt> ]
 //------------------------------------------------------------------------------------------------------------
-void  CPU24DrvCmds::displayCacheCmd( char *cmdBuf ) {
+void  DrvCmds::displayCacheCmd( char *cmdBuf ) {
     
     char        cmdStr[ TOK_NAME_SIZE + 1 ]     = "";
     char        cTypStr[ TOK_NAME_SIZE + 1 ]    = "";
@@ -1591,7 +1585,7 @@ void  CPU24DrvCmds::displayCacheCmd( char *cmdBuf ) {
 //
 // P-CACHE <I|D|U> <index> <set> [<flush>]
 //------------------------------------------------------------------------------------------------------------
-void  CPU24DrvCmds::purgeCacheCmd( char *cmdBuf ) {
+void  DrvCmds::purgeCacheCmd( char *cmdBuf ) {
     
     char            cmdStr[ TOK_NAME_SIZE ]         = "";
     char            cTypStr[ TOK_NAME_SIZE ]        = "";
@@ -1648,7 +1642,7 @@ void  CPU24DrvCmds::purgeCacheCmd( char *cmdBuf ) {
 //
 // DA <ofs> [ <cnt> [ <fmt> ]]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::displayPhysMemCmd( char *cmdBuf ) {
+void DrvCmds::displayPhysMemCmd( char *cmdBuf ) {
     
     char        cmdStr[ TOK_NAME_SIZE + 1 ] = "";
     char        fmtStr[ TOK_NAME_SIZE + 1 ] = "";
@@ -1693,7 +1687,7 @@ void CPU24DrvCmds::displayPhysMemCmd( char *cmdBuf ) {
 //
 // MA <ofs> <val1> [ <val2> [ <val3> [ <val4> [ <val5> [ <val6> [ <val7> [ <val8> ]]]]]]]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
+void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     
     char            cmdStr[ TOK_NAME_SIZE + 1 ] = "";
     uint32_t        ofs                         = 0;
@@ -1783,7 +1777,7 @@ void CPU24DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
 // with a ton of MA commands.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::loadPhysMemCmd( char *cmdBuf ) {
+void DrvCmds::loadPhysMemCmd( char *cmdBuf ) {
     
     fprintf( stdout, "The Load Physical Memory command....\n" );
     fprintf( stdout, "Just issue an XF command with a file created by the SMF command" );
@@ -1798,7 +1792,7 @@ void CPU24DrvCmds::loadPhysMemCmd( char *cmdBuf ) {
 // SMF <path> [ <ofs> <len> ]
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::savePhysMemCmd( char *cmdBuf ) {
+void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
     
     char            cmdStr[ TOK_NAME_SIZE + 1 ]     = "";
     char            pathStr[ PATH_STR_SIZE + 1 ]    = "";
@@ -1901,14 +1895,14 @@ void CPU24DrvCmds::savePhysMemCmd( char *cmdBuf ) {
 // values. We also support two stacks of windows next to each other.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winOnCmd( char *cmdBuf ) {
+void DrvCmds::winOnCmd( char *cmdBuf ) {
     
     winModeOn = true;
     glb -> winDisplay -> windowsOn( );
     glb -> winDisplay -> reDraw( true );
 }
 
-void CPU24DrvCmds::winOffCmd( char *cmdBuf ) {
+void DrvCmds::winOffCmd( char *cmdBuf ) {
     
     if ( winModeOn ) {
         
@@ -1918,7 +1912,7 @@ void CPU24DrvCmds::winOffCmd( char *cmdBuf ) {
     else printErrMsg( NOT_IN_WIN_MODE_ERR );
 }
 
-void CPU24DrvCmds::winDefCmd( char *cmdBuf ) {
+void DrvCmds::winDefCmd( char *cmdBuf ) {
     
     if ( winModeOn ) {
         
@@ -1928,7 +1922,7 @@ void CPU24DrvCmds::winDefCmd( char *cmdBuf ) {
     else printErrMsg( NOT_IN_WIN_MODE_ERR );
 }
 
-void CPU24DrvCmds::winStacksEnable( char *cmdBuf ) {
+void DrvCmds::winStacksEnable( char *cmdBuf ) {
     
     if ( winModeOn ) {
         
@@ -1938,7 +1932,7 @@ void CPU24DrvCmds::winStacksEnable( char *cmdBuf ) {
     else printErrMsg( NOT_IN_WIN_MODE_ERR );
 }
 
-void CPU24DrvCmds::winStacksDisable( char *cmdBuf ) {
+void DrvCmds::winStacksDisable( char *cmdBuf ) {
     
     if ( winModeOn ) {
         
@@ -1954,7 +1948,7 @@ void CPU24DrvCmds::winStacksDisable( char *cmdBuf ) {
 //
 // WC <winNum>
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winCurrentCmd( char *cmdBuf ) {
+void DrvCmds::winCurrentCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     int     winNum                  = 0;
@@ -1988,7 +1982,7 @@ void CPU24DrvCmds::winCurrentCmd( char *cmdBuf ) {
 // <win>E [<winNum>]
 // <win>D [<winNum>]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winEnableCmd( char *cmdBuf ) {
+void DrvCmds::winEnableCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     int     winNum                  = 0;
@@ -2016,7 +2010,7 @@ void CPU24DrvCmds::winEnableCmd( char *cmdBuf ) {
     glb -> winDisplay -> reDraw( true );
 }
 
-void CPU24DrvCmds::winDisableCmd( char *cmdBuf ) {
+void DrvCmds::winDisableCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     int     winNum  = 0;
@@ -2051,7 +2045,7 @@ void CPU24DrvCmds::winDisableCmd( char *cmdBuf ) {
 //
 // <win>R [ <radix> [<winNum>]]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winSetRadixCmd( char *cmdBuf ) {
+void DrvCmds::winSetRadixCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     char    fmtStr[ TOK_NAME_SIZE ] = "";
@@ -2096,7 +2090,7 @@ void CPU24DrvCmds::winSetRadixCmd( char *cmdBuf ) {
 // <win>F [<items> [<winNum>]]
 // <win>B [<items> [<winNum>]]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winForwardCmd( char *cmdBuf ) {
+void DrvCmds::winForwardCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     int     winItems                = 0;
@@ -2120,7 +2114,7 @@ void CPU24DrvCmds::winForwardCmd( char *cmdBuf ) {
     glb -> winDisplay -> windowForward( lookupTokId( cmdStr ), winItems, winNum  );
 }
 
-void CPU24DrvCmds::winBackwardCmd( char *cmdBuf ) {
+void DrvCmds::winBackwardCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     int     winItems                = 0;
@@ -2151,7 +2145,7 @@ void CPU24DrvCmds::winBackwardCmd( char *cmdBuf ) {
 //
 // <win>H [<pos> [<winNum>]]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winHomeCmd( char *cmdBuf ) {
+void DrvCmds::winHomeCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     int     winPos                  = 0;
@@ -2181,7 +2175,7 @@ void CPU24DrvCmds::winHomeCmd( char *cmdBuf ) {
 //
 // <win>J [<pos> [<winNum>]]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winJumpCmd( char *cmdBuf ) {
+void DrvCmds::winJumpCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     int     winPos                  = 0;
@@ -2211,7 +2205,7 @@ void CPU24DrvCmds::winJumpCmd( char *cmdBuf ) {
 //
 // <win>L [<lines> [<winNum>]]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winSetRowsCmd( char *cmdBuf ) {
+void DrvCmds::winSetRowsCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     int     winLines                = 0;
@@ -2243,7 +2237,7 @@ void CPU24DrvCmds::winSetRowsCmd( char *cmdBuf ) {
 //
 // WN <winType> [ <arg> ]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winNewWinCmd( char *cmdBuf ) {
+void DrvCmds::winNewWinCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ]         = "";
     char    winStr[ TOK_NAME_SIZE ]         = "";
@@ -2291,7 +2285,7 @@ void CPU24DrvCmds::winNewWinCmd( char *cmdBuf ) {
 //
 // WK [<winNum>]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winKillWinCmd( char * cmdBuf ) {
+void DrvCmds::winKillWinCmd( char * cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     int     winNum                  = 0;
@@ -2321,7 +2315,7 @@ void CPU24DrvCmds::winKillWinCmd( char * cmdBuf ) {
 //
 // WS <winNum> [ <stackNum> ]
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::winSetStackCmd( char *cmdBuf ) {
+void DrvCmds::winSetStackCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     int     winNum                  = 0;
@@ -2363,7 +2357,7 @@ void CPU24DrvCmds::winSetStackCmd( char *cmdBuf ) {
 //
 // WT [ <winNum> ]
 //------------------------------------------------------------------------------------------------------------
-void  CPU24DrvCmds::winToggleCmd( char *cmdBuf ) {
+void  DrvCmds::winToggleCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
     int     winNum                  = 0;
@@ -2395,7 +2389,7 @@ void  CPU24DrvCmds::winToggleCmd( char *cmdBuf ) {
 // respective handler.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::dispatchCmd( char *cmdBuf ) {
+void DrvCmds::dispatchCmd( char *cmdBuf ) {
     
     if ( strlen( cmdBuf ) > 0 ) {
         
@@ -2488,7 +2482,7 @@ void CPU24DrvCmds::dispatchCmd( char *cmdBuf ) {
 // input and dispatch the command. If we are in windows mode, we also redraw the screen.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvCmds::cmdLoop( ) {
+void DrvCmds::cmdLoop( ) {
     
     char cmdLineBuf[ CMD_LINE_BUF_SIZE ] = { 0 };
     

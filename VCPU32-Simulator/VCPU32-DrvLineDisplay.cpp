@@ -28,7 +28,7 @@
 // The object constructor. We just remember the globals pointer.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvLineDisplay::CPU24DrvLineDisplay( CPU24Globals *glb ) {
+DrvLineDisplay::DrvLineDisplay( VCPU32Globals *glb ) {
     
     this -> glb = glb;
 }
@@ -38,7 +38,7 @@ CPU24DrvLineDisplay::CPU24DrvLineDisplay( CPU24Globals *glb ) {
 // omitted or set to "default", the environment variable for the base number is used.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvLineDisplay::displayWord( uint32_t val, TokId fmtType ) {
+void DrvLineDisplay::displayWord( uint32_t val, TokId fmtType ) {
     
     if      ( fmtType == TOK_DEC )  fprintf( stdout, "%8d", val );
     else if ( fmtType == TOK_OCT )  fprintf( stdout, "%#09o", val );
@@ -55,7 +55,7 @@ void CPU24DrvLineDisplay::displayWord( uint32_t val, TokId fmtType ) {
 // or set to "default", the environment variable for the base number is used.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvLineDisplay::displayHalfWord( uint32_t val, TokId fmtType ) {
+void DrvLineDisplay::displayHalfWord( uint32_t val, TokId fmtType ) {
     
     if      ( fmtType == TOK_DEC )  fprintf( stdout, "%4d", val );
     else if ( fmtType == TOK_OCT  ) fprintf( stdout, "%04o", val );
@@ -73,7 +73,7 @@ void CPU24DrvLineDisplay::displayHalfWord( uint32_t val, TokId fmtType ) {
 // options on title and how many are displayed in a row. Note that this routine does not a lot of checking.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvLineDisplay::displayRegsAndLabel( RegClass regSetId,
+void DrvLineDisplay::displayRegsAndLabel( RegClass regSetId,
                                               int       regStart,
                                               int       numOfRegs,
                                               char      *lineLabel,
@@ -94,7 +94,7 @@ void CPU24DrvLineDisplay::displayRegsAndLabel( RegClass regSetId,
 // display a particular register set.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvLineDisplay::displayGeneralRegSet( TokId fmt ) {
+void DrvLineDisplay::displayGeneralRegSet( TokId fmt ) {
     
     displayRegsAndLabel( RC_GEN_REG_SET, 0, 8, ((char *) "R0=   " ), fmt );
     fprintf( stdout, "\n" );
@@ -102,13 +102,13 @@ void CPU24DrvLineDisplay::displayGeneralRegSet( TokId fmt ) {
     fprintf( stdout, "\n" );
 }
 
-void CPU24DrvLineDisplay::displaySegmentRegSet( TokId fmt ) {
+void DrvLineDisplay::displaySegmentRegSet( TokId fmt ) {
     
     displayRegsAndLabel( RC_SEG_REG_SET, 0, 8, ((char *) "S0=   " ), fmt );
     fprintf( stdout, "\n" );
 }
 
-void CPU24DrvLineDisplay::displayControlRegSet( TokId fmt ) {
+void DrvLineDisplay::displayControlRegSet( TokId fmt ) {
     
     displayRegsAndLabel( RC_CTRL_REG_SET, 0, 8, ((char *) "CR0=  " ), fmt );
     fprintf( stdout, "\n" );
@@ -123,7 +123,7 @@ void CPU24DrvLineDisplay::displayControlRegSet( TokId fmt ) {
     fprintf( stdout, "\n" );
 }
 
-void CPU24DrvLineDisplay::displayPStateRegSet( TokId fmt ) {
+void DrvLineDisplay::displayPStateRegSet( TokId fmt ) {
     
     fprintf( stdout, "IA=   " );
     displayWord( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_SEG ), fmt );
@@ -134,7 +134,7 @@ void CPU24DrvLineDisplay::displayPStateRegSet( TokId fmt ) {
     fprintf( stdout, "\n" );
 }
 
-void CPU24DrvLineDisplay::displayPlIFetchDecodeRegSet( TokId fmt ) {
+void DrvLineDisplay::displayPlIFetchDecodeRegSet( TokId fmt ) {
     
     if ( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
         fprintf( stdout, "FD(S): IA=" );
@@ -147,7 +147,7 @@ void CPU24DrvLineDisplay::displayPlIFetchDecodeRegSet( TokId fmt ) {
     fprintf( stdout, "\n" );
 }
 
-void CPU24DrvLineDisplay::displayPlMemoryAccessRegSet( TokId fmt ) {
+void DrvLineDisplay::displayPlMemoryAccessRegSet( TokId fmt ) {
     
     if ( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
         fprintf( stdout, "MA(S): IA=" );
@@ -168,7 +168,7 @@ void CPU24DrvLineDisplay::displayPlMemoryAccessRegSet( TokId fmt ) {
     fprintf( stdout, "\n" );
 }
 
-void CPU24DrvLineDisplay::displayPlExecuteRegSet( TokId fmt ) {
+void DrvLineDisplay::displayPlExecuteRegSet( TokId fmt ) {
     
     if ( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
         fprintf( stdout, "EX(S): IA=" );
@@ -189,14 +189,14 @@ void CPU24DrvLineDisplay::displayPlExecuteRegSet( TokId fmt ) {
     fprintf( stdout, "\n" );
 }
 
-void CPU24DrvLineDisplay::displayPlRegSets( TokId fmt ) {
+void DrvLineDisplay::displayPlRegSets( TokId fmt ) {
     
     displayPlIFetchDecodeRegSet( fmt );
     displayPlMemoryAccessRegSet( fmt );
     displayPlExecuteRegSet( fmt );
 }
 
-void CPU24DrvLineDisplay::displayMemObjRegSet( CPU24Mem *mem, TokId fmt ) {
+void DrvLineDisplay::displayMemObjRegSet( CPU24Mem *mem, TokId fmt ) {
     
     fprintf( stdout, "State:   %s\n", mem -> getMemOpStr( mem -> getMemCtrlReg( MC_REG_STATE )));
   
@@ -219,12 +219,12 @@ void CPU24DrvLineDisplay::displayMemObjRegSet( CPU24Mem *mem, TokId fmt ) {
     fprintf( stdout, "\n" );
 }
 
-void CPU24DrvLineDisplay::displayTlbObjRegSet( CpuTlb *tlb, TokId fmt ) {
+void DrvLineDisplay::displayTlbObjRegSet( CpuTlb *tlb, TokId fmt ) {
     
     fprintf( stdout, "Display TLB reg set ... to do ... \n" );
 }
     
-void CPU24DrvLineDisplay::displayAllRegSets( TokId fmt ) {
+void DrvLineDisplay::displayAllRegSets( TokId fmt ) {
     
     displayGeneralRegSet( fmt );
     fprintf( stdout, "\n" );
@@ -241,7 +241,7 @@ void CPU24DrvLineDisplay::displayAllRegSets( TokId fmt ) {
 // This routine will print a TLB entry with each field formatted.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvLineDisplay::displayTlbEntry( TlbEntry *entry, TokId fmt ) {
+void DrvLineDisplay::displayTlbEntry( TlbEntry *entry, TokId fmt ) {
     
     fprintf( stdout, "[" );
     if ( entry -> tValid( ))            fprintf( stdout, "V" ); else fprintf( stdout, "v" );
@@ -274,7 +274,7 @@ void CPU24DrvLineDisplay::displayTlbEntry( TlbEntry *entry, TokId fmt ) {
 // "displayTlbEntries" displays a set of TLB entries, line by line.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvLineDisplay::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, TokId fmt ) {
+void DrvLineDisplay::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, TokId fmt ) {
     
     if ( index + len <= tlb -> getTlbSize( )) {
         
@@ -299,7 +299,7 @@ void CPU24DrvLineDisplay::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32
 // ??? what to simplify, refine ?
 // ??? what can be factored out to display a cache line ?
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvLineDisplay::displayCacheEntries( CPU24Mem *cPtr, uint32_t index, uint32_t len, TokId fmt ) {
+void DrvLineDisplay::displayCacheEntries( CPU24Mem *cPtr, uint32_t index, uint32_t len, TokId fmt ) {
     
     uint32_t            blockEntries    = cPtr -> getBlockEntries( );
     uint32_t            blockSize       = cPtr -> getBlockSize( );
@@ -381,7 +381,7 @@ void CPU24DrvLineDisplay::displayCacheEntries( CPU24Mem *cPtr, uint32_t index, u
 // environmental variable setting.
 //
 //------------------------------------------------------------------------------------------------------------
-void  CPU24DrvLineDisplay::displayPmemContent( uint32_t ofs, uint32_t len, TokId fmtId ) {
+void  DrvLineDisplay::displayPmemContent( uint32_t ofs, uint32_t len, TokId fmtId ) {
     
     uint32_t        index           = ofs;
     uint32_t        limit           = ofs + len;

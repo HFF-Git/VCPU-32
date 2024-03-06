@@ -233,19 +233,20 @@ enum ErrMsgId : uint16_t {
 // we do not have to pass around references to all the individual objects.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24Globals;
+struct VCPU32Globals;
 
 //------------------------------------------------------------------------------------------------------------
 // Driver environment variables. Thre is a simple "name=value" dictionary.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24DrvEnv {
+struct DrvEnv {
     
 public:
     
-    CPU24DrvEnv( CPU24Globals *glb );
+    DrvEnv( VCPU32Globals *glb );
     
     int     getEnvTabSize( );
+    TokId   lookupEnvTokId( char *str, TokId def = TOK_NIL );
     TokId   getEnvType( TokId envId );
     bool    isReadOnly( TokId envId );
     
@@ -264,7 +265,7 @@ public:
     
 private:
     
-    CPU24Globals *glb = nullptr;
+    VCPU32Globals *glb = nullptr;
 };
 
 
@@ -275,12 +276,12 @@ private:
 // methods that the inheriting class needs to implement. Examples are to initialize redraw and so on.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWin {
+struct DrvWin {
     
 public:
     
-    CPU24DrvWin( CPU24Globals *glb );
-    virtual         ~ CPU24DrvWin( );
+    DrvWin( VCPU32Globals *glb );
+    virtual         ~ DrvWin( );
     
     void            setWinType( int type );
     int             getWinType( );
@@ -291,14 +292,14 @@ public:
     void            setEnable( bool arg );
     bool            isEnabled( );
 
-    void            setRadix( TokId radix );
-    TokId           getRadix( );
+    virtual void    setRadix( TokId radix );
+    virtual TokId   getRadix( );
     
     void            setRows( int arg );
     int             getRows( );
     
-    void            setDefColumns( int arg );
-    int             getDefColumns( );
+    void            setDefColumns( int arg, TokId rdx = TOK_HEX );
+    int             getDefColumns( TokId rdx = TOK_HEX );
     
     void            setColumns( int arg );
     int             getColumns( );
@@ -346,27 +347,28 @@ public:
     
 protected:
 
-    CPU24Globals   *glb;
+    VCPU32Globals   *glb;
         
 private:
    
-    int             winType         = TOK_NIL;
-    int             winUserIndex    = 0;
+    int             winType             = TOK_NIL;
+    int             winUserIndex        = 0;
     
-    bool            winEnabled      = false;
-    bool            winCurrent      = false;
+    bool            winEnabled          = false;
+    bool            winCurrent          = false;
     
-    int             winRows         = 0;
-    int             winColumns      = 0;
-    int             winDefColumns   = 0;
-    TokId           winRadix        = TOK_OCT;
+    TokId           winRadix            = TOK_HEX;
+    int             winStack            = 0;
+    int             winRows             = 0;
+    int             winColumns          = 0;
+    int             winDefColumnsHex    = 0;
+    int             winDefColumnsOct    = 0;
+    int             winDefColumnsDec    = 0;
     
-    int             windowColumn    = 0;
-
-    int             winAbsCursorRow = 0;
-    int             winAbsCursorCol = 0;
-    int             lastRowPos      = 0;
-    int             lastColPos      = 0;
+    int             winAbsCursorRow     = 0;
+    int             winAbsCursorCol     = 0;
+    int             lastRowPos          = 0;
+    int             lastColPos          = 0;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -379,11 +381,11 @@ private:
 // passed. As an example, showing memory data content, 8 machine words will be shown in one line. 
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinScrollable : CPU24DrvWin {
+struct DrvWinScrollable : DrvWin {
     
 public:
     
-    CPU24DrvWinScrollable( CPU24Globals *glb );
+    DrvWinScrollable( VCPU32Globals *glb );
   
     void            setHomeItemAdr( int adr );
     int             getHomeItemAdr( );
@@ -416,13 +418,14 @@ private:
 // program relevant control register values. They are a separate window.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinProgState : CPU24DrvWin {
+struct DrvWinProgState : DrvWin {
     
 public:
     
-    CPU24DrvWinProgState( CPU24Globals *glb );
+    DrvWinProgState( VCPU32Globals *glb );
     
     void setDefaults( );
+    void setRadix( TokId rdx );
     void drawBanner( );
     void drawBody( );
 };
@@ -431,13 +434,14 @@ public:
 // Special Register Window. This window holds the control registers.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinSpecialRegs : CPU24DrvWin {
+struct DrvWinSpecialRegs : DrvWin {
     
 public:
     
-    CPU24DrvWinSpecialRegs( CPU24Globals *glb );
+    DrvWinSpecialRegs( VCPU32Globals *glb );
     
     void setDefaults( );
+    void setRadix( TokId rdx );
     void drawBanner( );
     void drawBody( );
 };
@@ -446,13 +450,14 @@ public:
 // Pipeline Register Window. This window holds the CPU pipeline registers.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinPipeLineRegs : CPU24DrvWin {
+struct DrvWinPipeLineRegs : DrvWin {
     
 public:
     
-    CPU24DrvWinPipeLineRegs( CPU24Globals *glb );
+    DrvWinPipeLineRegs( VCPU32Globals *glb );
     
     void setDefaults( );
+    void setRadix( TokId rdx );
     void drawBanner( );
     void drawBody( );
 };
@@ -461,11 +466,11 @@ public:
 // Statistics Window. This window displays the CPU statistics collected during execution.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinStatistics : CPU24DrvWin {
+struct DrvWinStatistics : DrvWin {
     
 public:
     
-    CPU24DrvWinStatistics( CPU24Globals *glb );
+    DrvWinStatistics( VCPU32Globals *glb );
     
     void setDefaults( );
     void drawBanner( );
@@ -478,13 +483,14 @@ public:
 // the number of items, ie.e words, on a line.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinPhysMem : CPU24DrvWinScrollable {
+struct DrvWinPhysMem : DrvWinScrollable {
     
 public:
     
-    CPU24DrvWinPhysMem( CPU24Globals *glb );
+    DrvWinPhysMem( VCPU32Globals *glb );
     
     void setDefaults( );
+    void setRadix( TokId rdx );
     void drawBanner( );
     void drawLine( int index );
 };
@@ -494,11 +500,11 @@ public:
 // current address followed by the instruction and a human readable dissasembled verion.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinCode : CPU24DrvWinScrollable {
+struct DrvWinCode : DrvWinScrollable {
     
 public:
     
-    CPU24DrvWinCode( CPU24Globals *glb );
+    DrvWinCode( VCPU32Globals *glb );
     
     void setDefaults( );
     void drawBanner( );
@@ -509,19 +515,20 @@ public:
 // TLB Window.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinTlb : CPU24DrvWinScrollable {
+struct DrvWinTlb : DrvWinScrollable {
     
 public:
     
-    CPU24DrvWinTlb( CPU24Globals *glb, int winType );
+    DrvWinTlb( VCPU32Globals *glb, int winType );
     
     void setDefaults( );
+    void setRadix( TokId rdx );
     void drawBanner( );
     void drawLine( int index );
     
 private:
     
-    int             winType = 0;
+    int           winType = 0;
     CpuTlb        *tlb    = nullptr;
 };
 
@@ -529,13 +536,14 @@ private:
 // Memory Object - Cache Window. 
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinCache : CPU24DrvWinScrollable {
+struct DrvWinCache : DrvWinScrollable {
     
 public:
     
-    CPU24DrvWinCache( CPU24Globals *glb, int winType );
+    DrvWinCache( VCPU32Globals *glb, int winType );
     
     void setDefaults( );
+    void setRadix( TokId rdx );
     void toggleWin( );
     void drawBanner( );
     void drawLine( int index );
@@ -551,11 +559,11 @@ private:
 // Memory Object Controller Window.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinMemController : CPU24DrvWin {
+struct DrvWinMemController : DrvWin {
     
 public:
     
-    CPU24DrvWinMemController( CPU24Globals *glb, int winType );
+    DrvWinMemController( VCPU32Globals *glb, int winType );
     
     void setDefaults( );
     void drawBanner( );
@@ -571,11 +579,11 @@ private:
 // TLB Object Controller Window.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinTlbController : CPU24DrvWin {
+struct DrvWinTlbController : DrvWin {
     
 public:
     
-    CPU24DrvWinTlbController( CPU24Globals *glb, int winType );
+    DrvWinTlbController( VCPU32Globals *glb, int winType );
     
     void setDefaults( );
     void drawBanner( );
@@ -591,12 +599,12 @@ private:
 // Text Window.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinText : CPU24DrvWinScrollable {
+struct DrvWinText : DrvWinScrollable {
     
 public:
     
-    CPU24DrvWinText( CPU24Globals *glb, char *fName );
-    ~ CPU24DrvWinText( );
+    DrvWinText( VCPU32Globals *glb, char *fName );
+    ~ DrvWinText( );
     
     void    setDefaults( );
     void    drawBanner( );
@@ -618,11 +626,11 @@ private:
 // cannot be dispabled. It is intended to ba a scrollable window, where only the banner line is fixed.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinCommands : CPU24DrvWin {
+struct DrvWinCommands : DrvWin {
     
 public:
     
-    CPU24DrvWinCommands( CPU24Globals *glb );
+    DrvWinCommands( VCPU32Globals *glb );
     
     void setDefaults( );
     void drawBanner( );
@@ -638,11 +646,11 @@ public:
 // regs. The command input scroll area is always last and is the only window that cannot be disabled.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct CPU24DrvWinDisplay {
+struct DrvWinDisplay {
     
 public:
     
-    CPU24DrvWinDisplay( CPU24Globals *glb );
+    DrvWinDisplay( VCPU32Globals *glb );
 
     void            reDraw( bool mustRedraw = false );
     
@@ -686,7 +694,7 @@ private:
     int             currentUserWinNum   = -1;
     bool            winStacksOn         = true;
     
-    CPU24Globals    *glb                = nullptr;
+    VCPU32Globals    *glb                = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -694,11 +702,11 @@ private:
 // entries and so on.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24DrvLineDisplay {
+struct DrvLineDisplay {
     
 public:
     
-    CPU24DrvLineDisplay( CPU24Globals *glb );
+    DrvLineDisplay( VCPU32Globals *glb );
     
     void        displayWord( uint32_t val, TokId = TOK_DEF );
     void        displayHalfWord( uint32_t val, TokId = TOK_DEF );
@@ -727,7 +735,7 @@ private:
                                     char        *LineLabel  = ((char *)"" ),
                                     TokId       fmt         = TOK_DEF );
     
-    CPU24Globals *glb = nullptr;
+    VCPU32Globals *glb = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -735,18 +743,18 @@ private:
 // readable form.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24DrvDisAsm {
+struct DrvDisAsm {
     
 public:
     
-    CPU24DrvDisAsm( CPU24Globals *glb );
+    DrvDisAsm( VCPU32Globals *glb );
     void displayInstr( uint32_t instr, TokId fmt );
     void displayOpCodeAndOptions( uint32_t instr );
     void displayTargetAndOperands( uint32_t instr, TokId fmt = TOK_DEF );
     
 private:
     
-    CPU24Globals *glb = nullptr;
+    VCPU32Globals *glb = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -754,11 +762,11 @@ private:
 // command handlers and the functions needed to read in and analyze a command line.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24DrvCmds {
+struct DrvCmds {
     
 public:
     
-    CPU24DrvCmds( CPU24Globals *glb );
+    DrvCmds( VCPU32Globals *glb );
     void            printWelcome( );
     void            processCmdLineArgs( int argc, const char *argv[ ] );
     TokId           getCurrentCmd( );
@@ -825,7 +833,7 @@ private:
     void            winSetStackCmd( char *cmdBuf );
     void            winToggleCmd( char *cmdBuf );
     
-    CPU24Globals    *glb       = nullptr;
+    VCPU32Globals    *glb       = nullptr;
     bool            winModeOn  = false;
     TokId           currentCmd = TOK_INV;
            
@@ -837,15 +845,15 @@ private:
 // reference to all the individual objects.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24Globals {
+struct VCPU32Globals {
     
-    CPU24DrvEnv             *env            = nullptr;
-    CPU24DrvDisAsm          *disAsm         = nullptr;
-    CPU24DrvLineDisplay     *lineDisplay    = nullptr;
-    CPU24DrvWinDisplay      *winDisplay     = nullptr;
-    CPU24DrvCmds            *cmds           = nullptr;
+    DrvEnv             *env            = nullptr;
+    DrvDisAsm          *disAsm         = nullptr;
+    DrvLineDisplay     *lineDisplay    = nullptr;
+    DrvWinDisplay      *winDisplay     = nullptr;
+    DrvCmds            *cmds           = nullptr;
 
-    CpuCore               *cpu            = nullptr;
+    CpuCore            *cpu            = nullptr;
 };
 
 #endif /* CPU24Driver_hpp */

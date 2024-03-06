@@ -685,7 +685,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
 //------------------------------------------------------------------------------------------------------------
 // The object constructor. Nothing really to do here...
 //------------------------------------------------------------------------------------------------------------
-CPU24DrvDisAsm::CPU24DrvDisAsm( CPU24Globals *glb ) {
+DrvDisAsm::DrvDisAsm( VCPU32Globals *glb ) {
     
     this -> glb = glb;
 }
@@ -695,19 +695,19 @@ CPU24DrvDisAsm::CPU24DrvDisAsm( CPU24Globals *glb ) {
 // options, the source and the target. The opCode and options are grouped as are the target and operand.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24DrvDisAsm::displayOpCodeAndOptions( uint32_t instr ) {
+void DrvDisAsm::displayOpCodeAndOptions( uint32_t instr ) {
     
     displayOpCode( instr );
     displayOpCodeOptions( instr );
 }
 
-void CPU24DrvDisAsm::displayTargetAndOperands( uint32_t instr, TokId fmt ) {
+void DrvDisAsm::displayTargetAndOperands( uint32_t instr, TokId fmt ) {
     
     displayTarget( instr, fmt );
     displayOperands( instr, fmt );
 }
 
-void CPU24DrvDisAsm::displayInstr( uint32_t instr, TokId fmt ) {
+void DrvDisAsm::displayInstr( uint32_t instr, TokId fmt ) {
     
     displayOpCodeAndOptions( instr );
     displayTargetAndOperands( instr, fmt );
