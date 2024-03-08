@@ -32,7 +32,7 @@
 //
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24Debug::CPU24Debug ( CpuCore *core ) {
+CpuDebug::CpuDebug ( CpuCore *core ) {
     
     this -> core = core;
 }
@@ -42,16 +42,16 @@ CPU24Debug::CPU24Debug ( CpuCore *core ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Debug::initDebug ( ) {
+void CpuDebug::initDebug ( ) {
     
-    breakPointTab = (CPU24Breakpoint *) calloc( MAX_BREAK_POINTS, sizeof( CPU24Breakpoint ));
+    breakPointTab = (CPUBreakpoint *) calloc( MAX_BREAK_POINTS, sizeof( CPUBreakpoint ));
     
     for ( int i = 0; i < MAX_BREAK_POINTS; i ++ ) {
         
         breakPointTab[ i ].flags        = BP_NIL;
         breakPointTab[ i ].instrAdrSeg  = 0;
         breakPointTab[ i ].instrAdrOfs  = 0;
-        breakPointTab[ i ].instr        = OP_NOP;
+        breakPointTab[ i ].instr        = 0;  // ??? what to really set ...
         breakPointTab[ i ].skipCount    = 0;
     }
 }
@@ -60,7 +60,7 @@ void CPU24Debug::initDebug ( ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-int CPU24Debug::addBreakPoint( uint32_t seg, uint32_t ofs, uint32_t instr ) {
+int CpuDebug::addBreakPoint( uint32_t seg, uint32_t ofs, uint32_t instr ) {
     
     if ( lookupBreakPoint( seg, ofs ) == nullptr ) {
         
@@ -85,7 +85,7 @@ int CPU24Debug::addBreakPoint( uint32_t seg, uint32_t ofs, uint32_t instr ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-int CPU24Debug::deleteBreakpoint( uint32_t seg, uint32_t ofs ) {
+int CpuDebug::deleteBreakpoint( uint32_t seg, uint32_t ofs ) {
 
     for ( int i = 0; i < MAX_BREAK_POINTS; i++ ) {
         
@@ -96,7 +96,7 @@ int CPU24Debug::deleteBreakpoint( uint32_t seg, uint32_t ofs ) {
             breakPointTab[ i ].flags        = BP_NIL;
             breakPointTab[ i ].instrAdrSeg  = 0;
             breakPointTab[ i ].instrAdrOfs  = 0;
-            breakPointTab[ i ].instr        = OP_NOP;
+            breakPointTab[ i ].instr        = 0;  // ??? what to really set ...
             breakPointTab[ i ].skipCount    = 0;
             return( i );
         }
@@ -109,7 +109,7 @@ int CPU24Debug::deleteBreakpoint( uint32_t seg, uint32_t ofs ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24Breakpoint *CPU24Debug::lookupBreakPoint( uint32_t seg, uint32_t ofs ) {
+CPUBreakpoint *CpuDebug::lookupBreakPoint( uint32_t seg, uint32_t ofs ) {
     
     for ( int i = 0; i < MAX_BREAK_POINTS; i++ ) {
         
@@ -124,7 +124,7 @@ CPU24Breakpoint *CPU24Debug::lookupBreakPoint( uint32_t seg, uint32_t ofs ) {
     return( nullptr );
 }
 
-CPU24Breakpoint *CPU24Debug::lookupBreakPoint( int index ) {
+CPUBreakpoint *CpuDebug::lookupBreakPoint( int index ) {
     
     return(( index < MAX_BREAK_POINTS ) ? &breakPointTab[ index ] : nullptr );
 }
@@ -134,7 +134,7 @@ CPU24Breakpoint *CPU24Debug::lookupBreakPoint( int index ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-int CPU24Debug::setBreakoint( uint32_t seg, uint32_t ofs, uint32_t instr ) {
+int CpuDebug::setBreakoint( uint32_t seg, uint32_t ofs, uint32_t instr ) {
     
     // ??? tricky ... we can easily add the breakpoint to the breakpoint table, but for memory we need to
     // know the physical address of the location...
@@ -142,7 +142,7 @@ int CPU24Debug::setBreakoint( uint32_t seg, uint32_t ofs, uint32_t instr ) {
     return( 0 );
 }
 
-int CPU24Debug::clearBreakPoint( uint32_t seg, uint32_t ofs ) {
+int CpuDebug::clearBreakPoint( uint32_t seg, uint32_t ofs ) {
     
     // ??? tricky ... we can easily remove the breakpoint from the breakpoint table, but for memory we need to
     // know the physical address of the location...
@@ -154,7 +154,7 @@ int CPU24Debug::clearBreakPoint( uint32_t seg, uint32_t ofs ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Debug::enterDebug( ) {
+void CpuDebug::enterDebug( ) {
     
     // ??? we come in from the trap handler. First step is to replace the BRK instruction with the
     // original instruction. This will only take place when the skip count is reached.
@@ -166,7 +166,7 @@ void CPU24Debug::enterDebug( ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Debug::resumeProg( ) {
+void CpuDebug::resumeProg( ) {
     
     // ??? tricky. We need to execute from here on. This means to replace again the orginal instruction
     // with the BRK instruction. Furthwermore we need to set a temporary breakpoint on the follow on
@@ -179,7 +179,7 @@ void CPU24Debug::resumeProg( ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-int CPU24Debug::translateVirtualAdr( uint32_t seg, uint32_t ofs, uint32_t *physAdr ) {
+int CpuDebug::translateVirtualAdr( uint32_t seg, uint32_t ofs, uint32_t *physAdr ) {
     
     // ??? not quite clear yet how to best do this .... but we need it ....
     

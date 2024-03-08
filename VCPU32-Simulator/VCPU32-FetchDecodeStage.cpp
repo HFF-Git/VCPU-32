@@ -53,8 +53,8 @@ namespace {
 //------------------------------------------------------------------------------------------------------------
 bool maStageConsumesRegValBorX( uint32_t instr ) {
     
-    uint8_t opCode = CPU24Instr::opCodeField( instr );
-    uint8_t opMode = CPU24Instr::operandModeField( instr );
+    uint8_t opCode = Instr::opCodeField( instr );
+    uint8_t opMode = Instr::opModeField( instr );
     
     return (( opCode == OP_BR )     || ( opCode == OP_BLR )     ||
             ( opCode == OP_BV )     || ( opCode == OP_BVR )     ||
@@ -112,7 +112,7 @@ void FetchDecodeStage::stallPipeLine( ) {
     
     core -> maStage -> psInstrSeg.set( instrSeg );
     core -> maStage -> psInstrOfs.set( instrOfs );
-    core -> maStage -> psInstr.set( OP_NOP );
+    core -> maStage -> psInstr.set( 0 ); // ??? what to really set ...
     core -> maStage -> psRegIdForValA.set( MAX_GREGS );
     core -> maStage -> psRegIdForValB.set( MAX_GREGS );
     core -> maStage -> psRegIdForValX.set( MAX_GREGS );
@@ -259,7 +259,7 @@ void FetchDecodeStage::process( ) {
     
     instrSeg        = psInstrSeg.get( );
     instrOfs        = psInstrOfs.get( );
-    instr           = OP_NOP;
+    instr           = 0;  // ??? what to really set ...
     instrPrivLevel  = 0;
     valA            = 0;
     valB            = 0;
@@ -268,11 +268,11 @@ void FetchDecodeStage::process( ) {
     regIdForValB    = MAX_GREGS;
     regIdForValX    = MAX_GREGS;
     
-    uint8_t         opCode          = OP_NOP;
+    uint8_t     opCode          = 0;
     uint32_t    pAdr            = instrOfs;
     uint32_t    pOfs            = instrOfs & PAGE_BIT_MASK;
-    TlbEntry   *tlbEntryPtr    = nullptr;
-    bool            unCacheable     = false;
+    TlbEntry    *tlbEntryPtr    = nullptr;
+    bool        unCacheable     = false;
     
     setStalled( false );
     
@@ -321,7 +321,7 @@ void FetchDecodeStage::process( ) {
     //
     // ??? we perhaps need to pass on uncachable too, as this needs to go through the layers...
     //--------------------------------------------------------------------------------------------------------
-    if (( unCacheable ) || ( pAdr > 0xEFFFFF )) {
+    if (( unCacheable ) || ( pAdr > 0xEFFFFFFF )) {
         
         if ( ! core -> mem -> readWordPhys( pAdr, &instr )) {
             
@@ -344,7 +344,7 @@ void FetchDecodeStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     if ( core -> stReg.get( ) & ST_CODE_TRANSLATION_ENABLE ) {
         
-        instrPrivLevel  = CPU24Instr::iaOfsPrivField( instrOfs );
+        instrPrivLevel  = Instr::iaOfsPrivField( instrOfs );
         
         if ( ! (( tlbEntryPtr -> tPrivL2( ) <= instrPrivLevel ) && 
                 ( instrPrivLevel <= tlbEntryPtr -> tPrivL1( )))) {
@@ -359,38 +359,35 @@ void FetchDecodeStage::process( ) {
     // Instruction Decode. Essentially a giant case statement.
     //
     //--------------------------------------------------------------------------------------------------------
-    opCode = CPU24Instr::opCodeField( instr );
+    opCode = Instr::opCodeField( instr );
 
     switch ( opCode ) {
             
-        case OP_NOP: {
-            
-        } break;
-            
+       
         case OP_ADD:    case OP_SUB:    case OP_AND:    case OP_OR:     case OP_XOR:
         case OP_CMP:  {
             
-            switch ( CPU24Instr::operandModeField( instr )) {
+            switch ( Instr::opModeField( instr )) {
                     
                 case ADR_MODE_IMM: {
                     
-                    regIdForValA    = CPU24Instr::regRIdField( instr );
+                    regIdForValA    = Instr::regRIdField( instr );
                     valA            = core -> gReg[ regIdForValA ].get( );
-                    valB            = CPU24Instr::immGen0S9( instr );
+                    valB            = Instr::immGen0S9( instr );
                     
                 } break;
                     
                 case ADR_MODE_REG: {
                     
-                    regIdForValB    = CPU24Instr::regBIdField( instr );
+                    regIdForValB    = Instr::regBIdField( instr );
                     valB            = core -> gReg[ regIdForValB ].get( );
                     
                 } break;
                     
                 case ADR_MODE_TWO_REGS: {
                     
-                    regIdForValA    = CPU24Instr::regAIdField( instr );
-                    regIdForValB    = CPU24Instr::regBIdField( instr );
+                    regIdForValA    = Instr::regAIdField( instr );
+                    regIdForValB    = Instr::regBIdField( instr );
                     valA            = core -> gReg[ regIdForValA ].get( );
                     valB            = core -> gReg[ regIdForValB ].get( );
                     
@@ -398,9 +395,9 @@ void FetchDecodeStage::process( ) {
                     
                 case ADR_MODE_EXT_ADR : {
                     
-                    regIdForValB    = CPU24Instr::regBIdField( instr );
+                    regIdForValB    = Instr::regBIdField( instr );
                     valB            = core -> gReg[ regIdForValB ].get( );
-                    valX            = CPU24Instr::immGen0S3( instr );
+                    valX            = Instr::immGen0S3( instr );
                     
                 } break;
                     
@@ -409,7 +406,7 @@ void FetchDecodeStage::process( ) {
                 case ADR_MODE_INDX_GR6:
                 case ADR_MODE_INDX_GR7: {
                     
-                    switch( CPU24Instr::operandModeField( instr )) {
+                    switch( Instr::opModeField( instr )) {
                             
                         case ADR_MODE_INDX_GR4: regIdForValB = 4; break;
                         case ADR_MODE_INDX_GR5: regIdForValB = 5; break;
@@ -418,7 +415,7 @@ void FetchDecodeStage::process( ) {
                     }
                     
                     valB = core -> gReg[ regIdForValB ].get( );
-                    valX = CPU24Instr::immGen0S9( instr );
+                    valX = Instr::immGen0S9( instr );
                     
                 } break;
             }
@@ -427,7 +424,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_LEA:    case     OP_LD:     case OP_ST:     case OP_LDWR:     case OP_STWC: {
             
-            switch ( CPU24Instr::operandModeField( instr )) {
+            switch ( Instr::opModeField( instr )) {
                     
                 case ADR_MODE_IMM:  case ADR_MODE_REG:  case ADR_MODE_TWO_REGS: {
                     
@@ -438,9 +435,9 @@ void FetchDecodeStage::process( ) {
                     
                 case ADR_MODE_EXT_ADR : {
                     
-                    regIdForValB    = CPU24Instr::regBIdField( instr );
+                    regIdForValB    = Instr::regBIdField( instr );
                     valB            = core -> gReg[ regIdForValB ].get( );
-                    valX            = CPU24Instr::immGen30S3( instr );
+                    valX            = Instr::immGen30S3( instr );
                     
                 } break;
                     
@@ -449,7 +446,7 @@ void FetchDecodeStage::process( ) {
                 case ADR_MODE_INDX_GR6:
                 case ADR_MODE_INDX_GR7: {
                     
-                    switch( CPU24Instr::operandModeField( instr )) {
+                    switch( Instr::opModeField( instr )) {
                             
                         case ADR_MODE_INDX_GR4: regIdForValB = 4; break;
                         case ADR_MODE_INDX_GR5: regIdForValB = 5; break;
@@ -458,11 +455,11 @@ void FetchDecodeStage::process( ) {
                     }
                     
                     valB = core -> gReg[ regIdForValB ].get( );
-                    valX = CPU24Instr::immGen30S9( instr );
+                    valX = Instr::immGen30S9( instr );
                     
                     if (( opCode == OP_ST ) || ( opCode == OP_STWC )) {
                         
-                        regIdForValA    = CPU24Instr::regRIdField( instr );
+                        regIdForValA    = Instr::regRIdField( instr );
                         valA            = core -> gReg[ regIdForValA ].get( );
                     }
                     
@@ -473,23 +470,23 @@ void FetchDecodeStage::process( ) {
             
         case  OP_LDI: {
             
-            regIdForValA    = CPU24Instr::regRIdField( instr );
+            regIdForValA    = Instr::regRIdField( instr );
             valA            = core -> gReg[ regIdForValA ].get( );
-            valB            = CPU24Instr::immGen30S9( instr );
+            valB            = Instr::immGen30S9( instr );
             
         } break;
             
         case OP_EXTR: {
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
             
         } break;
             
         case OP_DEP: {
             
-            regIdForValA    = CPU24Instr::regRIdField( instr );
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValA    = Instr::regRIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valA            = core -> gReg[ regIdForValA ].get( );
             valB            = core -> gReg[ regIdForValB ].get( );
             
@@ -497,8 +494,8 @@ void FetchDecodeStage::process( ) {
             
         case OP_DSR: {
             
-            regIdForValA    = CPU24Instr::regAIdField( instr );
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValA    = Instr::regAIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valA            = core -> gReg[ regIdForValA ].get( );
             valB            = core -> gReg[ regIdForValB ].get( );
             
@@ -506,8 +503,8 @@ void FetchDecodeStage::process( ) {
             
         case OP_SHLA: {
             
-            regIdForValA    = CPU24Instr::regAIdField( instr );
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValA    = Instr::regAIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valA            = core -> gReg[ regIdForValA ].get( );
             valB            = core -> gReg[ regIdForValB ].get( );
             
@@ -515,16 +512,20 @@ void FetchDecodeStage::process( ) {
             
         case OP_CMR: {
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
             
+            // ??? fix
+            /*
             if ( CPU24Instr::cmrImmField( instr )) {
                 
                 valX = CPU24Instr::immGen0S6( instr );
             }
-            else {
+            else 
+             */
+             {
                 
-                regIdForValA    = CPU24Instr::regRIdField( instr );
+                regIdForValA    = Instr::regRIdField( instr );
                 valA            = core -> gReg[ regIdForValA ].get( );
             }
             
@@ -535,21 +536,21 @@ void FetchDecodeStage::process( ) {
             
             if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
                 
-                regIdForValA    = CPU24Instr::regRIdField( instr );
+                regIdForValA    = Instr::regRIdField( instr );
                 valA            = core -> gReg[ regIdForValA ].get( );
             }
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = CPU24Instr::immGen6S3( instr );
+            valX            = Instr::immGen6S3( instr );
             
         } break;
             
         case OP_PRB: {
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = CPU24Instr::immGen6S3( instr );
+            valX            = Instr::immGen6S3( instr );
             
         } break;
             
@@ -564,13 +565,13 @@ void FetchDecodeStage::process( ) {
             
             if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
                 
-                regIdForValA    = CPU24Instr::regRIdField( instr );
+                regIdForValA    = Instr::regRIdField( instr );
                 valA            = core -> gReg[ regIdForValA ].get( );
             }
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = CPU24Instr::immGen6S6( instr );
+            valX            = Instr::immGen6S6( instr );
             
         } break;
             
@@ -582,9 +583,9 @@ void FetchDecodeStage::process( ) {
                 return;
             }
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = CPU24Instr::immGen6S3( instr );
+            valX            = Instr::immGen6S3( instr );
             
         } break;
             
@@ -592,14 +593,14 @@ void FetchDecodeStage::process( ) {
         case OP_BL: {
             
             valB = instrOfs;
-            valX = CPU24Instr::immGen6S9( instr );
+            valX = Instr::immGen6S9( instr );
             
         } break;
             
         case OP_BR:
         case OP_BLR: {
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
             valX            = instrOfs;
             
@@ -607,16 +608,16 @@ void FetchDecodeStage::process( ) {
             
         case OP_BV: {
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
             
         } break;
             
         case OP_BVR: {
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
-            regIdForValX    = CPU24Instr::regAIdField( instr );
+            regIdForValX    = Instr::regAIdField( instr );
             valX            = core -> gReg[ regIdForValX ].get( );
             
         } break;
@@ -624,9 +625,9 @@ void FetchDecodeStage::process( ) {
         case OP_BE:
         case OP_BLE: {
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = CPU24Instr::immGen9S3( instr );
+            valX            = Instr::immGen9S3( instr );
             
         } break;
             
@@ -647,37 +648,37 @@ void FetchDecodeStage::process( ) {
             }
             else instrOfs = instrOfs & 0x007FFFFF;  // ??? set priv bit to zero ...
             
-            regIdForValA    = CPU24Instr::regRIdField( instr );
+            regIdForValA    = Instr::regRIdField( instr );
             valA            = core -> gReg[ regIdForValA ].get( );
             
             valB            = instrOfs;
-            valX            = CPU24Instr::immGen6S9( instr );
+            valX            = Instr::immGen6S9( instr );
             
         } break;
             
         case OP_CBR: {
             
-            regIdForValA    = CPU24Instr::regAIdField( instr );
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValA    = Instr::regAIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valA            = core -> gReg[ regIdForValA ].get( );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = CPU24Instr::immGen6S3( instr );
+            valX            = Instr::immGen6S3( instr );
             
         } break;
             
         case OP_TBR: {
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = CPU24Instr::immGen6S3( instr );
+            valX            = Instr::immGen6S3( instr );
             
         } break;
             
         case OP_MR: {
             
-            if ( CPU24Instr::mrMovDirField( instr )) {
+            if ( Instr::mrMovDirField( instr )) {
                 
-                regIdForValB    = CPU24Instr::regRIdField( instr );
+                regIdForValB    = Instr::regRIdField( instr );
                 valB            = core -> gReg[ regIdForValB ].get( );
             }
             
@@ -691,11 +692,11 @@ void FetchDecodeStage::process( ) {
                 return;
             }
             
-            switch( CPU24Instr::mstModeField( instr )) {
+            switch( Instr::mstModeField( instr )) {
                     
                 case 0: {
                     
-                    regIdForValB    = CPU24Instr::regBIdField( instr );
+                    regIdForValB    = Instr::regBIdField( instr );
                     valB = core -> gReg[ regIdForValB ].get( ) & 077;
                     
                 } break;
@@ -721,8 +722,8 @@ void FetchDecodeStage::process( ) {
                 return;
             }
             
-            regIdForValA    = CPU24Instr::regRIdField( instr );
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValA    = Instr::regRIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valA            = core -> gReg[ regIdForValA ].get( );
             valB            = core -> gReg[ regIdForValB ].get( );
             
@@ -730,7 +731,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_PCA: {
             
-            regIdForValB    = CPU24Instr::regBIdField( instr );
+            regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
             
         } break;
@@ -760,13 +761,13 @@ void FetchDecodeStage::process( ) {
     // Stall for instructions that will modify a general register that we depend on in the next stage.
     //
     //--------------------------------------------------------------------------------------------------------
-    if ( opCodeTab[ CPU24Instr::opCodeField( core -> maStage -> psInstr.get( ))].flags & REG_R_INSTR ) {
+    if ( opCodeTab[ Instr::opCodeField( core -> maStage -> psInstr.get( ))].flags & REG_R_INSTR ) {
         
         if ( maStageConsumesRegValBorX( instr )) {
             
-            if (( CPU24Instr::regRIdField( core -> maStage -> psInstr.get( )) == regIdForValA ) ||
-                ( CPU24Instr::regRIdField( core -> maStage -> psInstr.get( )) == regIdForValB ) ||
-                ( CPU24Instr::regRIdField( core -> maStage -> psInstr.get( )) == regIdForValX )) {
+            if (( Instr::regRIdField( core -> maStage -> psInstr.get( )) == regIdForValA ) ||
+                ( Instr::regRIdField( core -> maStage -> psInstr.get( )) == regIdForValB ) ||
+                ( Instr::regRIdField( core -> maStage -> psInstr.get( )) == regIdForValX )) {
                 
                 stallPipeLine( );
                 return;
@@ -799,16 +800,16 @@ void FetchDecodeStage::process( ) {
     
     if (( opCode == OP_CBR ) || ( opCode == OP_TBR )) {
         
-        if ( CPU24Instr::immOfsSignField( instr )) {
+        if ( Instr::immOfsSignField( instr )) {
             
-            psInstrOfs.set( CPU24Instr::add22ForInstrAdr( instrOfs, CPU24Instr::immGen6S3( instr )));
+            psInstrOfs.set( Instr::add22ForInstrAdr( instrOfs, Instr::immGen6S3( instr )));
             core -> maStage -> psValX.set( 1 );
         }
         else {
             
-            psInstrOfs.set( CPU24Instr::add22ForInstrAdr( instrOfs, 1 ));
-            core -> maStage -> psValX.set( CPU24Instr::immGen6S3( instr ));
+            psInstrOfs.set( Instr::add22ForInstrAdr( instrOfs, 1 ));
+            core -> maStage -> psValX.set( Instr::immGen6S3( instr ));
         }
     }
-    else psInstrOfs.set( CPU24Instr::add22ForInstrAdr( instrOfs, 1 ));
+    else psInstrOfs.set( Instr::add22ForInstrAdr( instrOfs, 1 ));
 }

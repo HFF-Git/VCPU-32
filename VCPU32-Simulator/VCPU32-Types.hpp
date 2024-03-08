@@ -33,22 +33,28 @@
 // Fundamental Constantse.
 //
 //------------------------------------------------------------------------------------------------------------
-const uint32_t  WORD_SIZE       = 32U;
-const uint32_t  HALF_WORD_SIZE  = 16U;
-const uint32_t  BYTE_SIZE       = 8U;
+const uint32_t  WORD_SIZE               = 32U;
+const uint32_t  HALF_WORD_SIZE          = 16U;
+const uint32_t  BYTE_SIZE               = 8U;
 
-const uint32_t  PAGE_SIZE       = 4096U;
-const uint32_t  PAGE_SIZE_BITS  = 12U;
-const uint32_t  PAGE_BIT_MASK   = (( 1U << 12 ) - 1 );
+const uint32_t  MAX_GREGS               = 16;
+const uint32_t  MAX_SREGS               = 8;
+const uint32_t  MAX_CREGS               = 32;
 
-const uint32_t  MAX_BANKS       = 16U;
-const uint32_t  MAX_CPU_IDS     = 16U;
+const uint32_t  PAGE_SIZE               = 4096U;
+const uint32_t  PAGE_SIZE_BITS          = 12U;
+const uint32_t  PAGE_BIT_MASK           = (( 1U << 12 ) - 1 );
 
-const uint32_t  MAX_MEMORY_SIZE  = 3072U * 1024U * 1024U;
+const uint32_t  MAX_BANKS               = 16U;
+const uint32_t  MAX_CPU_IDS             = 16U;
 
-const uint32_t  MAX_GREGS = 16;
-const uint32_t  MAX_SREGS = 8;
-const uint32_t  MAX_CREGS = 32;
+const uint32_t  MAX_MEMORY_SIZE         = UINT32_MAX;
+const uint32_t  MAX_IO_MEM_SIZE         = UINT32_MAX / 16;
+const uint32_t  MAX_PHYS_MEM_SIZE       = UINT32_MAX - MAX_IO_MEM_SIZE;
+
+const uint8_t   MAX_TRAP_ID             = 32;
+const uint8_t   TRAP_CODE_BLOCK_SIZE    = 32;
+
 
 //------------------------------------------------------------------------------------------------------------
 // Status register fields. The status word is a machine word contains various bits and field recording the
@@ -142,31 +148,6 @@ enum PipeLineStageRegId : uint32_t {
     PSTAGE_REG_ID_RID_X     = 11
 };
 
-// ??? to core ?
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//
-//------------------------------------------------------------------------------------------------------------
-enum MemoryObjRegId : uint32_t {
-    
-    MC_REG_STATE            = 0,
-    MC_REG_REQ_SEG          = 1,
-    MC_REG_REQ_OFS          = 2,
-    MC_REG_REQ_PRI          = 3,
-    MC_REG_REQ_TAG          = 4,
-    MC_REG_REQ_ADR          = 5,
-    MC_REG_REQ_LEN          = 6,
-    MC_REG_REQ_BLOCK_INDEX  = 7,
-    MC_REG_REQ_BLOCK_SET    = 8,
-    MC_REG_REQ_LATENCY      = 9,
-    
-    MC_REG_LATENCY          = 10,
-    MC_REG_BLOCK_ENTRIES    = 11,
-    MC_REG_BLOCK_SIZE       = 12,
-    MC_REG_SETS             = 13
-};
-
 //------------------------------------------------------------------------------------------------------------
 // Traps. There are three classes of traps. The first type is the general TRAP. In general, it is a situation
 // when an instruction detected an issue and cannot run until some intervention took place. Also, there are
@@ -202,9 +183,6 @@ enum TrapId : uint32_t {
     BREAK_TRAP              = 18,
 };
 
-// ??? leave in core ?
-const uint8_t MAX_TRAP_ID              = 32;
-const uint8_t TRAP_CODE_BLOCK_SIZE     = 32;
 
 //------------------------------------------------------------------------------------------------------------
 // A memory reference is checked for access type. The acces types specify the read, write and execute
@@ -286,99 +264,115 @@ enum OpMode : uint32_t {
 // with the negate flag set. Shifts and rotates can be handled by the bit field manipulation instructions.
 //
 //------------------------------------------------------------------------------------------------------------
-enum InstrOpCode {
+enum InstrOpCode : uint8_t {
     
-    // ??? sort to new scheme ...
+    // ??? group one - opMode group...
     
-    // ??? NOP goes, becomes BRK
+    OP_ADD          = 0x10,     // target = target + operand ;options for carry, ovl trap, etc.
+    OP_SUB          = 0x11,     // target = target - operand ;options for carry, ovl trap, etc.
+    OP_AND          = 0x12,     // target = target & operand ; option to negate the result
+    OP_OR           = 0x13,     // target = target | operand ; option to negate the result
+    OP_XOR          = 0x14,     // target = target ^ operand ; option to negate the result
+    OP_CMP          = 0x15,     // subtract reg2 from reg1 and set condition codes
+    OP_LEA          = 0x16,     // load effective address offset
+    OP_LSID         = 0x17,     // load segment ID register
     
-    OP_NOP          = 000,      // the no-operation instruction.
+    OP_LD           = 0x18,     // target = [ operand ]   // ??? covers LDW, LDH, LDB
+    OP_ST           = 0x19,     // [ operand ] = target   // ??? covers STW, STH, STB
+    OP_LDWR         = 0x1A,     // load word referenced
+    OP_STWC         = 0X1B,     // store word conditional
     
-    OP_ADD          = 001,      // target = target + operand ;options for carry, ovl trap, etc.
-    OP_SUB          = 002,      // target = target - operand ;options for carry, ovl trap, etc.
-    OP_AND          = 003,      // target = target & operand ; option to negate the result
-    OP_OR           = 004,      // target = target | operand ; option to negate the result
-    OP_XOR          = 005,      // target = target ^ operand ; option to negate the result
-    OP_CMP          = 006,      // subtract reg2 from reg1 and set condition codes
-    OP_LDI          = 007,      // load immediate
-    OP_LEA          = 010,      // load effective address offset
-    OP_LSID         = 011,      // load segment ID register
-    OP_EXTR         = 012,      // extract bit field of operand
-    OP_DEP          = 013,      // extract bit field into operand
-    OP_DSR          = 014,      // double register shift right
-    OP_SHLA         = 015,      // shift left and add
+    OP_RSV_1C       = 0x1C,     // reserved
+    OP_RSV_1D       = 0x1D,     // reserved
+    OP_RSV_1E       = 0x1E,     // reserved
+    OP_RSV_1F       = 0x1F,     // reserved
     
-    OP_LD          = 020,      // target = [ operand ]   // ??? covers LDW, LDH, LDB
-    OP_ST           = 021,      // [ operand ] = target   // ??? covers STW, STH, STB
+    // group two - memory reference
     
-    OP_LDWR         = 022,      // load word referenced
-    OP_STWC         = 023,      // store word conditional
+    OP_LDWE         = 0x20,     // load word from virtual address
+    OP_LDHE         = 0x21,     // load hald-word from virtual address
+    OP_LDBE         = 0x22,     // load byte from virtual address
+    OP_STWE         = 0x23,     // store word to virtual adress
+    OP_STHE         = 0x24,     // store half-word to virtual adress
+    OP_STBE         = 0x25,     // store byte to virtual adress
     
-    OP_LDWE         = 024,      // load word from virtual address
-    OP_LDHE         = 024,      // load hald-word from virtual address
-    OP_LDBE         = 024,      // load byte from virtual address
+    OP_LDWA         = 0x26,     // load word from absolute address
+    OP_LDHA         = 0x27,     // load hald-word from absolute address
+    OP_LDBA         = 0x28,     // load byte from absolute address
+    OP_STWA         = 0x29,     // store word to absolute adress
+    OP_STHA         = 0x2A,     // store half-word to absolute adress
+    OP_STBA         = 0x2B,     // store byte to absolute adress
     
-    OP_STWE          = 025,     // store word to virtual adress
-    OP_STHE          = 025,     // store half-word to virtual adress
-    OP_STBE          = 025,     // store byte to virtual adress
+    OP_LDPA         = 0x2C,     // load physical address
+    OP_PRB          = 0x2D,     // probe access
     
-    OP_LDWA         = 026,      // load word from absolute address
-    OP_LDHA         = 026,      // load hald-word from absolute address
-    OP_LDBA         = 026,      // load byte from absolute address
+    OP_RSV_2E       = 0x2E,     // reserved
+    OP_RSV_2F       = 0x2F,     // reserved
     
-    OP_STWA          = 027,     // store word to absolute adress
-    OP_STHA          = 027,     // store half-word to absolute adress
-    OP_STBA          = 027,     // store byte to absolute adress
+    // group three - branch group
     
-    OP_B            = 040,      // branch
-    OP_BL           = 041,      // branch and link
-    OP_BR           = 042,      // branch register
-    OP_BLR          = 043,      // branch and link register
-    OP_BV           = 044,      // branch vectored
-    OP_BVR          = 045,      // branch vectored register
-    OP_BE           = 046,      // branch external
-    OP_BLE          = 047,      // branch and link external
+    OP_B            = 0x30,     // branch
+    OP_BL           = 0x31,     // branch and link
+    OP_GATE         = 0x32,     // gateway instruction
+    OP_BR           = 0x33,     // branch register
+    OP_BLR          = 0x34,     // branch and link register
+    OP_BV           = 0x35,     // branch vectored
+    OP_BVR          = 0x36,     // branch vectored register
+    OP_BE           = 0x37,     // branch external
+    OP_BLE          = 0x38,     // branch and link external
+    OP_CBR          = 0x39,     // compare and branch
+    OP_TBR          = 0x3A,     // test and branch
     
-    OP_CBR          = 050,      // compare and branch
-    OP_TBR          = 051,      // test and branch
-    OP_CMR          = 052,      // conditional move register or value
+    OP_RSV_3B       = 0x3B,     // reserved
+    OP_RSV_3C       = 0x3C,     // reserved
+    OP_RSV_3D       = 0x3D,     // reserved
+    OP_RSV_3E       = 0x3E,     // reserved
+    OP_RSV_3F       = 0x3F,     // reserved
+    
+    // group zero - specials...
+    
+    OP_BRK          = 0x00,     // break for debug
+    OP_DIAG         = 0x01,     // diagnostics instruction, tbd.
+    
+    OP_LDI          = 0x02,     // load immediate
+    OP_EXTR         = 0x03,     // extract bit field of operand
+    OP_DEP          = 0x04,     // extract bit field into operand
+    OP_DSR          = 0x05,     // double register shift right
+    OP_SHLA         = 0x06,     // shift left and add
+    OP_RSV_07       = 0x07,     // reserved for divide step support ...
+    OP_CMR          = 0x0B,     // conditional move register or value
+    
+    OP_MR           = 0x09,     // move to or from a segment or control register
+    OP_MST          = 0x0A,     // set or clear status bits
+    
+    OP_RSV_0B       = 0x0B,     // reserved
    
-    
-    OP_MR           = 060,      // move to or from a segment or control register
-    OP_MST          = 061,      // set or clear status bits
-    OP_LDPA         = 062,      // load physical address
-    OP_PRB          = 063,      // probe access
-    OP_GATE         = 064,      // gateway instruction
-    
-    OP_ITLB         = 070,      // insert into TLB
-    OP_PTLB         = 071,      // remove from TLB
-    OP_PCA          = 072,      // purge and flush cache
-    
-    OP_RFI          = 075,      // return from interrupt
-    OP_DIAG         = 076,      // diagnostics instruction, tbd.
-    OP_BRK          = 077,      // break for debug
+    OP_ITLB         = 0x0C,     // insert into TLB
+    OP_PTLB         = 0x0D,     // remove from TLB
+    OP_PCA          = 0x0E,     // purge and flush cache
+    OP_RFI          = 0x0F,     // return from interrupt
+
 };
 
 //------------------------------------------------------------------------------------------------------------
 // During the instruction execution, there is a lot to check about the instructions defined. To speed up the
 // process, each instruction and any special attribute to know about it is stored in a literal table. For
 // each opCode there is a table entry which contains the opCode itself and flags that describe the
-// instruction. These flags are used by the stages to identify characteristics of teh instruction instead of
-// long IF or switch statements to test an instruction.
+// instruction. These flags are used by the stages to identify characteristics of the instruction instead of
+// long "if" or "switch" statements to test an instruction.
 //
-// ??? decide which way to go... no flags or all kinds of flags...
 //------------------------------------------------------------------------------------------------------------
 enum instrFlags : uint32_t {
     
     NO_FLAGS            = 0,
-    COMP_INSTR          = 000000001,
-    LOAD_INSTR          = 000000002,
-    STORE_INSTR         = 000000004,
-    BRANCH_INSTR        = 000000010,
-    CTRL_INSTR          = 000000020,
-    OP_MODE_INSTR       = 000000040,
-    REG_R_INSTR         = 000000100,
-    PRIV_INSTR          = 000000200
+    COMP_INSTR          = ( 1U << 0 ),
+    LOAD_INSTR          = ( 1U << 1 ),
+    STORE_INSTR         = ( 1U << 2 ),
+    BRANCH_INSTR        = ( 1U << 3 ),
+    CTRL_INSTR          = ( 1U << 4 ),
+    OP_MODE_INSTR       = ( 1U << 5 ),
+    REG_R_INSTR         = ( 1U << 6 ),
+    PRIV_INSTR          = ( 1U << 7 )
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -397,77 +391,74 @@ const struct opCodeInfo {
     
 } opCodeTab[ ] = {
     
-    /* 00 */  { "NOP",    OP_NOP,   ( NO_FLAGS ) },
-    /* 01 */  { "ADD",    OP_ADD,   ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 02 */  { "SUB",    OP_SUB,   ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 03 */  { "AND",    OP_AND,   ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 04 */  { "OR",     OP_OR,    ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 05 */  { "XOR",    OP_XOR,   ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 06 */  { "CMP",    OP_CMP,   ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 07 */  { "LDI",    OP_LDI,   ( COMP_INSTR | REG_R_INSTR ) },
-
-    /* 10 */  { "LEA",    OP_LEA,   ( OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 11 */  { "LSID",   OP_LSID,  ( COMP_INSTR | REG_R_INSTR ) },
-    /* 12 */  { "EXTR",   OP_EXTR,  ( COMP_INSTR | REG_R_INSTR ) },
-    /* 13 */  { "DEP",    OP_DEP,   ( COMP_INSTR | REG_R_INSTR ) },
-    /* 14 */  { "DSR",    OP_DSR,   ( COMP_INSTR | REG_R_INSTR ) },
-    /* 15 */  { "SHLA",   OP_SHLA,  ( COMP_INSTR | REG_R_INSTR ) },
-    /* 16 */  { "RSV016", OP_NOP,   ( NO_FLAGS ) },
-    /* 17 */  { "RSV017", OP_NOP,   ( NO_FLAGS ) },
+    /* 0x00 */  { "BRK",    OP_BRK,     ( CTRL_INSTR ) },
+    /* 0x01 */  { "DIAG",   OP_DIAG,    ( CTRL_INSTR ) },
+    /* 0x02 */  { "LDI",    OP_LDI,     ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x03 */  { "EXTR",   OP_EXTR,    ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x04 */  { "DEP",    OP_DEP,     ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x05 */  { "DSR",    OP_DSR,     ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x06 */  { "SHLA",   OP_SHLA,    ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x07 */  { "RSV_07", OP_SHLA,    ( NO_FLAGS ) },
+    /* 0x08 */  { "CMR",    OP_CMR,     ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x09 */  { "MR",     OP_MR,      ( CTRL_INSTR ) },
+    /* 0x0A */  { "MST",    OP_MST,     ( CTRL_INSTR | PRIV_INSTR | REG_R_INSTR ) },
+    /* 0x0B */  { "RSV_0B", OP_SHLA,    ( NO_FLAGS ) },
+    /* 0x0C */  { "ITLB",   OP_ITLB,    ( CTRL_INSTR | PRIV_INSTR ) },
+    /* 0x0D */  { "PTLB",   OP_PTLB,    ( CTRL_INSTR | PRIV_INSTR ) },
+    /* 0x0E */  { "PCA",    OP_PCA,     ( CTRL_INSTR ) },
+    /* 0x0F */  { "RFI",    OP_RFI,     ( CTRL_INSTR | PRIV_INSTR ) },
     
-    /* 20 */  { "LD",         OP_LD,    ( LOAD_INSTR  | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 21 */  { "ST",     OP_ST,    ( STORE_INSTR | OP_MODE_INSTR ) },
-    /* 22 */  { "LR",     OP_LDWR,    ( LOAD_INSTR  | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 23 */  { "SC",     OP_STWC,    ( STORE_INSTR | OP_MODE_INSTR ) },
-    /* 24 */  { "LDWE",    OP_LDWE,   ( LOAD_INSTR  | REG_R_INSTR  ) },
-    /* 25 */  { "STWE",    OP_STWE,   ( STORE_INSTR ) },
-    /* 26 */  { "LDWA",    OP_LDWA,   ( LOAD_INSTR  | PRIV_INSTR | REG_R_INSTR ) },
-    /* 27 */  { "STWA",   OP_STWA,   ( STORE_INSTR | PRIV_INSTR ) },
+    /* 0x10 */  { "ADD",    OP_ADD,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x11 */  { "SUB",    OP_SUB,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x12 */  { "AND",    OP_AND,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x13 */  { "OR",     OP_OR,      ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x14 */  { "XOR",    OP_XOR,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x15 */  { "CMP",    OP_CMP,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x16 */  { "LEA",    OP_LEA,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x17 */  { "LSID",   OP_LSID,    ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x18 */  { "LD",     OP_LD,      ( LOAD_INSTR  | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x19 */  { "ST",     OP_ST,      ( STORE_INSTR | OP_MODE_INSTR ) },
+    /* 0x1A */  { "LDWR",   OP_LDWR,    ( LOAD_INSTR  | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x1B */  { "STWC",   OP_STWC,    ( STORE_INSTR | OP_MODE_INSTR ) },
+    /* 0x1C */  { "RSV_1C", OP_RSV_1C,  ( NO_FLAGS ) },
+    /* 0x1D */  { "RSV_1D", OP_RSV_1D,  ( NO_FLAGS ) },
+    /* 0x1E */  { "RSV_1E", OP_RSV_1E,  ( NO_FLAGS ) },
+    /* 0x1F */  { "RSV_1F", OP_RSV_1F,  ( NO_FLAGS ) },
     
-    /* 30 */  { "RSV030", OP_NOP,   ( NO_FLAGS ) },
-    /* 31 */  { "RSV031", OP_NOP,   ( NO_FLAGS ) },
-    /* 32 */  { "RSV032", OP_NOP,   ( NO_FLAGS ) },
-    /* 33 */  { "RSV033", OP_NOP,   ( NO_FLAGS ) },
-    /* 30 */  { "RSV034", OP_NOP,   ( NO_FLAGS ) },
-    /* 31 */  { "RSV035", OP_NOP,   ( NO_FLAGS ) },
-    /* 32 */  { "RSV036", OP_NOP,   ( NO_FLAGS ) },
-    /* 33 */  { "RSV037", OP_NOP,   ( NO_FLAGS ) },
+    /* 0x20 */  { "LDWE",   OP_LDWE,    ( LOAD_INSTR  | REG_R_INSTR  ) },
+    /* 0x21 */  { "LDHE",   OP_LDHE,    ( LOAD_INSTR  | REG_R_INSTR  ) },
+    /* 0x22 */  { "LDBE",   OP_LDBE,    ( LOAD_INSTR  | REG_R_INSTR  ) },
+    /* 0x23 */  { "STWE",   OP_STWE,    ( STORE_INSTR ) },
+    /* 0x24 */  { "STHE",   OP_STHE,    ( STORE_INSTR ) },
+    /* 0x25 */  { "STBE",   OP_STBE,    ( STORE_INSTR ) },
+    /* 0x26 */  { "LDWA",   OP_LDWA,    ( LOAD_INSTR  | PRIV_INSTR | REG_R_INSTR  ) },
+    /* 0x27 */  { "LDHA",   OP_LDHA,    ( LOAD_INSTR  | PRIV_INSTR | REG_R_INSTR  ) },
+    /* 0x28 */  { "LDBA",   OP_LDBA,    ( LOAD_INSTR  | PRIV_INSTR | REG_R_INSTR  ) },
+    /* 0x29 */  { "STWA",   OP_STWA,    ( STORE_INSTR | PRIV_INSTR ) },
+    /* 0x2A */  { "STHA",   OP_STHA,    ( STORE_INSTR | PRIV_INSTR ) },
+    /* 0x2B */  { "STBA",   OP_STBA,    ( STORE_INSTR | PRIV_INSTR ) },
+    /* 6x2C */  { "LDPA",   OP_LDPA,    ( LOAD_INSTR | PRIV_INSTR | REG_R_INSTR ) },
+    /* 6x2D */  { "PRB",    OP_PRB,     ( CTRL_INSTR | REG_R_INSTR ) },
+    /* 0x2E */  { "RSV_2E", OP_RSV_2E,  ( NO_FLAGS ) },
+    /* 0x2F */  { "RSV_2F", OP_RSV_2F,  ( NO_FLAGS ) },
     
-    /* 40 */  { "B",      OP_B,     ( BRANCH_INSTR ) },
-    /* 41 */  { "BL",     OP_BL,    ( BRANCH_INSTR | REG_R_INSTR ) },
-    /* 42 */  { "BR",     OP_BR,    ( BRANCH_INSTR ) },
-    /* 43 */  { "BLR",    OP_BLR,   ( BRANCH_INSTR | REG_R_INSTR ) },
-    /* 44 */  { "BV",     OP_BV,    ( BRANCH_INSTR ) },
-    /* 45 */  { "BVR",    OP_BVR,   ( BRANCH_INSTR ) },
-    /* 46 */  { "BE",     OP_BE,    ( BRANCH_INSTR ) },
-    /* 47 */  { "BLE",    OP_BLE,   ( BRANCH_INSTR | REG_R_INSTR ) },
-    
-    /* 50 */  { "CBR",    OP_NOP,   ( BRANCH_INSTR ) },
-    /* 51 */  { "TBR",    OP_NOP,   ( BRANCH_INSTR ) },
-    /* 52 */  { "CMR",    OP_CMR,   ( COMP_INSTR | REG_R_INSTR ) },
-    /* 53 */  { "RSV053", OP_NOP,   ( NO_FLAGS ) },
-    /* 54 */  { "RSV054", OP_NOP,   ( NO_FLAGS ) },
-    /* 55 */  { "RSV055", OP_NOP,   ( NO_FLAGS ) },
-    /* 56 */  { "RSV056", OP_NOP,   ( NO_FLAGS ) },
-    /* 57 */  { "RSV057", OP_NOP,   ( NO_FLAGS ) },
-    
-    /* 60 */  { "MR",     OP_MR,    ( CTRL_INSTR ) },
-    /* 61 */  { "MST",    OP_MST,   ( CTRL_INSTR | PRIV_INSTR | REG_R_INSTR ) },
-    /* 62 */  { "LDPA",   OP_LDPA,  ( CTRL_INSTR | PRIV_INSTR | LOAD_INSTR | REG_R_INSTR ) },
-    /* 63 */  { "PRB",    OP_PRB,   ( CTRL_INSTR | REG_R_INSTR ) },
-    /* 64 */  { "GATE",   OP_GATE,  ( CTRL_INSTR | BRANCH_INSTR | REG_R_INSTR ) },
-    /* 65 */  { "RSV065", OP_NOP,   ( NO_FLAGS ) },
-    /* 66 */  { "RSV066", OP_NOP,   ( NO_FLAGS ) },
-    /* 67 */  { "RSV067", OP_NOP,   ( NO_FLAGS ) },
-    
-    /* 70 */  { "ITLB",   OP_ITLB,  ( CTRL_INSTR | PRIV_INSTR ) },
-    /* 71 */  { "PTLB",   OP_PTLB,  ( CTRL_INSTR | PRIV_INSTR ) },
-    /* 72 */  { "PCA",    OP_PCA,   ( CTRL_INSTR ) },
-    /* 73 */  { "RSV073", OP_NOP,   ( NO_FLAGS ) },
-    /* 74 */  { "RSV074", OP_NOP,   ( NO_FLAGS ) },
-    /* 75 */  { "RFI",    OP_RFI,   ( CTRL_INSTR | PRIV_INSTR ) },
-    /* 76 */  { "DIAG",   OP_NOP,   ( CTRL_INSTR ) },
-    /* 77 */  { "BRK",    OP_BRK,   ( CTRL_INSTR ) }
+    /* 0x30 */  { "B",      OP_B,       ( BRANCH_INSTR ) },
+    /* 0x31 */  { "BL",     OP_BL,      ( BRANCH_INSTR | REG_R_INSTR ) },
+    /* 0x32 */  { "GATE",   OP_GATE,    ( CTRL_INSTR | BRANCH_INSTR | REG_R_INSTR ) },
+    /* 0x33 */  { "BR",     OP_BR,      ( BRANCH_INSTR ) },
+    /* 0x34 */  { "BLR",    OP_BLR,     ( BRANCH_INSTR | REG_R_INSTR ) },
+    /* 0x35 */  { "BV",     OP_BV,      ( BRANCH_INSTR ) },
+    /* 0x36 */  { "BVR",    OP_BVR,     ( BRANCH_INSTR ) },
+    /* 0x37 */  { "BE",     OP_BE,      ( BRANCH_INSTR ) },
+    /* 0x38 */  { "BLE",    OP_BLE,     ( BRANCH_INSTR | REG_R_INSTR ) },
+    /* 0x39 */  { "CBR",    OP_CBR,     ( BRANCH_INSTR ) },
+    /* 0x3A */  { "TBR",    OP_TBR,     ( BRANCH_INSTR ) },
+   
+    /* 0x3B */  { "RSV_3B", OP_RSV_3B,  ( NO_FLAGS ) },
+    /* 0x3C */  { "RSV_3C", OP_RSV_3C,  ( NO_FLAGS ) },
+    /* 0x3D */  { "RSV_3D", OP_RSV_3D,  ( NO_FLAGS ) },
+    /* 0x3E */  { "RSV_3E", OP_RSV_3E,  ( NO_FLAGS ) },
+    /* 0x3F */  { "RSV_3F", OP_RSV_3F,  ( NO_FLAGS ) }
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -486,54 +477,50 @@ const struct opCodeInfo {
 #define EXTR( i, p, l ) ((( i ) >> ( 31 - p )) & ( MASK( l )))
 #define DEP( i, a, p, l ) i = ((( i ) & (( ~ MASK( l )) << ( 31 - p ))) | (( a ) & (( MASK( l )) << ( 31 - p ))));
 
-struct CPU24Instr {
+struct Instr {
   
 public:
-    
-    // ??? change for new fields....
-    
+   
     static inline uint32_t  opCodeField( uint32_t instr )           { return( EXTR( instr, 5, 6 )); }
-    static inline uint32_t  regRIdField( uint32_t instr )           { return( EXTR( instr, 8, 3 )); }
-    static inline uint32_t  regAIdField( uint32_t instr )           { return( EXTR( instr, 28, 3 )); }
-    static inline uint32_t  regBIdField( uint32_t instr )           { return( EXTR( instr, 31, 3 )); }
-    static inline uint32_t  operandModeField( uint32_t instr )      { return( EXTR( instr, 17, 4 )); }
-    static inline uint32_t  cmpCondField( uint32_t instr )          { return( EXTR( instr, 11, 3 )); }
-    static inline uint32_t  cmrCondField( uint32_t instr )          { return( EXTR( instr, 11, 3 )); }
-    static inline uint32_t  cmrImmField( uint32_t instr )           { return( EXTR( instr, 12, 1 )); }
+    static inline uint32_t  regRIdField( uint32_t instr )           { return( EXTR( instr, 9, 4 )); }
+    static inline uint32_t  regAIdField( uint32_t instr )           { return( EXTR( instr, 27, 4 )); }
+    static inline uint32_t  regBIdField( uint32_t instr )           { return( EXTR( instr, 31, 4 )); }
+    static inline uint32_t  opModeField( uint32_t instr )           { return( EXTR( instr, 17, 5 )); }
+    static inline uint32_t  cmpCondField( uint32_t instr )          { return( EXTR( instr, 12, 3 )); }
+    static inline uint32_t  cmrCondField( uint32_t instr )          { return( EXTR( instr, 12, 3 )); }
     static inline uint32_t  cbrCondField( uint32_t instr )          { return( EXTR( instr, 8, 3 )); }
     static inline uint32_t  tbrCondField( uint32_t instr )          { return( EXTR( instr, 8, 3 )); }
-    static inline uint32_t  immOfsSignField( uint32_t instr )       { return( EXTR( instr, 16, 1 )); }
-    static inline uint32_t  arithOpFlagField( uint32_t instr )      { return( EXTR( instr, 11, 3 )); }
-    static inline uint32_t  boolOpFlagField( uint32_t instr )       { return( EXTR( instr, 11, 3 )); }
-    static inline uint32_t  extrDepLenField( uint32_t instr )       { return( EXTR( instr, 20, 5 )); }
-    static inline uint32_t  extrDepPosField( uint32_t instr )       { return( EXTR( instr, 25, 5 )); }
-    static inline uint32_t  dsrSaField( uint32_t instr )            { return( EXTR( instr, 20, 5 )); }
-    static inline bool      shlaUseImmField( uint32_t instr )       { return( EXTR( instr, 17, 2 )); }
-    static inline bool      useCarryField( uint32_t instr )         { return( EXTR( instr, 9, 1 )); }
-    static inline bool      logicalOpField( uint32_t instr )        { return( EXTR( instr, 10, 1 )); }
-    static inline bool      trapOvlField( uint32_t instr )          { return( EXTR( instr, 11, 1 )); }
-    static inline bool      negateResField( uint32_t instr )        { return( EXTR( instr, 9, 1 )); }
-    static inline bool      complRegBField( uint32_t instr )        { return( EXTR( instr, 10, 1 )); }
-    static inline bool      extrSignedField( uint32_t instr )       { return( EXTR( instr, 9, 1 )); }
-    static inline bool      depInZeroField( uint32_t instr )        { return( EXTR( instr, 9, 1 )); }
-    static inline bool      depImmOptField( uint32_t instr )        { return( EXTR( instr, 10, 1 )); }
-    static inline uint32_t  shlaSaField( uint32_t instr )           { return( EXTR( instr, 17, 2 )); }
-    static inline bool      ldiZeroField( uint32_t instr )          { return( EXTR( instr, 9, 1 )); }
-    static inline bool      ldiLeftField( uint32_t instr )          { return( EXTR( instr, 10, 1 )); }
-    static inline bool      mrMovDirField( uint32_t instr )         { return( EXTR( instr, 9, 1 )); }
-    static inline bool      mrRegTypeField( uint32_t instr )        { return( EXTR( instr, 10, 1 )); }
-    static inline uint32_t  mrRegGrpField( uint32_t instr )         { return( EXTR( instr, 31, 5 )); }
-    static inline uint32_t  mstModeField( uint32_t instr )          { return( EXTR( instr, 10, 2 )); }
+    static inline uint32_t  immOfsSignField( uint32_t instr )       { return( EXTR( instr, 18, 1 )); }
+    static inline uint32_t  arithOpFlagField( uint32_t instr )      { return( EXTR( instr, 12, 3 )); }
+    static inline uint32_t  boolOpFlagField( uint32_t instr )       { return( EXTR( instr, 12, 3 )); }
+    static inline uint32_t  extrDepLenField( uint32_t instr )       { return( EXTR( instr, 22, 5 )); }
+    static inline uint32_t  extrDepPosField( uint32_t instr )       { return( EXTR( instr, 27, 5 )); }
+    static inline uint32_t  dsrSaField( uint32_t instr )            { return( EXTR( instr, 22, 5 )); }
+    static inline bool      shlaUseImmField( uint32_t instr )       { return( EXTR( instr, 22, 2 )); }
+    static inline bool      useCarryField( uint32_t instr )         { return( EXTR( instr, 10, 1 )); }
+    static inline bool      logicalOpField( uint32_t instr )        { return( EXTR( instr, 11, 1 )); }
+    static inline bool      trapOvlField( uint32_t instr )          { return( EXTR( instr, 12, 1 )); }
+    static inline bool      negateResField( uint32_t instr )        { return( EXTR( instr, 10, 1 )); }
+    static inline bool      complRegBField( uint32_t instr )        { return( EXTR( instr, 11, 1 )); }
+    static inline bool      extrSignedField( uint32_t instr )       { return( EXTR( instr, 10, 1 )); }
+    static inline bool      depInZeroField( uint32_t instr )        { return( EXTR( instr, 10, 1 )); }
+    static inline bool      depImmOptField( uint32_t instr )        { return( EXTR( instr, 11, 1 )); }
+    static inline uint32_t  shlaSaField( uint32_t instr )           { return( EXTR( instr, 22, 2 )); }
+    static inline bool      ldiZeroField( uint32_t instr )          { return( EXTR( instr, 10, 1 )); }
+    static inline bool      ldiLeftField( uint32_t instr )          { return( EXTR( instr, 11, 1 )); }
+    static inline bool      mrMovDirField( uint32_t instr )         { return( EXTR( instr, 10, 1 )); }
+    static inline uint32_t  mrArgField( uint32_t instr )            { return( EXTR( instr, 31, 6 )); }
+    static inline uint32_t  mstModeField( uint32_t instr )          { return( EXTR( instr, 11, 2 )); }
     static inline uint32_t  mstArgField( uint32_t instr )           { return( EXTR( instr, 31, 6 )); }
-    static inline bool      prbAdrModeField( uint32_t instr )       { return( EXTR( instr, 9, 1 )); }
-    static inline bool      prbRwAccField( uint32_t instr )         { return( EXTR( instr, 10, 1 )); }
-    static inline bool      ldpaAdrModeField( uint32_t instr )      { return( EXTR( instr, 9, 1 )); }
-    static inline bool      tlbAdrModeField( uint32_t instr )       { return( EXTR( instr, 9, 1 )); }
-    static inline bool      tlbKindField( uint32_t instr )          { return( EXTR( instr, 10, 1 )); }
-    static inline bool      tlbArgModeField( uint32_t instr )       { return( EXTR( instr, 11, 1 )); }
-    static inline bool      pcaAdrModeField( uint32_t instr )       { return( EXTR( instr, 9, 1 )); }
-    static inline bool      pcaKindField( uint32_t instr )          { return( EXTR( instr, 10, 1 )); }
-    static inline bool      pcaPurgeFlushField( uint32_t instr )    { return( EXTR( instr, 11, 1 )); }
+    static inline bool      prbAdrModeField( uint32_t instr )       { return( EXTR( instr, 10, 1 )); }
+    static inline bool      prbRwAccField( uint32_t instr )         { return( EXTR( instr, 11, 1 )); }
+    static inline bool      ldpaAdrModeField( uint32_t instr )      { return( EXTR( instr, 10, 1 )); }
+    static inline bool      tlbAdrModeField( uint32_t instr )       { return( EXTR( instr, 10, 1 )); }
+    static inline bool      tlbKindField( uint32_t instr )          { return( EXTR( instr, 11, 1 )); }
+    static inline bool      tlbArgModeField( uint32_t instr )       { return( EXTR( instr, 12, 1 )); }
+    static inline bool      pcaAdrModeField( uint32_t instr )       { return( EXTR( instr, 10, 1 )); }
+    static inline bool      pcaKindField( uint32_t instr )          { return( EXTR( instr, 11, 1 )); }
+    static inline bool      pcaPurgeFlushField( uint32_t instr )    { return( EXTR( instr, 12, 1 )); }
     
     static inline uint32_t  segSelect( uint32_t arg )               { return ( EXTR( arg, 1, 2 )); }
     static inline uint32_t  ofsSelect( uint32_t arg )               { return ( EXTR( arg, 31, 30 )); }
@@ -541,47 +528,54 @@ public:
     
     // ??? new immediates ...
     
-    static inline uint32_t immGen0S16( uint32_t instr ) {
+    static inline uint32_t immGen0S14( uint32_t instr ) {
         
-        uint32_t tmp = EXTR( instr, 31, 16 );
-        return ( EXTR( instr, 18, 1) ? ( tmp | 0xFFFF0000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen0S10( uint32_t instr ) {
-        
-        uint32_t tmp = EXTR( instr, 25, 10 );
-        return ( EXTR( instr, 16, 1) ? ( tmp | 0xFFFFFC00 ) : ( tmp ));
+        uint32_t tmp = EXTR( instr, 31, 14 );
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
     }
     
     static inline uint32_t immGen0S6( uint32_t instr ) {
         
-        uint32_t tmp = EXTR( instr, 31, 6 );
-        return ( EXTR( instr, 16, 1) ? ( tmp | 0xFFFFFFC0 ) : ( tmp ));
+        uint32_t tmp = EXTR( instr, 23, 6 ) >> 8;
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFFFC0 ) : ( tmp ));
     }
     
-    static inline uint32_t immGen7S16( uint32_t instr ) {
+    static inline uint32_t immGen2S14( uint32_t instr ) {
       
-        uint32_t tmp = ( EXTR( instr, 17, 7 )) | ( EXTR( instr, 31, 16 ) << 7 );
-        return ( EXTR( instr, 16, 1) ? ( tmp | 0xFFFFFFC0 ) : ( tmp ));
+        uint32_t tmp = ( EXTR( instr, 17, 2 )) | ( EXTR( instr, 31, 14 ) << 2 );
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFF0000 ) : ( tmp ));
     }
     
-    static inline uint32_t immGen7S13( uint32_t instr ) {
+    static inline uint32_t immGen8S6( uint32_t instr ) {
       
-        uint32_t tmp = ( EXTR( instr, 17, 7 )) | ( EXTR( instr, 28, 13 ) << 7 );
-        return ( EXTR( instr, 16, 1) ? ( tmp | 0xFFFFFFC0 ) : ( tmp ));
+        uint32_t tmp = ( EXTR( instr, 17, 8 ) >> 14 ) | ( EXTR( instr, 23, 6 ) << 6 );
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
     }
     
-    static inline uint32_t immGen7S10( uint32_t instr ) {
+    static inline uint32_t immGen8S10( uint32_t instr ) {
       
-        uint32_t tmp = ( EXTR( instr, 17, 7 )) | ( EXTR( instr, 28, 10 ) << 7 );
-        return ( EXTR( instr, 16, 1) ? ( tmp | 0xFFFFFFC0 ) : ( tmp ));
+        uint32_t tmp = ( EXTR( instr, 17, 8 ) >> 14 ) | ( EXTR( instr, 27, 10 ) << 6 );
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
     }
     
-    static inline uint32_t immGen10S10( uint32_t instr ) {
+    static inline uint32_t immGen8S14( uint32_t instr ) {
       
-        uint32_t tmp = ( EXTR( instr, 17, 10 )) | ( EXTR( instr, 27, 10 ) << 10 );
-        return ( EXTR( instr, 16, 1) ? ( tmp | 0xFFFFFFC0 ) : ( tmp ));
+        uint32_t tmp = ( EXTR( instr, 17, 8 ) >> 14 ) | ( EXTR( instr, 31, 14 ) << 8 );
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
     }
+    
+    static inline uint32_t immGen9S6( uint32_t instr ) {
+      
+        uint32_t tmp = ( EXTR( instr, 17, 9 ) >> 14 ) | ( EXTR( instr, 23, 6 ) << 1 );
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
+    }
+    
+    static inline uint32_t immGen12S6( uint32_t instr ) {
+      
+        uint32_t tmp = ( EXTR( instr, 17, 12 ) >> 14 ) | ( EXTR( instr, 23, 6 ) << 4 );
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
+    }
+    
     
     
     // ??? old immediates - phase out ...

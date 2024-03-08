@@ -1336,7 +1336,7 @@ void DrvWinPhysMem::drawBanner( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvWinPhysMem::drawLine( int itemAdr ) {
     
-    CPU24Mem    *mem            = glb -> cpu -> mem;
+    CpuMem      *mem            = glb -> cpu -> mem;
     uint32_t    blockSize       = mem -> getBlockSize( );
     uint32_t    *dataPtr        = mem -> getMemBlockEntry( itemAdr / blockSize ) + (( itemAdr ) % blockSize );
     uint32_t    fmtDesc         = FMT_DEF_ATTR;
@@ -1434,14 +1434,12 @@ void DrvWinCode::drawBanner( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvWinCode::drawLine( int itemAdr ) {
     
-    CPU24Mem        *mem            = glb -> cpu -> mem;
-    uint32_t        blockSize       = mem -> getBlockSize( );
+    CpuMem      *mem            = glb -> cpu -> mem;
+    uint32_t    blockSize       = mem -> getBlockSize( );
     uint32_t    *codePtr        = mem -> getMemBlockEntry( itemAdr / blockSize ) + (( itemAdr ) % blockSize );
-    
-    uint32_t        fmtDesc         = FMT_DEF_ATTR;
+    uint32_t    fmtDesc         = FMT_DEF_ATTR;
     uint32_t    currentIaOfs    = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS  );
-    bool            isCurrentIaOfs  = ( itemAdr == currentIaOfs );
-    
+    bool        isCurrentIaOfs  = ( itemAdr == currentIaOfs );
     
     printNumericField( itemAdr, fmtDesc | FMT_ALIGN_LFT, 12 );
     printTextField(( isCurrentIaOfs ? (char *) ">" :  (char *) " " ), fmtDesc, 4 );

@@ -79,6 +79,30 @@ enum RegClass : uint32_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+enum MemoryObjRegId : uint32_t {
+    
+    MC_REG_STATE            = 0,
+    MC_REG_REQ_SEG          = 1,
+    MC_REG_REQ_OFS          = 2,
+    MC_REG_REQ_PRI          = 3,
+    MC_REG_REQ_TAG          = 4,
+    MC_REG_REQ_ADR          = 5,
+    MC_REG_REQ_LEN          = 6,
+    MC_REG_REQ_BLOCK_INDEX  = 7,
+    MC_REG_REQ_BLOCK_SET    = 8,
+    MC_REG_REQ_LATENCY      = 9,
+    
+    MC_REG_LATENCY          = 10,
+    MC_REG_BLOCK_ENTRIES    = 11,
+    MC_REG_BLOCK_SIZE       = 12,
+    MC_REG_SETS             = 13
+};
+
+
+//------------------------------------------------------------------------------------------------------------
 // We support two types of TLB. The split instruction and data TLB and a unified, dual ported TLB.
 //
 // ??? not clear how a dual ported will be modelled yet ...
@@ -362,9 +386,9 @@ struct MemTagEntry {
 // paramater to indicate how large the receiving layer block size actually is.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24Mem {
+struct CpuMem {
     
-    CPU24Mem( CpuMemDesc *mDesc, CPU24Mem *lowerMem = nullptr );
+    CpuMem( CpuMemDesc *mDesc, CpuMem *lowerMem = nullptr );
     
     void            reset( );
     void            tick( );
@@ -434,8 +458,8 @@ private:
     
     MemTagEntry     *tagArray[ MAX_BLOCK_SETS ]     = { nullptr };
     uint32_t        *dataArray[ MAX_BLOCK_SETS ]    = { nullptr };
-    CPU24Mem        *lowerMem                       = nullptr;
-    void            ( CPU24Mem::*stateMachine )( )  = nullptr;
+    CpuMem          *lowerMem                       = nullptr;
+    void            ( CpuMem::*stateMachine )( )    = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -484,12 +508,12 @@ public:
     // a ton of getter functions, or make the public. Let's go for the latter
     //
     //--------------------------------------------------------------------------------------------------------
-    CpuTlb          *iTlb       = nullptr;
-    CpuTlb          *dTlb       = nullptr;
-    CPU24Mem        *iCacheL1   = nullptr;
-    CPU24Mem        *dCacheL1   = nullptr;
-    CPU24Mem        *uCacheL2   = nullptr;
-    CPU24Mem        *mem        = nullptr;
+    CpuTlb        *iTlb       = nullptr;
+    CpuTlb        *dTlb       = nullptr;
+    CpuMem        *iCacheL1   = nullptr;
+    CpuMem        *dCacheL1   = nullptr;
+    CpuMem        *uCacheL2   = nullptr;
+    CpuMem        *mem        = nullptr;
     
     CpuStatistics stats;
     

@@ -62,7 +62,7 @@ bool compareCond( uint32_t instr, uint32_t valA, uint32_t valB ) {
     int32_t tmpA = signExt32( valA );
     int32_t tmpB = signExt32( valB );
     
-    switch( CPU24Instr::cbrCondField( instr )) {
+    switch( Instr::cbrCondField( instr )) {
             
         case CC_EQ: return( tmpA == tmpB );
         case CC_LT: return( tmpA < tmpB );
@@ -85,7 +85,7 @@ bool testCond( uint32_t instr, uint32_t val ) {
     
     int32_t tmp = signExt32( val );
     
-    switch ( CPU24Instr::tbrCondField( instr )) {
+    switch ( Instr::tbrCondField( instr )) {
             
             
         case CC_EQ: return( tmp == 0 );
@@ -173,7 +173,7 @@ void ExecuteStage::flushPipeLine( ) {
     
     psInstrSeg.set( instrSeg );
     psInstrOfs.set( instrOfs );
-    psInstr.set( OP_NOP );
+    psInstr.set( 0 );  // ??? what to really set ...
     psValA.set( 0 );
     psValB.set( 0 );
     psValX.set( 0 );
@@ -190,12 +190,12 @@ void ExecuteStage::flushPipeLine( ) {
 // return and the CPU24 core will analyze the trap and flush the pipeline.
 //------------------------------------------------------------------------------------------------------------
 void ExecuteStage::setupTrapData( uint32_t trapId,
-                                  uint32_t iaSeg,
-                                  uint32_t iaOfs,
-                                  uint32_t pStat,
-                                  uint32_t p1,
-                                  uint32_t p2,
-                                  uint32_t p3 ) {
+                                 uint32_t iaSeg,
+                                 uint32_t iaOfs,
+                                 uint32_t pStat,
+                                 uint32_t p1,
+                                 uint32_t p2,
+                                 uint32_t p3 ) {
     
     core -> cReg[ CR_TRAP_INSTR_SEG ].set( iaSeg );
     core -> cReg[ CR_TRAP_INSTR_OFS ].set( iaOfs );
@@ -281,17 +281,17 @@ void ExecuteStage::setPipeLineReg( uint32_t pReg, uint32_t val ) {
 // ??? note: this is a long routine. Perhaps we should split this into smaller portions.
 //------------------------------------------------------------------------------------------------------------
 void ExecuteStage::process( ) {
-  
+    
     instrSeg        = psInstrSeg.get( );
     instrOfs        = psInstrOfs.get( );
     instr           = psInstr.get( );
     valA            = psValA.get( );
     valB            = psValB.get( );
     valX            = psValX.get( );
-    valR            = 0;
-    regIdForValR    = CPU24Instr::regRIdField( instr );
+    valR            = Instr::regRIdField( instr );
+    // RegIdForValR.set( MAX_GREGS );
     
-    uint8_t opCode = CPU24Instr::opCodeField( psInstr.get( ));
+    uint8_t opCode  = Instr::opCodeField( psInstr.get( ));
     
     setStalled( false );
     
@@ -301,26 +301,26 @@ void ExecuteStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     switch ( opCode ) {
             
-        case OP_NOP: break;
-            
         case OP_ADD: {
             
             valR = valA + valB;
-            if (( CPU24Instr::useCarryField( instr )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
-          
+            if (( Instr::useCarryField( instr )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
+            
             valCarry = ( valR > UINT32_MAX );
             
-            if ( CPU24Instr::logicalOpField( instr )) {
+            if ( Instr::logicalOpField( instr )) {
                 
-                if (( valCarry ) && ( CPU24Instr::trapOvlField( instr ))) {
-                    
-                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
-                    return;
-                }
+                /*   fix .....
+                 if (( Instr) && ( Instr::trapOvlField( instr ))) {
+                 
+                 setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                 return;
+                 }
+                 */
             }
             else {
                 
-                if ( CPU24Instr::trapOvlField( instr )) {
+                if ( Instr::trapOvlField( instr )) {
                     
                     if (( valR ^ valA ) & ( valR ^ valB ) & 0x00800000 ) {
                         
@@ -329,29 +329,32 @@ void ExecuteStage::process( ) {
                     }
                 }
             }
-           
+            
         } break;
             
         case OP_SUB: {
             
-            valR = valA + (( ~ valB & 0x00FFFFFf ) + 1 );
-            if (( CPU24Instr::useCarryField( instr )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
+            valR = valA + ( ~ valB  ) + 1;
+            if (( Instr::useCarryField( instr )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
             
             valCarry = ( valR > UINT32_MAX );
             
-            if ( CPU24Instr::logicalOpField( instr )) {
+            if ( Instr::logicalOpField( instr )) {
                 
-                if (( valCarry ) && ( CPU24Instr::trapOvlField( instr ))) {
+                /*
+                if ((Instr) && ( CPU24Instr::trapOvlField( instr ))) {
                     
                     setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
                     return;
                 }
+                 */
+                
             }
             else {
                 
-                if ( CPU24Instr::trapOvlField( instr )) {
+                if ( Instr::trapOvlField( instr )) {
                     
-                    if (( valR ^ valA ) & ( valR ^ valB ) & 0x00800000 ) {
+                    if (( valR ^ valA ) & ( valR ^ valB ) & 0x80000000 ) {
                         
                         setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
                         return;
@@ -363,52 +366,52 @@ void ExecuteStage::process( ) {
             
         case OP_AND: {
             
-            if ( CPU24Instr::complRegBField( instr )) valB = ~ valB;
+            if ( Instr::complRegBField( instr )) valB = ~ valB;
             valR = valA & valB;
-            if ( CPU24Instr::negateResField( instr )) valR = ~ valR;
+            if ( Instr::negateResField( instr )) valR = ~ valR;
             
         } break;
             
         case OP_OR: {
             
-            if ( CPU24Instr::complRegBField( instr )) valB = ~ valB;
+            if ( Instr::complRegBField( instr )) valB = ~ valB;
             valR = valA | valB;
-            if ( CPU24Instr::negateResField( instr )) valR = ~ valR;
+            if ( Instr::negateResField( instr )) valR = ~ valR;
             
         } break;
             
         case OP_XOR: {
             
-            if ( CPU24Instr::complRegBField( instr )) valB = ~ valB;
+            if ( Instr::complRegBField( instr )) valB = ~ valB;
             valR = valA ^ valB;
-            if ( CPU24Instr::negateResField( instr )) valR = ~ valR;
+            if ( Instr::negateResField( instr )) valR = ~ valR;
             
         } break;
             
         case OP_CMP: {
             
             valR = (( compareCond( instr, valA, valB )) ? 1 : 0 );
-          
+            
         } break;
             
         case OP_CMR: {
             
             valR = (( compareCond( instr, valA, valB )) ? 1 : 0 );
-          
+            
         } break;
             
         case OP_EXTR: {
             
-            uint8_t extrOpPos = CPU24Instr::extrDepPosField( instr );
-            uint8_t extrOpLen = CPU24Instr::extrDepLenField( instr );
+            uint8_t extrOpPos = Instr::extrDepPosField( instr );
+            uint8_t extrOpLen = Instr::extrDepLenField( instr );
             
             // ??? check bit...
             if ( extrOpPos == WORD_SIZE ) core -> cReg[ CR_SHIFT_AMOUNT ].get( );
-           
+            
             uint32_t extrOpBitMask   = (( 1U << extrOpLen ) - 1 );
             valR = (( valB >> ( 31 - extrOpPos )) & extrOpBitMask );
             
-            if ( CPU24Instr::extrSignedField( instr )) {
+            if ( Instr::extrSignedField( instr )) {
                 
                 if ( valR >> ( extrOpLen - 1 ) & 0x1 ) valR |= ( ~ extrOpBitMask );
             }
@@ -417,27 +420,27 @@ void ExecuteStage::process( ) {
             
         case OP_DEP: {
             
-            uint8_t depOpPos  = CPU24Instr::extrDepPosField( instr );
-            uint8_t depOpLen  = CPU24Instr::extrDepLenField( instr );
+            uint8_t depOpPos = Instr::extrDepPosField( instr );
+            uint8_t depOpLen = Instr::extrDepLenField( instr );
             
             // ??? check bit op...
             if ( depOpPos == WORD_SIZE ) core -> cReg[ CR_SHIFT_AMOUNT ].get( );
-           
+            
             uint32_t    depOpBitMask    = (( 1U << depOpLen ) - 1 );
             uint32_t    temp1           = ( valB & depOpBitMask ) << ( 31 - depOpPos );
             uint32_t    temp2           = ( valA & ( ~ ( depOpBitMask << ( 31 - depOpPos ))));
             
-            valR  = (( CPU24Instr::depInZeroField( instr )) ? ( temp1 ) : ( temp1 | temp2 ));
+            valR = (( Instr::depInZeroField( instr )) ? ( temp1 ) : ( temp1 | temp2 ));
             
         } break;
             
         case OP_DSR: {
             
-            uint8_t shAmtLen = CPU24Instr::dsrSaField( instr );
+            uint8_t shAmtLen = Instr::dsrSaField( instr );
             
             // ??? check big op ...
             if ( shAmtLen == WORD_SIZE ) core -> cReg[ CR_SHIFT_AMOUNT ].get( );
-        
+            
             // ??? fix ...
             valR = (( valA >> shAmtLen ) | ( WORD_SIZE - shAmtLen ));
             
@@ -445,9 +448,9 @@ void ExecuteStage::process( ) {
             
         case OP_SHLA: {
             
-            uint8_t shAmt = CPU24Instr::shlaSaField( instr );
+            uint8_t shAmt = Instr::shlaSaField( instr );
             
-            if ( CPU24Instr::trapOvlField( instr )) {
+            if ( Instr::trapOvlField( instr )) {
                 
                 if ((( shAmt == 1 ) && ( valA & 000400000 )) ||
                     (( shAmt == 2 ) && ( valA & 000600000 )) ||
@@ -460,7 +463,7 @@ void ExecuteStage::process( ) {
             
             valR = ( valA << shAmt ) + valB;
             
-            if ( CPU24Instr::trapOvlField( instr )) {
+            if ( Instr::trapOvlField( instr )) {
                 
                 if (( valR ^ valA ) & ( valR ^ valB ) & 0x00800000 ) {
                     
@@ -473,26 +476,26 @@ void ExecuteStage::process( ) {
             
         case OP_LDI: {
             
-            if ( CPU24Instr::ldiZeroField( instr )) valA = 0;
+            if ( Instr::ldiZeroField( instr )) valA = 0;
             
-            if ( CPU24Instr::ldiLeftField( instr )) valR = ( valA & 000007777 ) | ( valB << 12 );
+            if ( Instr::ldiLeftField( instr )) valR = ( valA & 000007777 ) | ( valB << 12 );
             else                                    valR = ( valA & 077770000 ) | valB;
-      
+            
         } break;
-    
+            
         case OP_LD:
         case OP_LDWE:
         case OP_LDWA: {
-           
+            
             valR = valB;
-           
+            
         } break;
             
         case OP_BL:
         case OP_BLR: {
             
-            valR = CPU24Instr::add22( instrOfs, 1 );
-          
+            valR = Instr::add22( instrOfs, 1 );
+            
         } break;
             
         case OP_BLE: {
@@ -504,7 +507,7 @@ void ExecuteStage::process( ) {
             
         case OP_CBR: {
             
-            bool branchTaken = CPU24Instr::immOfsSignField( instr );
+            bool bInstr = Instr::immOfsSignField( instr );
             
             if (( compareCond( instr, valA, valB )) != ( branchTaken )) {
                 
@@ -517,7 +520,7 @@ void ExecuteStage::process( ) {
             
         case OP_TBR: {
             
-            bool branchTaken = CPU24Instr::immOfsSignField( instr );
+            bool bInstr = Instr::immOfsSignField( instr );
             
             if (( testCond( instr, valA )) != ( branchTaken )) {
                 
@@ -529,21 +532,23 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_GATE: {
-        
-            valR = CPU24Instr::ofsSelect( valA ) | ( instrOfs & 047777777 );
+            
+            valR = Instr::ofsSelect( valA ) | ( instrOfs & 047777777 );
             
         } break;
             
         case OP_MR: {
             
-            if ( CPU24Instr::mrMovDirField( instr )) {
-                
-                if ( CPU24Instr::mrRegTypeField( instr )) 
-                    core -> sReg[ CPU24Instr::regBIdField( instr ) ].set( valB );
-                else
-                    core -> cReg[ CPU24Instr::mrRegGrpField( instr ) * 8 + CPU24Instr::regBIdField( instr ) ].set( valB );
-            }
-            else valR = valB;
+            // if ( Instr::mrMovDirField( instr )) {
+            
+            /*
+             if ( Instr::mInstreld( instr ))
+             core -> sReg[ Instr::regBIdField( instr ) ].set( valB );
+             else
+             Instre -> cReg[ Instr::mrRegGrpInstrtr ) * 8 + Instr::regBIdField( instr ) ].set( valB );
+             }
+             else valR = valB;
+             */
             
         } break;
             
@@ -551,7 +556,7 @@ void ExecuteStage::process( ) {
             
             valR = core -> stReg.get( ) & 077;
             
-            switch ( CPU24Instr::mstModeField( instr )) {
+            switch ( Instr::mstModeField( instr )) {
                     
                 case 0: core -> stReg.set(( core -> stReg.get( ) & 00077777700 ) | ( valB & 077 ));
                 case 1: core -> stReg.set( core -> stReg.get( ) | ( valB & 077 )); break;
@@ -562,11 +567,11 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_RFI: {
-         
+            
             core -> fdStage -> psInstrSeg.set( core -> cReg[ CR_TRAP_INSTR_SEG ].get( ));
             core -> fdStage -> psInstrOfs.set( core -> cReg[ CR_TRAP_INSTR_OFS ].get( ));
             core -> stReg.set( core -> cReg[ CR_TRAP_STAT ].get( ));
-         
+            
         } break;
             
         case OP_BRK: {
@@ -619,7 +624,7 @@ void ExecuteStage::process( ) {
     FetchDecodeStage *fdStage   = core -> fdStage;
     MemoryAccessStage *maStage  = core -> maStage;
     
-    if ( opCodeTab[ CPU24Instr::opCodeField( instr ) ].flags & REG_R_INSTR ) {
+    if ( opCodeTab[ Instr::opCodeField( instr ) ].flags & REG_R_INSTR ) {
         
         if ( fdStage -> regIdForValA == regIdForValR ) maStage -> psValA.set( valR );
         if ( fdStage -> regIdForValB == regIdForValR ) maStage -> psValB.set( valR );

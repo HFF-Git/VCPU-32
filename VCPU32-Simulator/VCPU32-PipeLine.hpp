@@ -51,43 +51,43 @@ public:
     
     FetchDecodeStage( CpuCore *core );
     
-    void                reset( );
-    void                tick( );
-    void                process( );
-    void                stallPipeLine( );
+    void            reset( );
+    void            tick( );
+    void            process( );
+    void            stallPipeLine( );
     
-    void                setupTrapData( uint32_t trapId,
-                                       uint32_t iaSeg,
-                                       uint32_t iaOfs,
-                                       uint32_t pStat,
-                                       uint32_t p1 = 0,
-                                       uint32_t p2 = 0,
-                                       uint32_t p3 = 0 );
+    void            setupTrapData( uint32_t trapId,
+                                  uint32_t iaSeg,
+                                  uint32_t iaOfs,
+                                  uint32_t pStat,
+                                  uint32_t p1 = 0,
+                                  uint32_t p2 = 0,
+                                  uint32_t p3 = 0 );
     
-    bool                isStalled( );
-    void                setStalled( bool arg );
+    bool            isStalled( );
+    void            setStalled( bool arg );
     
-    uint32_t            getPipeLineReg( uint8_t pReg );
-    void                setPipeLineReg( uint8_t pReg, uint32_t val );
+    uint32_t        getPipeLineReg( uint8_t pReg );
+    void            setPipeLineReg( uint8_t pReg, uint32_t val );
    
-    CpuReg            psInstrSeg;
-    CpuReg            psInstrOfs;
+    CpuReg          psInstrSeg;
+    CpuReg          psInstrOfs;
     
-    uint8_t             regIdForValA;
-    uint8_t             regIdForValB;
-    uint8_t             regIdForValX;
+    uint8_t         regIdForValA;
+    uint8_t         regIdForValB;
+    uint8_t         regIdForValX;
  
-    uint32_t            instrFetched;
-    uint32_t            instrLoad;
-    uint32_t            instrLoadViaOpMode;
-    uint32_t            instrStor;
-    uint32_t            branchesTaken;
-    uint32_t            trapsRaised;
+    uint32_t        instrFetched;
+    uint32_t        instrLoad;
+    uint32_t        instrLoadViaOpMode;
+    uint32_t        instrStor;
+    uint32_t        branchesTaken;
+    uint32_t        trapsRaised;
     
 private:
     
-    CpuCore           *core   = nullptr;
-    bool                stalled = false;
+    CpuCore         *core   = nullptr;
+    bool            stalled = false;
     
     uint32_t        instrSeg;
     uint32_t        instrOfs;
@@ -120,13 +120,13 @@ public:
     
     MemoryAccessStage( CpuCore *core );
     
-    void                reset( );
-    void                tick( );
-    void                process( );
-    void                stallPipeLine( );
-    void                flushPipeLine( );
+    void            reset( );
+    void            tick( );
+    void            process( );
+    void            stallPipeLine( );
+    void            flushPipeLine( );
    
-    void                setupTrapData( uint32_t trapId,
+    void            setupTrapData( uint32_t trapId,
                                        uint32_t iaSeg,
                                        uint32_t iaOfs,
                                        uint32_t pStat,
@@ -134,33 +134,33 @@ public:
                                        uint32_t p2 = 0,
                                        uint32_t p3 = 0 );
     
-    bool                isStalled( );
-    void                setStalled( bool arg );
+    bool            isStalled( );
+    void            setStalled( bool arg );
     
-    uint32_t            getPipeLineReg( uint8_t pReg );
-    void                setPipeLineReg( uint8_t pReg, uint32_t val );
+    uint32_t        getPipeLineReg( uint8_t pReg );
+    void            setPipeLineReg( uint8_t pReg, uint32_t val );
     
-    CpuReg            psInstrSeg;
-    CpuReg            psInstrOfs;
-    CpuReg            psInstr;
-    uint32_t            instrPrivLevel;
-    CpuReg            psValA;
-    CpuReg            psValB;
-    CpuReg            psValX;
-    CpuReg            psRegIdForValA;
-    CpuReg            psRegIdForValB;
-    CpuReg            psRegIdForValX;
+    CpuReg          psInstrSeg;
+    CpuReg          psInstrOfs;
+    CpuReg          psInstr;
+    uint32_t        instrPrivLevel;
+    CpuReg          psValA;
+    CpuReg          psValB;
+    CpuReg          psValX;
+    CpuReg          psRegIdForValA;
+    CpuReg          psRegIdForValB;
+    CpuReg          psRegIdForValX;
     
-    uint8_t             regIdForValA;
-    uint8_t             regIdForValB;
-    uint8_t             regIdForValX;
+    uint8_t         regIdForValA;
+    uint8_t         regIdForValB;
+    uint8_t         regIdForValX;
     
-    uint32_t            trapsRaised;
+    uint32_t        trapsRaised;
  
 private:
     
-    CpuCore           *core       = nullptr;
-    bool                stalled     = false;
+    CpuCore         *core       = nullptr;
+    bool            stalled     = false;
     
     uint32_t        instrSeg;
     uint32_t        instrOfs;
@@ -203,12 +203,12 @@ public:
                                        uint32_t p2 = 0,
                                        uint32_t p3 = 0 );
     
-    CpuReg        psInstr;
-    CpuReg        psInstrSeg;
-    CpuReg        psInstrOfs;
-    CpuReg        psValA;
-    CpuReg        psValB;
-    CpuReg        psValX;
+    CpuReg          psInstr;
+    CpuReg          psInstrSeg;
+    CpuReg          psInstrOfs;
+    CpuReg          psValA;
+    CpuReg          psValB;
+    CpuReg          psValX;
     
     uint8_t         regIdForValR;
     uint32_t        valR;
@@ -220,7 +220,7 @@ public:
     
 private:
     
-    CpuCore       *core       = nullptr;
+    CpuCore         *core       = nullptr;
     bool            stalled     = false;
     
     uint32_t        instrSeg;

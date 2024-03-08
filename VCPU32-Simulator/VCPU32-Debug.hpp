@@ -52,12 +52,12 @@ enum CPU24BreakPointFlags : uint32_t {
 // so on. Breakpoints can be set in a way that they only fire every nth count.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24Breakpoint {
+struct CPUBreakpoint {
     
     uint32_t    flags       = BP_NIL;
     uint32_t    instrAdrSeg = 0;
     uint32_t    instrAdrOfs = 0;
-    uint32_t    instr       = OP_NOP;
+    uint32_t    instr       = 0;  // ??? what to really set ...
     int         skipCount   = 0;
 };
 
@@ -67,32 +67,31 @@ struct CPU24Breakpoint {
 // mechanics of setting a breakpoint as well as entering the command interpreter.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CPU24Debug {
+struct CpuDebug {
 
 public:
 
-    CPU24Debug ( CpuCore *core );
-    void                initDebug ( );
+    CpuDebug ( CpuCore *core );
+    void            initDebug ( );
     
-    int                 addBreakPoint( uint32_t seg, uint32_t ofs, uint32_t instr );
-    int                 deleteBreakpoint( uint32_t seg, uint32_t ofs );
-    CPU24Breakpoint     *lookupBreakPoint( uint32_t seg, uint32_t ofs );
-    CPU24Breakpoint     *lookupBreakPoint( int index );
-    int                 getBreakPointTabSize( );
+    int             addBreakPoint( uint32_t seg, uint32_t ofs, uint32_t instr );
+    int             deleteBreakpoint( uint32_t seg, uint32_t ofs );
+    CPUBreakpoint   *lookupBreakPoint( uint32_t seg, uint32_t ofs );
+    CPUBreakpoint   *lookupBreakPoint( int index );
+    int             getBreakPointTabSize( );
     
-    int                 setBreakoint( uint32_t seg, uint32_t ofs, uint32_t instr );
-    int                 clearBreakPoint( uint32_t seg, uint32_t ofs );
+    int             setBreakoint( uint32_t seg, uint32_t ofs, uint32_t instr );
+    int             clearBreakPoint( uint32_t seg, uint32_t ofs );
     
-    int                 translateVirtualAdr( uint32_t seg, uint32_t ofs, uint32_t *physAdr );
+    int             translateVirtualAdr( uint32_t seg, uint32_t ofs, uint32_t *physAdr );
  
-    void                enterDebug( );
-    void                resumeProg( );
+    void            enterDebug( );
+    void            resumeProg( );
 
 private:
     
-    CPU24Breakpoint     *breakPointTab = nullptr;
-    CpuCore           * core         = nullptr;
+    CPUBreakpoint   *breakPointTab = nullptr;
+    CpuCore         * core         = nullptr;
 };
 
-
-#endif
+#endif /* VCPU32Debug_hpp */

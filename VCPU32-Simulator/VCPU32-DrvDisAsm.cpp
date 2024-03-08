@@ -125,29 +125,29 @@ void displayTestCodes( uint32_t tstCode ) {
 //------------------------------------------------------------------------------------------------------------
 void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
-    uint32_t    opCode         = CPU24Instr::opCodeField( instr );
+    uint32_t    opCode         = Instr::opCodeField( instr );
     bool            loadStoreInstr = (( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR )) ||
                                       ( opCode == OP_LEA ));
     
-    switch ( CPU24Instr::operandModeField( instr )) {
+    switch ( Instr::opModeField( instr )) {
             
         case ADR_MODE_IMM: {
             
             if ( loadStoreInstr ) fprintf( stdout, "***" );
-            else fprintf( stdout, "%d", signedVal( CPU24Instr::immGen0S9( instr )));
+            else fprintf( stdout, "%d", signedVal( Instr::immGen0S9( instr )));
             
         } break;
             
         case ADR_MODE_REG: {
             
             if ( loadStoreInstr ) fprintf( stdout, "***" );
-            else  fprintf( stdout, "R%d", CPU24Instr::regBIdField( instr ));
+            else  fprintf( stdout, "R%d", Instr::regBIdField( instr ));
             
         } break;
             
         case ADR_MODE_TWO_REGS: {
             
-            fprintf( stdout, "R%d,R%d", CPU24Instr::regAIdField( instr ), CPU24Instr::regBIdField( instr ));
+            fprintf( stdout, "R%d,R%d", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
             
         } break;
             
@@ -158,45 +158,45 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
                 ( opCode == OP_LEA )) {
                 
                 fprintf( stdout, "%d(S%d,R%d)",
-                        signedVal( CPU24Instr::immGen30S3( instr )),
-                        CPU24Instr::regAIdField( instr ),
-                        CPU24Instr::regBIdField( instr ));
+                        signedVal( Instr::immGen30S3( instr )),
+                        Instr::regAIdField( instr ),
+                        Instr::regBIdField( instr ));
             }
             else {
                 
                 fprintf( stdout, "%d(S%d,R%d)",
-                        signedVal( CPU24Instr::immGen0S3( instr )),
-                        CPU24Instr::regAIdField( instr ),
-                        CPU24Instr::regBIdField( instr ));
+                        signedVal( Instr::immGen0S3( instr )),
+                        Instr::regAIdField( instr ),
+                        Instr::regBIdField( instr ));
                 
             }
         } break;
             
         case ADR_MODE_INDX_GR4: {
             
-            if ( loadStoreInstr ) fprintf( stdout, "%d(R4)", signedVal( CPU24Instr::immGen30S9( instr )));
-            else fprintf( stdout, "%d(R4)", signedVal( CPU24Instr::immGen0S9( instr )));
+            if ( loadStoreInstr ) fprintf( stdout, "%d(R4)", signedVal( Instr::immGen30S9( instr )));
+            else fprintf( stdout, "%d(R4)", signedVal( Instr::immGen0S9( instr )));
             
         } break;
             
         case ADR_MODE_INDX_GR5: {
             
-            if ( loadStoreInstr ) fprintf( stdout, "%d(R5)", signedVal( CPU24Instr::immGen30S9( instr )));
-            else fprintf( stdout, "%d(R5)", signedVal( CPU24Instr::immGen0S9( instr )));
+            if ( loadStoreInstr ) fprintf( stdout, "%d(R5)", signedVal( Instr::immGen30S9( instr )));
+            else fprintf( stdout, "%d(R5)", signedVal( Instr::immGen0S9( instr )));
             
         } break;
             
         case ADR_MODE_INDX_GR6: {
             
-            if ( loadStoreInstr ) fprintf( stdout, "%d(R6)", signedVal( CPU24Instr::immGen30S9( instr )));
-            else fprintf( stdout, "%d(R6)", signedVal( CPU24Instr::immGen0S9( instr )));
+            if ( loadStoreInstr ) fprintf( stdout, "%d(R6)", signedVal( Instr::immGen30S9( instr )));
+            else fprintf( stdout, "%d(R6)", signedVal( Instr::immGen0S9( instr )));
             
         } break;
             
         case ADR_MODE_INDX_GR7: {
             
-            if ( loadStoreInstr ) fprintf( stdout, "%d(R7)", signedVal( CPU24Instr::immGen30S9( instr )));
-            else fprintf( stdout, "%d(R7)", signedVal( CPU24Instr::immGen0S9( instr )));
+            if ( loadStoreInstr ) fprintf( stdout, "%d(R7)", signedVal( Instr::immGen30S9( instr )));
+            else fprintf( stdout, "%d(R7)", signedVal( Instr::immGen0S9( instr )));
             
         } break;
     }
@@ -208,7 +208,7 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
 //------------------------------------------------------------------------------------------------------------
 void displayOpCode( uint32_t instr ) {
  
-    fprintf( stdout, "%s", opCodeTab[ CPU24Instr::opCodeField( instr ) ].mnemonic );
+    fprintf( stdout, "%s", opCodeTab[ Instr::opCodeField( instr ) ].mnemonic );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -218,17 +218,17 @@ void displayOpCode( uint32_t instr ) {
 //------------------------------------------------------------------------------------------------------------
 void displayOpCodeOptions( uint32_t instr ) {
   
-    switch ( CPU24Instr::opCodeField( instr )) {
+    switch ( Instr::opCodeField( instr )) {
             
         case OP_ADD:
         case OP_SUB: {
             
-            if ( CPU24Instr::arithOpFlagField( instr ) > 0 ) {
+            if ( Instr::arithOpFlagField( instr ) > 0 ) {
                 
                 fprintf( stdout, "." );
-                if ( CPU24Instr::useCarryField( instr ))    fprintf( stdout, "C" );
-                if ( CPU24Instr::logicalOpField( instr ))   fprintf( stdout, "L" );
-                if ( CPU24Instr::trapOvlField( instr ))     fprintf( stdout, "O" );
+                if ( Instr::useCarryField( instr ))    fprintf( stdout, "C" );
+                if ( Instr::logicalOpField( instr ))   fprintf( stdout, "L" );
+                if ( Instr::trapOvlField( instr ))     fprintf( stdout, "O" );
             }
             
         } break;
@@ -237,11 +237,11 @@ void displayOpCodeOptions( uint32_t instr ) {
         case OP_OR:
         case OP_XOR: {
             
-            if ( CPU24Instr::boolOpFlagField( instr ) != 0 ) {
+            if ( Instr::boolOpFlagField( instr ) != 0 ) {
                 
                 fprintf( stdout, "." );
-                if ( CPU24Instr::negateResField( instr )) fprintf( stdout, "N" );
-                if ( CPU24Instr::complRegBField( instr )) fprintf( stdout, "C" );
+                if ( Instr::negateResField( instr )) fprintf( stdout, "N" );
+                if ( Instr::complRegBField( instr )) fprintf( stdout, "C" );
             }
             
         } break;
@@ -249,50 +249,50 @@ void displayOpCodeOptions( uint32_t instr ) {
         case OP_CMP: {
             
             fprintf( stdout, "." );
-            displayComparisonCodes( CPU24Instr::cmpCondField( instr ));
+            displayComparisonCodes( Instr::cmpCondField( instr ));
             
         } break;
             
         case OP_LDI: {
             
-            if (( CPU24Instr::ldiLeftField( instr )) || ( CPU24Instr::ldiZeroField( instr ))) {
+            if (( Instr::ldiLeftField( instr )) || ( Instr::ldiZeroField( instr ))) {
                 
                 fprintf( stdout, "." );
-                if ( CPU24Instr::ldiLeftField( instr )) fprintf( stdout, "L" );
-                if ( CPU24Instr::ldiZeroField( instr )) fprintf( stdout, "Z" );
+                if ( Instr::ldiLeftField( instr )) fprintf( stdout, "L" );
+                if ( Instr::ldiZeroField( instr )) fprintf( stdout, "Z" );
             }
             
         } break;
             
         case OP_EXTR: {
             
-            if ( CPU24Instr::extrSignedField( instr )) {
+            if ( Instr::extrSignedField( instr )) {
                 
                 fprintf( stdout, "." );
-                if ( CPU24Instr::extrSignedField( instr )) fprintf( stdout, "S" );
+                if ( Instr::extrSignedField( instr )) fprintf( stdout, "S" );
             }
             
         } break;
        
         case OP_DEP: {
             
-            if (( CPU24Instr::depInZeroField( instr )) || ( CPU24Instr::depImmOptField( instr ))) {
+            if (( Instr::depInZeroField( instr )) || ( Instr::depImmOptField( instr ))) {
                 
                 fprintf( stdout, "." );
-                if ( CPU24Instr::depInZeroField( instr )) fprintf( stdout, "Z" );
-                if ( CPU24Instr::depImmOptField( instr )) fprintf( stdout, "I" );
+                if ( Instr::depInZeroField( instr )) fprintf( stdout, "Z" );
+                if ( Instr::depImmOptField( instr )) fprintf( stdout, "I" );
             }
             
         } break;
             
         case OP_SHLA: {
             
-            if ( CPU24Instr::arithOpFlagField( instr ) != 0 ) {
+            if ( Instr::arithOpFlagField( instr ) != 0 ) {
                 
                 fprintf( stdout, "." );
-                if ( CPU24Instr::shlaUseImmField( instr ))  fprintf( stdout, "I" );
-                if ( CPU24Instr::logicalOpField( instr ))   fprintf( stdout, "L" );
-                if ( CPU24Instr::trapOvlField( instr ))     fprintf( stdout, "O" );
+                if ( Instr::shlaUseImmField( instr ))  fprintf( stdout, "I" );
+                if ( Instr::logicalOpField( instr ))   fprintf( stdout, "L" );
+                if ( Instr::trapOvlField( instr ))     fprintf( stdout, "O" );
             }
             
         } break;
@@ -300,28 +300,28 @@ void displayOpCodeOptions( uint32_t instr ) {
         case OP_CMR: {
             
             fprintf( stdout, "." );
-            displayTestCodes( CPU24Instr::cmrCondField( instr ));
-            if ( CPU24Instr::cmrImmField( instr )) fprintf( stdout, "I" );
+            displayTestCodes( Instr::cmrCondField( instr ));
+         //   if ( CPU24Instr::cmrImmField( instr )) fprintf( stdout, "I" );
             
         } break;
             
         case OP_CBR: {
             
             fprintf( stdout, "." );
-            displayComparisonCodes( CPU24Instr::cbrCondField( instr ));
+            displayComparisonCodes( Instr::cbrCondField( instr ));
             
         } break;
             
         case OP_TBR: {
             
             fprintf( stdout, "." );
-            displayTestCodes( CPU24Instr::tbrCondField( instr ));
+            displayTestCodes( Instr::tbrCondField( instr ));
             
         } break;
             
         case OP_MST: {
             
-            switch ( CPU24Instr::mstModeField( instr )) {
+            switch ( Instr::mstModeField( instr )) {
                     
                 case 0:                                 break;
                 case 1:     fprintf( stdout, ".S" );    break;
@@ -333,7 +333,7 @@ void displayOpCodeOptions( uint32_t instr ) {
             
         case OP_PRB: {
             
-            if ( CPU24Instr::prbRwAccField( instr )) fprintf( stdout, ".W" );
+            if ( Instr::prbRwAccField( instr )) fprintf( stdout, ".W" );
             else fprintf( stdout, ".R" );
             
         } break;
@@ -341,10 +341,10 @@ void displayOpCodeOptions( uint32_t instr ) {
         case OP_ITLB: {
             
             fprintf( stdout, "." );
-            if ( CPU24Instr::tlbKindField( instr )) fprintf( stdout, "D" );
+            if ( Instr::tlbKindField( instr )) fprintf( stdout, "D" );
             else fprintf( stdout, "I" );
             
-            if ( CPU24Instr::tlbArgModeField( instr )) fprintf( stdout, "A" );
+            if ( Instr::tlbArgModeField( instr )) fprintf( stdout, "A" );
             else fprintf( stdout, "P" );
             
         } break;
@@ -352,7 +352,7 @@ void displayOpCodeOptions( uint32_t instr ) {
         case OP_PTLB: {
             
             fprintf( stdout, "." );
-            if ( CPU24Instr::tlbKindField( instr )) fprintf( stdout, "D" );
+            if ( Instr::tlbKindField( instr )) fprintf( stdout, "D" );
             else fprintf( stdout, "I" );
             
         } break;
@@ -360,9 +360,9 @@ void displayOpCodeOptions( uint32_t instr ) {
         case OP_PCA: {
             
             fprintf( stdout, "." );
-            if ( CPU24Instr::pcaKindField( instr )) fprintf( stdout, "D" );
+            if ( Instr::pcaKindField( instr )) fprintf( stdout, "D" );
             else fprintf( stdout, "I" );
-            if ( CPU24Instr::pcaPurgeFlushField( instr )) fprintf( stdout, "F" );
+            if ( Instr::pcaPurgeFlushField( instr )) fprintf( stdout, "F" );
             
         } break;
     }
@@ -378,13 +378,13 @@ void displayOpCodeOptions( uint32_t instr ) {
 //------------------------------------------------------------------------------------------------------------
 void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
-    uint32_t opCode = CPU24Instr::opCodeField( instr );
+    uint32_t opCode = Instr::opCodeField( instr );
     
     if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {
         
         if ( opCode != OP_BLE ) {
             
-            fprintf( stdout, "R%d", CPU24Instr::regRIdField( instr ));
+            fprintf( stdout, "R%d", Instr::regRIdField( instr ));
         }
     }
     else if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
@@ -392,27 +392,29 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
         if ( opCode == OP_STWA ) {
             
             fprintf( stdout, "%d(R%d)",
-                    signedVal( CPU24Instr::immGen6S6( instr )),
-                    CPU24Instr::regBIdField( instr ));
+                    signedVal( Instr::immGen6S6( instr )),
+                    Instr::regBIdField( instr ));
         }
         else if ( opCode == OP_STWE ) {
             
             fprintf( stdout, "%d(S%d,R%d)",
-                    signedVal( CPU24Instr::immGen6S3( instr )),
-                    CPU24Instr::regAIdField( instr ),
-                    CPU24Instr::regBIdField( instr ));
+                    signedVal( Instr::immGen6S3( instr )),
+                    Instr::regAIdField( instr ),
+                    Instr::regBIdField( instr ));
         }
         else displayOperandModeField( instr, fmtId );
     }
-    else if (( opCode == OP_MR ) && ( CPU24Instr::mrMovDirField( instr ))) {
+    else if (( opCode == OP_MR ) && ( Instr::mrMovDirField( instr ))) {
         
+        /*
         if ( CPU24Instr::mrRegTypeField( instr ))
             fprintf( stdout, "C%d", CPU24Instr::mrRegGrpField( instr ) * 8 + CPU24Instr::regBIdField( instr ));
         else fprintf( stdout, "S%d", CPU24Instr::regBIdField( instr ));
+         */
     }
-    else if (( opCode == OP_MR ) && ( ! CPU24Instr::mrMovDirField( instr ))) {
+    else if (( opCode == OP_MR ) && ( ! Instr::mrMovDirField( instr ))) {
         
-        fprintf( stdout, "R%d", CPU24Instr::regRIdField( instr ));
+        fprintf( stdout, "R%d", Instr::regRIdField( instr ));
     }
 }
 
@@ -424,84 +426,80 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
 //------------------------------------------------------------------------------------------------------------
 void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
-    uint32_t opCode = CPU24Instr::opCodeField( instr );
+    uint32_t opCode = Instr::opCodeField( instr );
     
     if ( opCodeTab[ opCode ].flags & OP_MODE_INSTR ) {
         
         fprintf( stdout, "," );
         
-        if ( opCodeTab[ opCode ].flags & STORE_INSTR ) fprintf( stdout, "R%d", CPU24Instr::regRIdField( instr ));
+        if ( opCodeTab[ opCode ].flags & STORE_INSTR ) fprintf( stdout, "R%d", Instr::regRIdField( instr ));
         else displayOperandModeField( instr, fmtId );
     }
     else {
         
         switch ( opCode ) {
-                
-            case OP_NOP: {
-                
-                if (( instr & 000777777 ) != 0 ) fprintf( stdout, "***" );
-                
-            } break;
-                
+       
             case OP_LDI: {
                 
                 fprintf( stdout, "," );
-                displayHalfWord( signedVal( CPU24Instr::immGen30S9( instr )), fmtId );
+                displayHalfWord( signedVal( Instr::immGen30S9( instr )), fmtId );
                 
             } break;
                 
             case OP_SHLA: {
                 
                 fprintf( stdout, "," );
-                fprintf( stdout, "R%d", CPU24Instr::regAIdField( instr ));
-                fprintf( stdout, ",R%d", CPU24Instr::regBIdField( instr ));
+                fprintf( stdout, "R%d", Instr::regAIdField( instr ));
+                fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
                 
-                if ( CPU24Instr::shlaSaField( instr ) > 0 )
-                    fprintf( stdout, ",%d",  CPU24Instr::shlaSaField( instr ));
+                if ( Instr::shlaSaField( instr ) > 0 )
+                    fprintf( stdout, ",%d",  Instr::shlaSaField( instr ));
                 
             } break;
                 
             case OP_EXTR:
             case OP_DEP: {
                 
-                uint32_t pos = CPU24Instr::extrDepPosField( instr );
+                uint32_t pos = Instr::extrDepPosField( instr );
                
                 fprintf( stdout, "," );
-                fprintf( stdout, "R%d", CPU24Instr::regBIdField( instr ));
+                fprintf( stdout, "R%d", Instr::regBIdField( instr ));
                 
                 if      ( pos == 31 )   fprintf( stdout, ",shamt" );
-                else if ( pos <= 23 )   fprintf( stdout, ",%d", CPU24Instr::extrDepPosField( instr ));
+                else if ( pos <= 23 )   fprintf( stdout, ",%d", Instr::extrDepPosField( instr ));
                 else                    fprintf( stdout, ",***" );
                 
-                fprintf( stdout, ",%d", CPU24Instr::extrDepLenField( instr ));
+                fprintf( stdout, ",%d", Instr::extrDepLenField( instr ));
                 
             } break;
                 
             case OP_DSR: {
                 
                 fprintf( stdout, "," );
-                fprintf( stdout, "R%d", CPU24Instr::regAIdField( instr ));
-                fprintf( stdout, ",R%d", CPU24Instr::regBIdField( instr ));
+                fprintf( stdout, "R%d", Instr::regAIdField( instr ));
+                fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
                 
-                if ( CPU24Instr::dsrSaField( instr ) == 31 ) fprintf( stdout, ",shmat" );
-                else fprintf( stdout, ",%d", CPU24Instr::dsrSaField( instr ));
+                if ( Instr::dsrSaField( instr ) == 31 ) fprintf( stdout, ",shmat" );
+                else fprintf( stdout, ",%d", Instr::dsrSaField( instr ));
                 
             } break;
                 
             case OP_LSID: {
                 
                 fprintf( stdout, "," );
-                fprintf( stdout, "R%d", CPU24Instr::regBIdField( instr ));
+                fprintf( stdout, "R%d", Instr::regBIdField( instr ));
                 
             } break;
                 
             case OP_CMR: {
                 
                 fprintf( stdout, "," );
-                fprintf( stdout, "R%d", CPU24Instr::regBIdField( instr ));
+                fprintf( stdout, "R%d", Instr::regBIdField( instr ));
                 
+                /*
                 if ( CPU24Instr::cmrImmField( instr ))  fprintf( stdout, ",%d", signedVal( CPU24Instr::immGen0S6( instr )));
                 else                                    fprintf( stdout, ",R%d", CPU24Instr::regAIdField( instr ));
+                 */
                 
             } break;
                 
@@ -509,8 +507,8 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
                 
                 fprintf( stdout, "," );
                 fprintf( stdout, "%d(R%d)",
-                        signedVal( CPU24Instr::immGen6S6( instr )),
-                        CPU24Instr::regBIdField( instr ));
+                        signedVal( Instr::immGen6S6( instr )),
+                        Instr::regBIdField( instr ));
                 
             } break;
                 
@@ -518,9 +516,9 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
                 
                 fprintf( stdout, "," );
                 fprintf( stdout, "%d(S%d,R%d)",
-                        signedVal( CPU24Instr::immGen6S3( instr )),
-                        CPU24Instr::regAIdField( instr ),
-                        CPU24Instr::regBIdField( instr ));
+                        signedVal( Instr::immGen6S3( instr )),
+                        Instr::regAIdField( instr ),
+                        Instr::regBIdField( instr ));
                 
             } break;
                 
@@ -528,13 +526,13 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             case OP_STWE: {
                 
                 fprintf( stdout, "," );
-                fprintf( stdout, "R%d", CPU24Instr::regRIdField( instr ));
+                fprintf( stdout, "R%d", Instr::regRIdField( instr ));
                 
             } break;
                 
             case OP_B: {
                 
-                fprintf( stdout, "%i", signedVal( CPU24Instr::immGen6S9( instr )));
+                fprintf( stdout, "%i", signedVal( Instr::immGen6S9( instr )));
                 
             } break;
                 
@@ -542,81 +540,85 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             case OP_BL: {
             
                 fprintf( stdout, "," );
-                fprintf( stdout, "%i", signedVal( CPU24Instr::immGen6S9( instr )));
+                fprintf( stdout, "%i", signedVal( Instr::immGen6S9( instr )));
                 
             } break;
                 
                 
             case OP_BR: {
                 
-                fprintf( stdout, "(R%d)", CPU24Instr::regBIdField( instr ));
+                fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
                 
             } break;
                 
             case OP_BLR: {
                 
                 fprintf( stdout, "," );
-                fprintf( stdout, "(R%d)", CPU24Instr::regBIdField( instr ));
+                fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
                 
             } break;
                 
             case OP_BV: {
                 
-                fprintf( stdout, "(R%d)", CPU24Instr::regBIdField( instr ));
+                fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
                 
             } break;
                 
             case OP_BVR: {
                 
-                fprintf( stdout, "(R%d,", CPU24Instr::regAIdField( instr ));
-                fprintf( stdout, "R%d)", CPU24Instr::regBIdField( instr ));
+                fprintf( stdout, "(R%d,", Instr::regAIdField( instr ));
+                fprintf( stdout, "R%d)", Instr::regBIdField( instr ));
                 
             } break;
                 
             case OP_BE:  {
                 
-                fprintf( stdout, "%d,", signedVal( CPU24Instr::immGen9S3( instr )));
-                fprintf( stdout, "(S%d", CPU24Instr::regAIdField( instr ));
-                fprintf( stdout, ",R%d)", CPU24Instr::regBIdField( instr ));
+                fprintf( stdout, "%d,", signedVal( Instr::immGen9S3( instr )));
+                fprintf( stdout, "(S%d", Instr::regAIdField( instr ));
+                fprintf( stdout, ",R%d)", Instr::regBIdField( instr ));
                 
             } break;
                 
             case OP_BLE: {
                 
-                fprintf( stdout, "%d", signedVal( CPU24Instr::immGen9S3( instr )));
-                fprintf( stdout, "(S%d", CPU24Instr::regAIdField( instr ));
-                fprintf( stdout, ",R%d)", CPU24Instr::regBIdField( instr ));
+                fprintf( stdout, "%d", signedVal( Instr::immGen9S3( instr )));
+                fprintf( stdout, "(S%d", Instr::regAIdField( instr ));
+                fprintf( stdout, ",R%d)", Instr::regBIdField( instr ));
                 
             } break;
                 
             case OP_CBR: {
                 
-                fprintf( stdout, "R%d", CPU24Instr::regAIdField( instr ));
-                fprintf( stdout, ",R%d", CPU24Instr::regBIdField( instr ));
-                fprintf( stdout, ",%d", signedVal( CPU24Instr::immGen6S3( instr )));
+                fprintf( stdout, "R%d", Instr::regAIdField( instr ));
+                fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
+                fprintf( stdout, ",%d", signedVal( Instr::immGen6S3( instr )));
                 
             } break;
                 
             case OP_TBR: {
                 
-                fprintf( stdout, "R%d", CPU24Instr::regBIdField( instr ));
-                fprintf( stdout, ",%d", signedVal( CPU24Instr::immGen6S3( instr )));
+                fprintf( stdout, "R%d", Instr::regBIdField( instr ));
+                fprintf( stdout, ",%d", signedVal( Instr::immGen6S3( instr )));
                 
             } break;
                 
             case OP_MR: {
                 
-                if ( CPU24Instr::mrMovDirField( instr )) {
+                if ( Instr::mrMovDirField( instr )) {
                     
                     fprintf( stdout, "," );
-                    fprintf( stdout, "R%d", CPU24Instr::regRIdField( instr ));
+                    fprintf( stdout, "R%d", Instr::regRIdField( instr ));
                 }
                 else {
                     
                     fprintf( stdout, "," );
-                    if ( CPU24Instr::mrRegTypeField( instr ))
-                        fprintf( stdout, "C%d", CPU24Instr::mrRegGrpField( instr ) * 8 + CPU24Instr::regBIdField( instr ));
-                    else fprintf( stdout, "S%d", CPU24Instr::regBIdField( instr ));
+                    
+                    // ??? fix
+                    /*
+                     if ( CPU24Instr::mrRegTypeField( instr ))
+                     fprintf( stdout, "C%d", CPU24Instr::mrRegGrpField( instr ) * 8 + CPU24Instr::regBIdField( instr ));
+                     else fprintf( stdout, "S%d", CPU24Instr::regBIdField( instr ));
+                     */
                 }
                 
             } break;
@@ -624,11 +626,11 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             case OP_MST: {
                 
                 fprintf( stdout, "," );
-                switch( CPU24Instr::mstModeField( instr )) {
+                switch( Instr::mstModeField( instr )) {
                         
-                    case 0: fprintf( stdout, "R%d", CPU24Instr::regBIdField( instr ));  break;
+                    case 0: fprintf( stdout, "R%d", Instr::regBIdField( instr ));  break;
                     case 1:
-                    case 2: displayHalfWord( CPU24Instr::mstArgField( instr ), fmtId ); break;
+                    case 2: displayHalfWord( Instr::mstArgField( instr ), fmtId ); break;
                     default: fprintf( stdout, "***" );
                 }
                 
@@ -637,39 +639,39 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             case OP_PRB: {
                 
                 fprintf( stdout, "," );
-                if ( CPU24Instr::prbAdrModeField( instr )) fprintf( stdout, "(R%d)", CPU24Instr::regBIdField( instr ));
-                else fprintf( stdout, "(S%d, R%d)", CPU24Instr::regAIdField( instr ), CPU24Instr::regBIdField( instr ));
+                if ( Instr::prbAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
+                else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
                 
             } break;
                 
             case OP_LDPA: {
                 
                 fprintf( stdout, "," );
-                if ( CPU24Instr::ldpaAdrModeField( instr )) fprintf( stdout, "(R%d)", CPU24Instr::regBIdField( instr ));
-                else fprintf( stdout, "(S%d, R%d)", CPU24Instr::regAIdField( instr ), CPU24Instr::regBIdField( instr ));
+                if ( Instr::ldpaAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
+                else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
                 
             } break;
                 
             case OP_ITLB: {
                 
-                fprintf( stdout, "R%d,", CPU24Instr::regRIdField( instr ));
+                fprintf( stdout, "R%d,", Instr::regRIdField( instr ));
                 
-                if ( CPU24Instr::tlbAdrModeField( instr )) fprintf( stdout, "(R%d)", CPU24Instr::regBIdField( instr ));
-                else fprintf( stdout, "(S%d, R%d)", CPU24Instr::regAIdField( instr ), CPU24Instr::regBIdField( instr ));
+                if ( Instr::tlbAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
+                else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
                 
             } break;
                 
             case OP_PTLB: {
                 
-                if ( CPU24Instr::tlbAdrModeField( instr )) fprintf( stdout, "(R%d)", CPU24Instr::regBIdField( instr ));
-                else fprintf( stdout, "(S%d, R%d)", CPU24Instr::regAIdField( instr ), CPU24Instr::regBIdField( instr ));
+                if ( Instr::tlbAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
+                else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
                 
             } break;
                 
             case OP_PCA: {
                 
-                if ( CPU24Instr::pcaAdrModeField( instr )) fprintf( stdout, "(R%d)", CPU24Instr::regBIdField( instr ));
-                else fprintf( stdout, "(S%d, R%d)", CPU24Instr::regAIdField( instr ), CPU24Instr::regBIdField( instr ));
+                if ( Instr::pcaAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
+                else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
                 
             } break;
         }

@@ -6,7 +6,6 @@
 // Welcome to the test driver commands.
 //
 //
-//
 //------------------------------------------------------------------------------------------------------------
 //
 // VCPU32 - A 32-bit CPU - Simulator Commands
@@ -521,7 +520,6 @@ void DrvCmds::printWelcome( ) {
     
     glb -> env -> setEnvVal( ENV_PROG_VERSION, (char *) VERSION );
     glb -> env -> setEnvVal( ENV_PROG_PATCH_LEVEL, PATCH_LEVEL );
-    // glb -> env -> setEnvVal( ENV_FMT_DEF, TOK_HEX );
     glb -> env -> setEnvVal( ENV_EXIT_CODE, 0 );
     
     if ( isatty( fileno( stdin ))) {
@@ -533,8 +531,8 @@ void DrvCmds::printWelcome( ) {
 //------------------------------------------------------------------------------------------------------------
 // One day we will handle command line arguments....
 //
-// -v           verbose
-// -i <path>    init file
+//  -v           verbose
+//  -i <path>    init file
 //
 // ??? to do ...
 //------------------------------------------------------------------------------------------------------------
@@ -781,7 +779,7 @@ void DrvCmds::exitCmd( char *cmdBuf ) {
         if ( strlen( arg1Str ) > 0 ) {
             
             int tmp = sscanf( arg1Str, "%i", &exitVal );
-            if ( tmp != 1 )     fprintf( stdout, "Invalid exit code\n" );
+            if ( tmp != 1 ) fprintf( stdout, "Invalid exit code\n" );
             if ( exitVal > 255 ) fprintf( stdout, "Expected an exit code between 0 .. 255\n" );
         }
         else exitVal = glb -> env -> getEnvValInt( ENV_EXIT_CODE );
@@ -823,8 +821,6 @@ void DrvCmds::envCmd( char *cmdBuf ) {
             fprintf( stdout, "Unknown ENV variable\n" );
     }
     else if ( args == 3 ) {
-        
-        // TokId arg1Id  = lookupTokId( arg1Str );
         
         TokId arg1Id  = glb -> env -> lookupEnvTokId( arg1Str );
         
@@ -871,6 +867,19 @@ void DrvCmds::envCmd( char *cmdBuf ) {
                 
             } break;
                 
+            case ENV_TYP_UINT: {
+                
+                uint32_t val = 0;
+                if ( sscanf( arg2Str, "%u", &val ) != 1 ) {
+                    
+                    fprintf( stdout, "Invalid value\n" );
+                    return;
+                }
+                
+                glb -> env -> setEnvVal( arg1Id, val );
+                
+            } break;
+                
             case ENV_TYP_STR: {
                 
                 glb -> env -> setEnvVal( arg1Id, arg2Str );
@@ -905,7 +914,7 @@ void DrvCmds::resetCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE + 1 ]     = "";
     char    arg1Str[ TOK_NAME_SIZE + 1 ]    = "";
-    int     args                        = sscanf( cmdBuf, FMT_STR_2S, cmdStr, arg1Str );
+    int     args                            = sscanf( cmdBuf, FMT_STR_2S, cmdStr, arg1Str );
     
     if ( args < 2 ) {
         
@@ -938,6 +947,8 @@ void DrvCmds::resetCmd( char *cmdBuf ) {
             glb -> cpu -> reset( );
             glb -> cpu -> mem -> reset( );
             
+            // ??? reset statistics....
+            
         } break;
             
         default: fprintf( stdout, "Invalid option, use help\n" );
@@ -967,10 +978,10 @@ void DrvCmds::runCmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::stepCmd( char *cmdBuf ) {
     
-    char            cmdStr[ TOK_NAME_SIZE ]     = "";
+    char        cmdStr[ TOK_NAME_SIZE ]     = "";
     uint32_t    numOfSteps                  = 1;
-    char            argStr[ TOK_NAME_SIZE ]     = "";
-    int             args                        = sscanf( cmdBuf, FMT_STR_1S_1D_1S, cmdStr, &numOfSteps, argStr );
+    char        argStr[ TOK_NAME_SIZE ]     = "";
+    int         args                        = sscanf( cmdBuf, FMT_STR_1S_1D_1S, cmdStr, &numOfSteps, argStr );
     
     if ( args < 2 ) {
         
@@ -999,6 +1010,7 @@ void DrvCmds::stepCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Set a breakpoint.
 //
 // B <seg> <ofs>
 //------------------------------------------------------------------------------------------------------------
@@ -1007,6 +1019,7 @@ void DrvCmds::setBreakPointCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Delete a breakpoint.
 //
 // BD <seg> <ofs>
 //------------------------------------------------------------------------------------------------------------
@@ -1015,6 +1028,7 @@ void DrvCmds::deleteBreakPointCmd( char *cmdBuf ){
 }
 
 //------------------------------------------------------------------------------------------------------------
+// List all breakpoints.
 //
 // BL
 //------------------------------------------------------------------------------------------------------------
@@ -1024,7 +1038,7 @@ void DrvCmds::listBreakPointsCmd( char *cmdBuf ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Test register content command. We compare the register content with a value and print out the comparison
-// result. In addition, the environment varibales for pass and fails are incremented.
+// result. In addition, the environment variables for pass and fails are incremented.
 //
 // TREQ <reg> <val> <fail-str> [ <pass-str>  ]
 // TRNE <reg> <val> <fail-str> [ <pass-str>  ]
@@ -1040,8 +1054,8 @@ void DrvCmds::testRegCmd( char *cmdBuf ) {
     
     if ( args < 1 ) return;
     
-    TokId           cmdId   = lookupTokId( cmdStr );
-    TokId           regId   = TOK_NIL;
+    TokId       cmdId   = lookupTokId( cmdStr );
+    TokId       regId   = TOK_NIL;
     uint32_t    valA    = 0;
     uint32_t    valB    = 0;
     
@@ -1118,7 +1132,7 @@ void DrvCmds::testMemCmd( char *cmdBuf ) {
     
     if ( args < 1 ) return;
     
-    TokId           cmdId   = lookupTokId( cmdStr );
+    TokId       cmdId   = lookupTokId( cmdStr );
     uint32_t    ofs     = 0;
     uint32_t    valA    = 0;
     uint32_t    valB    = 0;
@@ -1149,8 +1163,7 @@ void DrvCmds::testMemCmd( char *cmdBuf ) {
         }
     }
     
-    // ??? fix it ...
-    // glb -> cpu -> mem -> readWordFromMem( 0, ofs, &valB );
+    glb -> cpu -> mem -> readWordPhys( ofs, &valB );
     
     if ((( valA == valB ) && ( cmdId == CMD_TMEQ )) || (( valA != valB ) && ( cmdId == CMD_TMNE ))) {
         
@@ -1175,12 +1188,12 @@ void DrvCmds::testMemCmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::disAssembleCmd( char *cmdBuf ) {
     
-    char            cmdStr[ TOK_NAME_SIZE ]     = "";
+    char        cmdStr[ TOK_NAME_SIZE ]     = "";
     uint32_t    instr                       = 0;
-    TokId           fmtId                       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
-    char            arg1Str[ TOK_NAME_SIZE ]    = "";
-    char            arg2Str[ TOK_NAME_SIZE ]    = "";
-    int             args                        = sscanf( cmdBuf, FMT_STR_1S_1D_2S, cmdStr, &instr , arg1Str, arg2Str );
+    TokId       fmtId                       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+    char        arg1Str[ TOK_NAME_SIZE ]    = "";
+    char        arg2Str[ TOK_NAME_SIZE ]    = "";
+    int         args = sscanf( cmdBuf, FMT_STR_1S_1D_2S, cmdStr, &instr , arg1Str, arg2Str );
     
     if ( args < 2 ) {
         
@@ -1201,7 +1214,7 @@ void DrvCmds::disAssembleCmd( char *cmdBuf ) {
     
     if ( instr < UINT_MAX ) {
         
-        glb -> disAsm -> displayInstr( instr, glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+        glb -> disAsm -> displayInstr( instr, fmtId );
         
         fprintf( stdout, " (" );
         glb -> lineDisplay -> displayWord( instr, fmtId );
@@ -1214,7 +1227,7 @@ void DrvCmds::disAssembleCmd( char *cmdBuf ) {
 // Display register command. This is a rather versatile command, which displays register set, register and
 // all of them in one format.
 //
-// DR [<regSet>|<reg>] <fmt>]
+// DR [<regSet>|<reg>] [<fmt>]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::displayRegCmd( char *cmdBuf ) {
     
@@ -1407,7 +1420,7 @@ void DrvCmds::modifyRegCmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::hashVACmd( char *cmdBuf ) {
     
-    char            cmdStr[ TOK_NAME_SIZE + 1 ] = "";
+    char        cmdStr[ TOK_NAME_SIZE + 1 ] = "";
     uint32_t    seg                         = 0;
     uint32_t    ofs                         = 0;
     
@@ -1426,16 +1439,16 @@ void DrvCmds::hashVACmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::displayTLBCmd( char *cmdBuf ) {
     
-    char            cmdStr[ TOK_NAME_SIZE + 1 ]     = "";
-    char            tlbTypStr[ TOK_NAME_SIZE + 1 ]  = "";
-    char            fmtStr[ TOK_NAME_SIZE + 1 ]     = "";
+    char        cmdStr[ TOK_NAME_SIZE + 1 ]     = "";
+    char        tlbTypStr[ TOK_NAME_SIZE + 1 ]  = "";
+    char        fmtStr[ TOK_NAME_SIZE + 1 ]     = "";
     uint32_t    ofs                             = 0;
     uint32_t    len                             = 0;
     uint32_t    tlbSize                         = 0;
     
-    int             args         = sscanf( cmdBuf, "%32s %32s %i %i %32s", cmdStr, tlbTypStr, &ofs, &len, fmtStr );
-    TokId           fmtId       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
-    TokId           tlbTypId    = lookupTokId( tlbTypStr );
+    int         args        = sscanf( cmdBuf, "%32s %32s %i %i %32s", cmdStr, tlbTypStr, &ofs, &len, fmtStr );
+    TokId       fmtId       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+    TokId       tlbTypId    = lookupTokId( tlbTypStr );
     
     if ( args < 2 ) {
         
@@ -1471,13 +1484,13 @@ void DrvCmds::displayTLBCmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::purgeTLBCmd( char *cmdBuf ) {
     
-    char            cmdStr[ TOK_NAME_SIZE ]     = "";
-    char            tlbTypStr[ TOK_NAME_SIZE ]  = "";
+    char        cmdStr[ TOK_NAME_SIZE ]     = "";
+    char        tlbTypStr[ TOK_NAME_SIZE ]  = "";
     uint32_t    seg                         = 0;
     uint32_t    ofs                         = 0;
     
-    int             args        = sscanf( cmdBuf, FMT_STR_2S_2D, cmdStr, tlbTypStr, &seg, &ofs );
-    TokId           tlbTypId    = lookupTokId( tlbTypStr );
+    int         args        = sscanf( cmdBuf, FMT_STR_2S_2D, cmdStr, tlbTypStr, &seg, &ofs );
+    TokId       tlbTypId    = lookupTokId( tlbTypStr );
     
     if (( args < 2 ) || (( tlbTypId != TOK_I ) && ( tlbTypId != TOK_D ))) {
         
@@ -1502,15 +1515,15 @@ void DrvCmds::purgeTLBCmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::insertTLBCmd( char *cmdBuf ) {
     
-    char            cmdStr[ TOK_NAME_SIZE ]     = "";
-    char            tlbTypStr[ TOK_NAME_SIZE ]  = "";
+    char        cmdStr[ TOK_NAME_SIZE ]     = "";
+    char        tlbTypStr[ TOK_NAME_SIZE ]  = "";
     uint32_t    seg                         = 0;
     uint32_t    ofs                         = 0;
     uint32_t    argAcc                      = 0;
     uint32_t    argAdr                      = 0;
     
-    int             args        = sscanf( cmdBuf, FMT_STR_2S_4D, cmdStr, tlbTypStr, &seg, &ofs, &argAcc, &argAdr );
-    TokId           tlbTypId    = lookupTokId( tlbTypStr );
+    int         args        = sscanf( cmdBuf, FMT_STR_2S_4D, cmdStr, tlbTypStr, &seg, &ofs, &argAcc, &argAdr );
+    TokId       tlbTypId    = lookupTokId( tlbTypStr );
     
     if (( args < 2 ) || (( tlbTypId != TOK_I ) && ( tlbTypId != TOK_D ))) {
         
@@ -1541,7 +1554,7 @@ void  DrvCmds::displayCacheCmd( char *cmdBuf ) {
     uint32_t    ofs                             = 0;
     uint32_t    len                             = 0;
     
-    CPU24Mem    *cPtr                           = nullptr;
+    CpuMem      *cPtr                           = nullptr;
     
     int         args    = sscanf( cmdBuf, FMT_STR_2S_2U_1S, cmdStr, cTypStr, &ofs, &len, fmtStr );
     TokId       fmtId   = glb -> env -> getEnvValTok( ENV_FMT_DEF );
@@ -1587,16 +1600,15 @@ void  DrvCmds::displayCacheCmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 void  DrvCmds::purgeCacheCmd( char *cmdBuf ) {
     
-    char            cmdStr[ TOK_NAME_SIZE ]         = "";
-    char            cTypStr[ TOK_NAME_SIZE ]        = "";
-    char            flushOptStr[ TOK_NAME_SIZE ]    = "";
-    uint32_t        index                           = 0;
-    uint32_t        set                             = 0;
-    CPU24Mem        *cPtr                           = nullptr;
-    
-    int     args    = sscanf( cmdBuf, FMT_STR_2S_2U_1S, cmdStr, cTypStr, &index, &set, flushOptStr );
-    TokId   fOptId  = lookupTokId( flushOptStr, TOK_NIL );
-    TokId   cTypId  = lookupTokId( cTypStr, TOK_NIL );
+    char        cmdStr[ TOK_NAME_SIZE ]         = "";
+    char        cTypStr[ TOK_NAME_SIZE ]        = "";
+    char        flushOptStr[ TOK_NAME_SIZE ]    = "";
+    uint32_t    index                           = 0;
+    uint32_t    set                             = 0;
+    CpuMem      *cPtr                           = nullptr;
+    int         args    = sscanf( cmdBuf, FMT_STR_2S_2U_1S, cmdStr, cTypStr, &index, &set, flushOptStr );
+    TokId       fOptId  = lookupTokId( flushOptStr, TOK_NIL );
+    TokId       cTypId  = lookupTokId( cTypStr, TOK_NIL );
     
     if (( args < 2 ) || (( cTypId != TOK_I ) && ( cTypId != TOK_D ) && ( cTypId != TOK_U ))) {
         
@@ -1689,27 +1701,27 @@ void DrvCmds::displayPhysMemCmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     
-    char            cmdStr[ TOK_NAME_SIZE + 1 ] = "";
-    uint32_t        ofs                         = 0;
-    uint32_t        val1                        = 0;
-    uint32_t        val2                        = 0;
-    uint32_t        val3                        = 0;
-    uint32_t        val4                        = 0;
-    uint32_t        val5                        = 0;
-    uint32_t        val6                        = 0;
-    uint32_t        val7                        = 0;
-    uint32_t        val8                        = 0;
+    char        cmdStr[ TOK_NAME_SIZE + 1 ] = "";
+    uint32_t    ofs                         = 0;
+    uint32_t    val1                        = 0;
+    uint32_t    val2                        = 0;
+    uint32_t    val3                        = 0;
+    uint32_t    val4                        = 0;
+    uint32_t    val5                        = 0;
+    uint32_t    val6                        = 0;
+    uint32_t    val7                        = 0;
+    uint32_t    val8                        = 0;
     
-    uint32_t        blockEntries                = glb -> cpu -> mem -> getBlockEntries( );
-    uint32_t        blockSize                   = glb -> cpu -> mem -> getBlockSize( );
-    uint32_t        memSize                     = blockEntries * blockSize;
-    CPU24Mem        *mem                        = glb -> cpu -> mem;
+    uint32_t    blockEntries                = glb -> cpu -> mem -> getBlockEntries( );
+    uint32_t    blockSize                   = glb -> cpu -> mem -> getBlockSize( );
+    uint32_t    memSize                     = blockEntries * blockSize;
+    CpuMem      *mem                        = glb -> cpu -> mem;
     uint32_t    *dataPtr                    = nullptr;
     
-    int             args        = sscanf( cmdBuf, "%32s %i %i %i %i %i %i %i %i %i", cmdStr, &ofs,
+    int         args        = sscanf( cmdBuf, "%32s %i %i %i %i %i %i %i %i %i", cmdStr, &ofs,
                                          &val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8 );
     
-    int             numOfVal    = args - 2;
+    int         numOfVal    = args - 2;
     
     if ( ofs + numOfVal > memSize ) {
         
@@ -1794,20 +1806,20 @@ void DrvCmds::loadPhysMemCmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
     
-    char            cmdStr[ TOK_NAME_SIZE + 1 ]     = "";
-    char            pathStr[ PATH_STR_SIZE + 1 ]    = "";
-    uint32_t        ofs                             = 0;
-    uint32_t        len                             = 0;
-    uint32_t        wordsPerLine                    = 8;
-    TokId           fmtId                           = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+    char        cmdStr[ TOK_NAME_SIZE + 1 ]     = "";
+    char        pathStr[ PATH_STR_SIZE + 1 ]    = "";
+    uint32_t    ofs                             = 0;
+    uint32_t    len                             = 0;
+    uint32_t    wordsPerLine                    = 8;
+    TokId       fmtId                           = glb -> env -> getEnvValTok( ENV_FMT_DEF );
     
-    CPU24Mem        *mem                            = glb -> cpu -> mem;
-    uint32_t        blockEntries                    = mem -> getBlockEntries( );
-    uint32_t        blockSize                       = mem -> getBlockSize( );
-    uint32_t        memSize                         = blockEntries * blockSize;
+    CpuMem      *mem                            = glb -> cpu -> mem;
+    uint32_t    blockEntries                    = mem -> getBlockEntries( );
+    uint32_t    blockSize                       = mem -> getBlockSize( );
+    uint32_t    memSize                         = blockEntries * blockSize;
     uint32_t    *dataPtr                        = nullptr;
     
-    int             args    = sscanf( cmdBuf, "%32s %256s %i %i", cmdStr, pathStr, &ofs, &len );
+    int         args = sscanf( cmdBuf, "%32s %256s %i %i", cmdStr, pathStr, &ofs, &len );
     
     if ( args < 2 ) {
         
@@ -1843,7 +1855,7 @@ void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
     while ( ofs < len ) {
         
         uint32_t tmp;
-        int          index;
+        int      index;
         
         dataPtr = mem -> getMemBlockEntry( ofs / blockSize ) + ( ofs % blockSize );
         

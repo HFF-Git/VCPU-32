@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Core
+// VCPU32 - A 32-bit CPU - CPU Core
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -9,7 +9,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Core
+// VCPU32 - A 32-bit CPU - CPU Core
 // Copyright (C) 2022 - 2024 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -53,18 +53,18 @@ CpuCore::CpuCore( CpuCoreDesc *cfg ) {
         dTlb = new CpuTlb( &cfg -> dTlbDesc );
     }
     
-    mem = new CPU24Mem( &cfg -> memDesc );
+    mem = new CpuMem( &cfg -> memDesc );
     
     if ( cfg -> cacheL2Options == VMEM_T_L2_UNIFIED_CACHE ) {
         
-        uCacheL2 = new CPU24Mem( &cfg -> uCacheDescL2, mem );
-        iCacheL1 = new CPU24Mem( &cfg -> iCacheDescL1, uCacheL2 );
-        dCacheL1 = new CPU24Mem( &cfg -> dCacheDescL1, uCacheL2 );
+        uCacheL2 = new CpuMem( &cfg -> uCacheDescL2, mem );
+        iCacheL1 = new CpuMem( &cfg -> iCacheDescL1, uCacheL2 );
+        dCacheL1 = new CpuMem( &cfg -> dCacheDescL1, uCacheL2 );
     }
     else {
         
-        iCacheL1 = new CPU24Mem( &cfg -> iCacheDescL1, mem );
-        dCacheL1 = new CPU24Mem( &cfg -> dCacheDescL1, mem );
+        iCacheL1 = new CpuMem( &cfg -> iCacheDescL1, mem );
+        dCacheL1 = new CpuMem( &cfg -> dCacheDescL1, mem );
     }
    
     fdStage = new FetchDecodeStage( this );
@@ -189,7 +189,7 @@ void CpuCore::clockStep( uint32_t numOfSteps) {
 // pipeline stalls, they will be handled transparently when stepping though the instructions.
 //
 //------------------------------------------------------------------------------------------------------------
-const uint32_t MAX_CYCLE_PER_INSTR = 100000;
+const uint32_t MAX_CYCLE_PER_INSTR = 100000; // catch a run-away...
 
 void CpuCore::instrStep( uint32_t numOfInstr ) {
     
@@ -346,9 +346,9 @@ void CpuCore::handleTraps( ) {
         fdStage -> psInstrSeg.set( 0 );
         fdStage -> psInstrOfs.set( trapHandlerOfs );
         fdStage -> setStalled( false );
-        maStage -> psInstr.set( OP_NOP );
+        maStage -> psInstr.set( 0 );  // ??? what to really set ...
         maStage -> setStalled ( false );
-        exStage -> psInstr.set( OP_NOP );
+        exStage -> psInstr.set( 0 );  // ??? what to really set ...
         exStage -> setStalled( false );
     }
 }

@@ -70,12 +70,12 @@ enum TokId : uint16_t {
     
     TOK_EQ                  = 40,   TOK_NE                  = 41,   TOK_LT                  = 42,
     TOK_GT                  = 43,   TOK_LE                  = 44,   TOK_GE                  = 45,
-  
+    
     //--------------------------------------------------------------------------------------------------------
     // Environment variable tokens.
     //--------------------------------------------------------------------------------------------------------
-    ENV_TYP_INT             = 500,  ENV_TYP_STR             = 501,  ENV_TYP_BOOL            = 502,
-    ENV_TYP_TOK             = 503,
+    ENV_TYP_INT             = 500,  ENV_TYP_UINT            = 501,  ENV_TYP_STR             = 502,
+    ENV_TYP_BOOL            = 503,  ENV_TYP_TOK             = 504,
     
     ENV_I_TLB_SETS          = 510,  ENV_I_TLB_SIZE          = 511,
     ENV_D_TLB_SETS          = 512,  ENV_D_TLB_SIZE          = 513,
@@ -94,7 +94,7 @@ enum TokId : uint16_t {
     ENV_STEP_IN_CLOCKS      = 557,  ENV_PASS_CNT            = 558,  ENV_FAIL_CNT            = 559,
     
     ENV_WIN_MIN_ROWS        = 560,  ENV_WIN_TX_WIDTH        = 561,
-   
+    
     //--------------------------------------------------------------------------------------------------------
     // Command Sets.
     //
@@ -104,11 +104,11 @@ enum TokId : uint16_t {
     
     GR_SET                  = 910,  SR_SET                  = 911,  CR_SET                  = 912,
     PS_SET                  = 913,  FD_SET                  = 914,  MA_SET                  = 915,
-    PR_SET                  = 916,  
+    PR_SET                  = 916,
     
     IC_L1_SET               = 917,  DC_L1_SET               = 918,  UC_L2_SET               = 919,
     MEM_SET                 = 920,  ITLB_SET                = 921,  DTLB_SET                = 922,
-
+    
     //--------------------------------------------------------------------------------------------------------
     // Line Commands.
     //
@@ -142,7 +142,7 @@ enum TokId : uint16_t {
     CMD_SRE                 = 2015, CMD_SRD                 = 2016, CMD_SRR                 = 2017,
     CMD_PLE                 = 2020, CMD_PLD                 = 2021, CMD_PLR                 = 2022,
     CMD_SWE                 = 2025, CMD_SWD                 = 2026, CMD_SWR                 = 2027,
-   
+    
     CMD_WE                  = 2050, CMD_WD                  = 2051, CMD_WR                  = 2052,
     CMD_WF                  = 2053, CMD_WB                  = 2054, CMD_WH                  = 2055,
     CMD_WJ                  = 2056, CMD_WL                  = 2057, CMD_WN                  = 2058,
@@ -227,7 +227,7 @@ enum ErrMsgId : uint16_t {
     OUT_OF_WINDOWS_ERR          = 11
     
 };
-    
+
 //------------------------------------------------------------------------------------------------------------
 // Forward declaration of the globals structure. Every object will have access to the globals structure, so
 // we do not have to pass around references to all the individual objects.
@@ -245,23 +245,25 @@ public:
     
     DrvEnv( VCPU32Globals *glb );
     
-    int     getEnvTabSize( );
-    TokId   lookupEnvTokId( char *str, TokId def = TOK_NIL );
-    TokId   getEnvType( TokId envId );
-    bool    isReadOnly( TokId envId );
+    int         getEnvTabSize( );
+    TokId       lookupEnvTokId( char *str, TokId def = TOK_NIL );
+    TokId       getEnvType( TokId envId );
+    bool        isReadOnly( TokId envId );
     
-    TokId   getEnvValTok( TokId envId );
-    int     getEnvValInt( TokId envId );
-    bool    getEnvValBool( TokId envId );
-    char    *getEnvValStr( TokId envId );
+    TokId       getEnvValTok( TokId envId );
+    int32_t     getEnvValInt( TokId envId );
+    uint32_t    getEnvValUInt( TokId envId );
+    bool        getEnvValBool( TokId envId );
+    char        *getEnvValStr( TokId envId );
     
-    void    setEnvVal( TokId envId, TokId val );
-    void    setEnvVal( TokId envId, int val );
-    void    setEnvVal( TokId envId, bool val );
-    void    setEnvVal( TokId envId, char *val );
+    void        setEnvVal( TokId envId, TokId val );
+    void        setEnvVal( TokId envId, int32_t val );
+    void        setEnvVal( TokId envId, uint32_t val );
+    void        setEnvVal( TokId envId, bool val );
+    void        setEnvVal( TokId envId, char *val );
     
-    uint8_t displayEnvTable( );
-    uint8_t displayEnvTabEntry( TokId envId );
+    uint8_t     displayEnvTable( );
+    uint8_t     displayEnvTabEntry( TokId envId );
     
 private:
     
@@ -291,7 +293,7 @@ public:
     
     void            setEnable( bool arg );
     bool            isEnabled( );
-
+    
     virtual void    setRadix( TokId radix );
     virtual TokId   getRadix( );
     
@@ -319,13 +321,13 @@ public:
                                       int row = 0,
                                       int col = 0 );
     
-    void            printTextField( char *text, 
+    void            printTextField( char *text,
                                    uint32_t fmtDesc = 0,
                                    int len = 0,
                                    int row = 0,
                                    int col = 0 );
     
-    void            printRadixField( uint32_t fmtDesc = 0, 
+    void            printRadixField( uint32_t fmtDesc = 0,
                                     int len = 0,
                                     int row = 0,
                                     int col = 0 );
@@ -346,11 +348,11 @@ public:
     virtual void    drawBody( )     = 0;
     
 protected:
-
+    
     VCPU32Globals   *glb;
-        
+    
 private:
-   
+    
     int             winType             = TOK_NIL;
     int             winUserIndex        = 0;
     
@@ -378,7 +380,7 @@ private:
 // class. The scrollable window will show a number of lines, the "drawLine" method needs to be implmented
 // by the inheriting class. The routine is passed the item address for the line and is responsible for the
 // correct interpretation of this address. The "itemsPerLine" is the incrment value for the item adress
-// passed. As an example, showing memory data content, 8 machine words will be shown in one line. 
+// passed. As an example, showing memory data content, 8 machine words will be shown in one line.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinScrollable : DrvWin {
@@ -386,7 +388,7 @@ struct DrvWinScrollable : DrvWin {
 public:
     
     DrvWinScrollable( VCPU32Globals *glb );
-  
+    
     void            setHomeItemAdr( int adr );
     int             getHomeItemAdr( );
     void            setCurrentItemAdr( int adr );
@@ -403,7 +405,7 @@ public:
     void            winForward( int amt );
     void            winBackward( int amt );
     void            winJump( int pos );
-   
+    
 private:
     
     int homeItemAdr         = 0;
@@ -533,7 +535,7 @@ private:
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// Memory Object - Cache Window. 
+// Memory Object - Cache Window.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinCache : DrvWinScrollable {
@@ -550,9 +552,9 @@ public:
     
 private:
     
-    int         winType         = 0;
-    int         winToggleVal    = 0;
-    CPU24Mem    *cPtr           = nullptr;
+    int     winType         = 0;
+    int     winToggleVal    = 0;
+    CpuMem  *cPtr           = nullptr;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -571,8 +573,8 @@ public:
     
 private:
     
-    int         winType         = 0;
-    CPU24Mem    *cPtr           = nullptr;
+    int     winType = 0;
+    CpuMem  *cPtr   = nullptr;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -591,8 +593,8 @@ public:
     
 private:
     
-    int         winType         = 0;
-    CPU24Mem    *tPtr           = nullptr;
+    int     winType = 0;
+    CpuMem  *tPtr   = nullptr;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -612,13 +614,15 @@ public:
     
 private:
     
+    static const uint MAX_FILE_NAME_SIZE = 256;
+    
     bool    openTextFile( );
     int     readTextFileLine( int linePos, char *lineBuf, int bufLen );
     
     FILE    *textFile          = nullptr;
     int     fileSizeLines      = 0;
     int     lastLinePos        = 0;
-    char    fileName[ 256 ];
+    char    fileName[ MAX_FILE_NAME_SIZE ];
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -651,7 +655,7 @@ struct DrvWinDisplay {
 public:
     
     DrvWinDisplay( VCPU32Globals *glb );
-
+    
     void            reDraw( bool mustRedraw = false );
     
     void            windowsOn( );
@@ -694,7 +698,7 @@ private:
     int             currentUserWinNum   = -1;
     bool            winStacksOn         = true;
     
-    VCPU32Globals    *glb                = nullptr;
+    VCPU32Globals   *glb                = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -723,8 +727,8 @@ public:
     void        displayAllRegSets( TokId fmt = TOK_DEF );
     void        displayTlbEntry( TlbEntry *entry, TokId fmt = TOK_DEF );
     void        displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, TokId fmt = TOK_DEF );
-    void        displayCacheEntries( CPU24Mem *cache, uint32_t index, uint32_t len, TokId fmt = TOK_DEF );
-    void        displayMemObjRegSet( CPU24Mem *mem, TokId fmt = TOK_DEF );
+    void        displayCacheEntries( CpuMem *cache, uint32_t index, uint32_t len, TokId fmt = TOK_DEF );
+    void        displayMemObjRegSet( CpuMem *mem, TokId fmt = TOK_DEF );
     void        displayTlbObjRegSet( CpuTlb *tlb, TokId fmt = TOK_DEF );
     
 private:
@@ -836,7 +840,7 @@ private:
     VCPU32Globals    *glb       = nullptr;
     bool            winModeOn  = false;
     TokId           currentCmd = TOK_INV;
-           
+    
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -852,7 +856,7 @@ struct VCPU32Globals {
     DrvLineDisplay     *lineDisplay    = nullptr;
     DrvWinDisplay      *winDisplay     = nullptr;
     DrvCmds            *cmds           = nullptr;
-
+    
     CpuCore            *cpu            = nullptr;
 };
 

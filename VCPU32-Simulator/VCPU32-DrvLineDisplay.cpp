@@ -40,14 +40,14 @@ DrvLineDisplay::DrvLineDisplay( VCPU32Globals *glb ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvLineDisplay::displayWord( uint32_t val, TokId fmtType ) {
     
-    if      ( fmtType == TOK_DEC )  fprintf( stdout, "%8d", val );
-    else if ( fmtType == TOK_OCT )  fprintf( stdout, "%#09o", val );
+    if      ( fmtType == TOK_DEC )  fprintf( stdout, "%10d", val );
+    else if ( fmtType == TOK_OCT )  fprintf( stdout, "%#012o", val );
     else if ( fmtType == TOK_HEX )  {
         
-        if ( val == 0 ) fprintf( stdout, "0x000000" );
-        else fprintf( stdout, "%#08x", val );
+        if ( val == 0 ) fprintf( stdout, "0x00000000" );
+        else fprintf( stdout, "%#010x", val );
     }
-    else fprintf( stdout, "*******" );
+    else fprintf( stdout, "**num**" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -57,14 +57,14 @@ void DrvLineDisplay::displayWord( uint32_t val, TokId fmtType ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvLineDisplay::displayHalfWord( uint32_t val, TokId fmtType ) {
     
-    if      ( fmtType == TOK_DEC )  fprintf( stdout, "%4d", val );
-    else if ( fmtType == TOK_OCT  ) fprintf( stdout, "%04o", val );
+    if      ( fmtType == TOK_DEC )  fprintf( stdout, "%5d", val );
+    else if ( fmtType == TOK_OCT  ) fprintf( stdout, "%06o", val );
     else if ( fmtType == TOK_HEX )  {
         
-        if ( val == 0 ) fprintf( stdout, "0x000" );
-        else fprintf( stdout, "%#04x", val );
+        if ( val == 0 ) fprintf( stdout, "0x0000" );
+        else fprintf( stdout, "%#05x", val );
     }
-    else fprintf( stdout, "**num***" );
+    else fprintf( stdout, "**num**" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -196,7 +196,7 @@ void DrvLineDisplay::displayPlRegSets( TokId fmt ) {
     displayPlExecuteRegSet( fmt );
 }
 
-void DrvLineDisplay::displayMemObjRegSet( CPU24Mem *mem, TokId fmt ) {
+void DrvLineDisplay::displayMemObjRegSet( CpuMem *mem, TokId fmt ) {
     
     fprintf( stdout, "State:   %s\n", mem -> getMemOpStr( mem -> getMemCtrlReg( MC_REG_STATE )));
   
@@ -288,8 +288,8 @@ void DrvLineDisplay::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t le
             
             fprintf( stdout, "\n" );
         }
-    }
-    else fprintf( stdout, "index + len out of range\n" );
+        
+    } else fprintf( stdout, "index + len out of range\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -299,12 +299,12 @@ void DrvLineDisplay::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t le
 // ??? what to simplify, refine ?
 // ??? what can be factored out to display a cache line ?
 //------------------------------------------------------------------------------------------------------------
-void DrvLineDisplay::displayCacheEntries( CPU24Mem *cPtr, uint32_t index, uint32_t len, TokId fmt ) {
+void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t len, TokId fmt ) {
     
-    uint32_t            blockEntries    = cPtr -> getBlockEntries( );
-    uint32_t            blockSize       = cPtr -> getBlockSize( );
-    uint16_t            blockSets       = cPtr -> getBlockSets( );
-    MemTagEntry    *tagPtr         = nullptr;
+    uint32_t        blockEntries    = cPtr -> getBlockEntries( );
+    uint32_t        blockSize       = cPtr -> getBlockSize( );
+    uint16_t        blockSets       = cPtr -> getBlockSets( );
+    MemTagEntry     *tagPtr         = nullptr;
     uint32_t        *dataPtr        = nullptr;
    
     if ( index + len <=  blockEntries ) {
@@ -383,14 +383,13 @@ void DrvLineDisplay::displayCacheEntries( CPU24Mem *cPtr, uint32_t index, uint32
 //------------------------------------------------------------------------------------------------------------
 void  DrvLineDisplay::displayPmemContent( uint32_t ofs, uint32_t len, TokId fmtId ) {
     
-    uint32_t        index           = ofs;
-    uint32_t        limit           = ofs + len;
-    int             wordsPerLine    = glb -> env -> getEnvValInt( ENV_WORDS_PER_LINE );
-    
-    uint32_t        blockEntries    = glb -> cpu -> mem -> getBlockEntries( );
-    uint32_t        blockSize       = glb -> cpu -> mem -> getBlockSize( );
-    uint32_t        memSize         = blockEntries * blockSize;
-    CPU24Mem        *mem            = glb -> cpu -> mem;
+    uint32_t    index           = ofs;
+    uint32_t    limit           = ofs + len;
+    int         wordsPerLine    = glb -> env -> getEnvValInt( ENV_WORDS_PER_LINE );
+    uint32_t    blockEntries    = glb -> cpu -> mem -> getBlockEntries( );
+    uint32_t    blockSize       = glb -> cpu -> mem -> getBlockSize( );
+    uint32_t    memSize         = blockEntries * blockSize;
+    CpuMem      *mem            = glb -> cpu -> mem;
     uint32_t    *dataPtr        = nullptr;
     
     if ( limit >= memSize ) return;

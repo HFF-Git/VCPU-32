@@ -49,10 +49,11 @@ struct EnvTabEntry {
     
     union {
         
-        TokId   tVal;
-        int     iVal;
-        bool    bVal;
-        char    *sVal;
+        TokId       tVal;
+        int32_t     iVal;
+        uint32_t    uVal;
+        bool        bVal;
+        char        *sVal;
     };
     
 } envTab[ ] = {
@@ -84,7 +85,7 @@ struct EnvTabEntry {
     { .name = "D-CACHE-SIZE",       .envId = ENV_D_CACHE_SIZE,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1024      },
     { .name = "D-CACHE-LINE-SIZE",  .envId = ENV_D_CACHE_SIZE,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 4         },
     
-    { .name = "MEM-SIZE",           .envId = ENV_MEM_SIZE,          .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 2*1024*1024 },
+    { .name = "MEM-SIZE",           .envId = ENV_MEM_SIZE,          .envTyp = ENV_TYP_UINT, .rOnly = false,  .uVal = MAX_MEMORY_SIZE },
     { .name = "MEM-BANKS",          .envId = ENV_MEM_BANKS,         .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1           },
     { .name = "MEM-BANK-SIZE",      .envId = ENV_MEM_BANK_SIZE,     .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 2*1024*1024 },
     
@@ -201,12 +202,23 @@ TokId DrvEnv::getEnvValTok( TokId envId ) {
     return( TOK_NIL );
 }
 
-int DrvEnv::getEnvValInt( TokId envId ) {
+int32_t DrvEnv::getEnvValInt( TokId envId ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
         if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_INT ))
             return( envTab[ i ].iVal );
+    }
+    
+    return( 0 );
+}
+
+uint32_t DrvEnv::getEnvValUInt( TokId envId ) {
+    
+    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
+        
+        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_INT ))
+            return( envTab[ i ].uVal );
     }
     
     return( 0 );
@@ -245,12 +257,21 @@ void DrvEnv::setEnvVal( TokId envId, TokId val ) {
     }
 }
 
-void DrvEnv::setEnvVal( TokId envId, int val ) {
+void DrvEnv::setEnvVal( TokId envId, int32_t val ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
         if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_INT ))
             envTab[ i ].iVal = val;
+    }
+}
+
+void DrvEnv::setEnvVal( TokId envId, uint32_t val ) {
+    
+    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
+        
+        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_INT ))
+            envTab[ i ].uVal = val;
     }
 }
 

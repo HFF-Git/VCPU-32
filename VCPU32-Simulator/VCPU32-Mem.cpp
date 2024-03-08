@@ -128,7 +128,7 @@ uint32_t getBlockBitMask( uint16_t blockSize ) {
 // memory layer, if applicable.
 //
 //------------------------------------------------------------------------------------------------------------
-CPU24Mem::CPU24Mem( CpuMemDesc *cfg, CPU24Mem *mem ) {
+CpuMem::CpuMem( CpuMemDesc *cfg, CpuMem *mem ) {
     
     memcpy( &cDesc, cfg, sizeof( CpuMemDesc ));
     
@@ -156,9 +156,9 @@ CPU24Mem::CPU24Mem( CpuMemDesc *cfg, CPU24Mem *mem ) {
     switch ( cDesc.type ) {
             
         case MEM_T_L1_INSTR:
-        case MEM_T_L1_DATA:     stateMachine = &CPU24Mem::processL1CacheRequest;    break;
-        case MEM_T_L2_UNIFIED:  stateMachine = &CPU24Mem::processL2CacheRequest;    break;
-        case MEM_T_PHYS_MEM:    stateMachine = &CPU24Mem::processMemRequest;        break;
+        case MEM_T_L1_DATA:     stateMachine = &CpuMem::processL1CacheRequest;    break;
+        case MEM_T_L2_UNIFIED:  stateMachine = &CpuMem::processL2CacheRequest;    break;
+        case MEM_T_PHYS_MEM:    stateMachine = &CpuMem::processMemRequest;        break;
         default: ;
     }
     
@@ -178,7 +178,7 @@ CPU24Mem::CPU24Mem( CpuMemDesc *cfg, CPU24Mem *mem ) {
 // Reset the memory object.
 //
 //------------------------------------------------------------------------------------------------------------/
-void CPU24Mem::reset( ) {
+void CpuMem::reset( ) {
     
     uint32_t dSize = cDesc.blockEntries * cDesc.blockSize;
 
@@ -213,7 +213,7 @@ void CPU24Mem::reset( ) {
 // lower layer to read/ write some data.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Mem::clearStats( ) {
+void CpuMem::clearStats( ) {
     
     accessCnt     = 0;
     missCnt       = 0;
@@ -228,12 +228,12 @@ void CPU24Mem::clearStats( ) {
 // "process" code is invoked.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Mem::tick( ) {
+void CpuMem::tick( ) {
     
     opState.tick( );
 }
 
-void CPU24Mem::process( ) {
+void CpuMem::process( ) {
     
    ((*this).*(stateMachine))( );
 }
@@ -243,7 +243,7 @@ void CPU24Mem::process( ) {
 // data that we do not need.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Mem::abortMemOp( ) {
+void CpuMem::abortMemOp( ) {
     
     if ( opState.get( ) != MO_IDLE ) {
         
@@ -272,7 +272,7 @@ void CPU24Mem::abortMemOp( ) {
 // and the entry is valid, the maximum block entries constant is returned.
 //
 //------------------------------------------------------------------------------------------------------------
-uint16_t CPU24Mem::matchTag( uint32_t index, uint32_t tag ) {
+uint16_t CpuMem::matchTag( uint32_t index, uint32_t tag ) {
    
     for ( uint32_t i = 0; i < cDesc.blockSets; i++ ) {
        
@@ -295,7 +295,7 @@ uint16_t CPU24Mem::matchTag( uint32_t index, uint32_t tag ) {
 // routine every clock cycle as long as the operation is not completed, i.e. it is back to IDLE.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Mem::readWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t *word ) {
+bool CpuMem::readWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t *word ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
@@ -334,7 +334,7 @@ bool CPU24Mem::readWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32
 // the read virtual word operation.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Mem::writeWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t word ) {
+bool CpuMem::writeWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t word ) {
     
     if ( opState.get( ) == MO_IDLE ) {
     
@@ -372,7 +372,7 @@ bool CPU24Mem::writeWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint3
 //
 // ??? is the block also invalidated ?
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Mem::flushBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
+bool CpuMem::flushBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
@@ -408,7 +408,7 @@ bool CPU24Mem::flushBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
 // potentiall dirty block first.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Mem::purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
+bool CpuMem::purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
@@ -439,7 +439,7 @@ bool CPU24Mem::purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
 //
 // ??? does this call map to MEM ? it is intended for IO space ... how is is this modelled ?
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Mem::readWordPhys( uint32_t adr, uint32_t *word, uint16_t pri ) {
+bool CpuMem::readWordPhys( uint32_t adr, uint32_t *word, uint16_t pri ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
@@ -455,7 +455,7 @@ bool CPU24Mem::readWordPhys( uint32_t adr, uint32_t *word, uint16_t pri ) {
 //
 // ??? does this call map to MEM ? it is intended for IO space ...  how is is this modelled ?
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Mem::writeWordPhys( uint32_t adr, uint32_t word, uint16_t pri ) {
+bool CpuMem::writeWordPhys( uint32_t adr, uint32_t word, uint16_t pri ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
@@ -483,7 +483,7 @@ bool CPU24Mem::writeWordPhys( uint32_t adr, uint32_t word, uint16_t pri ) {
 // simply overwrites the data. Once the requst is served, the reqPri field is cleared.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Mem::readBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri ) {
+bool CpuMem::readBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri ) {
     
     if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
@@ -512,7 +512,7 @@ bool CPU24Mem::readBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_
 // that we are done with the current request.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Mem::writeBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri ) {
+bool CpuMem::writeBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri ) {
     
     if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
@@ -535,7 +535,7 @@ bool CPU24Mem::writeBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16
 // the operation.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Mem::flushBlockPhys( uint32_t adr, uint16_t pri ) {
+bool CpuMem::flushBlockPhys( uint32_t adr, uint16_t pri ) {
     
     if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
@@ -558,7 +558,7 @@ bool CPU24Mem::flushBlockPhys( uint32_t adr, uint16_t pri ) {
 // operation.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CPU24Mem::purgeBlockPhys(  uint32_t adr, uint16_t pri ) {
+bool CpuMem::purgeBlockPhys(  uint32_t adr, uint16_t pri ) {
     
     if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
@@ -601,7 +601,7 @@ bool CPU24Mem::purgeBlockPhys(  uint32_t adr, uint16_t pri ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Mem::processL1CacheRequest( ) {
+void CpuMem::processL1CacheRequest( ) {
     
     switch( opState.get( )) {
      
@@ -693,7 +693,7 @@ void CPU24Mem::processL1CacheRequest( ) {
 //
 // ??? under construction ..... first get L1 and MEM stable...
 //------------------------------------------------------------------------------------------------------------
-void CPU24Mem::processL2CacheRequest( ) {
+void CpuMem::processL2CacheRequest( ) {
     
     uint32_t            blockIndex  = ( reqTag & 0x0FFFFFFF ) >> blockBits;
     uint16_t            blockSet    = matchTag( blockIndex, (( reqSeg < 24 ) | ( reqOfs & 0xFFFFFF )));
@@ -793,7 +793,7 @@ void CPU24Mem::processL2CacheRequest( ) {
 // memory object calling methods.
 //
 //------------------------------------------------------------------------------------------------------------
-void CPU24Mem::processMemRequest( ) {
+void CpuMem::processMemRequest( ) {
   
     reqTargetBlockIndex = ( reqTag & 0x0FFFFFFF ) >> blockBits;
     
@@ -840,7 +840,7 @@ void CPU24Mem::processMemRequest( ) {
 // actual request data. Note that not all "registers" can be modified.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t CPU24Mem::getMemCtrlReg( uint8_t mReg ) {
+uint32_t CpuMem::getMemCtrlReg( uint8_t mReg ) {
    
     switch( mReg ) {
             
@@ -863,7 +863,7 @@ uint32_t CPU24Mem::getMemCtrlReg( uint8_t mReg ) {
     }
 }
 
-void CPU24Mem::setMemCtrlReg( uint8_t mReg, uint32_t val ) {
+void CpuMem::setMemCtrlReg( uint8_t mReg, uint32_t val ) {
     
     switch( mReg ) {
             
@@ -876,7 +876,7 @@ void CPU24Mem::setMemCtrlReg( uint8_t mReg, uint32_t val ) {
     }
 }
 
-char *CPU24Mem::getMemOpStr( uint32_t opArg ) {
+char *CpuMem::getMemOpStr( uint32_t opArg ) {
     
     switch ( opArg  ) {
       
@@ -905,7 +905,7 @@ char *CPU24Mem::getMemOpStr( uint32_t opArg ) {
 // If the tag array does not exists or the indexed is out of range, a nullpr will be returned.
 //
 //------------------------------------------------------------------------------------------------------------
-MemTagEntry  *CPU24Mem::getMemTagEntry( uint32_t index, uint8_t set ) {
+MemTagEntry  *CpuMem::getMemTagEntry( uint32_t index, uint8_t set ) {
     
     if ( index >= cDesc.blockEntries )  return( nullptr );
     if ( set >= cDesc.blockSets )       return( nullptr );
@@ -918,7 +918,7 @@ MemTagEntry  *CPU24Mem::getMemTagEntry( uint32_t index, uint8_t set ) {
 // If the memory access type is n-way associative the block in "set" is returned.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t *CPU24Mem::getMemBlockEntry( uint32_t index, uint8_t set ) {
+uint32_t *CpuMem::getMemBlockEntry( uint32_t index, uint8_t set ) {
     
     if ( index >= cDesc.blockEntries )  return( nullptr );
     if ( set >= cDesc.blockSets )       return( nullptr );
@@ -931,37 +931,37 @@ uint32_t *CPU24Mem::getMemBlockEntry( uint32_t index, uint8_t set ) {
 // Simple Getters.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t CPU24Mem::getBlockEntries( ) {
+uint32_t CpuMem::getBlockEntries( ) {
     
     return( cDesc.blockEntries );
 }
 
-uint16_t CPU24Mem::getBlockSize( ) {
+uint16_t CpuMem::getBlockSize( ) {
     
     return( cDesc.blockSize );
 }
 
-uint16_t CPU24Mem::getBlockSets( ) {
+uint16_t CpuMem::getBlockSets( ) {
     
     return( cDesc.blockSets );
 }
 
-uint32_t CPU24Mem::getMissCnt( ) {
+uint32_t CpuMem::getMissCnt( ) {
     
     return( missCnt );
 }
 
-uint32_t CPU24Mem::getDirtyMissCnt( ) {
+uint32_t CpuMem::getDirtyMissCnt( ) {
     
     return( dirtyMissCnt );
 }
 
-uint32_t CPU24Mem::getAccessCnt( )  {
+uint32_t CpuMem::getAccessCnt( )  {
     
     return( accessCnt );
 }
 
-uint32_t CPU24Mem::getWaitCycleCnt( )  {
+uint32_t CpuMem::getWaitCycleCnt( )  {
     
     return( waitCyclesCnt );
 }

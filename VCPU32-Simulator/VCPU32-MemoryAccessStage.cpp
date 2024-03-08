@@ -99,7 +99,7 @@ void MemoryAccessStage::stallPipeLine( ) {
     
     core -> exStage -> psInstrSeg.set( instrSeg );
     core -> exStage -> psInstrOfs.set( instrOfs );
-    core -> exStage -> psInstr.set( OP_NOP );
+    core -> exStage -> psInstr.set( 0 );  // ??? what to really set ...
     core -> exStage -> psValA.set( 0 );
     core -> exStage -> psValB.set( 0 );
     core -> exStage -> psValX.set( 0 );
@@ -135,7 +135,7 @@ void MemoryAccessStage::setStalled( bool arg ) {
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::flushPipeLine( ) {
     
-    psInstr.set( OP_NOP );
+    psInstr.set( 0 );  // ??? what to really set ...
     psInstrSeg.set( instrSeg );
     psInstrOfs.set( instrOfs );
     psValA.set( 0 );
@@ -272,7 +272,7 @@ void MemoryAccessStage::process( ) {
     instrSeg        = psInstrSeg.get( );
     instrOfs        = psInstrOfs.get( );
     instr           = psInstr.get( );
-    instrPrivLevel  = CPU24Instr::iaOfsPrivField( instrOfs );
+    instrPrivLevel  = Instr::iaOfsPrivField( instrOfs );
     regIdForValA    = psRegIdForValA.get( );
     regIdForValB    = psRegIdForValB.get( );
     regIdForValX    = psRegIdForValX.get( );
@@ -281,8 +281,8 @@ void MemoryAccessStage::process( ) {
     valX            = psValX.get( );
     valS            = 0;
     
-    uint8_t         opCode      = CPU24Instr::opCodeField( instr );
-    uint8_t         opMode      = CPU24Instr::operandModeField( instr );
+    uint8_t         opCode      = Instr::opCodeField( instr );
+    uint8_t         opMode      = Instr::opModeField( instr );
     uint32_t    pOfs        = psValX.get( ) % PAGE_SIZE;
     uint32_t    pAdr        = 0;
     bool            unCacheable = false;
@@ -313,8 +313,8 @@ void MemoryAccessStage::process( ) {
                     
                 case ADR_MODE_EXT_ADR: {
                     
-                    valS            = core -> sReg[ CPU24Instr::regAIdField( instr ) ].get( );
-                    valX            = CPU24Instr::add24( valB, valX );
+                    valS            = core -> sReg[ Instr::regAIdField( instr ) ].get( );
+                    valX            = Instr::add24( valB, valX );
                     regIdForValX    = MAX_GREGS;
                     regIdForValB    = MAX_GREGS;
                     
@@ -325,8 +325,8 @@ void MemoryAccessStage::process( ) {
                 case ADR_MODE_INDX_GR6:
                 case ADR_MODE_INDX_GR7: {
                     
-                    valS            = core -> sReg[ CPU24Instr::segSelect( valB ) ].get( );
-                    valX            = CPU24Instr::add22( valB, valX );
+                    valS            = core -> sReg[ Instr::segSelect( valB ) ].get( );
+                    valX            = Instr::add22( valB, valX );
                     regIdForValX    = MAX_GREGS;
                     regIdForValB    = MAX_GREGS;
                     
@@ -340,8 +340,8 @@ void MemoryAccessStage::process( ) {
         case OP_LDWE:
         case OP_STWE: {
             
-            valS            = core -> sReg[ CPU24Instr::regAIdField( instr ) ].get( );
-            valX            = CPU24Instr::add24( valB, valX );
+            valS            = core -> sReg[ Instr::regAIdField( instr ) ].get( );
+            valX            = Instr::add24( valB, valX );
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             
@@ -350,7 +350,7 @@ void MemoryAccessStage::process( ) {
         case OP_LDWA:
         case OP_STWA: {
             
-            valX            = CPU24Instr::add24( valB, valX );
+            valX            = Instr::add24( valB, valX );
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             
@@ -360,7 +360,7 @@ void MemoryAccessStage::process( ) {
         case OP_BL: {
             
             core -> fdStage -> psInstrSeg.set( instrSeg );
-            core -> fdStage -> psInstrOfs.set( CPU24Instr::add22( valB, valX ));
+            core -> fdStage -> psInstrOfs.set( Instr::add22( valB, valX ));
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             valB            = 0;
@@ -375,7 +375,7 @@ void MemoryAccessStage::process( ) {
         case OP_BVR: {
             
             core -> fdStage -> psInstrSeg.set( instrSeg );
-            core -> fdStage -> psInstrOfs.set( CPU24Instr::add22( valB, valX ));
+            core -> fdStage -> psInstrOfs.set( Instr::add22( valB, valX ));
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             valB            = 0;
@@ -387,8 +387,8 @@ void MemoryAccessStage::process( ) {
         case OP_BE:
         case OP_BLE: {
             
-            core -> fdStage -> psInstrSeg.set( core -> sReg[ CPU24Instr::regAIdField( instr ) ].get( ));
-            core -> fdStage -> psInstrOfs.set( CPU24Instr::add22( valB, valX ));
+            core -> fdStage -> psInstrSeg.set( core -> sReg[ Instr::regAIdField( instr ) ].get( ));
+            core -> fdStage -> psInstrOfs.set( Instr::add22( valB, valX ));
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             valB            = 0;
@@ -401,7 +401,7 @@ void MemoryAccessStage::process( ) {
         case OP_TBR: {
             
             regIdForValX    = MAX_GREGS;
-            valX            = CPU24Instr::add22( instrOfs, valX );
+            valX            = Instr::add22( instrOfs, valX );
             
         } break;
             
@@ -419,29 +419,31 @@ void MemoryAccessStage::process( ) {
             
         case OP_MR: {
             
-            if ( ! CPU24Instr::mrMovDirField( instr )) {
+            if ( ! Instr::mrMovDirField( instr )) {
                 
-                if ( CPU24Instr::mrRegTypeField( instr ))
+                /*
+                if ( Instr::mrRegTypeField( instr ))
                     valB = core -> cReg[ CPU24Instr::mrRegGrpField( instr ) * 8 + CPU24Instr::regBIdField( instr ) ].get( );
-                else valB = core -> sReg[ CPU24Instr::regBIdField( instr ) ].get( );
+                else valB = core -> sReg[ Instr::regBIdField( instr ) ].get( );
+                 */
             }
             
         } break;
             
         case OP_ITLB: {
             
-            CpuTlb *tlbPtr    = ( CPU24Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
-            uint32_t tlbSeg = (( CPU24Instr::tlbAdrModeField( instr )) ?
-                                   core -> sReg[ CPU24Instr::segSelect( valB )].get( ) :
-                                   core -> sReg[ CPU24Instr::regAIdField( instr ) ].get( ));
+            CpuTlb *tlbPtr    = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
+            uint32_t tlbSeg = (( Instr::tlbAdrModeField( instr )) ?
+                                   core -> sReg[ Instr::segSelect( valB )].get( ) :
+                                   core -> sReg[ Instr::regAIdField( instr ) ].get( ));
             
             bool rStat = false;
             
-            if ( CPU24Instr::tlbArgModeField( instr ))
+            if ( Instr::tlbArgModeField( instr ))
                 
-                rStat = tlbPtr -> insertTlbEntryProt( tlbSeg, CPU24Instr::ofsSelect( valB ), valA );
+                rStat = tlbPtr -> insertTlbEntryProt( tlbSeg, Instr::ofsSelect( valB ), valA );
             else
-                rStat = tlbPtr -> insertTlbEntryAdr( tlbSeg, CPU24Instr::ofsSelect( valB ), valA );
+                rStat = tlbPtr -> insertTlbEntryAdr( tlbSeg, Instr::ofsSelect( valB ), valA );
             
             if ( ! rStat ) {
                 
@@ -453,12 +455,12 @@ void MemoryAccessStage::process( ) {
             
         case OP_PTLB: {
             
-            CpuTlb        *tlbPtr  = ( CPU24Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
-            uint32_t    tlbSeg = (( CPU24Instr::tlbAdrModeField( instr )) ?
-                                      core -> sReg[ CPU24Instr::segSelect( valB )].get( ) :
-                                      core -> sReg[ CPU24Instr::regAIdField( instr ) ].get( ));
+            CpuTlb        *tlbPtr  = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
+            uint32_t    tlbSeg = (( Instr::tlbAdrModeField( instr )) ?
+                                      core -> sReg[ Instr::segSelect( valB )].get( ) :
+                                      core -> sReg[ Instr::regAIdField( instr ) ].get( ));
             
-            if ( ! tlbPtr -> purgeTlbEntry( tlbSeg, CPU24Instr::ofsSelect( valB ))) {
+            if ( ! tlbPtr -> purgeTlbEntry( tlbSeg, Instr::ofsSelect( valB ))) {
                 
                 stallPipeLine( );
                 return;
@@ -468,32 +470,32 @@ void MemoryAccessStage::process( ) {
             
         case OP_PCA: {
             
-            CpuTlb        *tlbPtr = ( CPU24Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
-            CPU24Mem        *cPtr   = ( CPU24Instr::pcaKindField( instr )) ?  core -> dCacheL1 : core -> iCacheL1;
+            CpuTlb      *tlbPtr = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
+            CpuMem      *cPtr   = ( Instr::pcaKindField( instr )) ?  core -> dCacheL1 : core -> iCacheL1;
             uint32_t    seg     = 0;
             uint32_t    ofs     = 0;
             
-            if ( CPU24Instr::pcaAdrModeField( instr )) {
+            if ( Instr::pcaAdrModeField( instr )) {
                 
-                seg = core -> sReg[ CPU24Instr::segSelect( valB )].get( );
-                ofs = CPU24Instr::ofsSelect( valB );
+                seg = core -> sReg[ Instr::segSelect( valB )].get( );
+                ofs = Instr::ofsSelect( valB );
             }
             else {
                 
-                seg = core -> sReg[ CPU24Instr::regAIdField( instr ) ].get( );
+                seg = core -> sReg[ Instr::regAIdField( instr ) ].get( );
                 ofs = valB;
             }
             
             TlbEntry *tlbEntryPtr = tlbPtr -> lookupTlbEntry( seg, ofs );
             if ( tlbEntryPtr == nullptr ) {
                 
-                setupTrapData(( CPU24Instr::pcaKindField( instr ) ? ITLB_NON_ACCESS_TRAP : DTLB_NON_ACCESS_TRAP ),
+                setupTrapData(( Instr::pcaKindField( instr ) ? ITLB_NON_ACCESS_TRAP : DTLB_NON_ACCESS_TRAP ),
                               seg, ofs, core -> stReg.get( ));
                 flushPipeLine( );
                 return;
             }
             
-            if ( ! CPU24Instr::pcaPurgeFlushField( instr ))
+            if ( ! Instr::pcaPurgeFlushField( instr ))
                 cPtr -> flushBlockVirt( seg, ofs, tlbEntryPtr -> tPhysAdrTag( ));
             else
                 cPtr -> purgeBlockVirt( seg, ofs, tlbEntryPtr -> tPhysAdrTag( )); 
