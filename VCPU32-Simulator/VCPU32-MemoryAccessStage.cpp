@@ -168,7 +168,7 @@ void MemoryAccessStage::flushPipeLine( ) {
 // the MA stage and a new instruction is fetched to the FD stage at the next clock. The EX stage will when
 // encountering the trap simply flush the pipeline.
 //------------------------------------------------------------------------------------------------------------
-void MemoryAccessStage::setupTrapData( uint32_t     trapId,
+void MemoryAccessStage::setupTrapData( uint32_t trapId,
                                        uint32_t iaSeg,
                                        uint32_t iaOfs,
                                        uint32_t pStat,
@@ -272,7 +272,7 @@ void MemoryAccessStage::process( ) {
     instrSeg        = psInstrSeg.get( );
     instrOfs        = psInstrOfs.get( );
     instr           = psInstr.get( );
-    instrPrivLevel  = Instr::iaOfsPrivField( instrOfs );
+    instrPrivLevel  = core -> stReg.get( ) & ST_EXECUTION_LEVEL;  
     regIdForValA    = psRegIdForValA.get( );
     regIdForValB    = psRegIdForValB.get( );
     regIdForValX    = psRegIdForValX.get( );
@@ -281,21 +281,25 @@ void MemoryAccessStage::process( ) {
     valX            = psValX.get( );
     valS            = 0;
     
-    uint8_t         opCode      = Instr::opCodeField( instr );
-    uint8_t         opMode      = Instr::opModeField( instr );
+    uint8_t     opCode      = Instr::opCodeField( instr );
+    uint8_t     opMode      = Instr::opModeField( instr );
     uint32_t    pOfs        = psValX.get( ) % PAGE_SIZE;
     uint32_t    pAdr        = 0;
-    bool            unCacheable = false;
+    bool        unCacheable = false;
     
-    bool readAccessInstr        = ((( opMode >= 4 ) &&
+    bool readAccessInstr  = ((( opMode >= 4 ) &&
                                     (( opCode == OP_ADD ) || ( opCode == OP_SUB )    ||
                                      ( opCode == OP_CMP ) || ( opCode == OP_AND )    ||
                                      ( opCode == OP_OR )  || ( opCode == OP_XOR )    ||
                                      ( opCode ==     OP_LD )  || ( opCode == OP_LDWR )))   ||
-                                   ( opCode == OP_LDWA ) || ( opCode == OP_LDWE ));
+                                   ( opCode == OP_LDWA ) || ( opCode == OP_LDWE ) ||
+                             ( opCode == OP_LDHA ) || ( opCode == OP_LDHE ) ||
+                             ( opCode == OP_LDBA ) || ( opCode == OP_LDBE ));
     
-    bool writeAccessInstr       = (( opCode == OP_ST )  || ( opCode == OP_STWC ) ||
-                                   ( opCode == OP_STWE ) || ( opCode == OP_STWA ));
+    bool writeAccessInstr = (( opCode == OP_ST )  || ( opCode == OP_STWC ) ||
+                                   ( opCode == OP_STWE ) || ( opCode == OP_STWA ) ||
+                             ( opCode == OP_STHE ) || ( opCode == OP_STHA ) ||
+                             ( opCode == OP_STBE ) || ( opCode == OP_STBA ));
     
     setStalled( false );
     
@@ -311,22 +315,25 @@ void MemoryAccessStage::process( ) {
             
             switch( opMode ) {
                     
-                case ADR_MODE_EXT_ADR: {
+                case ADR_MODE_EXT_INDX_W: {
                     
                     valS            = core -> sReg[ Instr::regAIdField( instr ) ].get( );
-                    valX            = Instr::add24( valB, valX );
+                    valX            = Instr::add32( valB, valX );
                     regIdForValX    = MAX_GREGS;
                     regIdForValB    = MAX_GREGS;
                     
                 } break;
                     
-                case ADR_MODE_INDX_GR4:
-                case ADR_MODE_INDX_GR5:
-                case ADR_MODE_INDX_GR6:
-                case ADR_MODE_INDX_GR7: {
+                    
+                    
+                case ADR_MODE_GR10_INDX_W:
+                
+                // ??? fill in the rest 
+                
+                {
                     
                     valS            = core -> sReg[ Instr::segSelect( valB ) ].get( );
-                    valX            = Instr::add22( valB, valX );
+                    valX            = Instr::add32( valB, valX );
                     regIdForValX    = MAX_GREGS;
                     regIdForValB    = MAX_GREGS;
                     
@@ -341,7 +348,7 @@ void MemoryAccessStage::process( ) {
         case OP_STWE: {
             
             valS            = core -> sReg[ Instr::regAIdField( instr ) ].get( );
-            valX            = Instr::add24( valB, valX );
+            valX            = Instr::add32( valB, valX );
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             
@@ -350,7 +357,7 @@ void MemoryAccessStage::process( ) {
         case OP_LDWA:
         case OP_STWA: {
             
-            valX            = Instr::add24( valB, valX );
+            valX            = Instr::add32( valB, valX );
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             
@@ -360,7 +367,7 @@ void MemoryAccessStage::process( ) {
         case OP_BL: {
             
             core -> fdStage -> psInstrSeg.set( instrSeg );
-            core -> fdStage -> psInstrOfs.set( Instr::add22( valB, valX ));
+            core -> fdStage -> psInstrOfs.set( Instr::add32( valB, valX ));
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             valB            = 0;
@@ -375,7 +382,7 @@ void MemoryAccessStage::process( ) {
         case OP_BVR: {
             
             core -> fdStage -> psInstrSeg.set( instrSeg );
-            core -> fdStage -> psInstrOfs.set( Instr::add22( valB, valX ));
+            core -> fdStage -> psInstrOfs.set( Instr::add32( valB, valX ));
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             valB            = 0;
@@ -388,7 +395,7 @@ void MemoryAccessStage::process( ) {
         case OP_BLE: {
             
             core -> fdStage -> psInstrSeg.set( core -> sReg[ Instr::regAIdField( instr ) ].get( ));
-            core -> fdStage -> psInstrOfs.set( Instr::add22( valB, valX ));
+            core -> fdStage -> psInstrOfs.set( Instr::add32( valB, valX ));
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             valB            = 0;
@@ -401,7 +408,7 @@ void MemoryAccessStage::process( ) {
         case OP_TBR: {
             
             regIdForValX    = MAX_GREGS;
-            valX            = Instr::add22( instrOfs, valX );
+            valX            = Instr::add32( instrOfs, valX );
             
         } break;
             
@@ -419,13 +426,13 @@ void MemoryAccessStage::process( ) {
             
         case OP_MR: {
             
+            // ??? needs some more work for the new options ...
+            
             if ( ! Instr::mrMovDirField( instr )) {
                 
-                /*
-                if ( Instr::mrRegTypeField( instr ))
-                    valB = core -> cReg[ CPU24Instr::mrRegGrpField( instr ) * 8 + CPU24Instr::regBIdField( instr ) ].get( );
+                
+                if ( Instr::mrRegTypeField( instr ))  valB = core -> cReg[ instr & 0x3C ].get( );
                 else valB = core -> sReg[ Instr::regBIdField( instr ) ].get( );
-                 */
             }
             
         } break;

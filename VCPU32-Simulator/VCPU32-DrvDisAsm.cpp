@@ -30,7 +30,6 @@
 #include "VCPU32-Driver.hpp"
 #include "VCPU32-Core.hpp"
 
-
 //------------------------------------------------------------------------------------------------------------
 // Local namespace. These routines are not visible otside this source file.
 //
@@ -134,71 +133,41 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case ADR_MODE_IMM: {
             
             if ( loadStoreInstr ) fprintf( stdout, "***" );
-            else fprintf( stdout, "%d", signedVal( Instr::immGen0S9( instr )));
+            else fprintf( stdout, "%d", signedVal( Instr::immGen0S14( instr )));
             
         } break;
             
-        case ADR_MODE_REG: {
+        case ADR_MODE_REG_B: {
             
             if ( loadStoreInstr ) fprintf( stdout, "***" );
             else  fprintf( stdout, "R%d", Instr::regBIdField( instr ));
             
         } break;
             
-        case ADR_MODE_TWO_REGS: {
+        case ADR_MODE_REG_A_B: {
             
             fprintf( stdout, "R%d,R%d", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
             
         } break;
             
-        case ADR_MODE_EXT_ADR: {
+        case ADR_MODE_EXT_INDX_W: {
             
-            if (( opCodeTab[ opCode ].flags & LOAD_INSTR ) ||
-                ( opCodeTab[ opCode ].flags & STORE_INSTR ) ||
-                ( opCode == OP_LEA )) {
-                
+           
                 fprintf( stdout, "%d(S%d,R%d)",
-                        signedVal( Instr::immGen30S3( instr )),
-                        Instr::regAIdField( instr ),
-                        Instr::regBIdField( instr ));
-            }
-            else {
-                
-                fprintf( stdout, "%d(S%d,R%d)",
-                        signedVal( Instr::immGen0S3( instr )),
+                        signedVal( Instr::immGen0S6( instr )),
                         Instr::regAIdField( instr ),
                         Instr::regBIdField( instr ));
                 
-            }
         } break;
             
-        case ADR_MODE_INDX_GR4: {
+        case ADR_MODE_GR10_INDX_W: {
             
-            if ( loadStoreInstr ) fprintf( stdout, "%d(R4)", signedVal( Instr::immGen30S9( instr )));
-            else fprintf( stdout, "%d(R4)", signedVal( Instr::immGen0S9( instr )));
-            
-        } break;
-            
-        case ADR_MODE_INDX_GR5: {
-            
-            if ( loadStoreInstr ) fprintf( stdout, "%d(R5)", signedVal( Instr::immGen30S9( instr )));
-            else fprintf( stdout, "%d(R5)", signedVal( Instr::immGen0S9( instr )));
+            if ( loadStoreInstr ) fprintf( stdout, "%d(R10)", signedVal( Instr::immGen0S14( instr )));
+            else fprintf( stdout, "%d(R4)", signedVal( Instr::immGen0S14( instr )));
             
         } break;
             
-        case ADR_MODE_INDX_GR6: {
-            
-            if ( loadStoreInstr ) fprintf( stdout, "%d(R6)", signedVal( Instr::immGen30S9( instr )));
-            else fprintf( stdout, "%d(R6)", signedVal( Instr::immGen0S9( instr )));
-            
-        } break;
-            
-        case ADR_MODE_INDX_GR7: {
-            
-            if ( loadStoreInstr ) fprintf( stdout, "%d(R7)", signedVal( Instr::immGen30S9( instr )));
-            else fprintf( stdout, "%d(R7)", signedVal( Instr::immGen0S9( instr )));
-            
-        } break;
+       // ??? fill in the rest ...
     }
 }
 
@@ -392,13 +361,13 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
         if ( opCode == OP_STWA ) {
             
             fprintf( stdout, "%d(R%d)",
-                    signedVal( Instr::immGen6S6( instr )),
+                    signedVal( Instr::immGen8S10( instr )),
                     Instr::regBIdField( instr ));
         }
         else if ( opCode == OP_STWE ) {
             
             fprintf( stdout, "%d(S%d,R%d)",
-                    signedVal( Instr::immGen6S3( instr )),
+                    signedVal( Instr::immGen8S6( instr )),
                     Instr::regAIdField( instr ),
                     Instr::regBIdField( instr ));
         }
@@ -442,7 +411,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             case OP_LDI: {
                 
                 fprintf( stdout, "," );
-                displayHalfWord( signedVal( Instr::immGen30S9( instr )), fmtId );
+                displayHalfWord( signedVal( Instr::immGen2S14( instr )), fmtId );
                 
             } break;
                 
@@ -479,8 +448,8 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
                 fprintf( stdout, "R%d", Instr::regAIdField( instr ));
                 fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
                 
-                if ( Instr::dsrSaField( instr ) == 31 ) fprintf( stdout, ",shmat" );
-                else fprintf( stdout, ",%d", Instr::dsrSaField( instr ));
+                if ( Instr::dsrSaOptField( instr )) fprintf( stdout, ",shmat" );
+                else fprintf( stdout, ",%d", Instr::dsrSaAmtField( instr ));
                 
             } break;
                 
@@ -507,7 +476,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
                 
                 fprintf( stdout, "," );
                 fprintf( stdout, "%d(R%d)",
-                        signedVal( Instr::immGen6S6( instr )),
+                        signedVal( Instr::immGen8S10( instr )),
                         Instr::regBIdField( instr ));
                 
             } break;
@@ -516,7 +485,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
                 
                 fprintf( stdout, "," );
                 fprintf( stdout, "%d(S%d,R%d)",
-                        signedVal( Instr::immGen6S3( instr )),
+                        signedVal( Instr::immGen8S6( instr )),
                         Instr::regAIdField( instr ),
                         Instr::regBIdField( instr ));
                 
@@ -532,7 +501,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
                 
             case OP_B: {
                 
-                fprintf( stdout, "%i", signedVal( Instr::immGen6S9( instr )));
+                fprintf( stdout, "%i", signedVal( Instr::immGen8S14( instr )));
                 
             } break;
                 
@@ -540,7 +509,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             case OP_BL: {
             
                 fprintf( stdout, "," );
-                fprintf( stdout, "%i", signedVal( Instr::immGen6S9( instr )));
+                fprintf( stdout, "%i", signedVal( Instr::immGen8S14( instr )));
                 
             } break;
                 
@@ -571,17 +540,10 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
                 
             } break;
                 
-            case OP_BE:  {
-                
-                fprintf( stdout, "%d,", signedVal( Instr::immGen9S3( instr )));
-                fprintf( stdout, "(S%d", Instr::regAIdField( instr ));
-                fprintf( stdout, ",R%d)", Instr::regBIdField( instr ));
-                
-            } break;
-                
+            case OP_BE:  
             case OP_BLE: {
                 
-                fprintf( stdout, "%d", signedVal( Instr::immGen9S3( instr )));
+                fprintf( stdout, "%d,", signedVal( Instr::immGen12S6( instr )));
                 fprintf( stdout, "(S%d", Instr::regAIdField( instr ));
                 fprintf( stdout, ",R%d)", Instr::regBIdField( instr ));
                 
@@ -591,14 +553,14 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
                 
                 fprintf( stdout, "R%d", Instr::regAIdField( instr ));
                 fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
-                fprintf( stdout, ",%d", signedVal( Instr::immGen6S3( instr )));
+                fprintf( stdout, ",%d", signedVal( Instr::immGen8S6( instr )));
                 
             } break;
                 
             case OP_TBR: {
                 
                 fprintf( stdout, "R%d", Instr::regBIdField( instr ));
-                fprintf( stdout, ",%d", signedVal( Instr::immGen6S3( instr )));
+                fprintf( stdout, ",%d", signedVal( Instr::immGen8S6( instr )));
                 
             } break;
                 

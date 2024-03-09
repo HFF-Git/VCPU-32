@@ -310,19 +310,17 @@ void ExecuteStage::process( ) {
             
             if ( Instr::logicalOpField( instr )) {
                 
-                /*   fix .....
-                 if (( Instr) && ( Instr::trapOvlField( instr ))) {
-                 
+                if (( valCarry ) && ( Instr::trapOvlField( instr ))) {
+                
                  setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
                  return;
                  }
-                 */
-            }
-            else {
+            
+            } else {
                 
                 if ( Instr::trapOvlField( instr )) {
                     
-                    if (( valR ^ valA ) & ( valR ^ valB ) & 0x00800000 ) {
+                    if (( valR ^ valA ) & ( valR ^ valB ) & 0x80000000 ) {
                         
                         setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
                         return;
@@ -341,16 +339,13 @@ void ExecuteStage::process( ) {
             
             if ( Instr::logicalOpField( instr )) {
                 
-                /*
-                if ((Instr) && ( CPU24Instr::trapOvlField( instr ))) {
-                    
-                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
-                    return;
-                }
-                 */
+                if (( valCarry ) && ( Instr::trapOvlField( instr ))) {
                 
-            }
-            else {
+                 setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                 return;
+                 }
+            
+            } else {
                 
                 if ( Instr::trapOvlField( instr )) {
                     
@@ -405,8 +400,7 @@ void ExecuteStage::process( ) {
             uint8_t extrOpPos = Instr::extrDepPosField( instr );
             uint8_t extrOpLen = Instr::extrDepLenField( instr );
             
-            // ??? check bit...
-            if ( extrOpPos == WORD_SIZE ) core -> cReg[ CR_SHIFT_AMOUNT ].get( );
+           if ( Instr::extrDepSaOptField( instr )) extrOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
             
             uint32_t extrOpBitMask   = (( 1U << extrOpLen ) - 1 );
             valR = (( valB >> ( 31 - extrOpPos )) & extrOpBitMask );
@@ -423,8 +417,7 @@ void ExecuteStage::process( ) {
             uint8_t depOpPos = Instr::extrDepPosField( instr );
             uint8_t depOpLen = Instr::extrDepLenField( instr );
             
-            // ??? check bit op...
-            if ( depOpPos == WORD_SIZE ) core -> cReg[ CR_SHIFT_AMOUNT ].get( );
+            if ( Instr::extrDepSaOptField( instr )) depOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
             
             uint32_t    depOpBitMask    = (( 1U << depOpLen ) - 1 );
             uint32_t    temp1           = ( valB & depOpBitMask ) << ( 31 - depOpPos );
@@ -436,13 +429,11 @@ void ExecuteStage::process( ) {
             
         case OP_DSR: {
             
-            uint8_t shAmtLen = Instr::dsrSaField( instr );
+            uint8_t shAmtLen = Instr::dsrSaAmtField( instr );
             
-            // ??? check big op ...
-            if ( shAmtLen == WORD_SIZE ) core -> cReg[ CR_SHIFT_AMOUNT ].get( );
-            
-            // ??? fix ...
-            valR = (( valA >> shAmtLen ) | ( WORD_SIZE - shAmtLen ));
+            if ( Instr::dsrSaOptField( instr )) shAmtLen = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
+        
+            valR = (( valA >> shAmtLen ) | ( valB << ( WORD_SIZE - shAmtLen )));
             
         } break;
             
@@ -539,17 +530,15 @@ void ExecuteStage::process( ) {
             
         case OP_MR: {
             
-            // if ( Instr::mrMovDirField( instr )) {
+            if ( Instr::mrMovDirField( instr )) {
+                
+                if ( Instr::mrRegTypeField( instr ))
+                    core -> sReg[ Instr::regBIdField( instr ) ].set( valB );
+                else
+                    core -> cReg[ Instr::mrArgField( instr  ) ].set( valB );
             
-            /*
-             if ( Instr::mInstreld( instr ))
-             core -> sReg[ Instr::regBIdField( instr ) ].set( valB );
-             else
-             Instre -> cReg[ Instr::mrRegGrpInstrtr ) * 8 + Instr::regBIdField( instr ) ].set( valB );
-             }
-             else valR = valB;
-             */
-            
+            } else valR = valB;
+             
         } break;
             
         case OP_MST: {

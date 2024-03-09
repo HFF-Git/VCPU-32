@@ -2148,7 +2148,7 @@ None.
 
 <hr>
 
-Test a general register for a condition and conditionally move a register value or immediate value to the target register.
+Test a general register for a condition and conditionally move a register value to the target register.
 
 #### Format
 
@@ -2338,7 +2338,7 @@ Performs a right shift of two concatenated registers for shift amount bits and s
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : DSR   ( 0xx )   : r         :  :A : 0               : shamt        :0 : a         : b         :
+      : DSR   ( 0xx )   : r         :0 :A : 0               : shamt        :0 : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 

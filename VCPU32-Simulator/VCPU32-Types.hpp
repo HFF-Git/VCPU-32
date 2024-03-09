@@ -246,15 +246,40 @@ enum TestConditionCodes : uint32_t {
 //------------------------------------------------------------------------------------------------------------
 enum OpMode : uint32_t {
     
-    ADR_MODE_IMM         = 0x0,
-    ADR_MODE_REG         = 0x1,
-    ADR_MODE_TWO_REGS    = 0x2,
-    ADR_MODE_EXT_ADR     = 0x3,
-    ADR_MODE_INDX_GR4    = 0x4,
-    ADR_MODE_INDX_GR5    = 0x5,
-    ADR_MODE_INDX_GR6    = 0x6,
-    ADR_MODE_INDX_GR7    = 0x7
+    ADR_MODE_IMM            = 0x0,
+    ADR_MODE_REG_B          = 0x01,
+    ADR_MODE_REG_A          = 0x02,
+    ADR_MODE_REG_A_B        = 0x03,
+    
+    ADR_MODE_REG_INDX_W     = 0x08,
+    ADR_MODE_EXT_INDX_W     = 0x09,
+    ADR_MODE_GR10_INDX_W    = 0x0A,
+    ADR_MODE_GR11_INDX_W    = 0x0B,
+    ADR_MODE_GR12_INDX_W    = 0x0C,
+    ADR_MODE_GR13_INDX_W    = 0x0D,
+    ADR_MODE_GR14_INDX_W    = 0x0E,
+    ADR_MODE_GR15_INDX_W    = 0x0F,
+    
+    ADR_MODE_REG_INDX_H     = 0x10,
+    ADR_MODE_EXT_INDX_H     = 0x11,
+    ADR_MODE_GR10_INDX_H    = 0x12,
+    ADR_MODE_GR11_INDX_H    = 0x13,
+    ADR_MODE_GR12_INDX_H    = 0x14,
+    ADR_MODE_GR13_INDX_H    = 0x15,
+    ADR_MODE_GR14_INDX_H    = 0x16,
+    ADR_MODE_GR15_INDX_H    = 0x17,
+    
+    ADR_MODE_REG_INDX_B     = 0x18,
+    ADR_MODE_EXT_INDX_B     = 0x19,
+    ADR_MODE_GR10_INDX_B    = 0x1A,
+    ADR_MODE_GR11_INDX_B    = 0x1B,
+    ADR_MODE_GR12_INDX_B    = 0x1C,
+    ADR_MODE_GR13_INDX_B    = 0x1D,
+    ADR_MODE_GR14_INDX_B    = 0x1E,
+    ADR_MODE_GR15_INDX_N    = 0x1F
 };
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // Machine instruction opCodes. The first 6 bits of the instruction word are reserved for the opCode field.
@@ -273,7 +298,7 @@ enum InstrOpCode : uint8_t {
     OP_AND          = 0x12,     // target = target & operand ; option to negate the result
     OP_OR           = 0x13,     // target = target | operand ; option to negate the result
     OP_XOR          = 0x14,     // target = target ^ operand ; option to negate the result
-    OP_CMP          = 0x15,     // subtract reg2 from reg1 and set condition codes
+    OP_CMP          = 0x15,     // subtract reg2 from reg1 and set target reg
     OP_LEA          = 0x16,     // load effective address offset
     OP_LSID         = 0x17,     // load segment ID register
     
@@ -309,7 +334,7 @@ enum InstrOpCode : uint8_t {
     OP_RSV_2E       = 0x2E,     // reserved
     OP_RSV_2F       = 0x2F,     // reserved
     
-    // group three - branch group
+    // group three - branch group, special
     
     OP_B            = 0x30,     // branch
     OP_BL           = 0x31,     // branch and link
@@ -324,12 +349,13 @@ enum InstrOpCode : uint8_t {
     OP_TBR          = 0x3A,     // test and branch
     
     OP_RSV_3B       = 0x3B,     // reserved
-    OP_RSV_3C       = 0x3C,     // reserved
-    OP_RSV_3D       = 0x3D,     // reserved
-    OP_RSV_3E       = 0x3E,     // reserved
-    OP_RSV_3F       = 0x3F,     // reserved
     
-    // group zero - specials...
+    OP_ITLB         = 0x3C,     // insert into TLB
+    OP_PTLB         = 0x3D,     // remove from TLB
+    OP_PCA          = 0x3E,     // purge and flush cache
+    OP_RFI          = 0x3F,     // return from interrupt
+    
+    // group zero - sregister based, special
     
     OP_BRK          = 0x00,     // break for debug
     OP_DIAG         = 0x01,     // diagnostics instruction, tbd.
@@ -346,11 +372,12 @@ enum InstrOpCode : uint8_t {
     OP_MST          = 0x0A,     // set or clear status bits
     
     OP_RSV_0B       = 0x0B,     // reserved
+    OP_RSV_0C       = 0x0C,     // reserved
+    OP_RSV_0D       = 0x0D,     // reserved
+    OP_RSV_0E       = 0x0E,     // reserved
+    OP_RSV_0F       = 0x0F,     // reserved
    
-    OP_ITLB         = 0x0C,     // insert into TLB
-    OP_PTLB         = 0x0D,     // remove from TLB
-    OP_PCA          = 0x0E,     // purge and flush cache
-    OP_RFI          = 0x0F,     // return from interrupt
+   
 
 };
 
@@ -402,11 +429,11 @@ const struct opCodeInfo {
     /* 0x08 */  { "CMR",    OP_CMR,     ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x09 */  { "MR",     OP_MR,      ( CTRL_INSTR ) },
     /* 0x0A */  { "MST",    OP_MST,     ( CTRL_INSTR | PRIV_INSTR | REG_R_INSTR ) },
-    /* 0x0B */  { "RSV_0B", OP_SHLA,    ( NO_FLAGS ) },
-    /* 0x0C */  { "ITLB",   OP_ITLB,    ( CTRL_INSTR | PRIV_INSTR ) },
-    /* 0x0D */  { "PTLB",   OP_PTLB,    ( CTRL_INSTR | PRIV_INSTR ) },
-    /* 0x0E */  { "PCA",    OP_PCA,     ( CTRL_INSTR ) },
-    /* 0x0F */  { "RFI",    OP_RFI,     ( CTRL_INSTR | PRIV_INSTR ) },
+    /* 0x0B */  { "RSV_0B", OP_RSV_0B,  ( NO_FLAGS ) },
+    /* 0x0C */  { "RSV_0C", OP_RSV_0C,  ( NO_FLAGS ) },
+    /* 0x0D */  { "RSV_0D", OP_RSV_0D,  ( NO_FLAGS ) },
+    /* 0x0E */  { "RSV_0E", OP_RSV_0E,  ( NO_FLAGS ) },
+    /* 0x0F */  { "RSV_0F", OP_RSV_0F,  ( NO_FLAGS ) },
     
     /* 0x10 */  { "ADD",    OP_ADD,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x11 */  { "SUB",    OP_SUB,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
@@ -453,12 +480,11 @@ const struct opCodeInfo {
     /* 0x38 */  { "BLE",    OP_BLE,     ( BRANCH_INSTR | REG_R_INSTR ) },
     /* 0x39 */  { "CBR",    OP_CBR,     ( BRANCH_INSTR ) },
     /* 0x3A */  { "TBR",    OP_TBR,     ( BRANCH_INSTR ) },
-   
     /* 0x3B */  { "RSV_3B", OP_RSV_3B,  ( NO_FLAGS ) },
-    /* 0x3C */  { "RSV_3C", OP_RSV_3C,  ( NO_FLAGS ) },
-    /* 0x3D */  { "RSV_3D", OP_RSV_3D,  ( NO_FLAGS ) },
-    /* 0x3E */  { "RSV_3E", OP_RSV_3E,  ( NO_FLAGS ) },
-    /* 0x3F */  { "RSV_3F", OP_RSV_3F,  ( NO_FLAGS ) }
+    /* 0x3C */  { "ITLB",   OP_ITLB,    ( CTRL_INSTR | PRIV_INSTR ) },
+    /* 0x4D */  { "PTLB",   OP_PTLB,    ( CTRL_INSTR | PRIV_INSTR ) },
+    /* 0x3E */  { "PCA",    OP_PCA,     ( CTRL_INSTR ) },
+    /* 0x3F */  { "RFI",    OP_RFI,     ( CTRL_INSTR | PRIV_INSTR ) }
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -472,6 +498,12 @@ const struct opCodeInfo {
 // that use them. For example the bit position in the extract and deposit instruction is "extrDepPosField".
 // To simplify the decoding, a macro will accept position and length and perform the extract.
 //
+// The immediate values of an instruction often are constructed from several fields which are concatenated.
+// The routines "xxSyy" assemble a field. The "S" indicates the sign position. This is always bit 18 in the
+// instrcution word. The field left of the "S" contains as the most significant bit the sign bit. The fiels
+// "xx" left of the field containing the sign is placed right off the "yy" field. Together the form the
+// value. If the sign bit is set, the concatenatd field is sign extended.
+//
 //------------------------------------------------------------------------------------------------------------
 #define MASK( m ) (( 1U << m ) - 1 )
 #define EXTR( i, p, l ) ((( i ) >> ( 31 - p )) & ( MASK( l )))
@@ -481,21 +513,26 @@ struct Instr {
   
 public:
    
-    static inline uint32_t  opCodeField( uint32_t instr )           { return( EXTR( instr, 5, 6 )); }
-    static inline uint32_t  regRIdField( uint32_t instr )           { return( EXTR( instr, 9, 4 )); }
+    static inline uint32_t  opCodeField( uint32_t instr )           { return( EXTR( instr, 5,  6 )); }
+    static inline uint32_t  regRIdField( uint32_t instr )           { return( EXTR( instr, 9,  4 )); }
     static inline uint32_t  regAIdField( uint32_t instr )           { return( EXTR( instr, 27, 4 )); }
     static inline uint32_t  regBIdField( uint32_t instr )           { return( EXTR( instr, 31, 4 )); }
     static inline uint32_t  opModeField( uint32_t instr )           { return( EXTR( instr, 17, 5 )); }
     static inline uint32_t  cmpCondField( uint32_t instr )          { return( EXTR( instr, 12, 3 )); }
     static inline uint32_t  cmrCondField( uint32_t instr )          { return( EXTR( instr, 12, 3 )); }
-    static inline uint32_t  cbrCondField( uint32_t instr )          { return( EXTR( instr, 8, 3 )); }
-    static inline uint32_t  tbrCondField( uint32_t instr )          { return( EXTR( instr, 8, 3 )); }
+    static inline uint32_t  cbrCondField( uint32_t instr )          { return( EXTR( instr, 8,  3 )); }
+    static inline uint32_t  tbrCondField( uint32_t instr )          { return( EXTR( instr, 8,  3 )); }
     static inline uint32_t  immOfsSignField( uint32_t instr )       { return( EXTR( instr, 18, 1 )); }
     static inline uint32_t  arithOpFlagField( uint32_t instr )      { return( EXTR( instr, 12, 3 )); }
     static inline uint32_t  boolOpFlagField( uint32_t instr )       { return( EXTR( instr, 12, 3 )); }
+    static inline uint32_t  extrSignField( uint32_t instr )         { return( EXTR( instr, 10, 1 )); }
+    static inline uint32_t  depZeroField( uint32_t instr )          { return( EXTR( instr, 10, 1 )); }
+    static inline uint32_t  depImmField( uint32_t instr )           { return( EXTR( instr, 12, 1 )); }
+    static inline uint32_t  extrDepSaOptField( uint32_t instr )     { return( EXTR( instr, 11, 1 )); }
     static inline uint32_t  extrDepLenField( uint32_t instr )       { return( EXTR( instr, 22, 5 )); }
     static inline uint32_t  extrDepPosField( uint32_t instr )       { return( EXTR( instr, 27, 5 )); }
-    static inline uint32_t  dsrSaField( uint32_t instr )            { return( EXTR( instr, 22, 5 )); }
+    static inline uint32_t  dsrSaOptField( uint32_t instr )         { return( EXTR( instr, 11, 1 )); }
+    static inline uint32_t  dsrSaAmtField( uint32_t instr )         { return( EXTR( instr, 22, 5 )); }
     static inline bool      shlaUseImmField( uint32_t instr )       { return( EXTR( instr, 22, 2 )); }
     static inline bool      useCarryField( uint32_t instr )         { return( EXTR( instr, 10, 1 )); }
     static inline bool      logicalOpField( uint32_t instr )        { return( EXTR( instr, 11, 1 )); }
@@ -508,7 +545,9 @@ public:
     static inline uint32_t  shlaSaField( uint32_t instr )           { return( EXTR( instr, 22, 2 )); }
     static inline bool      ldiZeroField( uint32_t instr )          { return( EXTR( instr, 10, 1 )); }
     static inline bool      ldiLeftField( uint32_t instr )          { return( EXTR( instr, 11, 1 )); }
-    static inline bool      mrMovDirField( uint32_t instr )         { return( EXTR( instr, 10, 1 )); }
+    static inline bool      mrZeroField( uint32_t instr )           { return( EXTR( instr, 10, 1 )); }
+    static inline bool      mrMovDirField( uint32_t instr )         { return( EXTR( instr, 11, 1 )); }
+    static inline bool      mrRegTypeField( uint32_t instr )        { return( EXTR( instr, 12, 1 )); }
     static inline uint32_t  mrArgField( uint32_t instr )            { return( EXTR( instr, 31, 6 )); }
     static inline uint32_t  mstModeField( uint32_t instr )          { return( EXTR( instr, 11, 2 )); }
     static inline uint32_t  mstArgField( uint32_t instr )           { return( EXTR( instr, 31, 6 )); }
@@ -525,9 +564,6 @@ public:
     static inline uint32_t  segSelect( uint32_t arg )               { return ( EXTR( arg, 1, 2 )); }
     static inline uint32_t  ofsSelect( uint32_t arg )               { return ( EXTR( arg, 31, 30 )); }
     
-    
-    // ??? new immediates ...
-    
     static inline uint32_t immGen0S14( uint32_t instr ) {
         
         uint32_t tmp = EXTR( instr, 31, 14 );
@@ -536,7 +572,7 @@ public:
     
     static inline uint32_t immGen0S6( uint32_t instr ) {
         
-        uint32_t tmp = EXTR( instr, 23, 6 ) >> 8;
+        uint32_t tmp = EXTR( instr, 23, 6 );
         return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFFFC0 ) : ( tmp ));
     }
     
@@ -548,107 +584,31 @@ public:
     
     static inline uint32_t immGen8S6( uint32_t instr ) {
       
-        uint32_t tmp = ( EXTR( instr, 17, 8 ) >> 14 ) | ( EXTR( instr, 23, 6 ) << 6 );
+        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 23, 6 ) << 8 ));
         return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
     }
     
     static inline uint32_t immGen8S10( uint32_t instr ) {
       
-        uint32_t tmp = ( EXTR( instr, 17, 8 ) >> 14 ) | ( EXTR( instr, 27, 10 ) << 6 );
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
+        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 27, 10 ) << 8 ));
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFC0000 ) : ( tmp ));
     }
     
     static inline uint32_t immGen8S14( uint32_t instr ) {
       
-        uint32_t tmp = ( EXTR( instr, 17, 8 ) >> 14 ) | ( EXTR( instr, 31, 14 ) << 8 );
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen9S6( uint32_t instr ) {
-      
-        uint32_t tmp = ( EXTR( instr, 17, 9 ) >> 14 ) | ( EXTR( instr, 23, 6 ) << 1 );
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
+        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 31, 14 ) << 8 ));
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFC00000 ) : ( tmp ));
     }
     
     static inline uint32_t immGen12S6( uint32_t instr ) {
       
-        uint32_t tmp = ( EXTR( instr, 17, 12 ) >> 14 ) | ( EXTR( instr, 23, 6 ) << 4 );
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
+        uint32_t tmp = ( EXTR( instr, 17, 12 ) | ( EXTR( instr, 23, 6 ) << 12 ));
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFC0000 ) : ( tmp ));
     }
     
-    
-    
-    // ??? old immediates - phase out ...
-    
-    
-    static inline uint32_t immGen0S3( uint32_t instr ) {
+    static inline uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
         
-        uint32_t tmp = (( instr >> 6 ) & 07 );
-        return (( instr & 0400 ) ? ( tmp | 077777770 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen0S9( uint32_t instr ) {
-        
-        return (( instr & 0400 ) ? ( instr | 077777000 ) : ( instr & 0777 ));
-    }
-    
-    static inline uint32_t immGen30S3( uint32_t instr ) {
-        
-        uint32_t tmp = (( instr >> 12 ) & 07 ) | (( instr >> 3 ) & 070 );
-        return (( instr & 0400 ) ? ( tmp | 077777700 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen30S9( uint32_t instr ) {
-        
-        uint32_t tmp = (( instr >> 12 ) & 07 ) | (( instr << 3 ) & 07770 );
-        return (( instr & 0400 ) ? ( tmp | 077770000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen6S3( uint32_t instr ) {
-        
-        uint32_t tmp = (( instr >> 9 ) & 077 ) | ( instr & 0700 );
-        return (( instr & 0400 ) ? ( tmp | 077777000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen6S6( uint32_t instr ) {
-        
-        uint32_t tmp = (( instr >> 9 ) & 077 ) | (( instr << 3 ) & 07700 );
-        return (( instr & 0400 ) ? ( tmp | 077770000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen6S9( uint32_t instr ) {
-        
-        uint32_t tmp = (( instr >> 9 ) & 077 ) | (( instr << 6 ) & 077700 );
-        return (( instr & 0400 ) ? ( tmp | 077700000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen9S3( uint32_t instr ) {
-        
-        uint32_t tmp = (( instr >> 9 ) & 0777 ) | (( instr << 3 ) & 007000 );
-        return (( instr & 0400 ) ? ( tmp | 077770000 ) : ( tmp ));
-    }
-    
-    
-    // ??? this will become easier / go away ?
-        
-    static inline uint32_t iaOfsPrivField( uint32_t arg ) {
-        
-        return ( arg >> 23 );
-    }
-    
-    static inline uint32_t add22ForInstrAdr( uint32_t arg1, uint32_t arg2 ) {
-        
-        return ((( arg1 & 017777777 ) + ( arg2 & 017777777 )) | ( arg1 & 60000000 ));
-    }
-    
-    static inline uint32_t add22( uint32_t arg1, uint32_t arg2 ) {
-        
-        return (( arg1 + arg2 ) & 017777777 );
-    }
-    
-    static inline uint32_t add24( uint32_t arg1, uint32_t arg2 ) {
-        
-        return (( arg1 + arg2 ) & 077777777 );
+        return ( arg1 + arg2 );
     }
 };
  

@@ -332,7 +332,8 @@ public:
                                     int row = 0,
                                     int col = 0 );
     
-    void            printUserIndexField( int index,
+    void            printUserIndexField( int stack,
+                                        int index,
                                         bool current = false,
                                         uint32_t fmtDesc = 0,
                                         int row = 0,
