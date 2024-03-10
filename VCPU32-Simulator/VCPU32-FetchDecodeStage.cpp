@@ -423,7 +423,7 @@ void FetchDecodeStage::process( ) {
             
         } break;
             
-        case OP_LEA:    case     OP_LD:     case OP_ST:     case OP_LDWR:     case OP_STWC: {
+        case OP_LOD:    case     OP_LD:     case OP_ST:     case OP_LDWR:     case OP_STWC: {
             
             switch ( Instr::opModeField( instr )) {
                     
@@ -469,11 +469,11 @@ void FetchDecodeStage::process( ) {
             
         } break;
             
-        case  OP_LDI: {
+        case  OP_LDIL: {
             
             regIdForValA    = Instr::regRIdField( instr );
-            valA            = core -> gReg[ regIdForValA ].get( );
-            valB            = Instr::immGen2S14( instr );
+            valA            = Instr::ldilValField( instr ) << 14;
+            valB            = 0;
             
         } break;
             

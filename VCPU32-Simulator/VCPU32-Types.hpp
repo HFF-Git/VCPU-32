@@ -276,7 +276,7 @@ enum OpMode : uint32_t {
     ADR_MODE_GR12_INDX_B    = 0x1C,
     ADR_MODE_GR13_INDX_B    = 0x1D,
     ADR_MODE_GR14_INDX_B    = 0x1E,
-    ADR_MODE_GR15_INDX_N    = 0x1F
+    ADR_MODE_GR15_INDX_B    = 0x1F
 };
 
 
@@ -299,7 +299,7 @@ enum InstrOpCode : uint8_t {
     OP_OR           = 0x13,     // target = target | operand ; option to negate the result
     OP_XOR          = 0x14,     // target = target ^ operand ; option to negate the result
     OP_CMP          = 0x15,     // subtract reg2 from reg1 and set target reg
-    OP_LEA          = 0x16,     // load effective address offset
+    OP_LOD          = 0x16,     // load offset
     OP_LSID         = 0x17,     // load segment ID register
     
     OP_LD           = 0x18,     // target = [ operand ]   // ??? covers LDW, LDH, LDB
@@ -360,14 +360,13 @@ enum InstrOpCode : uint8_t {
     OP_BRK          = 0x00,     // break for debug
     OP_DIAG         = 0x01,     // diagnostics instruction, tbd.
     
-    OP_LDI          = 0x02,     // load immediate
-    OP_EXTR         = 0x03,     // extract bit field of operand
-    OP_DEP          = 0x04,     // extract bit field into operand
-    OP_DSR          = 0x05,     // double register shift right
-    OP_SHLA         = 0x06,     // shift left and add
-    OP_RSV_07       = 0x07,     // reserved for divide step support ...
+    OP_LDIL         = 0x02,     // load immediate left
+    OP_ADDIL        = 0x03,     // add immediate left
+    OP_EXTR         = 0x04,     // extract bit field of operand
+    OP_DEP          = 0x05,     // extract bit field into operand
+    OP_DSR          = 0x06,     // double register shift right
+    OP_SHLA         = 0x07,     // shift left and add
     OP_CMR          = 0x0B,     // conditional move register or value
-    
     OP_MR           = 0x09,     // move to or from a segment or control register
     OP_MST          = 0x0A,     // set or clear status bits
     
@@ -376,9 +375,6 @@ enum InstrOpCode : uint8_t {
     OP_RSV_0D       = 0x0D,     // reserved
     OP_RSV_0E       = 0x0E,     // reserved
     OP_RSV_0F       = 0x0F,     // reserved
-   
-   
-
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -420,12 +416,12 @@ const struct opCodeInfo {
     
     /* 0x00 */  { "BRK",    OP_BRK,     ( CTRL_INSTR ) },
     /* 0x01 */  { "DIAG",   OP_DIAG,    ( CTRL_INSTR ) },
-    /* 0x02 */  { "LDI",    OP_LDI,     ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x03 */  { "EXTR",   OP_EXTR,    ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x04 */  { "DEP",    OP_DEP,     ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x05 */  { "DSR",    OP_DSR,     ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x06 */  { "SHLA",   OP_SHLA,    ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x07 */  { "RSV_07", OP_SHLA,    ( NO_FLAGS ) },
+    /* 0x02 */  { "LDI",    OP_LDIL,    ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x03 */  { "ADDIL",  OP_ADDIL,   ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x04 */  { "EXTR",   OP_EXTR,    ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x05 */  { "DEP",    OP_DEP,     ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x06 */  { "DSR",    OP_DSR,     ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x07 */  { "SHLA",   OP_SHLA,    ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x08 */  { "CMR",    OP_CMR,     ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x09 */  { "MR",     OP_MR,      ( CTRL_INSTR ) },
     /* 0x0A */  { "MST",    OP_MST,     ( CTRL_INSTR | PRIV_INSTR | REG_R_INSTR ) },
@@ -441,7 +437,7 @@ const struct opCodeInfo {
     /* 0x13 */  { "OR",     OP_OR,      ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x14 */  { "XOR",    OP_XOR,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x15 */  { "CMP",    OP_CMP,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x16 */  { "LEA",    OP_LEA,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x16 */  { "LEA",    OP_LOD,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x17 */  { "LSID",   OP_LSID,    ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x18 */  { "LD",     OP_LD,      ( LOAD_INSTR  | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x19 */  { "ST",     OP_ST,      ( STORE_INSTR | OP_MODE_INSTR ) },
@@ -543,8 +539,7 @@ public:
     static inline bool      depInZeroField( uint32_t instr )        { return( EXTR( instr, 10, 1 )); }
     static inline bool      depImmOptField( uint32_t instr )        { return( EXTR( instr, 11, 1 )); }
     static inline uint32_t  shlaSaField( uint32_t instr )           { return( EXTR( instr, 22, 2 )); }
-    static inline bool      ldiZeroField( uint32_t instr )          { return( EXTR( instr, 10, 1 )); }
-    static inline bool      ldiLeftField( uint32_t instr )          { return( EXTR( instr, 11, 1 )); }
+    static inline uint32_t  ldilValField( uint32_t instr )           { return( EXTR( instr, 14, 18 )); }
     static inline bool      mrZeroField( uint32_t instr )           { return( EXTR( instr, 10, 1 )); }
     static inline bool      mrMovDirField( uint32_t instr )         { return( EXTR( instr, 11, 1 )); }
     static inline bool      mrRegTypeField( uint32_t instr )        { return( EXTR( instr, 12, 1 )); }
@@ -604,6 +599,11 @@ public:
       
         uint32_t tmp = ( EXTR( instr, 17, 12 ) | ( EXTR( instr, 23, 6 ) << 12 ));
         return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFC0000 ) : ( tmp ));
+    }
+    
+    static inline uint32_t immAddilField( uint32_t instr ) {
+        
+        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 27, 10 ) << 8 ));
     }
     
     static inline uint32_t add32( uint32_t arg1, uint32_t arg2 ) {

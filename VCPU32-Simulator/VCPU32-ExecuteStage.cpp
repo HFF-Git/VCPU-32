@@ -465,12 +465,9 @@ void ExecuteStage::process( ) {
             
         } break;
             
-        case OP_LDI: {
+        case OP_LDIL: {
             
-            if ( Instr::ldiZeroField( instr )) valA = 0;
-            
-            if ( Instr::ldiLeftField( instr )) valR = ( valA & 000007777 ) | ( valB << 12 );
-            else                                    valR = ( valA & 077770000 ) | valB;
+            valR = valA;;  // ??? check ....
             
         } break;
             
@@ -485,7 +482,7 @@ void ExecuteStage::process( ) {
         case OP_BL:
         case OP_BLR: {
             
-            valR = Instr::add22( instrOfs, 1 );
+            valR = Instr::add32( instrOfs, 1 );
             
         } break;
             

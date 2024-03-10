@@ -518,21 +518,23 @@ Throughout the remainder of this document numbers are shown in three numeric for
 
 ### Operand Encoding
 
-At the highest level the processor works with logical addresses. There are several address modes that are used to form an operand address. Most instructions have an operand mode and and operand data field which encodes the address mode and size of data to fetch. There are 32 address modes for instructions that use the operand encoding format. They can be grouped in four sets. Modes 0 .. 7 contains the immediate, register and extended address options. Modes 8 .. 15, 16 .. 23 and 24 .. 31 are the indexed adressing groups. They form the same address for the operand and only differ in the data size fetched. The following figure gives an overview of the instruction layout for instructions with an operand encoding. 
+At the highest level the processor works with logical addresses. The **mode** field indicates which addressing mode is used. There are several address modes that are used to form an operand address. Most instructions have an operand mode and and operand data field which encodes the address mode and size of data to fetch. There are 32 address modes for instructions that use the operand encoding format. They can be grouped in four sets. Modes 0 .. 3 contains the immediate modes. Signed and unsigned values are supported. Modes 4 ..7 are the register modes. They refer to no register, one register and two registers. Modes 8 .. 15, 16 .. 23 and 24 .. 31 are the indexed adressing groups. They form the same address for the operand and only differ in the data size fetched. The following figure gives an overview of the instruction layout for instructions with an operand encoding. 
 
 ```
                          <-  res  -> <-opt -> <-   mode   -> <--------- operand --------------------->
        0                 6           10       13             18                24          28       31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : opCode          : r         :        : 0            : S : val                                 :  immediate
+      : opCode          : r         :        : 0            :S : val                                  :  immediate
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 1            : 0                           : b         :  one register
+      : opCode          : r         :        : 1 - 3        : 0                                       :  undefined
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 2            : 0               : a         : 0         :  one register
+      : opCode          : r         :        : 4            : 0                                       :  no register
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 3            : 0               : a         : b         :  two registers
+      : opCode          : r         :        : 5            : 0               : 0         : b         :  one register
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 4 - 7        :                                         :  reserved
+      : opCode          : r         :        : 6            : 0               : a         : 0         :  one register
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 7            : 0               : a         : b         :  two registers
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 8            : 0               : a         : b         :  register indexed, word
       :-----------------:-----------------------------------------------------------------------------:
@@ -553,10 +555,9 @@ At the highest level the processor works with logical addresses. There are sever
       : opCode          : r         :        : 26 - 31      : S : ofs                                 :  indexed, byte
       :-----------------:-----------------------------------------------------------------------------:
 ```
+There is one **immediate operand mode**, which supports a signed 14-bit value. Depending on the sign, the value is sign or zero extended.The **register modes** specify no, one or two registers. Registers not used in a given mode are interpreted as a zero value. For example, an instruction SUB with operand mode 5 will subtract the "b" register from a zero value. This is essentially a negate operatrion then.
 
-The machine addresses memory with a byte address. The **mode** field indicates which addressing mode is used. Mode 0 is the immediate mode, where the operand is a sign-extended 14-bit value. Mode 1,2 and 3 are the register modes. Either one or two registers can be specified. For mode 1 and 2 either "a" or "b" is a zero value. Mode 3 uses both register fields "a" and "b" allowing a three register operation. Mode 4 - 7 is undefined and result in illegal instruction trap.
-
-Modes 8 to 31 are the indexed modes structured in three groups, which access a word, a half-word or a byte. The computed address must be aligned with the size of data to fetch. The first mode in each group, i.e. 8, 16 or 24 is the register indexed mode. A register holding a signed offset is added to a base general register to form the address. The second mode, mode 9, 17 or 25 is the extended mode. The address is formed from the segment register in "a" and the base offset in "b" to which a signed offset can be added. The remaining modes, 10 .. 15, 18 . 23 and 26 .. 31 use a corresponding index register GR10 .. GR15 as the base register to which the signed offset is added. With the exception of the extended indexing mode, the final virtual address is built from the computed logical address and the segment register SR 4 .. SR 7 selected by the upper two bits of the logical address. 
+The machine addresses memory with a byte address. Modes 8 to 31 are the **indexed modes** structured in three groups, which access a word, a half-word or a byte. The computed address must be aligned with the size of data to fetch. The first mode in each group, i.e. 8, 16 or 24 is the register indexed mode. A register holding a signed offset is added to a base general register to form the address. The second mode, mode 9, 17 or 25 is the extended mode. The address is formed from the segment register in "a" and the base offset in "b" to which a signed offset can be added. The remaining modes, 10 .. 15, 18 . 23 and 26 .. 31 use a corresponding index register GR10 .. GR15 as the base register to which the signed offset is added. With the exception of the extended indexing mode, the final virtual address is built from the computed logical address and the segment register SR 4 .. SR 7 selected by the upper two bits of the logical address. 
 
 ### Memory Reference Instructions
 
@@ -1621,11 +1622,9 @@ The computation **ADD** and **SUB** instructions perform the numeric arithmetic.
 
 The bit shift, deposit and extract instructions **EXTR**, **DEP** and **DSR**, are available for bit field manipulations in a data word. Their instruction format specifies a bit field with a bit position and bit length. With these three instructions bit operations such as setting or clearing a bit are easy and performant to do. Furthermore, the bit shift right and left and rotate operations can easily be done with these three instructions.
 
-The **LDI** instruction is used to load a constant value int a register. There are options to select the lower or upper half of the register such that a two instruction sequence covers create the entire numeric 24-bit range. The **CMP** instruction compares two values and stores a one or zero depending on the comparison result. The **CMR** instruction will test a register for a condition and store another register or immediate value into the target register.
+The **CMP** instruction compares two values and stores a one or zero depending on the comparison result. The **CMR** instruction will test a register for a condition and store another register or immediate value into the target register. The shift and add instruction **SHLA** combines a shift operation with an add operation. This is allows to perform multiplication with small integer constants with very few instructions. For example, multiplying a register value by 5 could be done by simply shifting the general register "r" by two bits and an add the same "r" value to it.
 
-The shift and add instruction **SHLA** combines a shift operation with an add operation. This is allows to perform multiplication with small integer constants with very few instructions. For example, multiplying a register value by 5 could be done by simply shifting the general register "r" by two bits and an add the same "r" value to it.
-
-The **LEA** instruction will return the address offset portion of the operand. The **LDSID** instruction will return the segment id of the operand address. Both instructions are purely computational instruction with no memory reference. Finally. there is also a **NOP** instruction, which has the opcode of zero and performs, you guessed it, a no-operation.
+The **LDO** instruction will return the address offset portion of the operand. The **LDIL** instruction is used to load a constant value into the left part of a register. In combination, the two instructions allow to load a 32-bit value. The **LDSID** instruction will return the segment id of the operand address. Both instructions are purely computational instruction with no memory reference. Finally. there is also a **NOP** instruction, which has the opcode of zero and performs, you guessed it, a no-operation.
 
 Note that the assembler will use the instruction format *OP GR1,GR2* for the *regR = regR op regB* operation. This should be translated to an operand mode two type instruction of the form *GR1 <- Gr1 OP GR2*.  The assembler therefore maps the instruction formats *GR1 -> GR1 OP GR2* and *GR1 <- GR2 OP GR3* to operand mode two.
 
@@ -1673,18 +1672,28 @@ The instruction fetches the operand and adds it to the general register "r". If 
       switch( opMode ) {
 
          case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
+	            tmpB <- signExtend( opArg, 14 );
 		      break;
 
-         case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
+         case 1:  
+         case 2:
+         case 3:  illegalInstructionTrap( );         
+
+         case 4:  tmpA <- 0;
+		      tmpB <- 0;
 			break;
 
-         case 2:  tmpA <- GR[a];
+         case 5:  tmpA <- 0;
 		      tmpB <- GR[b];
 			break;
+                  
+         case 6:  tmpA <- GR[a];
+		      tmpB <- G0;
+			break;
 
-         case 4 .. 7: illegalInstructionTrap( );
+         case 7:  tmpA <- GR[a];
+		      tmpB <- GR[b];
+			break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1757,19 +1766,16 @@ The instruction fetches the operand and subtracts it from the general register "
 ```
       switch( opMode ) {
 
-         case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
-		      break;
+         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 );  break;
 
-         case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
-
-         case 2:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
-
-         case 4 .. 7: illegalInstructionTrap( );
+         case 1:  
+         case 2:
+         case 3:  illegalInstructionTrap( ); 
+              
+         case 4:  tmpA <- 0;     tmpB <- 0;      break;
+         case 5:  tmpA <- 0;     tmpB <- GR[b];  break;
+         case 6:  tmpA <- GR[a]; tmpB <- G0;     break;
+         case 7:  tmpA <- GR[a]; tmpB <- GR[b];  break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1818,7 +1824,7 @@ Performs a bitwise AND of the operand and the target register and stores the res
 
 ```
       AND[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
-	AND[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
+      AND[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
       AND[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
  
       AND[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
@@ -1842,19 +1848,16 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
       switch( opMode ) {
 
-         case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
-		      break;
+         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 );  break;
 
-         case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
-
-         case 2:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
-
-         case 4 .. 7: illegalInstructionTrap( );
+         case 1:  
+         case 2:
+         case 3:  illegalInstructionTrap( ); 
+              
+         case 4:  tmpA <- 0;     tmpB <- 0;      break;
+         case 5:  tmpA <- 0;     tmpB <- GR[b];  break;
+         case 6:  tmpA <- GR[a]; tmpB <- G0;     break;
+         case 7:  tmpA <- GR[a]; tmpB <- GR[b];  break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1897,7 +1900,7 @@ Performs a bitwise OR of the operand and the target register and stores the resu
 
 ```
       OR[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
-	OR[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
+      OR[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
       OR[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
  
       OR[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
@@ -1921,19 +1924,16 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
       switch( opMode ) {
 
-         case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
-		      break;
+         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 );  break;
 
-         case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
-
-         case 2:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
-
-         case 4 .. 7: illegalInstructionTrap( );
+         case 1:  
+         case 2:
+         case 3:  illegalInstructionTrap( ); 
+              
+         case 4:  tmpA <- 0;     tmpB <- 0;      break;
+         case 5:  tmpA <- 0;     tmpB <- GR[b];  break;
+         case 6:  tmpA <- GR[a]; tmpB <- G0;     break;
+         case 7:  tmpA <- GR[a]; tmpB <- GR[b];  break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1977,7 +1977,7 @@ Performs a bitwise XORing the operand and the target register and stores the res
 
 ```
       XOR[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
-	XOR[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
+      XOR[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
       XOR[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
  
       XOR[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
@@ -2001,19 +2001,16 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
       switch( opMode ) {
 
-         case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
-		      break;
+         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 );  break;
 
-         case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
-
-         case 2:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
-
-         case 4 .. 7: illegalInstructionTrap( );
+         case 1:  
+         case 2:
+         case 3:  illegalInstructionTrap( ); 
+              
+         case 4:  tmpA <- 0;     tmpB <- 0;      break;
+         case 5:  tmpA <- 0;     tmpB <- GR[b];  break;
+         case 6:  tmpA <- GR[a]; tmpB <- G0;     break;
+         case 7:  tmpA <- GR[a]; tmpB <- GR[b];  break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -2055,7 +2052,7 @@ Compares a register and an operand and stores the comparison result in the targe
 
 ```
       CMP[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
-	CMP[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
+      CMP[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
       CMP[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
  
       CMP[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
@@ -2090,19 +2087,16 @@ The compare condition are encoded as follows.
 ```
       switch( opMode ) {
 
-         case 0:  tmpA <- GR[r];
-	            tmpB <- signExt( opArg, 16 );
-		      break;
+         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 );  break;
 
-         case 1:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
-
-         case 2:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
-
-         case 4 .. 7: illegalInstructionTrap( );
+         case 1:  
+         case 2:
+         case 3:  illegalInstructionTrap( ); 
+              
+         case 4:  tmpA <- 0;     tmpB <- 0;      break;
+         case 5:  tmpA <- 0;     tmpB <- GR[b];  break;
+         case 6:  tmpA <- GR[a]; tmpB <- G0;     break;
+         case 7:  tmpA <- GR[a]; tmpB <- GR[b];  break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -2417,78 +2411,31 @@ None.
 
 <div style="page-break-before: always;"></div>
 
-### LDI
+### LDO
 
 <hr>
 
-Loads an immediate value into the target register.
+Loads the effective address offset of the operand.
 
 #### Format
 
 ```
-      LDI [ .<opt> ] <GR r>, <val>
+      LDO <val>                              : opMode 0, 1          
+      LDO <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
+      LDO <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
+      LDO <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
 ```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDI   ( 0xx )   : r         :Z :L :0          :val2 : val1                                    :
+      : LDO    ( 0xx )  : r         : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The load immediate instruction loads a 16-bit immediate value embedded in the instruction into the general register "r". The value is concatenated from the "val1" and "val2" field. The "Z" bit specifies to clear the target register first. The "L" bit specifies that the value is to be stored into the upper half of the target register without affecting the lower half of the target register. Using the "L" option, two LDI instructions can thus set any immediate value.
-
-#### Operation
-
-```
-      if ( instr.[Z] ) GR[r] = 0;
-      tmpA = catImm( val1, val2 );
-
-      if ( instr.[L] ) tmpB =  GR[r] << 16;
-      else             tmpB = GR[r] & 0xFFFF;
-
-      GR[r] = tmpA | tmpB;
-```
-
-#### Exceptions
-
-None.
-
-#### Notes
-
-None.
-
-
-<!--------------------------------------------------------------------------------------------------------->
-
-<div style="page-break-before: always;"></div>
-
-### LEA
-
-<hr>
-
-Loads the effective address of the operand.
-
-#### Format
-
-```
-      LEA[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
-      LEA[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
-      LEA[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
-```
-
-```
-       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LEA    ( 0xx )  : r         : 0      : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-```
-
-#### Description
-
-The LEA instruction loads the computed address offset into general register "r". It just performs the address computation part comparable to the LDx instruction, however with no memory access. See the section on the defined operand modes. Operand modes 0 .. 3 are undefined for this instruction.
+The LDO instruction loads an offset into general register "r". For operand modes 0 and 1 the immediate value is loaded. For operand modes 8 .. 31, the instruction just performs the address computation part comparable to the **LDx** instruction, however with no memory access. See the section on the defined operand modes. Note that the does not matter whether the word, half-word or byte related operand mode is used for the address offset computation. In the assembler notation the "W", "H" and "B" option is therefore omitted. The modes 0 and 1 load a 14-bit value into the target registers. In combination with the LDIL instruction, a 32-bit value can be constructed.
 
 
 #### Operation
@@ -2503,7 +2450,62 @@ The LEA instruction loads the computed address offset into general register "r".
 
 #### Notes
 
+The assembler uses the LDO instruction in mode zero and one for a "LDI GR, <val>" pseudo instruction to load an immediate value into a general register.
+
+
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
+### LDIL
+
+<hr>
+
+Loads an immediate value left aligned into the target register.
+
+#### Format
+
+```
+      LDIL <GR r>, <val>
+```
+
+```
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      : LDIL  ( 0xx )   : r         : 0         : val                                                 :
+      :-----------------:-----------------------------------------------------------------------------:
+```
+
+#### Description
+
+The load immediate left instruction loads a 18-bit immediate value left aligned into the general register "r", padded with zeroes on the right. 
+
+#### Operation
+
+```CPP
+      GR[r] = val << 14;
+```
+
+#### Exceptions
+
 None.
+
+#### Notes
+
+The LDIL instruction is typically used to produce a 32bit immediate value in combination with the LDO instruction. The following example will load a 32-bit constant into general register one.
+
+LDIL GR1, L:<val>          ; left part of the 32-bit "val".
+LDO  GR1, R:<val>( GR1 )   ; right part of the 32-bit "val".
+
+// ??? we may also feature an "ADDIL" instruction which adds the left part to a general register. Hmmm.
+// ??? sketch....
+
+```
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      : ADDIL  ( 0xx )  : r         : val2                  : val1                        : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+```
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3169,10 +3171,7 @@ Trap to the debugger subsystem.
 
 #### Description
 
-The BRK instruction raises a debug breakpoint trap and enters the debug trap handler. The "info" field is a 14-bit value to pass to the debug subsystem.
-
-// ??? **note** explain what you can actually debug ... only when translation is enabled, i.e. virtual mode ?
-// ??? **note** perhaps two info fields ?
+The BRK instruction raises a debug breakpoint trap and enters the debug trap handler. The "info" field is a 14-bit value passed to the debug subsystem.
 
 #### Operation
 
@@ -3186,7 +3185,7 @@ The BRK instruction raises a debug breakpoint trap and enters the debug trap han
 
 #### Notes
 
-The instruction opCode for BRK is the opCode value of zero. A zero instruction word result is a BRK #0 instrcution which raises a trap.
+The instruction opCode for BRK is the opCode value of zero. A zero instruction word result is a BRK #0 instruction which raises a trap.
 
 None.
 
@@ -3228,7 +3227,7 @@ The NOP pseudo instruction is just a no operation. The assembler uses either the
 
 #### Notes
 
-The idea is to have an instruction which does not affect the program state. The AND and OR instrcution can be used for this purpose. From a debugger and dissanbler perspective it would be beneficial to settle on one combination and display it as a NOP for better reading.
+The idea is to have an instruction which does not affect the program state. The AND and OR instruction can be used for this purpose. From a debugger and dissembler perspective it would be beneficial to settle on one combination and display it as a NOP for better reading.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3441,11 +3440,13 @@ This appendix lists all instructions by instruction group.
       :-----------------:-----------------------------------------------------------------------------:
       : CMP     ( 0x00 ): r         : cond   : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : LEA     ( 0x00 ): r         : 0      : opMode       : opArg                                   :
+      : LOD     ( 0x00 ): r         : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
       : LSID    ( 0x00 ): r         :        : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDI     ( 0x00 ): r         :Z :L :0          :val2 : val1                                    :
+      : LDIL    ( 0x00 ): r         : 0      : val                                                    :
+      :-----------------:-----------------------------------------------------------------------------:
+      : ADDIL   ( 0x00 ): r         : val2                  : val1                        : b         :  ( tbd )
       :-----------------:-----------------------------------------------------------------------------:
       : EXTR    ( 0x00 ): r         :S :N :0                : len          : pos          : b         :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3634,11 +3635,39 @@ For performance reasons, one would not like to carry around the full virtual add
 
 There are eight segment registers. All segment registers can be specified in the respective instruction field. Typically it is the field "a" which will hold the segment register number. SR4 .. SR7 are the selection target for the logical addresses. They are selected by the upper two bits of the logical address. SR6 and SR7 are also privileged registers, which can only be written by privileged code. Finally, SR0 is the target for the return link segment ID for the BLE instruction.
 
+### LDIL, ADDIL and LDO
+
+Fixed length instruction have one issue in that there is not enough room to embed a full word immediate value in the instruction. Typically, a combination of two instructions that concatenate the value from two fields is used. The LDIL instruction will place an 18-bit value in the left portion of a register, padded with zeroes to the right. The register content is then paired with an instruction that sets the right most 14-bit value. The LDO instruction that computes an offset is an example of such an instruction. The instruction sequence
+
+```cpp
+val   .word 0x01025030
+
+      LDIL  R10, L%val        
+      LDO   R2, R%val(R10)
+```
+
+will load the left hand side of "val" into R10 and use the LOD instruction to add the right side part of "val"". The result is stored in R2.
+
+To reach a data item in the entire 32-bit address range of a segment, the ADDIL instruction will add the left 18-bit portion padded with zeroes to the right to a register. The instruction sequence
+
+```cpp
+ofs   .word 0x01025030
+
+      ADDIL  R1, R11, L%ofs        
+      LDW    R3, R%ofs(R11)
+```
+
+will add to the base registers R11 the left 18-bits of "ofs". The LDW instruction will add the right hand side of "ofs" to the base register forming a 32-bit address.
+
+// ??? **issue** what if the 14-bit R-value is sign extended ? do we need different operand modes for immediate values ? the LDO instruction uses a signed 14-bit quantity! This may mean that we need two immediate modes, one positive and one negative... or does the result wrap around ? check ....
+
 ### Operand modes
 
-An operand field in the respective instruction encodes several operand modes. It needs to support the idea of an immediate value, a combination of a zero and a general register, two general registers, a segment and general register combination and an index register with a a signed offset. Operand modes also need to distinguish word, half-word and byte size content access. This leads to a rich set of operand modes. The operand modes are grouped in four sections to eight modes. Operand mode group zero is the register and immediate value group. Register fields "a" and "b" can be either set to a zero value or both used as registers. For example, using mode 1 will set "a" to zero and an SUB instruction will then compute zero minus "b", which is a negation of the input. Operand mode 3 will use both "a" and "b" storing the result in "r", which is the classic three address model. The CPU pipeline implements all of the immediate and register modes in selecting the correct inputs to the ALU. From a hardware perspective, all computational operations are of the form Reg-R <- Reg-A op Reg-B. The general register reads take place in the instruction fetch / decode stage. The general register store in the execution stage.
+An operand field in the respective instruction encodes several operand modes. It needs to support the idea of an immediate value, a combination of a zero and a general register, two general registers, a segment and general register combination and an index register with a a signed offset. Operand modes also need to distinguish word, half-word and byte size content access. This leads to a rich set of operand modes. The operand modes are grouped in four sections to eight modes. Operand mode group zero is the immediate and register group. The immediate group contains only one mode, which is a signed 14-bit quantity. The register group allows for no register, i.e. "a" and "b" are both a zero value, a one register mode, where either "a" or "b" are zero, and finally two registers "a" and "b".
 
-Operand mode groups 1 .. 3 are the indexing group. They are identical except that group 1 operates on a word, mode 2 on a half-word and mode 3 on a byte. The address computed is in all three cases therefore the same. The first mode in such a group, i.e. mode 8, 16 and 24 allow to use two registers as base and offset register, reaching any place in the segment. The second operand mode in an indexing group features a segment register in "a" and the offset in "b", to which a small offset embedded in the instruction is added. This operand mode can reach any data in the virtual address space. The remaining 6 modes in an indexing group will select from the index register GR10 to GR15. The address is formed by selecting the index register and adding an offset embedded in the instruction to it. The runtime reserves some index register for pointing to the current stack frame, globals and so on.
+The CPU pipeline implements all of the immediate and register modes in selecting the correct inputs to the ALU. From a hardware perspective, all computational operations are of the form Reg-R <- Reg-A op Reg-B. The general register reads take place in the instruction fetch / decode stage. The general register store in the execution stage.
+
+Operand mode groups 1 .. 3 are the indexing group. They are identical except that operand group 1 operates on a word, operand mode 2 on a half-word and operand mode 3 on a byte. The address computed is in all three cases therefore the same. The first mode in such a group, i.e. mode 8, 16 and 24 allow to use two registers as base and offset register, reaching any place in the segment. The second operand mode in an indexing group features a segment register in "a" and the offset in "b", to which a small offset embedded in the instruction is added. This operand mode can reach any data in the virtual address space. The remaining 6 modes in an indexing group will select from the index register GR10 to GR15. The address is formed by selecting the index register and adding an offset embedded in the instruction to it. The runtime reserves some index register for pointing to the current stack frame, globals and so on.
 
 There are no auto pre/post offset adjustment or indirect modes. Indirect addressing modes are not pipeline friendly, they require an additional memory access. Pre or post offset adjustments have not been implemented so far. Nevertheless, auto pre/post adjustment would be an option for the load/store type instructions.
 

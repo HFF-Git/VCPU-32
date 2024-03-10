@@ -310,7 +310,7 @@ void MemoryAccessStage::process( ) {
     switch( opCode ) {
             
         case OP_ADD:    case OP_SUB:    case OP_AND:    case OP_OR:     case OP_XOR:
-        case OP_CMP:    case OP_LEA:    case     OP_LD:     case OP_ST:     case OP_LDWR:
+        case OP_CMP:    case OP_LOD:    case     OP_LD:     case OP_ST:     case OP_LDWR:
         case OP_STWC: {
             
             switch( opMode ) {
