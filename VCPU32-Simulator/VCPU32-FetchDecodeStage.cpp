@@ -369,7 +369,7 @@ void FetchDecodeStage::process( ) {
             
             switch ( Instr::opModeField( instr )) {
                     
-                case ADR_MODE_IMM: {
+                case OP_MODE_IMM: {
                     
                     regIdForValA    = Instr::regRIdField( instr );
                     valA            = core -> gReg[ regIdForValA ].get( );
@@ -377,14 +377,14 @@ void FetchDecodeStage::process( ) {
                     
                 } break;
                     
-                case ADR_MODE_REG_B: {
+                case OP_MODE_REG_B: {
                     
                     regIdForValB    = Instr::regBIdField( instr );
                     valB            = core -> gReg[ regIdForValB ].get( );
                     
                 } break;
                     
-                case ADR_MODE_REG_A_B: {
+                case OP_MODE_REG_A_B: {
                     
                     regIdForValA    = Instr::regAIdField( instr );
                     regIdForValB    = Instr::regBIdField( instr );
@@ -393,7 +393,7 @@ void FetchDecodeStage::process( ) {
                     
                 } break;
                     
-                case ADR_MODE_EXT_INDX_W : {
+                case OP_MODE_EXT_INDX_W : {
                     
                     regIdForValB    = Instr::regBIdField( instr );
                     valB            = core -> gReg[ regIdForValB ].get( );
@@ -401,7 +401,7 @@ void FetchDecodeStage::process( ) {
                     
                 } break;
                     
-                case ADR_MODE_GR10_INDX_W:
+                case OP_MODE_GR10_INDX_W:
                
                 // fill in the rest ...
                 
@@ -409,7 +409,7 @@ void FetchDecodeStage::process( ) {
                     
                     switch( Instr::opModeField( instr )) {
                             
-                        case ADR_MODE_GR10_INDX_W: regIdForValB = 4; break;
+                        case OP_MODE_GR10_INDX_W: regIdForValB = 4; break;
                             
                       // fill in ...
                        
@@ -427,14 +427,14 @@ void FetchDecodeStage::process( ) {
             
             switch ( Instr::opModeField( instr )) {
                     
-                case ADR_MODE_IMM:  case ADR_MODE_REG_B:  case ADR_MODE_REG_A_B: {
+                case OP_MODE_IMM:  case OP_MODE_REG_B:  case OP_MODE_REG_A_B: {
                     
                     setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
                     return;
                     
                 } break;
                     
-                case ADR_MODE_EXT_INDX_W : {
+                case OP_MODE_EXT_INDX_W : {
                     
                     regIdForValB    = Instr::regBIdField( instr );
                     valB            = core -> gReg[ regIdForValB ].get( );
@@ -442,14 +442,14 @@ void FetchDecodeStage::process( ) {
                     
                 } break;
                     
-                case ADR_MODE_GR10_INDX_W:
+                case OP_MODE_GR10_INDX_W:
                 
                    // fill in ....
                 {
                     
                     switch( Instr::opModeField( instr )) {
                             
-                        case ADR_MODE_GR10_INDX_W: regIdForValB = 10; break;
+                        case OP_MODE_GR10_INDX_W: regIdForValB = 10; break;
                       
                             // fill in ...
                        

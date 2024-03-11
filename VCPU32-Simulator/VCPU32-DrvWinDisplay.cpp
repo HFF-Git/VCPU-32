@@ -614,7 +614,7 @@ void DrvWin::printRadixField( uint32_t fmtDesc, int fLen, int row, int col ) {
 // A user defined window has a field that shows the window number as well as this is the current window.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWin::printUserIndexField( int stack, int index, bool current, uint32_t fmtDesc, int row, int col ) {
+void DrvWin::printWindowIdField( int stack, int index, bool current, uint32_t fmtDesc, int row, int col ) {
     
     if ( row == 0 ) row = lastRowPos;
     if ( col == 0 ) col = lastColPos;
@@ -1316,7 +1316,7 @@ void DrvWinPhysMem::drawBanner( ) {
     
     setWinCursor( 1, 1 );
     
-    printUserIndexField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
+    printWindowIdField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
     printTextField((char *) "Real Memory ", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
     printTextField((char *) "Current " );
     printNumericField( getCurrentItemAdr( ));
@@ -1415,7 +1415,7 @@ void DrvWinCode::drawBanner( ) {
     }
     
     setWinCursor( 1, 1 );
-    printUserIndexField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
+    printWindowIdField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
     printTextField((char *) "Code Memory ", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
     printTextField((char *) "Current: " );
     printNumericField( getCurrentItemAdr( ));
@@ -1521,7 +1521,7 @@ void DrvWinTlb::drawBanner( ) {
     bool        isCurrent   = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
     
     setWinCursor( 1, 1 );
-    printUserIndexField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
+    printWindowIdField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
     
     if      ( winType == WT_ITLB_WIN ) printTextField((char *) "I-TLB ", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
     else if ( winType == WT_DTLB_WIN ) printTextField((char *) "D-TLB ", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
@@ -1661,7 +1661,7 @@ void DrvWinCache::drawBanner( ) {
     bool        isCurrent   = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
     
     setWinCursor( 1, 1 );
-    printUserIndexField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
+    printWindowIdField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
     
     if      ( winType == WT_ICACHE_WIN ) printTextField((char *) "I-Cache (L1) ", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
     else if ( winType == WT_DCACHE_WIN ) printTextField((char *) "D-Cache (L1)", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
@@ -1764,7 +1764,7 @@ void DrvWinMemController::drawBanner( ) {
     bool        isCurrent   = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
     
     setWinCursor( 1, 1 );
-    printUserIndexField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
+    printWindowIdField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
     
     if      ( winType == WT_ICACHE_S_WIN ) 
         printTextField((char *) "I-Cache (L1)", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
@@ -1908,7 +1908,7 @@ void DrvWinText::drawBanner( ) {
     bool        isCurrent   = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
     
     setWinCursor( 1, 1 );
-    printUserIndexField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
+    printWindowIdField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
     printTextField((char *) "Text: ", ( fmtDesc | FMT_ALIGN_LFT ));
     printTextField((char *) fileName, ( fmtDesc | FMT_ALIGN_LFT | FMT_TRUNC_LFT ), 48 );
     printTextField((char *) "  Line: " );

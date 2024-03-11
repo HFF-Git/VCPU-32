@@ -481,6 +481,15 @@ TokId DrvCmds::getCurrentCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// A little helper method for ENV to display the token name of a token Id.
+//
+//------------------------------------------------------------------------------------------------------------
+char *DrvCmds::tokIdToName( TokId tokId ) {
+
+    return( ::lookupTokenName( tokId ));
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Print out an error message.
 //
 // ??? add all the other text over time ....

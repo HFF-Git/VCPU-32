@@ -36,8 +36,11 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+// ??? how to allow for displaying the immediate values in different formats ?
+// ??? immediate bit fields have varying length...
+
 //------------------------------------------------------------------------------------------------------------
-// Signed math. 
+// Signed math.
 //
 //------------------------------------------------------------------------------------------------------------
 int signedVal( uint32_t val ) {
@@ -89,6 +92,7 @@ void displayComparisonCodes( uint32_t cmpCode ) {
         case CC_LE:  fprintf( stdout, "LE" ); return;
         case CC_GE:  fprintf( stdout, "GE" ); return;
         case CC_HI:  fprintf( stdout, "HI" ); return;
+        default:     fprintf( stdout, "**" ); return;
     }
 }
 
@@ -108,7 +112,7 @@ void displayTestCodes( uint32_t tstCode ) {
         case TC_LE: fprintf( stdout, "LE" ); return;
         case TC_GE: fprintf( stdout, "GE" ); return;
         case TC_OD: fprintf( stdout, "OD" ); return;
-        default:    fprintf( stdout, "***" ); return;
+        default:    fprintf( stdout, "**" ); return;
     }
 }
 
@@ -121,28 +125,28 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
     switch ( Instr::opModeField( instr )) {
             
-        case ADR_MODE_IMM:      fprintf( stdout, "%d", signedVal( Instr::immGen0S14( instr ))); break;
+        case OP_MODE_IMM:      fprintf( stdout, "%d", signedVal( Instr::immGen0S14( instr ))); break;
             
-        case ADR_MODE_NO_REGS:  break;
-        
-        case ADR_MODE_REG_A:    fprintf( stdout, "R%d", Instr::regAIdField( instr )); break;
-        case ADR_MODE_REG_B:    fprintf( stdout, "R%d", Instr::regBIdField( instr )); break;
-
-        case ADR_MODE_REG_A_B: {
+        case OP_MODE_NO_REGS:  break;
+            
+        case OP_MODE_REG_A:    fprintf( stdout, "R%d", Instr::regAIdField( instr )); break;
+        case OP_MODE_REG_B:    fprintf( stdout, "R%d", Instr::regBIdField( instr )); break;
+            
+        case OP_MODE_REG_A_B: {
             
             fprintf( stdout, "R%d,R%d", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
             
         } break;
             
-        case ADR_MODE_REG_INDX_W:
-        case ADR_MODE_REG_INDX_H:
-        case ADR_MODE_REG_INDX_B: {
+        case OP_MODE_REG_INDX_W:
+        case OP_MODE_REG_INDX_H:
+        case OP_MODE_REG_INDX_B: {
             
             fprintf( stdout, "R%d(R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
             
         } break;
             
-        case ADR_MODE_EXT_INDX_W: {
+        case OP_MODE_EXT_INDX_W: {
             
             fprintf( stdout, "%d(S%d,R%d)",
                     signedVal( Instr::immGen0S6( instr )),
@@ -151,12 +155,12 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         } break;
             
-        case ADR_MODE_GR10_INDX_W: case ADR_MODE_GR10_INDX_H: case ADR_MODE_GR10_INDX_B:
-        case ADR_MODE_GR11_INDX_W: case ADR_MODE_GR11_INDX_H: case ADR_MODE_GR11_INDX_B:
-        case ADR_MODE_GR12_INDX_W: case ADR_MODE_GR12_INDX_H: case ADR_MODE_GR12_INDX_B:
-        case ADR_MODE_GR13_INDX_W: case ADR_MODE_GR13_INDX_H: case ADR_MODE_GR13_INDX_B:
-        case ADR_MODE_GR14_INDX_W: case ADR_MODE_GR14_INDX_H: case ADR_MODE_GR14_INDX_B:
-        case ADR_MODE_GR15_INDX_W: case ADR_MODE_GR15_INDX_H: case ADR_MODE_GR15_INDX_B: {
+        case OP_MODE_GR10_INDX_W: case OP_MODE_GR10_INDX_H: case OP_MODE_GR10_INDX_B:
+        case OP_MODE_GR11_INDX_W: case OP_MODE_GR11_INDX_H: case OP_MODE_GR11_INDX_B:
+        case OP_MODE_GR12_INDX_W: case OP_MODE_GR12_INDX_H: case OP_MODE_GR12_INDX_B:
+        case OP_MODE_GR13_INDX_W: case OP_MODE_GR13_INDX_H: case OP_MODE_GR13_INDX_B:
+        case OP_MODE_GR14_INDX_W: case OP_MODE_GR14_INDX_H: case OP_MODE_GR14_INDX_B:
+        case OP_MODE_GR15_INDX_W: case OP_MODE_GR15_INDX_H: case OP_MODE_GR15_INDX_B: {
             
             fprintf( stdout, "%d(R%d)", signedVal( Instr::immGen0S14( instr )), Instr::opModeField( instr ));
             
@@ -181,22 +185,22 @@ void displayOpCode( uint32_t instr ) {
         
         switch ( Instr::opModeField( instr )) {
                 
-            case ADR_MODE_GR10_INDX_W: case ADR_MODE_GR11_INDX_W: case ADR_MODE_GR12_INDX_W:
-            case ADR_MODE_GR13_INDX_W: case ADR_MODE_GR14_INDX_W: case ADR_MODE_GR15_INDX_W: {
+            case OP_MODE_GR10_INDX_W: case OP_MODE_GR11_INDX_W: case OP_MODE_GR12_INDX_W:
+            case OP_MODE_GR13_INDX_W: case OP_MODE_GR14_INDX_W: case OP_MODE_GR15_INDX_W: {
                 
                 if ( ! ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR ))) fprintf( stdout, "W" );
                 
             } break;
-            
-            case ADR_MODE_GR10_INDX_H: case ADR_MODE_GR11_INDX_H: case ADR_MODE_GR12_INDX_H:
-            case ADR_MODE_GR13_INDX_H: case ADR_MODE_GR14_INDX_H: case ADR_MODE_GR15_INDX_H: {
+                
+            case OP_MODE_GR10_INDX_H: case OP_MODE_GR11_INDX_H: case OP_MODE_GR12_INDX_H:
+            case OP_MODE_GR13_INDX_H: case OP_MODE_GR14_INDX_H: case OP_MODE_GR15_INDX_H: {
                 
                 fprintf( stdout, "H" );
                 
             } break;
-            
-            case ADR_MODE_GR10_INDX_B: case ADR_MODE_GR11_INDX_B: case ADR_MODE_GR12_INDX_B:
-            case ADR_MODE_GR13_INDX_B: case ADR_MODE_GR14_INDX_B: case ADR_MODE_GR15_INDX_B: {
+                
+            case OP_MODE_GR10_INDX_B: case OP_MODE_GR11_INDX_B: case OP_MODE_GR12_INDX_B:
+            case OP_MODE_GR13_INDX_B: case OP_MODE_GR14_INDX_B: case OP_MODE_GR15_INDX_B: {
                 
                 fprintf( stdout, "B" );
                 
@@ -322,9 +326,8 @@ void displayOpCodeOptions( uint32_t instr ) {
             
         case OP_ITLB: {
             
-            fprintf( stdout, "." );
-            if ( Instr::tlbKindField( instr )) fprintf( stdout, "D" );
-            else fprintf( stdout, "I" );
+            if ( Instr::tlbKindField( instr )) fprintf( stdout, ".D" );
+            else fprintf( stdout, ".I" );
             
             if ( Instr::tlbArgModeField( instr )) fprintf( stdout, "A" );
             else fprintf( stdout, "P" );
@@ -333,17 +336,16 @@ void displayOpCodeOptions( uint32_t instr ) {
             
         case OP_PTLB: {
             
-            fprintf( stdout, "." );
-            if ( Instr::tlbKindField( instr )) fprintf( stdout, "D" );
-            else fprintf( stdout, "I" );
+            if ( Instr::tlbKindField( instr )) fprintf( stdout, ".D" );
+            else fprintf( stdout, ".I" );
             
         } break;
             
         case OP_PCA: {
             
-            fprintf( stdout, "." );
-            if ( Instr::pcaKindField( instr )) fprintf( stdout, "D" );
-            else fprintf( stdout, "I" );
+            if ( Instr::pcaKindField( instr )) fprintf( stdout, ".D" );
+            else fprintf( stdout, ".I" );
+            
             if ( Instr::pcaPurgeFlushField( instr )) fprintf( stdout, "F" );
             
         } break;
@@ -388,8 +390,8 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
     }
     else if (( opCode == OP_MR ) && ( Instr::mrMovDirField( instr ))) {
         
-         if ( Instr::mrRegTypeField( instr )) fprintf( stdout, "C%d", Instr::mrArgField( instr ));
-         else fprintf( stdout, "S%d", Instr::regBIdField( instr ));
+        if ( Instr::mrRegTypeField( instr )) fprintf( stdout, "C%d", Instr::mrArgField( instr ));
+        else fprintf( stdout, "S%d", Instr::regBIdField( instr ));
     }
     else if (( opCode == OP_MR ) && ( ! Instr::mrMovDirField( instr ))) {
         
@@ -407,242 +409,222 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
     uint32_t opCode = Instr::opCodeField( instr );
     
-    if ( opCodeTab[ opCode ].flags & OP_MODE_INSTR ) {
-        
-        fprintf( stdout, "," );
-        
-        if ( opCodeTab[ opCode ].flags & STORE_INSTR ) fprintf( stdout, "R%d", Instr::regRIdField( instr ));
-        else displayOperandModeField( instr, fmtId );
-        
-    } else {
-        
-        switch ( opCode ) {
-                
-            case OP_LDIL: 
-            case OP_ADDIL: {
-              
-                fprintf( stdout, ", %d", Instr::immLeftField( instr ));
-                
-            } break;
+    switch ( opCode ) {
             
-            case OP_SHLA: {
+        case OP_ADD:    case OP_SUB:    case OP_CMP:
+        case OP_AND:    case OP_OR:     case OP_XOR:
+        case OP_LD:     case OP_ST:     case OP_LOD:
+        case OP_LDWR:   case OP_STWC: {
+            
+            fprintf( stdout, "," );
+            
+            if ( opCodeTab[ opCode ].flags & STORE_INSTR ) fprintf( stdout, "R%d", Instr::regRIdField( instr ));
+            else displayOperandModeField( instr, fmtId );
+            
+        } break;
+            
+        case OP_LDIL:
+        case OP_ADDIL: {
+            
+            fprintf( stdout, ", %d", Instr::immLeftField( instr ));
+            
+        } break;
+            
+        case OP_SHLA: {
+            
+            fprintf( stdout, ",R%d,R%d", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
+            if ( Instr::shlaSaField( instr ) > 0 ) fprintf( stdout, ",%d",  Instr::shlaSaField( instr ));
+            
+        } break;
+            
+        case OP_EXTR:
+        case OP_DEP: {
+            
+            fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
+            
+            if ( Instr::extrDepSaOptField( instr )) fprintf( stdout, ",shamt" );
+            else fprintf( stdout, ",%d", Instr::extrDepPosField( instr ));
+            
+            fprintf( stdout, ",%d", Instr::extrDepLenField( instr ));
+            
+        } break;
+            
+        case OP_DSR: {
+            
+            fprintf( stdout, ",R%d,R%d", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
+            
+            if ( Instr::dsrSaOptField( instr )) fprintf( stdout, ",shmat" );
+            else fprintf( stdout, ",%d", Instr::dsrSaAmtField( instr ));
+            
+        } break;
+            
+        case OP_LSID: {
+            
+            fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_CMR: {
+            
+            fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_LDWA:
+        case OP_LDHA:
+        case OP_LDBA: {
+            
+            fprintf( stdout, ",%d(R%d)", signedVal( Instr::immGen8S10( instr )), Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_LDWE:
+        case OP_LDHE:
+        case OP_LDBE: {
+            
+            fprintf( stdout, ",%d(S%d,R%d)",
+                    signedVal( Instr::immGen8S6( instr )),
+                    Instr::regAIdField( instr ),
+                    Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_STWA:
+        case OP_STHA:
+        case OP_STBA:
+            
+        case OP_STWE:
+        case OP_STHE:
+        case OP_STBE: {
+            
+            fprintf( stdout, ",R%d", Instr::regRIdField( instr ));
+            
+        } break;
+            
+        case OP_B: {
+            
+            fprintf( stdout, "%i", signedVal( Instr::immGen8S14( instr )));
+            
+        } break;
+            
+        case OP_GATE:
+        case OP_BL: {
+            
+            fprintf( stdout, ",%i", signedVal( Instr::immGen8S14( instr )));
+            
+        } break;
+            
+            
+        case OP_BR: {
+            
+            fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_BLR: {
+            
+            fprintf( stdout, ",(R%d)", Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_BV: {
+            
+            fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_BVR: {
+            
+            fprintf( stdout, "(R%d,R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_BE:
+        case OP_BLE: {
+            
+            fprintf( stdout, "%d,", signedVal( Instr::immGen12S6( instr )));
+            fprintf( stdout, "(S%d", Instr::regAIdField( instr ));
+            fprintf( stdout, ",R%d)", Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_CBR: {
+            
+            fprintf( stdout, "R%d", Instr::regAIdField( instr ));
+            fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
+            fprintf( stdout, ",%d", signedVal( Instr::immGen8S6( instr )));
+            
+        } break;
+            
+        case OP_TBR: {
+            
+            fprintf( stdout, "R%d,%d", Instr::regBIdField( instr ), signedVal( Instr::immGen8S6( instr )));
+            
+        } break;
+            
+        case OP_MR: {
+            
+            if ( Instr::mrMovDirField( instr )) {
                 
-                fprintf( stdout, "," );
-                fprintf( stdout, "R%d", Instr::regAIdField( instr ));
-                fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
+                fprintf( stdout, ",R%d", Instr::regRIdField( instr ));
                 
-                if ( Instr::shlaSaField( instr ) > 0 ) fprintf( stdout, ",%d",  Instr::shlaSaField( instr ));
+            } else {
                 
-            } break;
-                
-            case OP_EXTR:
-            case OP_DEP: {
-                
-                // ??? this looks odd .... order ?
-                
-                fprintf( stdout, "," );
-                fprintf( stdout, "R%d", Instr::regBIdField( instr ));
-                
-                if ( Instr::extrDepSaOptField( instr )) fprintf( stdout, ",shamt" );
-                else fprintf( stdout, ",%d", Instr::extrDepPosField( instr ));
-                
-                fprintf( stdout, ",%d", Instr::extrDepLenField( instr ));
-                
-            } break;
-                
-            case OP_DSR: {
-                
-                fprintf( stdout, "," );
-                fprintf( stdout, "R%d", Instr::regAIdField( instr ));
-                fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
-                
-                if ( Instr::dsrSaOptField( instr )) fprintf( stdout, ",shmat" );
-                else fprintf( stdout, ",%d", Instr::dsrSaAmtField( instr ));
-                
-            } break;
-                
-            case OP_LSID: {
-                
-                fprintf( stdout, "," );
-                fprintf( stdout, "R%d", Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_CMR: {
-                
-                fprintf( stdout, "," );
-                fprintf( stdout, "R%d", Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_LDWA:
-            case OP_LDHA:
-            case OP_LDBA: {
-                
-                fprintf( stdout, "," );
-                fprintf( stdout, "%d(R%d)", signedVal( Instr::immGen8S10( instr )), Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_LDWE:
-            case OP_LDHE:
-            case OP_LDBE: {
-                
-                fprintf( stdout, "," );
-                fprintf( stdout, "%d(S%d,R%d)",
-                        signedVal( Instr::immGen8S6( instr )),
-                        Instr::regAIdField( instr ),
-                        Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_STWA:
-            case OP_STHA:
-            case OP_STBA:
-                
-            case OP_STWE: 
-            case OP_STHE:
-            case OP_STBE: {
-                
-                fprintf( stdout, "," );
-                fprintf( stdout, "R%d", Instr::regRIdField( instr ));
-                
-            } break;
-                
-            case OP_B: {
-                
-                fprintf( stdout, "%i", signedVal( Instr::immGen8S14( instr )));
-                
-            } break;
-                
-            case OP_GATE:
-            case OP_BL: {
-                
-                fprintf( stdout, "," );
-                fprintf( stdout, "%i", signedVal( Instr::immGen8S14( instr )));
-                
-            } break;
-                
-                
-            case OP_BR: {
-                
-                fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_BLR: {
-                
-                fprintf( stdout, "," );
-                fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_BV: {
-                
-                fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_BVR: {
-                
-                fprintf( stdout, "(R%d,", Instr::regAIdField( instr ));
-                fprintf( stdout, "R%d)", Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_BE:
-            case OP_BLE: {
-                
-                fprintf( stdout, "%d,", signedVal( Instr::immGen12S6( instr )));
-                fprintf( stdout, "(S%d", Instr::regAIdField( instr ));
-                fprintf( stdout, ",R%d)", Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_CBR: {
-                
-                fprintf( stdout, "R%d", Instr::regAIdField( instr ));
-                fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
-                fprintf( stdout, ",%d", signedVal( Instr::immGen8S6( instr )));
-                
-            } break;
-                
-            case OP_TBR: {
-                
-                fprintf( stdout, "R%d", Instr::regBIdField( instr ));
-                fprintf( stdout, ",%d", signedVal( Instr::immGen8S6( instr )));
-                
-            } break;
-                
-            case OP_MR: {
-                
-                if ( Instr::mrMovDirField( instr )) {
+                if ( Instr::mrRegTypeField( instr )) fprintf( stdout, ",C%d", Instr::mrArgField( instr ));
+                else fprintf( stdout, ",S%d", Instr::regBIdField( instr ));
+            }
+            
+        } break;
+            
+        case OP_MST: {
+            
+            fprintf( stdout, "," );
+            switch( Instr::mstModeField( instr )) {
                     
-                    fprintf( stdout, "," );
-                    fprintf( stdout, "R%d", Instr::regRIdField( instr ));
-                    
-                } else {
-                    
-                    fprintf( stdout, "," );
-                    
-                    if ( Instr::mrRegTypeField( instr )) fprintf( stdout, "C%d", Instr::mrArgField( instr ));
-                    else fprintf( stdout, "S%d", Instr::regBIdField( instr ));
-                }
-                
-            } break;
-                
-            case OP_MST: {
-                
-                fprintf( stdout, "," );
-                switch( Instr::mstModeField( instr )) {
-                        
-                    case 0: fprintf( stdout, "R%d", Instr::regBIdField( instr ));  break;
-                    case 1:
-                    case 2: displayHalfWord( Instr::mstArgField( instr ), fmtId ); break;
-                    default: fprintf( stdout, "***" );
-                }
-                
-            } break;
-                
-            case OP_PRB: {
-                
-                fprintf( stdout, "," );
-                if ( Instr::prbAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
-                else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_LDPA: {
-                
-                fprintf( stdout, "," );
-                if ( Instr::ldpaAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
-                else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_ITLB: {
-                
-                fprintf( stdout, "R%d,", Instr::regRIdField( instr ));
-                
-                if ( Instr::tlbAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
-                else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_PTLB: {
-                
-                if ( Instr::tlbAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
-                else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
-                
-            } break;
-                
-            case OP_PCA: {
-                
-                if ( Instr::pcaAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
-                else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
-                
-            } break;
-        }
+                case 0: fprintf( stdout, "R%d", Instr::regBIdField( instr ));  break;
+                case 1:
+                case 2: displayHalfWord( Instr::mstArgField( instr ), fmtId ); break;
+                default: fprintf( stdout, "***" );
+            }
+            
+        } break;
+            
+        case OP_PRB: {
+            
+            if ( Instr::prbAdrModeField( instr )) fprintf( stdout, ",(R%d)", Instr::regBIdField( instr ));
+            else fprintf( stdout, ",(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_LDPA: {
+            
+            if ( Instr::ldpaAdrModeField( instr )) fprintf( stdout, ",(R%d)", Instr::regBIdField( instr ));
+            else fprintf( stdout, ",(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_ITLB: {
+            
+            fprintf( stdout, "R%d,", Instr::regRIdField( instr ));
+            
+            if ( Instr::tlbAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
+            else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_PTLB: {
+            
+            if ( Instr::tlbAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
+            else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
+            
+        } break;
+            
+        case OP_PCA: {
+            
+            if ( Instr::pcaAdrModeField( instr )) fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
+            else fprintf( stdout, "(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
+            
+        } break;
     }
 }
 

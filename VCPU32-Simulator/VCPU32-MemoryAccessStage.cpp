@@ -315,7 +315,7 @@ void MemoryAccessStage::process( ) {
             
             switch( opMode ) {
                     
-                case ADR_MODE_EXT_INDX_W: {
+                case OP_MODE_EXT_INDX_W: {
                     
                     valS            = core -> sReg[ Instr::regAIdField( instr ) ].get( );
                     valX            = Instr::add32( valB, valX );
@@ -326,7 +326,7 @@ void MemoryAccessStage::process( ) {
                     
                     
                     
-                case ADR_MODE_GR10_INDX_W:
+                case OP_MODE_GR10_INDX_W:
                 
                 // ??? fill in the rest 
                 

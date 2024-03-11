@@ -596,8 +596,6 @@ The instruction operation is described in a pseudo C style language using assign
 | **operandAdrOfs( instr )** | computes the offset portion from the instruction and mode information. ( See the operand encoding diagram for modes ) |
 | **operandBitLen( instr )** | computes the operand bit length from the instruction and mode information. ( See the operand encoding diagram for modes ) |
 | **ofsSelect( x )** | returns the 30-bit offset portion of the argument "x". |
-| **add30( x, y )** | performs a 30-bit addition of x and y. The result does not overflow into the leftmost 2 bits of the result word. Typically, the "x" operand is an unsigned value while "y" is a signed value. The result of the operation will wrap around is case of overflow.|
-| **add32( x, y )** | performs a 32-bit addition of x and y. Typically, the "x" operand is an unsigned value while "y" is a signed value. The result of the operation will wrap around is case of overflow.|
 | **rshift( x, amt )** | logical right shift of the bits in x by "amt" bits. |
 | **memLoad( seg, ofs, bitLen )** | loads data from virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. The bitLen is teh number of bits to load. If the bitLen is less than 32, the data is zero sign extended. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to load a word from physical memory.  |
 | **memStore( seg, ofs, val, bitLen )** | store data to virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to store the word "val" from physical memory. |
@@ -760,11 +758,11 @@ Loads the memory content into a general register using a virtual address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWE   ( 0x20 ) : r         : ofs2                  : ofs1            : a         : b         :
+      : LDWE   ( 0x28 ) : r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDHE   ( 0x21 ) : r         : ofs2                  : ofs1            : a         : b         :
+      : LDHE   ( 0x29 ) : r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDBE   ( 0x22 ) : r         : ofs2                  : ofs1            : a         : b         :
+      : LDBE   ( 0x2A ) : r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -775,9 +773,9 @@ The load extended instructions will load the operand into the general register "
 #### Operation
 
 ```
-      LDWE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), 32 ));
-      LDHE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), 16 ));
-      LDBE: GR[r] <- zeroExtend( memLoad( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), 8  ));
+      LDWE: GR[r] <- zeroExtend( memLoad( SR[a], GR[b] + signExtend( catImm( ofs1, ofs2 ), 14 ), 32 ));
+      LDHE: GR[r] <- zeroExtend( memLoad( SR[a], GR[b] + signExtend( catImm( ofs1, ofs2 ), 14 ), 16 ));
+      LDBE: GR[r] <- zeroExtend( memLoad( SR[a], GR[b] + signExtend( catImm( ofs1, ofs2 ), 14 ), 8  ));
 ```
 
 #### Exceptions
@@ -812,11 +810,11 @@ Stores a general register value into memory using a virtual address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : STWE   ( 0x23 ) : r         : ofs2                  : ofs1            : a         : b         :
+      : STWE   ( 0x2B ) : r         : ofs2                  : ofs1            : a         : b         :
       ------------------:-----------------------------------------------------------------------------:
-      : STHE   ( 0x24 ) : r         : ofs2                  : ofs1            : a         : b         :
+      : STHE   ( 0x2C ) : r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STBE   ( 0x25 ) : r         : ofs2                  : ofs1            : a         : b         :
+      : STBE   ( 0x2D ) : r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -827,9 +825,9 @@ The store extended instructions will store data from general register "r" using 
 #### Operation
 
 ```
-      STWE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), GR[r], 32 );
-      STHE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), GR[r], 16 );
-      STBE: memStore( SR[a], add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 14 )), GR[r], 8  );
+      STWE: memStore( SR[a], GR[b] + signExtend( catImm( ofs1, ofs2 ), 14 ), GR[r], 32 );
+      STHE: memStore( SR[a], GR[b] + signExtend( catImm( ofs1, ofs2 ), 14 ), GR[r], 16 );
+      STBE: memStore( SR[a], GR[b] + signExtend( catImm( ofs1, ofs2 ), 14 ), GR[r], 8  );
 ```
 
 #### Exceptions
@@ -864,11 +862,11 @@ Loads the memory content into a general register using an absolute address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWA   ( 0x26 ) : r         : ofs2                  : ofs1                        : b         :
+      : LDWA   ( 0x20 ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDHA   ( 0x27 ) : r         : ofs2                  : ofs1                        : b         :
+      : LDHA   ( 0x21 ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDBA   ( 0x28 ) : r         : ofs2                  : ofs1                        : b         :
+      : LDBA   ( 0x22 ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -881,12 +879,9 @@ The load absolute instruction will load the content of the physical memory addre
 ```
       if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-      LDWA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 32 ));
-      LDHA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 16 ));
-      LDBA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 8  ));
-      LDWA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), 32 ));
-      LDHA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), 16 ));
-      LDBA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), 8  ));
+      LDWA: GR[r] <- zeroExtend( memLoad( 0, GR[b] + signExtend( catImm( ofs1, ofs2 ), 17 )), 32 );
+      LDHA: GR[r] <- zeroExtend( memLoad( 0, GR[b] + signExtend( catImm( ofs1, ofs2 ), 17 )), 16 );
+      LDBA: GR[r] <- zeroExtend( memLoad( 0, GR[b] + signExtend( catImm( ofs1, ofs2 ), 17 )), 8  );
 ```
 
 #### Exceptions
@@ -918,11 +913,11 @@ Stores a general register value into memory using an absolute physical address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : STWA   ( 0x29 ) : r         : ofs2                  : ofs1                        : b         :
+      : STWA   ( 0x23 ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
       : STHA   ( 0x2A ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STBA   ( 0x2B ) : r         : ofs2                  : ofs1                        : b         :
+      : STBA   ( 0x25 ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -935,11 +930,9 @@ The store absolute instruction will store the target register into memory using 
 ```
       if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-      STWA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 32 );
-      STBA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 8  );
-      STWA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), GR[r], 32 );
-      STHA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), GR[r], 16 );
-      STBA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), GR[r], 8  );
+      STWA: memStore( 0, GR[b] + signExtend( catImm( ofs1, ofs2 ), 18 ), GR[r], 32 );
+      STHA: memStore( 0, GR[b] + signExtend( catImm( ofs1, ofs2 ), 18 ), GR[r], 16 );
+      STBA: memStore( 0, GR[b] + signExtend( catImm( ofs1, ofs2 ), 18 ), GR[r], 8  );
 ```
 
 #### Exceptions
@@ -1419,10 +1412,10 @@ Since the BLE instruction is a segment base relative branch, a branch to page wi
 
 ```
       SR[0] <- IA-SEG;
-      GR[0] <- add32( IA-OFS, 4 );
+      GR[0] <- IA-OFS + 4;
 
       IA-SEG <- GR[a];
-      IA-OFS <- GR[b] + signExt(() catImm( ofs1, ofs2 ) << 2 ), 20 );
+      IA-OFS <- GR[b] + signExt(( catImm( ofs1, ofs2 ) << 2 ), 20 );
 ```
 
 #### Exceptions
@@ -1541,7 +1534,7 @@ The condition field is encoded as follows:
       }
 
     if ( res ) IA-OFS <- IA-OFS + (( signExt( catImm( ofs1, ofs2 ) << 2 ), 17 ));
-    else add32( IA_OFS, 4 );
+    else       IA-OFS <- IA-OFS + 4;
 ```
 
 #### Exceptions
@@ -1603,7 +1596,7 @@ The TBR instruction tests general register "b" for the condition specified in th
       }
 
       if ( res ) IA-OFS <- IA-OFS + signExt(( catImm( ofs1, ofs2 ) << 2 ), 17 );
-      else IA_OFS <- IO_OFS + 4;
+      else       IA-OFS <- IA-OFS + 4;
 ```
 
 #### Exceptions
@@ -1652,7 +1645,7 @@ Adds the operand to the target register.
 
 ```
       ADD[.<opt>] <GR r>, <val>                               ; opMode 0
-	  ADD[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 5, 6
+      ADD[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 5, 6
       ADD[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 7
 
       ADD[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
@@ -1734,7 +1727,7 @@ Subtracts the operand from the target register.
 
 ```
       SUB[.<opt>] <GR r>, <val>                               ; opMode 0
-	  SUB[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 5, 6
+      SUB[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 5, 6
       SUB[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 7
 
       SUB[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
@@ -1876,7 +1869,8 @@ The instruction fetches the data specified by the operand and performs a bitwise
 
 #### Notes
 
-Complementing the operand input allows to perform a bit clear in a register word by complementing the bit mask stored in the operand before performing the AND. Typically this is done in a program in two steps, which are first to complement the mask and then AND to the target variable. The C option allows to do this more elegantly in one step. In operand mode one, regB is AND-ed to a zero value and stored in the result reg. This is equivalent to a clear word instruction. A pseudo instruction for this could be a "CLR reg". Also, negating the result could be an efficient way to set all bits in a word to one. Finally, the AND instruction can also serve as a NOP instruction. AND.C R0, #0 will "AND" R0 with R0 and an immediate with all bits set.
+Complementing the operand input allows to perform a bit clear in a register word by complementing the bit mask stored in the operand before performing the AND. Typically this is done in a program in two steps, which are first to complement the mask and then AND to the target variable. The C option allows to do this more elegantly in one step. 
+
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -1952,7 +1946,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
 
 #### Notes
 
-Using operand mode one will result in OR-ing a zero with general register "b", which is a copy of general register "b" to the general register "r". A pseudo opCode instruction could be is "CPY regR, regB". Also, OR-ing a zero value will essentially be a NOP operation.
+Using operand mode one will result in OR-ing a zero with general register "b", which is a copy of general register "b" to the general register "r".
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -2280,7 +2274,7 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 
 #### Description
 
-The instruction extracts the right justified bit field of length "len" in general register "b" and deposits this field in the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. The "len" field specifies the bit size if the field to extract. The extracted bit field is stored right justified in the general register "r". The Z bit clears the target register "r" before storing the bit field, the I bit specifies that the instruction bits 26..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
+The instruction extracts the right justified bit field of length "len" in general register "b" and deposits this field in the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. The "len" field specifies the bit size if the field to extract. The extracted bit field is stored right justified in the general register "r". The Z bit clears the target register "r" before storing the bit field, the I bit specifies that the instruction bits 28..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
 
 #### Operation
 
@@ -2412,7 +2406,7 @@ Loads the effective address offset of the operand.
 #### Format
 
 ```
-      LDO <val>                              : opMode 0, 1          
+      LDO <val>                              : opMode 0         
       LDO <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
       LDO <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
       LDO <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
@@ -2433,7 +2427,8 @@ The LDO instruction loads an offset into general register "r". For operand modes
 #### Operation
 
 ```
-      GR[ r ] <- operandAdrOfs( instr );
+      if (( opMode >= 1 ) && ( opMode <= 7 )) illegalInstructionTrap( );
+      GR[r] <- operandAdrOfs( instr );
 ```
 
 #### Exceptions
@@ -2775,7 +2770,7 @@ Load the physical address for a virtual address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDPA   ( 0x2C ) : r         : L : 0                                   : a         : b         :
+      : LDPA   ( 0x27 ) : r         : L : 0                                   : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2832,7 +2827,7 @@ Probe data access to a virtual address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : PRB    ( 0x2D ) : r         :L :M : 0                                 : a         : b         :
+      : PRB    ( 0x28 ) : r         :L :M : 0                                 : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3205,7 +3200,7 @@ The BRK instruction raises a debug breakpoint trap and enters the debug trap han
 #### Operation
 
 ```
-      debugBreakpointTrap( );
+      debugBreakpointTrap( info );
 ```
 
 #### Exceptions
@@ -3216,8 +3211,6 @@ The BRK instruction raises a debug breakpoint trap and enters the debug trap han
 
 The instruction opCode for BRK is the opCode value of zero. A zero instruction word result is a BRK #0 instruction which raises a trap.
 
-None.
-
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -3226,6 +3219,16 @@ None.
 ## Pseudo Instructions
 
 The instruction set allows for a rich set of options on the individual instruction functions. Setting a defined option bit in the instruction adds useful capabilities to an instruction with little additional overhead to the overall data path. For better readability, pseudo operations could be defined that allows for an easier usage. Furthermore, some instructions have no assembler format counterpart. The only way to execute them is through the pseudo operation. This applies for example to the operand mode one case in computational instructions. For pseudo instructions, options and traps are those specified by the actually used instructions.
+
+// ??? **note** perhaps a simple table would justbe fine too....
+
+| Pseudo Instruction | Assembler Syntax |  Possible Implementation | Purpose |
+|:---|:---|:---|:---|
+| **NOP** | NOP | OR  GR0, #0 | There are many instructions that can be used for a NOP. |
+| **CLR** | CLR \<GR n\> | OR  \<GR n\>, #0 | Clears a general register. |
+| **MR** | MR \<GR x\>, \<GR y\> | OR \<GR x\>, \<GR y\> ; mode 1 | overlaps MR for using two general registers. |
+
+
 
 The pseudo instructions presented in this chapter are listed with their assembler mnemonic, a short description of their operation and the actual VCPU-32 instruction used for implementation. Within this chapter, the pseudo instructions are just called instructions too.
 
@@ -3256,7 +3259,7 @@ The NOP pseudo instruction is just a no operation. The assembler uses either the
 
 #### Notes
 
-The idea is to have an instruction which does not affect the program state. The AND and OR instruction can be used for this purpose. From a debugger and dissembler perspective it would be beneficial to settle on one combination and display it as a NOP for better reading. One solution to the identification could be to use the operand mode 4 on an AND instruction. 
+The idea is to have an instruction which does not affect the program state. The AND and OR instruction can be used for this purpose. From a debugger and dissembler perspective it would be beneficial to settle on one instruction combination and display it as a NOP for better reading. One solution to the identification could be to use the operand mode 4 on an AND instruction. 
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3341,7 +3344,7 @@ Perform arithmetic and logical shift operations.
 All shift operations can be realized with the EXTR and DEP instructions. For the right shift operations, the shift amount is transformed into the bot position of the bit field and the length of the field to shift right. For arithmetic shifts, the result is sign extended. The shift left instruction is implemented using the DEP instruction.
 
 ```
-      ASR <GR x>, sa      ->    EXTR.S Rx, Rx, 31 -s a, 32 - sa
+      ASR <GR x>, sa      ->    EXTR.S Rx, Rx, 31 - sa, 32 - sa
       LSR <GR x>, sa      ->    EXTR   Rx, Rx, 31 - sa, 32 - sa
       LSL <GR x>, sa      ->    DEP.Z  Rx, Rx, 31 - sa, 32 - sa
 ```
@@ -3374,7 +3377,7 @@ The ROL and ROR pseudo instruction can be realized using the DSR instruction.
 
 ```
       ROL <GR x>, <GR y>, cnt       ->    DSR Rx, Rx, cnt
-      ROR <GR x>, <GR y>, cnt       ->    DSR Rx, Rx, 24 - cnt
+      ROR <GR x>, <GR y>, cnt       ->    DSR Rx, Rx, 32 - cnt
 ```
 
 #### Notes
@@ -3471,7 +3474,7 @@ This appendix lists all instructions by instruction group.
       :-----------------:-----------------------------------------------------------------------------:
       : LOD     ( 0x016 ): r        : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : LSID    ( 0x17 ): r         :        : opMode       : opArg                                   :
+      : LSID    ( 0x17 ): r         : 0                                                   : b         :
       :-----------------:-----------------------------------------------------------------------------:
       : LDIL    ( 0x02 ): r         : val                                                             :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3483,7 +3486,7 @@ This appendix lists all instructions by instruction group.
       :-----------------:-----------------------------------------------------------------------------:
       : DSR     ( 0x06 ): r         : 0                     : shamt        :0 : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : SHLA    ( 0x07 ): r         :I :L :O                         : sa  : 0            : b         :
+      : SHLA    ( 0x07 ): r         :I :L :O : 0                     : sa  : 0            : b         :
       :-----------------:-----------------------------------------------------------------------------:
       : CMR     ( 0x08 ): r         : cond   : 0                              : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3504,41 +3507,41 @@ This appendix lists all instructions by instruction group.
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
-### Extended Memory Reference Instructions
-
-```
-       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWE    ( 0x20 ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : LDHE    ( 0x21 ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : LDBE    ( 0x22 ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : TDWE    ( 0x23 ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : STHE    ( 0x24 ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : STBE    ( 0x25 ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-```
-
 ### Absolute Memory Reference Instructions
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWA    ( 0x26 ): r         : ofs2                  : ofs1                        : b         :
+      : LDWA    ( 0x20 ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDHA    ( 0x27 ): r         : ofs2                  : ofs1                        : b         :
+      : LDHA    ( 0x21 ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDBA    ( 0x28 ): r         : ofs2                  : ofs1                        : b         :
+      : LDBA    ( 0x22 ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STWA    ( 0x29 ): r         : ofs2                  : ofs1                        : b         :
+      : STWA    ( 0x23 ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STHA    ( 0x2A ): r         : ofs2                  : ofs1                        : b         :
+      : STHA    ( 0x24 ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STBA    ( 0x2B ): r         : ofs2                  : ofs1                        : b         :
+      : STBA    ( 0x25 ): r         : ofs2                  : ofs1                        : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+```
+
+### Extended Memory Reference Instructions
+
+```
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      : LDWE    ( 0x28 ): r         : ofs2                  : ofs1            : a         : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : LDHE    ( 0x29 ): r         : ofs2                  : ofs1            : a         : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : LDBE    ( 0x2A ): r         : ofs2                  : ofs1            : a         : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : TDWE    ( 0x2B ): r         : ofs2                  : ofs1            : a         : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : STHE    ( 0x2C ): r         : ofs2                  : ofs1            : a         : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : STBE    ( 0x2D ): r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3580,9 +3583,9 @@ This appendix lists all instructions by instruction group.
       :-----------------:-----------------------------------------------------------------------------:
       : MST     ( 0x0A ): r         :mode : 0                                       : s               :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDPA    ( 0x2C ): r         :L : 0                                    : a         : b         :
+      : LDPA    ( 0x26 ): r         :L : 0                                    : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : PRB     ( 0x2D ): r         :L :R : 0                                 : a         : b         :
+      : PRB     ( 0x27 ): r         :L :R : 0                                 : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
       : ITLB    ( 0x3C ): r         :L :T :M : 0                              : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3604,9 +3607,9 @@ This appendix lists all instructions by instruction group.
 
 ## TLB and Cache Models
 
-With the access time gap between a CPU and main memory, caches are an essential component. The pipeline design makes a reference to memory during instruction fecth and then optional data access. Since both operations potentially take place  for different instructions but in the same cycle, a seperate **instruction cache** and **data cache** is a key part of the overall architecture. These two caches are called **L1 caches**. In addition, there could be a joint L2 cache to serve both L1 caches.
+With the access time gap between a CPU and main memory, caches are an essential component. The pipeline design makes a reference to memory during instruction fetch and then optional data access. Since both operations potentially take place  for different instructions but in the same cycle, a separate **instruction cache** and **data cache** is a key part of the overall architecture. These two caches are called **L1 caches**. In addition, there could be a joint L2 cache to serve both L1 caches.
 
-Computers with virtual addressing simply cannot work without a **translation lookaside buffer** (TLB). For each instruction using a virtual address for instruction fetch and data access a translation to the physical memory address needs to be performed. The TLB is a kind of cache for translations and comparable to the data caches, separate instrcution and data TLBs are the common implementation.
+Computers with virtual addressing simply cannot work without a **translation look-aside buffer** (TLB). For each instruction using a virtual address for instruction fetch and data access a translation to the physical memory address needs to be performed. The TLB is a kind of cache for translations and comparable to the data caches, separate instruction and data TLBs are the common implementation.
 
 ### Joint TLBs
 
@@ -3637,7 +3640,7 @@ Computers with virtual addressing simply cannot work without a **translation loo
 
 ## Instruction and Architecture Commentary
 
-Programming language design is Compiler Design. In a similar sense, instruction set and architecture design is CPU design. This chapter will present background information on the CPU design and discusses how the hardware design options influenced the instruction set design.
+Programming language design is Compiler Design. In a similar sense, instruction set and architecture design is CPU design. This chapter will present background information on the CPU design and discusses how the hardware design options influenced the instruction set design and runtime architecture.
 
 ### A pipelined CPU
 
@@ -3657,7 +3660,7 @@ Register - memory machines typically offer computational instructions that are o
 
 ### Memory Reference Instructions
 
-Memory reference instruction operate on memory and a general register. In that sense the architecture is a typical load/store architecture. However, in contrast to a load/store architecture VCPU-32 load / store instructions are not the only instructions that access memory. Being a register/memory architecture, all instructions with an operand field encoding, will access memory as well. There are no instructions that will access data memory access for reading and writing back an operand. Due to the operand instruction format and the requirement to offer a fixed length instruction word, the offset for an address operation is limited but still covers a large address range.
+Memory reference instruction operate on memory and a general register. In that sense the architecture is a typical load/store architecture. However, in contrast to a load/store architecture VCPU-32 load / store instructions are not the only instructions that access memory. Being a register/memory architecture, all instructions with an operand field encoding, will access memory as well. There are however no instructions that will access data memory access for reading and writing back an operand in the same instruction. Due to the operand instruction format and the requirement to offer a fixed length instruction word, the offset for an address operation is limited but still covers a large address range. The only exception is the extended addressing operand mode, which has only 6 bits left for a value to be added to the base register. To address this issue a set of 6 instructions of load and store using a full virtual adress has been added. It remains to be seen if this set is truly necessary.
 
 ### Absolute, Virtual and Logical Address
 
@@ -3723,7 +3726,7 @@ In contrast to PA-RISC, VCPU-32 implement only two privilege levels, **user** an
 
 Computational instructions feature the basic set of arithmetic, logical and bit operations. Option bits in the respective instructions allow for a great flexibility of how an instruction is executed. For example, negating the output of a logical operation reverses the logic and an ADD would become a NAND operation.
 
-// ??? **note** what other "useful" instructions could we add with a 32-bit instruction word ?
+// ??? **note** what other "useful" instructions could we add with a 32-bit instruction word ? e.g. support for division...
 
 ### Bit Operations Instructions
 

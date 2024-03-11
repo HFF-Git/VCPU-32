@@ -58,8 +58,7 @@ struct EnvTabEntry {
     
 } envTab[ ] = {
     
-    { .name = "FMT-DEF",            .envId = ENV_FMT_DEF,           .envTyp = ENV_TYP_TOK,  .rOnly = false,  .tVal = TOK_HEX },
-    
+    { .name = "FMT-DEF",            .envId = ENV_FMT_DEF,           .envTyp = ENV_TYP_TOK,  .rOnly = false,  .tVal = TOK_HEX   },
     { .name = "SHOW-CMD-CNT",       .envId = ENV_SHOW_CMD_CNT,      .envTyp = ENV_TYP_BOOL, .rOnly = false,  .bVal = true      },
     { .name = "CMD-CNT",            .envId = ENV_CMD_CNT,           .envTyp = ENV_TYP_INT,  .rOnly = true,   .iVal = 0         },
     { .name = "EXIT-CODE",          .envId = ENV_EXIT_CODE,         .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 0         },
@@ -87,28 +86,15 @@ struct EnvTabEntry {
     
     { .name = "MEM-SIZE",           .envId = ENV_MEM_SIZE,          .envTyp = ENV_TYP_UINT, .rOnly = false,  .uVal = MAX_MEMORY_SIZE },
     { .name = "MEM-BANKS",          .envId = ENV_MEM_BANKS,         .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1           },
-    { .name = "MEM-BANK-SIZE",      .envId = ENV_MEM_BANK_SIZE,     .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 2*1024*1024 },
+    { .name = "MEM-BANK-SIZE",      .envId = ENV_MEM_BANK_SIZE,     .envTyp = ENV_TYP_UINT, .rOnly = false,  .uVal = MAX_MEMORY_SIZE },
     
     { .name = "WIN-MIN-ROWS",       .envId = ENV_WIN_MIN_ROWS,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 24          },
-    { .name = "WIN-TX-WIDTH",       .envId = ENV_WIN_TX_WIDTH,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 90          },
+    { .name = "WIN-TEXT-WIDTH",     .envId = ENV_WIN_TX_WIDTH,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 90          },
     
 };
 
 const int ENV_TAB_SIZE  = sizeof( envTab ) / sizeof( *envTab );
 
-//------------------------------------------------------------------------------------------------------------
-// A little helper function to upshift a string in place.
-//
-//------------------------------------------------------------------------------------------------------------
-void upshiftStr( char *str ) {
-    
-    size_t len = strlen( str );
-    
-    if ( len > 0 ) {
-        
-        for ( size_t i = 0; i < len; i++ ) str[ i ] = (char) toupper((int) str[ i ] );
-    }
-}
 
 //------------------------------------------------------------------------------------------------------------
 // A local function to display an environment variable.
@@ -118,8 +104,9 @@ void displayEnvTabEntry( EnvTabEntry *entry ) {
     
     fprintf( stdout, "%-32s: ", entry -> name );
     
-    if      ( entry -> envTyp == ENV_TYP_TOK ) fprintf( stdout, "%d\n", entry -> tVal );
+    if      ( entry -> envTyp == ENV_TYP_TOK )  fprintf( stdout, "%s\n", DrvCmds::tokIdToName( entry -> tVal ));
     else if ( entry -> envTyp == ENV_TYP_INT )  fprintf( stdout, "%d\n", entry -> iVal );
+    else if ( entry -> envTyp == ENV_TYP_UINT ) fprintf( stdout, "%u\n", entry -> uVal );
     else if ( entry -> envTyp == ENV_TYP_BOOL ) fprintf( stdout, "%s\n", ( entry -> bVal ? "true" : "false" ));
     else if ( entry -> envTyp == ENV_TYP_STR ) {
         
@@ -157,11 +144,14 @@ int DrvEnv::getEnvTabSize( ) {
 
 TokId DrvEnv::lookupEnvTokId( char *str, TokId def ) {
     
-    if (( strlen( str ) == 0 ) || ( strlen ( str ) > MAX_ENV_STR_SIZE )) return( def );
+    size_t len = strlen( str );
+    
+    if (( len == 0 ) || ( len > MAX_ENV_STR_SIZE )) return( def );
     
     char tmpStr[ MAX_ENV_STR_SIZE ];
-    strncpy( tmpStr, str, strlen( str ) + 1 );
-    upshiftStr( tmpStr );
+    strncpy( tmpStr, str, len + 1 );
+    
+    for ( size_t i = 0; i < len; i++ ) tmpStr[ i ] = (char) toupper((int) str[ i ] );
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
@@ -270,7 +260,7 @@ void DrvEnv::setEnvVal( TokId envId, uint32_t val ) {
     
     for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
         
-        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_INT ))
+        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_UINT ))
             envTab[ i ].uVal = val;
     }
 }

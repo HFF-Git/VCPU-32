@@ -332,7 +332,7 @@ public:
                                     int row = 0,
                                     int col = 0 );
     
-    void            printUserIndexField( int stack,
+    void            printWindowIdField( int stack,
                                         int index,
                                         bool current = false,
                                         uint32_t fmtDesc = 0,
@@ -515,7 +515,7 @@ public:
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// TLB Window.
+// TLB Window. The TLB data window displays the TLB entries.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinTlb : DrvWinScrollable {
@@ -536,7 +536,8 @@ private:
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// Memory Object - Cache Window.
+// Memory Object - Cache Window. The memory object window display the cache date lines. Since we can have
+// caches with more than one set, the toggle function allows to flio through the sets, one at a time.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinCache : DrvWinScrollable {
@@ -559,7 +560,8 @@ private:
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// Memory Object Controller Window.
+// Memory Object Controller Window. Each memory object is implemented as a state machine. A request goes
+// through several states. This window displays the state machine control information.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinMemController : DrvWin {
@@ -579,7 +581,8 @@ private:
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// TLB Object Controller Window.
+// TLB Object Controller Window. Each TLB object is implemented as a state machine. A request goes through
+// several states. This window displays the state machine control information.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinTlbController : DrvWin {
@@ -599,7 +602,8 @@ private:
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// Text Window.
+// Text Window. It may be handy to also display an ordinary ASCII text file. One day this will allow us to
+// display for example the source code to a running program when symbolic debugging is supported.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinText : DrvWinScrollable {
@@ -627,8 +631,8 @@ private:
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// Command Window. The command window is a special class, which comes always last in the windows list and
-// cannot be dispabled. It is intended to ba a scrollable window, where only the banner line is fixed.
+// Command Line Window. The command window is a special class, which comes always last in the windows list
+// and cannot be dispabled. It is intended to ba a scrollable window, where only the banner line is fixed.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinCommands : DrvWin {
@@ -703,8 +707,8 @@ private:
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The display functions. This class combines most of the display functions for displaying registers, data
-// entries and so on.
+// The line mode display functions. This class combines most of the line mode display functions for displaying
+// registers, memory content, data entries and so on.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvLineDisplay {
@@ -744,7 +748,7 @@ private:
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The disassembler function. The disassembler take a machine instruction word and displays it in human
+// The disassembler function. The disassembler takes a machine instruction word and displays it in human
 // readable form.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -772,10 +776,13 @@ struct DrvCmds {
 public:
     
     DrvCmds( VCPU32Globals *glb );
+   
     void            printWelcome( );
     void            processCmdLineArgs( int argc, const char *argv[ ] );
     TokId           getCurrentCmd( );
     void            cmdLoop( );
+    
+    static char     *tokIdToName( TokId tokId );
     
 private:
     

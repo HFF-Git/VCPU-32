@@ -136,8 +136,8 @@ struct TlbDesc {
     
     TlbType        type        = TLB_T_NIL;
     TlbAccessType  accessType  = TLB_AT_NIL;
-    uint16_t            entries     = 0;
-    uint16_t            latency     = 0;
+    uint16_t       entries     = 0;
+    uint16_t       latency     = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -262,29 +262,28 @@ struct TlbEntry {
     
 public:
     
-    // ??? fix the bit positions ...
+    // ??? fix the bit positions ... VUTDBX
     
-    inline bool     tValid( ) { return ( pInfo & 0400000000 ); }
-    inline void     setValid( bool arg ) { if ( arg ) pInfo |= 0400000000; else  pInfo &= ~ 0400000000; }
+    inline bool     tValid( ) { return ( pInfo & 0x80000000 ); }
+    inline void     setValid( bool arg ) { if ( arg ) pInfo |= 0x80000000; else  pInfo &= ~ 0x80000000; }
     
-    inline bool     tDirty( ) { return( pInfo & 0040000000 ); }
-    inline bool     tUncachable( ) { return( pInfo & 020000000 ); }
-    inline bool     tTrapPage( ) { return( pInfo & 010000000 ); }
+    inline bool     tUncachable( ) { return( EXTR( pInfo, 1, 1 )); }
+    inline bool     tTrapPage( ) { return( EXTR( pInfo, 2, 1 )); }
+    inline bool     tDirty( ) { return( EXTR( pInfo, 3, 1 )); }
+    inline bool     tTrapDataPage( ) { return( EXTR( pInfo, 4, 1 )); }
+    inline bool     tModifyExPage( ) { return( EXTR( pInfo, 5, 1 )); }
     
-    inline bool     tTrapDataPage( ) { return( pInfo & 002000000 ); }
-    inline bool     tModifyExPage( ) { return( pInfo & 010000000 ); }
+    inline int      tPageType( ) { return( EXTR( pInfo, 7, 2 )); }
+    inline uint8_t  tPrivL1( ) { return( EXTR( pInfo, 8, 1 )); }
+    inline uint8_t  tPrivL2( ) { return( EXTR( pInfo, 9, 1 )); }
+    inline uint16_t tProtectId( ) { return( EXTR( pInfo, 31, 16 )); }
     
-    inline int      tPageType( ) { return(( pInfo >> 18 ) & 03 ); }
-    inline uint8_t  tPrivL1( ) { return(( pInfo & 000100000 ) ? 1 : 0 ); }
-    inline uint8_t  tPrivL2( ) { return(( pInfo & 000040000 ) ? 1 : 0 ); }
-    inline uint16_t tProtectId( ) { return( pInfo & 000037777 ); }
+    inline uint32_t tPhysAdrTag( ) { return( aInfo << 12 ); }  // ??? check how it will be used...
     
-    inline uint32_t tPhysAdrTag( ) { return ( aInfo << 12 ); }
-    
-    inline uint16_t tPhysPage( ) { return(( aInfo >> 12 ) & 000007777 ); }
-    inline uint8_t  tPhysMemBank( ) { return(( aInfo >> 12 ) & 017 ); }
-    inline uint8_t  tCpuId( ) { return(( aInfo >> 16 ) & 017 ); }
- 
+    inline uint16_t tPhysPage( ) { return( EXTR( aInfo, 31, 20 )); }
+    inline uint8_t  tPhysMemBank( ) { return( EXTR( aInfo, 11, 4 )); }
+    inline uint8_t  tCpuId( ) { return( EXTR( aInfo, 7, 4 )); }
+       
     uint32_t        vpnHigh;
     uint32_t        vpnLow;
     uint32_t        pInfo;
@@ -369,7 +368,7 @@ struct MemTagEntry {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// CPU24 memory object. All caches and the physical memory are build using this generic class. The CPU
+// VCPU-32 memory object. All caches and the physical memory are build using this generic class. The CPU
 // simulator implements a layered memory model. On top are always the level 1 caches on the bottom is
 // always the memory layer. Optionally, there can be a level 2 cache. A memory layer has two main structures,
 // a tag aray and a data array. Caches need a cache tag array, physical memory does not. In this case the

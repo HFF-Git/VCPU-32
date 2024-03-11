@@ -40,8 +40,8 @@ const int MAX_BREAK_POINTS = 32;
 enum CPU24BreakPointFlags : uint32_t {
     
     BP_NIL          = 0,
-    BP_USED         = 000000001,
-    BP_ENABLED      = 000000002,
+    BP_USED         = 0x01,
+    BP_ENABLED      = 0x02,
     
 };
 
@@ -57,7 +57,7 @@ struct CPUBreakpoint {
     uint32_t    flags       = BP_NIL;
     uint32_t    instrAdrSeg = 0;
     uint32_t    instrAdrOfs = 0;
-    uint32_t    instr       = 0;  // ??? what to really set ...
+    uint32_t    instr       = 0;
     int         skipCount   = 0;
 };
 
