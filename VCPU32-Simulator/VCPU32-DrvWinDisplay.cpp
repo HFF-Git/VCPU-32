@@ -1614,9 +1614,9 @@ void DrvWinCache::setDefaults( ) {
     else if ( winType == WT_UCACHE_WIN )    cPtr = glb -> cpu -> uCacheL2;
     
     setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
-    setDefColumns( 30 + ( cPtr -> getBlockSize( ) * 11 ), TOK_HEX );
-    setDefColumns( 30 + ( cPtr -> getBlockSize( ) * 13 ), TOK_OCT );
-    setDefColumns( 30 + ( cPtr -> getBlockSize( ) * 11 ), TOK_DEC );
+    setDefColumns( 36 + ( cPtr -> getBlockSize( ) * 11 ), TOK_HEX );
+    setDefColumns( 36 + ( cPtr -> getBlockSize( ) * 13 ), TOK_OCT );
+    setDefColumns( 36 + ( cPtr -> getBlockSize( ) * 11 ), TOK_DEC );
     setColumns( getDefColumns( getRadix( )));
     setRows( 6 );
     
