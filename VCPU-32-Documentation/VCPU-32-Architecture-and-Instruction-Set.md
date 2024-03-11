@@ -1646,10 +1646,10 @@ Adds the operand to the target register.
 #### Format
 
 ```
-      ADD[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
-	ADD[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
-      ADD[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
- 
+      ADD[.<opt>] <GR r>, <val>                               ; opMode 0
+	  ADD[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 5, 6
+      ADD[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 7
+
       ADD[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
       ADD[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
       ADD[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
@@ -1671,29 +1671,16 @@ The instruction fetches the operand and adds it to the general register "r". If 
 ```
       switch( opMode ) {
 
-         case 0:  tmpA <- GR[r];
-	            tmpB <- signExtend( opArg, 14 );
-		      break;
+         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 ); break;
 
-         case 1:  
+         case 1:
          case 2:
-         case 3:  illegalInstructionTrap( );         
+         case 3:  illegalInstructionTrap( );
 
-         case 4:  tmpA <- 0;
-		      tmpB <- 0;
-			break;
-
-         case 5:  tmpA <- 0;
-		      tmpB <- GR[b];
-			break;
-                  
-         case 6:  tmpA <- GR[a];
-		      tmpB <- G0;
-			break;
-
-         case 7:  tmpA <- GR[a];
-		      tmpB <- GR[b];
-			break;
+         case 4:  tmpA <- 0 ;    tmpB <- 0;     break;
+         case 5:  tmpA <- 0;     tmpB <- GR[b]; break
+         case 6:  tmpA <- GR[a]; tmpB <- 0;     break;
+         case 7:  tmpA <- GR[a]; tmpB <- GR[b]; break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1741,10 +1728,10 @@ Subtracts the operand from the target register.
 #### Format
 
 ```
-      SUB[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
-	SUB[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
-      SUB[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
- 
+      SUB[.<opt>] <GR r>, <val>                               ; opMode 0
+	  SUB[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 5, 6
+      SUB[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 7
+
       SUB[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
       SUB[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
       SUB[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
@@ -1759,23 +1746,23 @@ Subtracts the operand from the target register.
 
 #### Description
 
-The instruction fetches the operand and subtracts it from the general register "r". If the C bit is set, the status register carry bit is added too. The L bit specifies that his is an unsigned add. If the O bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes. The operations will set the carry/borrow bits in the processor status word. 
+The instruction fetches the operand and subtracts it from the general register "r". If the C bit is set, the status register carry bit is added too. The L bit specifies that his is an unsigned add. If the O bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes. The operations will set the carry/borrow bits in the processor status word.
 
 #### Operation
 
 ```
       switch( opMode ) {
 
-         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 );  break;
+         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 ); break;
 
-         case 1:  
+         case 1:
          case 2:
-         case 3:  illegalInstructionTrap( ); 
-              
-         case 4:  tmpA <- 0;     tmpB <- 0;      break;
-         case 5:  tmpA <- 0;     tmpB <- GR[b];  break;
-         case 6:  tmpA <- GR[a]; tmpB <- G0;     break;
-         case 7:  tmpA <- GR[a]; tmpB <- GR[b];  break;
+         case 3:  illegalInstructionTrap( );
+
+         case 4:  tmpA <- 0 ;    tmpB <- 0;     break;
+         case 5:  tmpA <- 0;     tmpB <- GR[b]; break
+         case 6:  tmpA <- GR[a]; tmpB <- 0;     break;
+         case 7:  tmpA <- GR[a]; tmpB <- GR[b]; break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1823,10 +1810,10 @@ Performs a bitwise AND of the operand and the target register and stores the res
 #### Format
 
 ```
-      AND[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
-      AND[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
-      AND[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
- 
+      AND[.<opt>] <GR r>, <val>                               ; opMode 0
+      AND[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 5, 6
+      AND[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 7
+
       AND[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
       AND[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
       AND[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
@@ -1848,16 +1835,16 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
       switch( opMode ) {
 
-         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 );  break;
+         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 ); break;
 
-         case 1:  
+         case 1:
          case 2:
-         case 3:  illegalInstructionTrap( ); 
-              
-         case 4:  tmpA <- 0;     tmpB <- 0;      break;
-         case 5:  tmpA <- 0;     tmpB <- GR[b];  break;
-         case 6:  tmpA <- GR[a]; tmpB <- G0;     break;
-         case 7:  tmpA <- GR[a]; tmpB <- GR[b];  break;
+         case 3:  illegalInstructionTrap( );
+
+         case 4:  tmpA <- 0 ;    tmpB <- 0;     break;
+         case 5:  tmpA <- 0;     tmpB <- GR[b]; break
+         case 6:  tmpA <- GR[a]; tmpB <- 0;     break;
+         case 7:  tmpA <- GR[a]; tmpB <- GR[b]; break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1884,7 +1871,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
 
 #### Notes
 
-Complementing the operand input allows to perform a bit clear in a register word by complementing the bit mask stored in the operand before performing the AND. Typically this is done in a program in two steps, which are first to complement the mask and then AND to the target variable. The C option allows to do this more elegantly in one step. In operand mode one, regB is AND-ed to a zero value and stored in the result reg. This is equivalent to a clear word instruction. A pseudo instruction for this could be a "CLR reg". Also, negating the result could be an efficient way to set all bits in a word to one. Finally, the AND instruction can also serve as a NOP instruction. AND.C R0, #0 will "AND" R0 with R0 and an immediate with all bits set. 
+Complementing the operand input allows to perform a bit clear in a register word by complementing the bit mask stored in the operand before performing the AND. Typically this is done in a program in two steps, which are first to complement the mask and then AND to the target variable. The C option allows to do this more elegantly in one step. In operand mode one, regB is AND-ed to a zero value and stored in the result reg. This is equivalent to a clear word instruction. A pseudo instruction for this could be a "CLR reg". Also, negating the result could be an efficient way to set all bits in a word to one. Finally, the AND instruction can also serve as a NOP instruction. AND.C R0, #0 will "AND" R0 with R0 and an immediate with all bits set.
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -1899,10 +1886,10 @@ Performs a bitwise OR of the operand and the target register and stores the resu
 #### Format
 
 ```
-      OR[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
-      OR[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
-      OR[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
- 
+      OR[.<opt>] <GR r>, <val>                               ; opMode 0
+      OR[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 5, 6
+      OR[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 7
+
       OR[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
       OR[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
       OR[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
@@ -1924,16 +1911,16 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
       switch( opMode ) {
 
-         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 );  break;
+         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 ); break;
 
-         case 1:  
+         case 1:
          case 2:
-         case 3:  illegalInstructionTrap( ); 
-              
-         case 4:  tmpA <- 0;     tmpB <- 0;      break;
-         case 5:  tmpA <- 0;     tmpB <- GR[b];  break;
-         case 6:  tmpA <- GR[a]; tmpB <- G0;     break;
-         case 7:  tmpA <- GR[a]; tmpB <- GR[b];  break;
+         case 3:  illegalInstructionTrap( );
+
+         case 4:  tmpA <- 0 ;    tmpB <- 0;     break;
+         case 5:  tmpA <- 0;     tmpB <- GR[b]; break
+         case 6:  tmpA <- GR[a]; tmpB <- 0;     break;
+         case 7:  tmpA <- GR[a]; tmpB <- GR[b]; break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -1976,10 +1963,10 @@ Performs a bitwise XORing the operand and the target register and stores the res
 #### Format
 
 ```
-      XOR[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
-      XOR[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
-      XOR[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
- 
+      XOR[.<opt>] <GR r>, <val>                               ; opMode 0
+      XOR[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 5, 6
+      XOR[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 7
+
       XOR[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
       XOR[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
       XOR[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
@@ -2001,16 +1988,16 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
       switch( opMode ) {
 
-         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 );  break;
+         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 ); break;
 
-         case 1:  
+         case 1:
          case 2:
-         case 3:  illegalInstructionTrap( ); 
-              
-         case 4:  tmpA <- 0;     tmpB <- 0;      break;
-         case 5:  tmpA <- 0;     tmpB <- GR[b];  break;
-         case 6:  tmpA <- GR[a]; tmpB <- G0;     break;
-         case 7:  tmpA <- GR[a]; tmpB <- GR[b];  break;
+         case 3:  illegalInstructionTrap( );
+
+         case 4:  tmpA <- 0 ;    tmpB <- 0;     break;
+         case 5:  tmpA <- 0;     tmpB <- GR[b]; break
+         case 6:  tmpA <- GR[a]; tmpB <- 0;     break;
+         case 7:  tmpA <- GR[a]; tmpB <- GR[b]; break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -2051,10 +2038,10 @@ Compares a register and an operand and stores the comparison result in the targe
 #### Format
 
 ```
-      CMP[(W|H|B)][.<opt>] <GR r>, <val>                      ; opMode 0
-      CMP[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 1, 2
-      CMP[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 3
- 
+      CMP[.<opt>] <GR r>, <val>                               ; opMode 0
+      CMP[(W|H|B)][.<opt>] <GR r>, <GR b>                     ; opMode 5, 6
+      CMP[(W|H|B)][.<opt>] <GR r>, <GR a>, <GR b>             ; opMode 7
+
       CMP[(W|H|B)][.<opt>] <GR r>, <GR a>( <GR b> )           ; opMode 8, 16, 24
       CMP[(W|H|B)][.<opt>] <GR r>, <ofs> ( <SR a>, <GR b> )   ; opMode 9, 17, 25
       CMP[(W|H|B)][.<opt>] <GR r>, <ofs> ( <GR y> )           ; opMode 10 .. 15, 18 .. 23, 26 .. 31 "y" -> GR10 .. GR15
@@ -2087,16 +2074,16 @@ The compare condition are encoded as follows.
 ```
       switch( opMode ) {
 
-         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 );  break;
+         case 0:  tmpA <- GR[r]; tmpB <- signExtend( opArg, 14 ); break;
 
-         case 1:  
+         case 1:
          case 2:
-         case 3:  illegalInstructionTrap( ); 
-              
-         case 4:  tmpA <- 0;     tmpB <- 0;      break;
-         case 5:  tmpA <- 0;     tmpB <- GR[b];  break;
-         case 6:  tmpA <- GR[a]; tmpB <- G0;     break;
-         case 7:  tmpA <- GR[a]; tmpB <- GR[b];  break;
+         case 3:  illegalInstructionTrap( );
+
+         case 4:  tmpA <- 0 ;    tmpB <- 0;     break;
+         case 5:  tmpA <- 0;     tmpB <- GR[b]; break
+         case 6:  tmpA <- GR[a]; tmpB <- 0;     break;
+         case 7:  tmpA <- GR[a]; tmpB <- GR[b]; break;
 
          default: seg <- operandAdrSeg( instr );
                   ofs <- operandAdrOfs( instr );
@@ -2212,7 +2199,7 @@ Example:
    CMR    R1,R4,R1  ; test R1 and store R4 when condition is met
 ```
 
-The CMR instruction was a rather specialized instruction. It highly depends on a good peephole optimizer to detect such a situation.
+The CMR instruction is a rather specialized instruction. It highly depends on a good peephole optimizer to detect such a situation.
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -3264,8 +3251,7 @@ The NOP pseudo instruction is just a no operation. The assembler uses either the
 
 #### Notes
 
-The idea is to have an instruction which does not affect the program state. The AND and OR instruction can be used for this purpose. From a debugger and dissembler perspective it would be beneficial to settle on one combination and display it as a NOP for better reading. One
-solution to the identification could be to use the operand mode 4 on an AND instruction. 
+The idea is to have an instruction which does not affect the program state. The AND and OR instruction can be used for this purpose. From a debugger and dissembler perspective it would be beneficial to settle on one combination and display it as a NOP for better reading. One solution to the identification could be to use the operand mode 4 on an AND instruction. 
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3478,13 +3464,13 @@ This appendix lists all instructions by instruction group.
       :-----------------:-----------------------------------------------------------------------------:
       : CMP     ( 0x15 ): r         : cond   : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : LOD     ( 0x016 ): r         : 0      : opMode       : opArg                                   :
+      : LOD     ( 0x016 ): r        : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
       : LSID    ( 0x17 ): r         :        : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
       : LDIL    ( 0x02 ): r         : val                                                             :
       :-----------------:-----------------------------------------------------------------------------:
-      : ADDIL   ( 0x03 ): r         : val                                                             :  
+      : ADDIL   ( 0x03 ): r         : val                                                             :
       :-----------------:-----------------------------------------------------------------------------:
       : EXTR    ( 0x04 ): r         :S :N :0                : len          : pos          : b         :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3537,7 +3523,7 @@ This appendix lists all instructions by instruction group.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWA    ( 0x26 ): r         : ofs2                  : ofs1                        : b         : 
+      : LDWA    ( 0x26 ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
       : LDHA    ( 0x27 ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3613,9 +3599,13 @@ This appendix lists all instructions by instruction group.
 
 ## TLB and Cache Models
 
-// ??? **note** a new chapter on the subject ?
+With the access time gap between a CPU and main memory, caches are an essential component. The pipeline design makes a reference to memory during instruction fecth and then optional data access. Since both operations potentially take place  for different instructions but in the same cycle, a seperate **instruction cache** and **data cache** is a key part of the overall architecture. These two caches are called **L1 caches**. In addition, there could be a joint L2 cache to serve both L1 caches.
+
+Computers with virtual addressing simply cannot work without a **translation lookaside buffer** (TLB). For each instruction using a virtual address for instruction fetch and data access a translation to the physical memory address needs to be performed. The TLB is a kind of cache for translations and comparable to the data caches, separate instrcution and data TLBs are the common implementation.
 
 ### Joint TLBs
+
+
 
 ### L1 and L2 Caches
 
@@ -3625,7 +3615,6 @@ This appendix lists all instructions by instruction group.
 
 ## VCPU-32 Runtime Environment
 
-// ??? **note** a new chapter on the subject ?
 
 ### Registers
 
@@ -3655,11 +3644,11 @@ The first VCPU-32 implementation uses a three stage pipeline model. There stages
 
 - **Execute**. The Execute Stage will primarily do the computational work using the values passed from the MA stage. The computational result will be written back to the registers on the next clock cycle.
 
-Note that this is perhaps one of many ways to implement a pipeline. The three major stages could also be further divided internally. For example, the fetch and decode stage could consist of two sub stages. Likewise, the memory access stages could be divided into an address calculation sub-stage and the actual data access. Dividing into three stages however simplifies the bypass logic as there are only two spots to insert any register overriding. This is especially important for the memory access stage, which uses the register content to build addresses. Two separate stages, i.e. address computation and memory access, would require options to redo the address arithmetic when detecting a register interlock at the memory access stage. 
+Note that this is perhaps one of many ways to implement a pipeline. The three major stages could also be further divided internally. For example, the fetch and decode stage could consist of two sub stages. Likewise, the memory access stages could be divided into an address calculation sub-stage and the actual data access. Dividing into three stages however simplifies the bypass logic as there are only two spots to insert any register overriding. This is especially important for the memory access stage, which uses the register content to build addresses. Two separate stages, i.e. address computation and memory access, would require options to redo the address arithmetic when detecting a register interlock at the memory access stage.
 
 ### Register - Memory Model
 
-Register - memory machines typically offer computational instructions that are of the form ***REGx <- REGx op Operand*** where the operand is either another register or a memory location. Instruction sets are of variable length, depending on the addressing modes offered. VCPU-32 does offer several addressing modes for the "operand" combined with a fixed instruction word length. As a consequence, the number of registers and the offset width are limited. Instead of 32 register found in modern RISC architectures, VCPU-32 has eight general registers with four of them capable to be used as index registers in the indexed addressing mode. Having only sixteen registers also implies that register zero is a valid register and not a source of zero or target of a null store. This in turn means that there must be another way to encode a zero when needed. Most of the instructions that could make use of a "zero" register have a bit "Z" to indicate using a zero value instead of a register value.
+Register - memory machines typically offer computational instructions that are of the form ***REGx = REGx op Operand*** where the operand is either another register or a memory location. Instruction sets are of variable length, depending on the addressing modes offered. VCPU-32 does offer several addressing modes for the "operand" combined with a fixed instruction word length. As a consequence, the number of registers and the offset width are limited. Instead of 32 register found in modern RISC architectures, VCPU-32 has eight general registers with four of them capable to be used as index registers in the indexed addressing mode. Having only sixteen registers also implies that register zero is a valid register and not a source of zero or target of a null store. This in turn means that there must be another way to encode a zero when needed. Most of the instructions that could make use of a "zero" register have a bit "Z" to indicate using a zero value instead of a register value.
 
 ### Memory Reference Instructions
 
@@ -3667,9 +3656,9 @@ Memory reference instruction operate on memory and a general register. In that s
 
 ### Absolute, Virtual and Logical Address
 
-VCPU-32 features a large **virtual address** range of 64 bits. The range is divided into a 32-bit segment identifier and a 32-bit offset. Implementations may choose to only offer 16 bits or 24 bits as the segment identifier range. The memory address range is 32-bit which allows for a 4 Gbyte memory. 
+VCPU-32 features a large **virtual address** range of 64 bits. The range is divided into a 32-bit segment identifier and a 32-bit offset. Implementations may choose to only offer 16 bits or 24 bits as the segment identifier range. The memory address range is 32-bit which allows for a 4 Gbyte memory.
 
-To accommodate an even larger physical memory, a memory bank identifier was added. Up to 16 banks are allowed. However, the LDA/STA instructions can only access the first bank, the bank with a zero identifier. All other banks can only be reached with a virtual address. The maximum physical memory is thus 64 Gbytes. The TLB contains a bank and the physical offset for as translation result. 
+To accommodate an even larger physical memory, a memory bank identifier was added. Up to 16 banks are allowed. However, the LDA/STA instructions can only access the first bank, the bank with a zero identifier. All other banks can only be reached with a virtual address. The maximum physical memory is thus 64 Gbytes. The TLB contains a bank and the physical offset for as translation result.
 
 In addition, it is envisioned that several CPUs, up to 16 CPUs, can be connected to form a cluster. The CPU-ID the also becomes part of the physical address, referring to an address located on another CPU bank and offset. Right now, this feature is not supported yet.
 
@@ -3684,7 +3673,7 @@ Fixed length instruction have one issue in that there is not enough room to embe
 ```cpp
 val   .word 0x01025030
 
-      LDIL  R10, L%val        
+      LDIL  R10, L%val
       LDO   R2, R%val(R10)
 ```
 
@@ -3693,7 +3682,7 @@ will load the left hand side of "val" into R10 and use the LOD instruction to ad
 ```cpp
 ofs   .word 0x01025030
 
-      ADDIL  R1, R11, L%ofs        
+      ADDIL  R1, R11, L%ofs
       LDW    R3, R%ofs(R11)
 ```
 
@@ -3703,7 +3692,7 @@ will add to the base registers R11 the left 10-bits of "ofs". The LDW instructio
 
 An operand field in the respective instruction encodes several operand modes. It needs to support the idea of an immediate value, a combination of a zero and a general register, two general registers, a segment and general register combination and an index register with a a signed offset. Operand modes also need to distinguish word, half-word and byte size content access. This leads to a rich set of operand modes. The operand modes are grouped in four sections to eight modes. Operand mode group zero is the immediate and register group. The immediate group contains only one mode, which is a signed 14-bit quantity. The register group allows for no register, i.e. "a" and "b" are both a zero value, a one register mode, where either "a" or "b" are zero, and finally two registers "a" and "b".
 
-The CPU pipeline implements all of the immediate and register modes in selecting the correct inputs to the ALU. From a hardware perspective, all computational operations are of the form Reg-R <- Reg-A op Reg-B. The general register reads take place in the instruction fetch / decode stage. The general register store in the execution stage.
+The CPU pipeline implements all of the immediate and register modes in selecting the correct inputs to the ALU. From a hardware perspective, all computational operations are of the form ***Reg-R = Reg-A op Reg-B***. The general register reads take place in the instruction fetch / decode stage. The general register store in the execution stage.
 
 Operand mode groups 1 .. 3 are the indexing group. They are identical except that operand group 1 operates on a word, operand mode 2 on a half-word and operand mode 3 on a byte. The address computed is in all three cases therefore the same. The first mode in such a group, i.e. mode 8, 16 and 24 allow to use two registers as base and offset register, reaching any place in the segment. The second operand mode in an indexing group features a segment register in "a" and the offset in "b", to which a small offset embedded in the instruction is added. This operand mode can reach any data in the virtual address space. The remaining 6 modes in an indexing group will select from the index register GR10 to GR15. The address is formed by selecting the index register and adding an offset embedded in the instruction to it. The runtime reserves some index register for pointing to the current stack frame, globals and so on.
 
@@ -3721,7 +3710,7 @@ Conditional branches are implemented with a static branch prediction scheme. For
 
 Modern processors support the distinction between several privilege levels. Instructions can only access data or execute instructions when the privilege level matches the privilege level required. Two or four levels are the most common implementation. Changing between levels is often done with a kind of trap operation to a higher privilege level software, for example the operating system kernel. However, traps are expensive, as they cause a CPU pipeline to be flush when going through a trap handler.
 
-VCPU-32 follows the PA-RISC route of gateways. A special branch instruction will raise the privilege level when the instruction is executed on a gateway page. The branch target instruction continues execution with the privilege level specified by the gateway page. Return from a higher privilege level to a code page with lower privilege level, will automatically set the lower privilege level. 
+VCPU-32 follows the PA-RISC route of gateways. A special branch instruction will raise the privilege level when the instruction is executed on a gateway page. The branch target instruction continues execution with the privilege level specified by the gateway page. Return from a higher privilege level to a code page with lower privilege level, will automatically set the lower privilege level.
 
 In contrast to PA-RISC, VCPU-32 implement only two privilege levels, **user** and **priv** mode. The privilege status is not encoded in the instruction address, but rather in the process status word. A transition from user to privilege mode is accomplished by setting the "X" bit in the status register when the GATE instruction is executed on a gateway page with appropriate privilege mode settings. Each instruction fetch compares the privilege level of the page where the instruction is fetched from with the status register "P" bit. A higher privilege level on an execution page results in a privilege violation trap. A lower level of the execute page and a higher level in the status register will in an automatic demotion of the privilege level. If the architecture chooses one day to implement a four level privilege level protection architecture, the access rights fields and where to store the current execution privilege level needs to be revisited. Perhaps it should then just follow the PA-RISC architecture in this matter.
 
