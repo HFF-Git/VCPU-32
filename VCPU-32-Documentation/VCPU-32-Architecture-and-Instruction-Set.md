@@ -884,6 +884,9 @@ The load absolute instruction will load the content of the physical memory addre
       LDWA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 32 ));
       LDHA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 16 ));
       LDBA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), 8  ));
+      LDWA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), 32 ));
+      LDHA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), 16 ));
+      LDBA: GR[r] <- zeroExtend( memLoad( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), 8  ));
 ```
 
 #### Exceptions
@@ -933,8 +936,10 @@ The store absolute instruction will store the target register into memory using 
       if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
       STWA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 32 );
-      STHA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 16 );
       STBA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 17 )), GR[r], 8  );
+      STWA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), GR[r], 32 );
+      STHA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), GR[r], 16 );
+      STBA: memStore( 0, add32( GR[b], signExtend( catImm( ofs1, ofs2 ), 18 )), GR[r], 8  );
 ```
 
 #### Exceptions
@@ -1108,7 +1113,7 @@ The branch instruction performs a branch to an instruction address relative loca
 #### Operation
 
 ```
-       IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ) << 2 ), 8 ));
+       IA-OFS <- IA-OFS + ( signExt( catImm( ofs1, ofs2 ) << 2 ), 22 );
 ```
 
 #### Exceptions
@@ -1149,8 +1154,8 @@ The branch instruction performs a branch to an instruction address relative loca
 #### Operation
 
 ```
-      GR[r] <- add32( IA-OFS, 4 );
-      IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ) << 2 ), 8 ));
+      GR[r]  <- IA-OFS + 4;
+      IA-OFS <- IA-OFS + ( signExt( catImm( ofs1, ofs2 ) << 2 ), 22 );
 ```
 
 #### Exceptions
@@ -1192,7 +1197,7 @@ The branch register instruction performs an unconditional IA-relative branch. Th
 #### Operation
 
 ```
-      IA-OFS <- add32( IA-OFS, ( GR[b] << 2 ));
+      IA-OFS <- IA-OFS + ( GR[b] << 2 );
 ```
 
 #### Exceptions
@@ -1233,8 +1238,8 @@ The branch register instruction performs an unconditional IA-relative branch. Th
 #### Operation
 
 ```
-      GR[r]  <- add32( IA-OFS, 4 );
-      IA-OFS <- add32( IA-OFS, GR[b] );
+      GR[r]  <- IA-OFS, 4 ;
+      IA-OFS <- IA-OFS + GR[b];
 ```
 
 #### Exceptions
@@ -1314,15 +1319,15 @@ Perform an unconditional branch using a base and offset general register for for
 
 #### Description
 
-The branch vectored instruction performs an unconditional branch by adding the offset register in "a" to the base address in register in "b". The result is interpreted as an instruction address in the current code segment. This unconditional jump allows to reach the entire code address range. If code translation is disabled, the resulting offset is the absolute physical address.
+The branch vectored instruction performs an unconditional branch by adding the offset register in "a" shifted by two bits to the base address in register in "b". The result is interpreted as an instruction address in the current code segment. This unconditional jump allows to reach the entire code address range. If code translation is disabled, the resulting offset is the absolute physical address.
 
 Since the BVR instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level result in the privilege level adjusted in the status register. Otherwise, the privilege level remains unchained.
 
 #### Operation
 
 ```
-      GR[r] <- add32( IA-OFS, 4 );
-      IA-OFS <- add32( GR[b], GR[a] );
+      GR[r]  <- IA-OFS + 4;
+      IA-OFS <- GR[b] + ( GR[a] << 2 );
 ```
 
 #### Exceptions
@@ -1368,7 +1373,7 @@ Since the BE instruction is a segment base relative branch, a branch to page wit
 
 ```
       IA-SEG <- GR[a];
-      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 ) << 2 ), 12 );
+      IA-OFS <- GR[b] + signExt(( catImm( ofs1, ofs2 ) << 2 ), 20 );
 ```
 
 #### Exceptions
@@ -1417,7 +1422,7 @@ Since the BLE instruction is a segment base relative branch, a branch to page wi
       GR[0] <- add32( IA-OFS, 4 );
 
       IA-SEG <- GR[a];
-      IA-OFS <- add22( GR[b], signExt( catImm( ofs1, ofs2 ) << 2 ), 12 );
+      IA-OFS <- GR[b] + signExt(() catImm( ofs1, ofs2 ) << 2 ), 20 );
 ```
 
 #### Exceptions
@@ -1471,7 +1476,7 @@ The GATE instruction computes the target address concatenating the fields "ofs1"
       }
       else priv <- 0;
 
-      IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ) << 2 ), 8 ));
+      IA-OFS     <- IA-OFS + signExt(( catImm( ofs1, ofs2 ) << 2 ), 24 );
       IA-OFS.[P] <- priv;
 ```
 
@@ -1535,7 +1540,7 @@ The condition field is encoded as follows:
          case 7: res <- ( GR[a] >>  GR[b]);  break;
       }
 
-    if ( res ) IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ) << 2 ), 19 ));
+    if ( res ) IA-OFS <- IA-OFS + (( signExt( catImm( ofs1, ofs2 ) << 2 ), 17 ));
     else add32( IA_OFS, 4 );
 ```
 
@@ -1597,8 +1602,8 @@ The TBR instruction tests general register "b" for the condition specified in th
          case 7: res <- ( GR[b].[31] );   break;
       }
 
-      if ( res ) IA-OFS <- add32( IA-OFS, ( signExt( catImm( ofs1, ofs2 ) << 2 ), 19 ));
-      else add32( IA_OFS, 4 );
+      if ( res ) IA-OFS <- IA-OFS + signExt(( catImm( ofs1, ofs2 ) << 2 ), 17 );
+      else IA_OFS <- IO_OFS + 4;
 ```
 
 #### Exceptions
