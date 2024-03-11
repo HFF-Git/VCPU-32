@@ -247,9 +247,11 @@ enum TestConditionCodes : uint32_t {
 enum OpMode : uint32_t {
     
     ADR_MODE_IMM            = 0x0,
-    ADR_MODE_REG_B          = 0x01,
-    ADR_MODE_REG_A          = 0x02,
-    ADR_MODE_REG_A_B        = 0x03,
+    
+    ADR_MODE_NO_REGS        = 0x04,
+    ADR_MODE_REG_B          = 0x05,
+    ADR_MODE_REG_A          = 0x06,
+    ADR_MODE_REG_A_B        = 0x07,
     
     ADR_MODE_REG_INDX_W     = 0x08,
     ADR_MODE_EXT_INDX_W     = 0x09,
@@ -278,8 +280,6 @@ enum OpMode : uint32_t {
     ADR_MODE_GR14_INDX_B    = 0x1E,
     ADR_MODE_GR15_INDX_B    = 0x1F
 };
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // Machine instruction opCodes. The first 6 bits of the instruction word are reserved for the opCode field.
@@ -601,9 +601,14 @@ public:
         return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFC0000 ) : ( tmp ));
     }
     
-    static inline uint32_t immAddilField( uint32_t instr ) {
+    static inline uint32_t immLeftField( uint32_t instr ) {
         
-        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 27, 10 ) << 8 ));
+        return( EXTR( instr, 31, 22 ));
+    }
+    
+    static inline uint32_t immRightField( uint32_t instr ) {
+        
+        return( EXTR( instr, 31, 10 ));
     }
     
     static inline uint32_t add32( uint32_t arg1, uint32_t arg2 ) {

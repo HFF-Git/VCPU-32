@@ -122,6 +122,8 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
     switch ( Instr::opModeField( instr )) {
             
         case ADR_MODE_IMM:      fprintf( stdout, "%d", signedVal( Instr::immGen0S14( instr ))); break;
+            
+        case ADR_MODE_NO_REGS:  break;
         
         case ADR_MODE_REG_A:    fprintf( stdout, "R%d", Instr::regAIdField( instr )); break;
         case ADR_MODE_REG_B:    fprintf( stdout, "R%d", Instr::regBIdField( instr )); break;
@@ -166,8 +168,9 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Each instruction has an opCode. Instructions that contains an operand are appended the data item length.
+// Instructions with an operand mode encoding will append to the opCode the data item size if reqeuired. One
+// exception to this rule is that an operation on a word will not always add "W" to the mnemonic.
 //
-// ??? we may want ot have a an env variable that will suppress the "W".
 //------------------------------------------------------------------------------------------------------------
 void displayOpCode( uint32_t instr ) {
     
@@ -181,7 +184,7 @@ void displayOpCode( uint32_t instr ) {
             case ADR_MODE_GR10_INDX_W: case ADR_MODE_GR11_INDX_W: case ADR_MODE_GR12_INDX_W:
             case ADR_MODE_GR13_INDX_W: case ADR_MODE_GR14_INDX_W: case ADR_MODE_GR15_INDX_W: {
                 
-                fprintf( stdout, "W" );
+                if ( ! ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR ))) fprintf( stdout, "W" );
                 
             } break;
             
@@ -415,20 +418,13 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         
         switch ( opCode ) {
                 
-            case OP_LDIL: {
-                
-                // ??? format ?
-                
-                fprintf( stdout, ", %d", Instr::ldilValField( instr ));
-                
-            } break;
-                
+            case OP_LDIL: 
             case OP_ADDIL: {
-                
-                // ??? to do ...
+              
+                fprintf( stdout, ", %d", Instr::immLeftField( instr ));
                 
             } break;
-                
+            
             case OP_SHLA: {
                 
                 fprintf( stdout, "," );

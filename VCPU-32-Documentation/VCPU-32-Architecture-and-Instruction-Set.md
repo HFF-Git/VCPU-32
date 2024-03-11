@@ -31,8 +31,8 @@
 # System Architecture and Instruction Set Reference
 
 Helmut Fieres
-Version B.00.0
-February, 2024
+Version B.00.02
+MArch, 2024
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -542,11 +542,11 @@ At the highest level the processor works with logical addresses. The **mode** fi
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 10 - 15      : S : ofs                                 :  indexed, word
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 16            :0               : a         : b         :  register indexed, half-word
+      : opCode          : r         :        : 16            :0               : a         : b         :  register indexed, half
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 17           : S : ofs         : a         : b         :  extended indexed, half-word
+      : opCode          : r         :        : 17           : S : ofs         : a         : b         :  extended indexed, half
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 18 - 23      : S : ofs                                 :  indexed, half-word
+      : opCode          : r         :        : 18 - 23      : S : ofs                                 :  indexed, half
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 24           : 0               : a         : b         :  register indexed, byte
       :-----------------:-----------------------------------------------------------------------------:
@@ -555,7 +555,7 @@ At the highest level the processor works with logical addresses. The **mode** fi
       : opCode          : r         :        : 26 - 31      : S : ofs                                 :  indexed, byte
       :-----------------:-----------------------------------------------------------------------------:
 ```
-There is one **immediate operand mode**, which supports a signed 14-bit value. Depending on the sign, the value is sign or zero extended.The **register modes** specify no, one or two registers. Registers not used in a given mode are interpreted as a zero value. For example, an instruction SUB with operand mode 5 will subtract the "b" register from a zero value. This is essentially a negate operatrion then.
+There is one **immediate operand mode**, which supports a signed 14-bit value. Depending on the sign, the value is sign or zero extended.The **register modes** specify no, one or two registers. Registers not used in a given mode are interpreted as a zero value. For example, an instruction SUB with operand mode 5 will subtract the "b" register from a zero value. This is essentially a negate operation then. Mode 4 is not a very practical opwerand mode, however it asimplifies the instruction decode hardware. An assembler could use that mode to for a NOP pseudo op.
 
 The machine addresses memory with a byte address. Modes 8 to 31 are the **indexed modes** structured in three groups, which access a word, a half-word or a byte. The computed address must be aligned with the size of data to fetch. The first mode in each group, i.e. 8, 16 or 24 is the register indexed mode. A register holding a signed offset is added to a base general register to form the address. The second mode, mode 9, 17 or 25 is the extended mode. The address is formed from the segment register in "a" and the base offset in "b" to which a signed offset can be added. The remaining modes, 10 .. 15, 18 . 23 and 26 .. 31 use a corresponding index register GR10 .. GR15 as the base register to which the signed offset is added. With the exception of the extended indexing mode, the final virtual address is built from the computed logical address and the segment register SR 4 .. SR 7 selected by the upper two bits of the logical address. 
 
@@ -653,7 +653,7 @@ Loads a memory value into a general register.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDx     ( 0xx ) : r         : 0         : opMode    : opArg                                   :
+      : LDx    ( 0x18 ) : r         : 0         : opMode    : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -706,7 +706,7 @@ Stores a general register value into memory
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : STx     ( 0xx ) : r         : 0      : opMode       :  opArg                                  :
+      : STx    ( 0x19 ) : r         : 0      : opMode       :  opArg                                  :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -760,11 +760,11 @@ Loads the memory content into a general register using a virtual address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWE   ( 0xx )  : r         : ofs2                  : ofs1            : a         : b         :
+      : LDWE   ( 0x20 ) : r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDHE   ( 0xx )  : r         : ofs2                  : ofs1            : a         : b         :
+      : LDHE   ( 0x21 ) : r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDBE   ( 0xx )  : r         : ofs2                  : ofs1            : a         : b         :
+      : LDBE   ( 0x22 ) : r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -812,11 +812,11 @@ Stores a general register value into memory using a virtual address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : STWE   ( 0xx )  : r         : ofs2                  : ofs1            : a         : b         :
+      : STWE   ( 0x23 ) : r         : ofs2                  : ofs1            : a         : b         :
       ------------------:-----------------------------------------------------------------------------:
-      : STHE   ( 0xx )  : r         : ofs2                  : ofs1            : a         : b         :
+      : STHE   ( 0x24 ) : r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STBE   ( 0xx )  : r         : ofs2                  : ofs1            : a         : b         :
+      : STBE   ( 0x25 ) : r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -864,11 +864,11 @@ Loads the memory content into a general register using an absolute address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWA   ( 0xx )  : r         : ofs2                  : ofs1                        : b         :
+      : LDWA   ( 0x26 ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDHA   ( 0xx )  : r         : ofs2                  : ofs1                        : b         :
+      : LDHA   ( 0x27 ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDBA   ( 0xx )  : r         : ofs2                  : ofs1                        : b         :
+      : LDBA   ( 0x28 ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -915,11 +915,11 @@ Stores a general register value into memory using an absolute physical address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : STWA   ( 0xx )  : r         : ofs2                  : ofs1                        : b         :
+      : STWA   ( 0x29 ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STHA   ( 0xx )  : r         : ofs2                  : ofs1                        : b         :
+      : STHA   ( 0x2A ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STBA   ( 0xx )  : r         : ofs2                  : ofs1                        : b         :
+      : STBA   ( 0x2B ) : r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -968,7 +968,7 @@ Loads the operand into the target register from the address and marks that addre
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWR   ( 0xx )  : r         : 0      : opMode       : opArg                                   :
+      : LDWR   ( 0x1A ) : r         : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1024,7 +1024,7 @@ Conditionally store a value to memory.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : STWC   ( 0xx )  : r         : 0      : opMode       : opArg                                   :
+      : STWC   ( 0x1B ) : r         : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1097,7 +1097,7 @@ Perform an unconditional IA-relative branch with a static offset.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : B     ( 0xx )   : 0         : ofs2                  : ofs1                                    :
+      : B     ( 0x30 )  : 0         : ofs2                  : ofs1                                    :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1138,7 +1138,7 @@ Perform an unconditional IA-relative branch with a static offset and store the r
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BL    ( 0xx )   : r         : ofs2                  : ofs1                                    :
+      : BL    ( 0x31 )  : r         : ofs2                  : ofs1                                    :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1147,7 +1147,6 @@ Perform an unconditional IA-relative branch with a static offset and store the r
 The branch instruction performs a branch to an instruction address relative location. The target address is formed by concatenating adding the "ofs1" and "ofs2" field to form a sign extended immediate value and add it to the current instruction address offset. The current instruction address offset + 4 is returned in general register "r". If code translation is disabled, the return value is the absolute physical address.
 
 #### Operation
-
 
 ```
       GR[r] <- add32( IA-OFS, 4 );
@@ -1161,6 +1160,7 @@ The branch instruction performs a branch to an instruction address relative loca
 #### Notes
 
 None.
+
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -1181,7 +1181,7 @@ Perform an unconditional IA-relative branch with a dynamic offset from a general
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BR    ( 0xx )   : 0                                                               : b         :
+      : BR     ( 0x33 ) : 0                                                               : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1222,7 +1222,7 @@ Perform an unconditional IA-relative branch with a dynamic offset stored in a ge
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BLR   ( 0xx )   : r         : 0                                                   : b         :
+      : BLR    ( 0x34 ) : r         : 0                                                   : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1264,7 +1264,7 @@ Perform an unconditional branch using a general register containing the base rel
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BV    ( 0xx )   : 0                                                               : b         :
+      : BV     ( 0x35 ) : 0                                                               : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1308,7 +1308,7 @@ Perform an unconditional branch using a base and offset general register for for
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BVR   ( 0xx )   : 0                                                   : a         : b         :
+      : BVR    ( 0x36 ) : 0                                                   : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1354,7 +1354,7 @@ Perform an unconditional external branch.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BE    ( 0xx )   : ofs2                              : ofs1            : a         : b         :
+      : BE     ( 0x37 ) : ofs2                              : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1400,7 +1400,7 @@ Perform an unconditional external branch and save the return address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BLE   ( 0xx )   : ofs2                              : ofs1            : a         : b         :
+      : BLE    ( 0x38 ) : ofs2                              : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1449,8 +1449,8 @@ Perform an instruction address relative branch and change the privilege level.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : GATE  ( 0xx )         : r         : ofs2            : ofs1                                    :
-      :-----------------------:-----------------------------------------------------------------------:
+      : GATE   ( 0x32 ) : r         : ofs2                  : ofs1                                    :
+      :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1501,7 +1501,7 @@ Compare two registers and branch on condition.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : CBR ( 0xx )     : cond   : ofs2                     :  ofs1           : a         : b         :
+      : CBR    ( 0x39 ) : cond   : ofs2                     :  ofs1           : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1565,7 +1565,7 @@ Test a register and branch on condition.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : TBR ( 0xx )     : cond   : ofs2                     : ofs1            : 0         : b         :
+      : TBR    ( 0x3A ) : cond   : ofs2                     : ofs1            : 0         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1658,7 +1658,7 @@ Adds the operand to the target register.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : ADD   ( 0xx )   : r         :C :L :O : opMode       : opArg                                   :
+      : ADD    ( 0x10 ) : r         :C :L :O : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1753,7 +1753,7 @@ Subtracts the operand from the target register.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : SUB   ( 0xx )   : r         :C :L :O : opMode       : opArg                                   :
+      : SUB    ( 0x11 ) : r         :C :L :O : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1835,7 +1835,7 @@ Performs a bitwise AND of the operand and the target register and stores the res
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : AND   ( 0xx )   : r         :N :C :0 : opMode       : opArg                                   :
+      : AND    ( 0x12 ) : r         :N :C :0 : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1911,7 +1911,7 @@ Performs a bitwise OR of the operand and the target register and stores the resu
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : OR    ( 004 )   : r         :N :C :0 : opMode       : opArg                                   :
+      : OR     ( 0x13 ) : r         :N :C :0 : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1988,7 +1988,7 @@ Performs a bitwise XORing the operand and the target register and stores the res
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : XOR   ( 0xx )   : r         :N :C :0 : opMode       : opArg                                   :
+      : XOR    ( 0x14 ) : r         :N :C :0 : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2063,7 +2063,7 @@ Compares a register and an operand and stores the comparison result in the targe
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : CMP   ( 0xx )   : r         : cond   : opMode       : opArg                                   :
+      : CMP    ( 0x15 ) : r         : cond   : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2154,7 +2154,7 @@ Test a general register for a condition and conditionally move a register value 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : CMR   ( 0xx )   : r         : cond   : 0                              : a         : b         :
+      : CMR    ( 0x08 ) : r         : cond   : 0                              : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2233,7 +2233,7 @@ Performs a bit field extract from a general register and stores the result in th
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : EXTR  ( 0xx )   : r         :S :A : 0               : len          : pos          : b         :
+      : EXTR   ( 0x04 ) : r         :S :A : 0               : len          : pos          : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2282,7 +2282,7 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : DEP  ( 0xx )    : r         :Z :A :I : 0            : len          : pos          : b         :
+      : DEP    ( 0x05 ) : r         :Z :A :I : 0            : len          : pos          : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2332,7 +2332,7 @@ Performs a right shift of two concatenated registers for shift amount bits and s
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : DSR   ( 0xx )   : r         :0 :A : 0               : shamt        :0 : a         : b         :
+      : DSR    ( 0x06 ) : r         :0 :A : 0               : shamt        :0 : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2378,7 +2378,7 @@ Performs a combined shift left and add operation and stores the result into the 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : SHLA  ( 0xx )   : r         :Z :L :O : 0                     : sa  :0 : a      : b            :
+      : SHLA   ( 0x07 ) : r         :Z :L :O : 0                     : sa  :0 : a      : b            :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2429,7 +2429,7 @@ Loads the effective address offset of the operand.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDO    ( 0xx )  : r         : 0      : opMode       : opArg                                   :
+      : LDO    ( 0x16 ) : r         : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2472,18 +2472,18 @@ Loads an immediate value left aligned into the target register.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDIL  ( 0xx )   : r         : 0         : val                                                 :
+      : LDIL   ( 0x02 ) : r         : val                                                             :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The load immediate left instruction loads a 18-bit immediate value left aligned into the general register "r", padded with zeroes on the right. 
+The load immediate left instruction loads a 22-bit immediate value left aligned into the general register "r", padded with zeroes on the right. 
 
 #### Operation
 
 ```CPP
-      GR[r] = val << 14;
+      GR[r] = val << 10;
 ```
 
 #### Exceptions
@@ -2494,19 +2494,56 @@ None.
 
 The LDIL instruction is typically used to produce a 32bit immediate value in combination with the LDO instruction. The following example will load a 32-bit constant into general register one.
 
+```
 LDIL GR1, L:<val>          ; left part of the 32-bit "val".
 LDO  GR1, R:<val>( GR1 )   ; right part of the 32-bit "val".
+```
 
-// ??? we may also feature an "ADDIL" instruction which adds the left part to a general register. Hmmm.
-// ??? sketch....
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
+### ADDIL
+
+<hr>
+
+Adds an immediate value left aligned into the target register.
+
+#### Format
+
+```
+      ADDIL <GR r>, <val>
+```
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : ADDIL  ( 0xx )  : r         : val2                  : val1                        : b         :
+      : ADDIL  ( 0x03 ) : r         : val                                                             :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
+#### Description
+
+The add immediate left instruction loads a 22-bit immediate value padded with zeroes on the right left aligned to the general register "r". Any overflows are ignored.
+
+#### Operation
+
+```CPP
+      GR[r] = GR[r] + ( val << 10 );
+```
+
+#### Exceptions
+
+None.
+
+#### Notes
+
+The ADDIL instruction is typically used to produce a 32bit address offset in combination with the load and store instruction. The following example will use a 32-bit offset for loading a value into general register one. GR10 holds a logical address.
+
+```
+ADDIL GR10, L:<val>          ; left part of the 32-bit "val" added to the GR10 index register.
+LDW   GR1, R:<val>( GR10 )   ; right part of the 32-bit "val".
+```
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -2527,7 +2564,7 @@ Load the segment identifier for a logical address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LSID ( 0xx )    : r         : 0                                                   : b         :
+      : LSID   ( 0x17 ) : r         : 0                                                   : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2590,7 +2627,7 @@ Copy data from or to a segment or control register.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : MR    ( 0xx )   : r         :Z :D :M : 0                                    : s               :
+      : MR     ( 0x09 ) : r         :Z :D :M : 0                                    : s               :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2607,8 +2644,8 @@ The move register instruction MR copies data from a segment or control register 
 
             if ( instr.[M] ) CR[ instr.[27..31]] <- 0;
             else             SR[ instr.[29..31]] <- 0;
-         
-         } else { 
+
+         } else {
 
             if ( instr.[M] ) GR[ instr.[27..31]] <- GR[r];
             else             SR[ instr.[29..31]] <- GR[r];
@@ -2659,7 +2696,7 @@ Set and clears bits in the processor status word.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : MST   ( 0xx )   : r         :mode : 0                                       : val / b         :
+      : MST    ( 0x0A ) : r         :mode : 0                                       : val / b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2746,7 +2783,7 @@ Load the physical address for a virtual address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDPA  ( 0xx )   : r         : L : 0                                   : a         : b         :
+      : LDPA   ( 0x2C ) : r         : L : 0                                   : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2803,7 +2840,7 @@ Probe data access to a virtual address.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : PRB   ( 0xx )   : r         :L :M : 0                                 : a         : b         :
+      : PRB    ( 0x2D ) : r         :L :M : 0                                 : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2863,7 +2900,7 @@ Inserts a translation into the instruction or data TLB.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : ITLB  ( 0xx )   : r         :L : T :M : 0                             : a         : b         :
+      : ITLB   ( 0x3C ) : r         :L : T :M : 0                             : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2952,7 +2989,7 @@ Removes a translation entry from the TLB.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : PTLB  ( 0xx )   : 0         :L :T : 0                                 : a         : b         :
+      : PTLB   ( 0x3D ) : 0         :L :T : 0                                 : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3011,7 +3048,7 @@ Flush and / or remove cache lines from the cache.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : PCA   ( 0xx )   : 0         :L :T :F : 0                              : a         : b         :
+      : PCA    ( 0x3E ) : 0         :L :T :F : 0                              : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3071,7 +3108,7 @@ Restore the processor state and restart execution.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : RFI   ( 0xx )   : 0                                                                           :
+      : RFI    ( 0x3F ) : 0                                                                           :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3119,7 +3156,7 @@ Issues commands to hardware specific components and implementation features.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : DIAG   ( 076 )  : r         :                                         : a         : b         :
+      : DIAG   ( 0x01 ) : r         :                                         : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3165,7 +3202,7 @@ Trap to the debugger subsystem.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : BRK   ( 0xx )   :  0                                : info                                    :
+      : BRK    ( 0x00 ) :  0                                : info                                    :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3227,7 +3264,8 @@ The NOP pseudo instruction is just a no operation. The assembler uses either the
 
 #### Notes
 
-The idea is to have an instruction which does not affect the program state. The AND and OR instruction can be used for this purpose. From a debugger and dissembler perspective it would be beneficial to settle on one combination and display it as a NOP for better reading.
+The idea is to have an instruction which does not affect the program state. The AND and OR instruction can be used for this purpose. From a debugger and dissembler perspective it would be beneficial to settle on one combination and display it as a NOP for better reading. One
+solution to the identification could be to use the operand mode 4 on an AND instruction. 
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3428,35 +3466,35 @@ This appendix lists all instructions by instruction group.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : ADD     ( 0x00 ): r         :C :L :O : opMode       : opArg                                   :
+      : ADD     ( 0x10 ): r         :C :L :O : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : SUB     ( 0x00 ): r         :C :L :O : opMode       : opArg                                   :
+      : SUB     ( 0x11 ): r         :C :L :O : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : AND     ( 0x00 ): r         :N :C :0 : opMode       : opArg                                   :
+      : AND     ( 0x12 ): r         :N :C :0 : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : OR      ( 0x00 ): r         :N :C :0 : opMode       : opArg                                   :
+      : OR      ( 0x13 ): r         :N :C :0 : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : XOR     ( 0x00 ): r         :N :C :0 : opMode       : opArg                                   :
+      : XOR     ( 0x14 ): r         :N :C :0 : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : CMP     ( 0x00 ): r         : cond   : opMode       : opArg                                   :
+      : CMP     ( 0x15 ): r         : cond   : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : LOD     ( 0x00 ): r         : 0      : opMode       : opArg                                   :
+      : LOD     ( 0x016 ): r         : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : LSID    ( 0x00 ): r         :        : opMode       : opArg                                   :
+      : LSID    ( 0x17 ): r         :        : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDIL    ( 0x00 ): r         : 0      : val                                                    :
+      : LDIL    ( 0x02 ): r         : val                                                             :
       :-----------------:-----------------------------------------------------------------------------:
-      : ADDIL   ( 0x00 ): r         : val2                  : val1                        : b         :  ( tbd )
+      : ADDIL   ( 0x03 ): r         : val                                                             :  
       :-----------------:-----------------------------------------------------------------------------:
-      : EXTR    ( 0x00 ): r         :S :N :0                : len          : pos          : b         :
+      : EXTR    ( 0x04 ): r         :S :N :0                : len          : pos          : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : DEP     ( 0x00 ): r         :Z :I :0                : len          : pos          : b         :
+      : DEP     ( 0x05 ): r         :Z :I :0                : len          : pos          : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : DSR     ( 0x00 ): r         : 0                     : shamt        :0 : a         : b         :
+      : DSR     ( 0x06 ): r         : 0                     : shamt        :0 : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : SHLA    ( 0x00 ): r         :I :L :O                         : sa  : 0            : b         :
+      : SHLA    ( 0x07 ): r         :I :L :O                         : sa  : 0            : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : CMR     ( 0x00 ): r         : cond   : 0                              : a         : b         :
+      : CMR     ( 0x08 ): r         : cond   : 0                              : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3465,13 +3503,13 @@ This appendix lists all instructions by instruction group.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDW/H/B ( 0x00 ): r         : 0      : opMode       : opArg                                   :
+      : LDW/H/B ( 0x18 ): r         : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : STW/H/B ( 0x00 ): r         : 0      : opMode       : opArg                                   :
+      : STW/H/B ( 0x19 ): r         : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDWR    ( 0x00 ): r         : 0      : opMode       : opArg                                   :
+      : LDWR    ( 0x1A ): r         : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
-      : STWC    ( 0x00 ): r         : 0      : opMode       : opArg                                   :
+      : STWC    ( 0x1B ): r         : 0      : opMode       : opArg                                   :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3480,17 +3518,17 @@ This appendix lists all instructions by instruction group.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWE    ( 0x00 ): r         : ofs2                  : ofs1            : a         : b         :
+      : LDWE    ( 0x20 ): r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDHE    ( 0x00 ): r         : ofs2                  : ofs1            : a         : b         :
+      : LDHE    ( 0x21 ): r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDBE    ( 0x00 ): r         : ofs2                  : ofs1            : a         : b         :
+      : LDBE    ( 0x22 ): r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : TDWE    ( 0x00 ): r         : ofs2                  : ofs1            : a         : b         :
+      : TDWE    ( 0x23 ): r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STHE    ( 0x00 ): r         : ofs2                  : ofs1            : a         : b         :
+      : STHE    ( 0x24 ): r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STBE    ( 0x00 ): r         : ofs2                  : ofs1            : a         : b         :
+      : STBE    ( 0x25 ): r         : ofs2                  : ofs1            : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3499,17 +3537,17 @@ This appendix lists all instructions by instruction group.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWA    ( 0x00 ): r         : ofs2                  : ofs1                        : b         : 
+      : LDWA    ( 0x26 ): r         : ofs2                  : ofs1                        : b         : 
       :-----------------:-----------------------------------------------------------------------------:
-      : LDHA    ( 0x00 ): r         : ofs2                  : ofs1                        : b         :
+      : LDHA    ( 0x27 ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDBA    ( 0x00 ): r         : ofs2                  : ofs1                        : b         :
+      : LDBA    ( 0x28 ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STWA    ( 0x00 ): r         : ofs2                  : ofs1                        : b         :
+      : STWA    ( 0x29 ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STHA    ( 0x00 ): r         : ofs2                  : ofs1                        : b         :
+      : STHA    ( 0x2A ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : STBA    ( 0x00 ): r         : ofs2                  : ofs1                        : b         :
+      : STBA    ( 0x2B ): r         : ofs2                  : ofs1                        : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3518,27 +3556,27 @@ This appendix lists all instructions by instruction group.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : B       ( 0x00 ): 0         : ofs2                  : ofs1                                    :
+      : B       ( 0x30 ): 0         : ofs2                  : ofs1                                    :
       :-----------------:-----------------------------------------------------------------------------:
-      : BL      ( 0x00 ): r         : ofs2                  : ofs1                                    :
+      : BL      ( 0x31 ): r         : ofs2                  : ofs1                                    :
       :-----------------:-----------------------------------------------------------------------------:
-      : GATE    ( 0x00 ): r         : ofs2                  : ofs1                                    :
+      : GATE    ( 0x32 ): r         : ofs2                  : ofs1                                    :
       :-----------------:-----------------------------------------------------------------------------:
-      : BR      ( 0x00 ): 0                                                               : b         :
+      : BR      ( 0x33 ): 0                                                               : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : BLR     ( 0x00 ): r         : 0                                                   : b         :
+      : BLR     ( 0x34 ): r         : 0                                                   : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : BV      ( 0x00 ): 0                                                               : b         :
+      : BV      ( 0x35 ): 0                                                               : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : BVR     ( 0x00 ): 0                                                   : a         : b         :
+      : BVR     ( 0x36 ): 0                                                   : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : BE      ( 0x00 ): ofs2                             : ofs1             : a         : b         :
+      : BE      ( 0x37 ): ofs2                             : ofs1             : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : BLE     ( 0x00 ): ofs2                             : ofs1             : a         : b         :
+      : BLE     ( 0x38 ): ofs2                             : ofs1             : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : CBR     ( 0x00 ): cond   : ofs2                    : ofs1             : a         : b         :
+      : CBR     ( 0x39 ): cond   : ofs2                    : ofs1             : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : TBR     ( 0x00 ): cond   : ofs2                    : ofs1             : 0         : b         :
+      : TBR     ( 0x3A ): cond   : ofs2                    : ofs1             : 0         : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3547,23 +3585,23 @@ This appendix lists all instructions by instruction group.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : MR      ( 0x00 ): r         :T : 0                                          : s               :
+      : MR      ( 0x09 ): r         :T : 0                                          : s               :
       :-----------------:-----------------------------------------------------------------------------:
-      : MST     ( 0x00 ): r         :mode : 0                                       : s               :
+      : MST     ( 0x0A ): r         :mode : 0                                       : s               :
       :-----------------:-----------------------------------------------------------------------------:
-      : LDPA    ( 0x00 ): r         :L : 0                                    : a         : b         :
+      : LDPA    ( 0x2C ): r         :L : 0                                    : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : PRB     ( 0x00 ): r         :L :R : 0                                 : a         : b         :
+      : PRB     ( 0x2D ): r         :L :R : 0                                 : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : ITLB    ( 0x00 ): r         :L :T :M : 0                              : a         : b         :
+      : ITLB    ( 0x3C ): r         :L :T :M : 0                              : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : PTLB    ( 0x00 ): 0         :L :T : 0                                 : a         : b         :
+      : PTLB    ( 0x3D ): 0         :L :T : 0                                 : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : PCA     ( 0x00 ): 0         :L :T :F : 0                              : a         : b         :
+      : PCA     ( 0x3E ): 0         :L :T :F : 0                              : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : RFI     ( 0x00 ): 0                                                                           :
+      : RFI     ( 0x3F ): 0                                                                           :
       :-----------------:-----------------------------------------------------------------------------:
-      : DIAG    ( 0x00 ): r         :                                         : a         : b         :
+      : DIAG    ( 0x01 ): r         :                                         : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
       : BRK     ( 0x00 ): 0                                 : info                                    :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3589,7 +3627,11 @@ This appendix lists all instructions by instruction group.
 
 // ??? **note** a new chapter on the subject ?
 
+### Registers
+
 ### Stack Frame
+
+### Parameter passing
 
 ### Calling Convention
 
@@ -3637,7 +3679,7 @@ There are eight segment registers. All segment registers can be specified in the
 
 ### LDIL, ADDIL and LDO
 
-Fixed length instruction have one issue in that there is not enough room to embed a full word immediate value in the instruction. Typically, a combination of two instructions that concatenate the value from two fields is used. The LDIL instruction will place an 18-bit value in the left portion of a register, padded with zeroes to the right. The register content is then paired with an instruction that sets the right most 14-bit value. The LDO instruction that computes an offset is an example of such an instruction. The instruction sequence
+Fixed length instruction have one issue in that there is not enough room to embed a full word immediate value in the instruction. Typically, a combination of two instructions that concatenate the value from two fields is used. The LDIL instruction will place an 22-bit value in the left portion of a register, padded with zeroes to the right. The register content is then paired with an instruction that sets the right most 10-bit value. The LDO instruction that computes an offset is an example of such an instruction. The instruction sequence
 
 ```cpp
 val   .word 0x01025030
@@ -3646,9 +3688,7 @@ val   .word 0x01025030
       LDO   R2, R%val(R10)
 ```
 
-will load the left hand side of "val" into R10 and use the LOD instruction to add the right side part of "val"". The result is stored in R2.
-
-To reach a data item in the entire 32-bit address range of a segment, the ADDIL instruction will add the left 18-bit portion padded with zeroes to the right to a register. The instruction sequence
+will load the left hand side of "val" into R10 and use the LOD instruction to add the right side part of "val"". The result is stored in R2. In a similar way, to reach a data item in the entire 32-bit address range of a segment, the ADDIL instruction will add the left 22-bit portion padded with zeroes to the right to a register. The instruction sequence
 
 ```cpp
 ofs   .word 0x01025030
@@ -3657,9 +3697,7 @@ ofs   .word 0x01025030
       LDW    R3, R%ofs(R11)
 ```
 
-will add to the base registers R11 the left 18-bits of "ofs". The LDW instruction will add the right hand side of "ofs" to the base register forming a 32-bit address.
-
-// ??? **issue** what if the 14-bit R-value is sign extended ? do we need different operand modes for immediate values ? the LDO instruction uses a signed 14-bit quantity! This may mean that we need two immediate modes, one positive and one negative... or does the result wrap around ? check ....
+will add to the base registers R11 the left 10-bits of "ofs". The LDW instruction will add the right hand side of "ofs" to the base register forming a 32-bit address.
 
 ### Operand modes
 
