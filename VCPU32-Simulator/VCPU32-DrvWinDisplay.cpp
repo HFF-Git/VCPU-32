@@ -59,7 +59,9 @@
 //  Statistics      -> ST
 //  Program Code    -> PC
 //  TLB             -> IT, DT
+//  T-Controller    -> ITR, DTR
 //  Cache           -> IC, DC, UC
+//  C-Controller    -> ICR, DCR, UCR
 //  Text Window     -> TX
 //  User Defined    -> UW
 //  Commands        -> n/a
@@ -2038,7 +2040,7 @@ void DrvWinCommands::setDefaults( ) {
     setEnable( true );
     setRows( 11 );
     setColumns( 80 );
-    setColumns( 80 );
+    setDefColumns( 80 );
     setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
 }
 

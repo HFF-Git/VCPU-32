@@ -406,7 +406,7 @@ const struct opCodeInfo {
     
     /* 0x00 */  { "BRK",    OP_BRK,     ( CTRL_INSTR ) },
     /* 0x01 */  { "DIAG",   OP_DIAG,    ( CTRL_INSTR ) },
-    /* 0x02 */  { "LDI",    OP_LDIL,    ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x02 */  { "LDIL",   OP_LDIL,    ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x03 */  { "ADDIL",  OP_ADDIL,   ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x04 */  { "EXTR",   OP_EXTR,    ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x05 */  { "DEP",    OP_DEP,     ( COMP_INSTR | REG_R_INSTR ) },
@@ -427,7 +427,7 @@ const struct opCodeInfo {
     /* 0x13 */  { "OR",     OP_OR,      ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x14 */  { "XOR",    OP_XOR,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x15 */  { "CMP",    OP_CMP,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x16 */  { "LEA",    OP_LOD,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x16 */  { "LOD",    OP_LOD,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x17 */  { "LSID",   OP_LSID,    ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x18 */  { "LD",     OP_LD,      ( LOAD_INSTR  | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x19 */  { "ST",     OP_ST,      ( STORE_INSTR | OP_MODE_INSTR ) },
@@ -472,6 +472,13 @@ const struct opCodeInfo {
     /* 0x3E */  { "PCA",    OP_PCA,     ( CTRL_INSTR ) },
     /* 0x3F */  { "RFI",    OP_RFI,     ( CTRL_INSTR | PRIV_INSTR ) }
 };
+
+//------------------------------------------------------------------------------------------------------------
+// The pipeline logic needs a knd of NOP instruction for stall and flush operations. We will pick an opCode
+// that will do nothing.
+//
+//------------------------------------------------------------------------------------------------------------
+const uint32_t NOP_INSTR = 0; // ??? settle on one ...
 
 //------------------------------------------------------------------------------------------------------------
 // Instruction decoding means to extract a lot of different bit fields from an instruction word. To extract

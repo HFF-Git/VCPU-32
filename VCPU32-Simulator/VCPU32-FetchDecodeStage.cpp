@@ -59,11 +59,34 @@ bool maStageConsumesRegValBorX( uint32_t instr ) {
     return (( opCode == OP_BR )     || ( opCode == OP_BLR )     ||
             ( opCode == OP_BV )     || ( opCode == OP_BVR )     ||
             ( opCode == OP_LDWA )   || ( opCode == OP_LDWE )    ||
+            ( opCode == OP_LDHA )   || ( opCode == OP_LDHE )    ||
+            ( opCode == OP_LDBA )   || ( opCode == OP_LDBE )    ||
             ( opCode == OP_STWA )   || ( opCode == OP_STWE )    ||
+            ( opCode == OP_STHA )   || ( opCode == OP_STHE )    ||
+            ( opCode == OP_STBA )   || ( opCode == OP_STBE )    ||
             ( opCode == OP_BE )     || ( opCode == OP_BLE )     ||
             ( opCode == OP_ITLB )   || ( opCode == OP_PTLB )    ||
             (( opCode == OP_PCA ))  ||
             (( opCodeTab[ opCode ].flags & OP_MODE_INSTR ) && ( opMode >= 3 ) && ( opMode <= 7 )));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// A little helper function to map from opMode to the index register used.
+//
+//------------------------------------------------------------------------------------------------------------
+uint32_t mapOpModeToIndexReg( uint32_t opMode ) {
+    
+    switch ( opMode ) {
+            
+        case OP_MODE_GR10_INDX_W: case OP_MODE_GR10_INDX_H: case OP_MODE_GR10_INDX_B: return( 10 );
+        case OP_MODE_GR11_INDX_W: case OP_MODE_GR11_INDX_H: case OP_MODE_GR11_INDX_B: return( 11 );
+        case OP_MODE_GR12_INDX_W: case OP_MODE_GR12_INDX_H: case OP_MODE_GR12_INDX_B: return( 12 );
+        case OP_MODE_GR13_INDX_W: case OP_MODE_GR13_INDX_H: case OP_MODE_GR13_INDX_B: return( 13 );
+        case OP_MODE_GR14_INDX_W: case OP_MODE_GR14_INDX_H: case OP_MODE_GR14_INDX_B: return( 14 );
+        case OP_MODE_GR15_INDX_W: case OP_MODE_GR15_INDX_H: case OP_MODE_GR15_INDX_B: return( 15 );
+        default: return( 0 );
+            
+    }
 }
 
 }; // namespace
@@ -112,7 +135,7 @@ void FetchDecodeStage::stallPipeLine( ) {
     
     core -> maStage -> psInstrSeg.set( instrSeg );
     core -> maStage -> psInstrOfs.set( instrOfs );
-    core -> maStage -> psInstr.set( 0 ); // ??? what to really set ...
+    core -> maStage -> psInstr.set( NOP_INSTR );
     core -> maStage -> psRegIdForValA.set( MAX_GREGS );
     core -> maStage -> psRegIdForValB.set( MAX_GREGS );
     core -> maStage -> psRegIdForValX.set( MAX_GREGS );
@@ -259,7 +282,7 @@ void FetchDecodeStage::process( ) {
     
     instrSeg        = psInstrSeg.get( );
     instrOfs        = psInstrOfs.get( );
-    instr           = 0;  // ??? what to really set ...
+    instr           = NOP_INSTR;
     instrPrivLevel  = 0;
     valA            = 0;
     valB            = 0;
@@ -362,14 +385,20 @@ void FetchDecodeStage::process( ) {
     opCode = Instr::opCodeField( instr );
 
     switch ( opCode ) {
-            
-       
+        
         case OP_ADD:    case OP_SUB:    case OP_AND:    case OP_OR:     case OP_XOR:
-        case OP_CMP:  {
+        case OP_CMP:    case OP_LD:     case OP_ST:     case OP_LDWR:   case OP_STWC:   
+        case OP_LOD: {
             
             switch ( Instr::opModeField( instr )) {
                     
                 case OP_MODE_IMM: {
+                    
+                    if ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR )) {
+                        
+                        setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                        return;
+                    }
                     
                     regIdForValA    = Instr::regRIdField( instr );
                     valA            = core -> gReg[ regIdForValA ].get( );
@@ -377,7 +406,39 @@ void FetchDecodeStage::process( ) {
                     
                 } break;
                     
+                case OP_MODE_NO_REGS: {
+                    
+                    if ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR )) {
+                        
+                        setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                        return;
+                    }
+                    
+                    valA = 0;
+                    valB = 0;
+                    
+                } break;
+                    
+                case OP_MODE_REG_A: {
+                    
+                    if ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR )) {
+                        
+                        setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                        return;
+                    }
+                    
+                    regIdForValA    = Instr::regAIdField( instr );
+                    valA            = core -> gReg[ regIdForValA ].get( );
+                    
+                } break;
+                    
                 case OP_MODE_REG_B: {
+                    
+                    if ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR )) {
+                        
+                        setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                        return;
+                    }
                     
                     regIdForValB    = Instr::regBIdField( instr );
                     valB            = core -> gReg[ regIdForValB ].get( );
@@ -386,6 +447,12 @@ void FetchDecodeStage::process( ) {
                     
                 case OP_MODE_REG_A_B: {
                     
+                    if ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR )) {
+                        
+                        setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                        return;
+                    }
+                    
                     regIdForValA    = Instr::regAIdField( instr );
                     regIdForValB    = Instr::regBIdField( instr );
                     valA            = core -> gReg[ regIdForValA ].get( );
@@ -393,86 +460,56 @@ void FetchDecodeStage::process( ) {
                     
                 } break;
                     
-                case OP_MODE_EXT_INDX_W : {
+                case OP_MODE_EXT_INDX_W: case OP_MODE_EXT_INDX_H: case OP_MODE_EXT_INDX_B: {
                     
-                    regIdForValB    = Instr::regBIdField( instr );
-                    valB            = core -> gReg[ regIdForValB ].get( );
-                    valX            = Instr::immGen0S6( instr );
-                    
-                } break;
-                    
-                case OP_MODE_GR10_INDX_W:
-               
-                // fill in the rest ...
-                
-                {
-                    
-                    switch( Instr::opModeField( instr )) {
-                            
-                        case OP_MODE_GR10_INDX_W: regIdForValB = 4; break;
-                            
-                      // fill in ...
-                       
-                    }
-                    
-                    valB = core -> gReg[ regIdForValB ].get( );
-                    valX = Instr::immGen0S14( instr );
-                    
-                } break;
-            }
-            
-        } break;
-            
-        case OP_LOD:    case     OP_LD:     case OP_ST:     case OP_LDWR:     case OP_STWC: {
-            
-            switch ( Instr::opModeField( instr )) {
-                    
-                case OP_MODE_IMM:  case OP_MODE_REG_B:  case OP_MODE_REG_A_B: {
-                    
-                    setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
-                    return;
-                    
-                } break;
-                    
-                case OP_MODE_EXT_INDX_W : {
-                    
-                    regIdForValB    = Instr::regBIdField( instr );
-                    valB            = core -> gReg[ regIdForValB ].get( );
-                    valX            = Instr::immGen0S6( instr );
-                    
-                } break;
-                    
-                case OP_MODE_GR10_INDX_W:
-                
-                   // fill in ....
-                {
-                    
-                    switch( Instr::opModeField( instr )) {
-                            
-                        case OP_MODE_GR10_INDX_W: regIdForValB = 10; break;
-                      
-                            // fill in ...
-                       
-                    }
-                    
-                    valB = core -> gReg[ regIdForValB ].get( );
-                    valX = Instr::immGen0S14( instr );
-                    
-                    if (( opCode == OP_ST ) || ( opCode == OP_STWC )) {
+                    if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
                         
                         regIdForValA    = Instr::regRIdField( instr );
                         valA            = core -> gReg[ regIdForValA ].get( );
+                        
                     }
+                    
+                    regIdForValB    = Instr::regBIdField( instr );
+                    valB            = core -> gReg[ regIdForValB ].get( );
+                    valX            = Instr::immGen0S6( instr );
+                    
+                } break;
+                    
+                case OP_MODE_GR10_INDX_W: case OP_MODE_GR10_INDX_H: case OP_MODE_GR10_INDX_B:
+                case OP_MODE_GR11_INDX_W: case OP_MODE_GR11_INDX_H: case OP_MODE_GR11_INDX_B:
+                case OP_MODE_GR12_INDX_W: case OP_MODE_GR12_INDX_H: case OP_MODE_GR12_INDX_B:
+                case OP_MODE_GR13_INDX_W: case OP_MODE_GR13_INDX_H: case OP_MODE_GR13_INDX_B:
+                case OP_MODE_GR14_INDX_W: case OP_MODE_GR14_INDX_H: case OP_MODE_GR14_INDX_B:
+                case OP_MODE_GR15_INDX_W: case OP_MODE_GR15_INDX_H: case OP_MODE_GR15_INDX_B: {
+                    
+                    if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
+                        
+                        regIdForValA    = Instr::regRIdField( instr );
+                        valA            = core -> gReg[ regIdForValA ].get( );
+                        
+                    }
+                    
+                    regIdForValB    = mapOpModeToIndexReg( Instr::opModeField( instr ));
+                    valB            = core -> gReg[ regIdForValB ].get( );
+                    valX            = Instr::immGen0S14( instr );
                     
                 } break;
             }
             
         } break;
-            
-        case  OP_LDIL: {
+        
+        case OP_LDIL: {
             
             regIdForValA    = Instr::regRIdField( instr );
-            valA            = Instr::ldilValField( instr ) << 14;
+            valA            = Instr::ldilValField( instr ) << 10;
+            valB            = 0;
+            
+        } break;
+            
+        case OP_ADDIL: {
+            
+            regIdForValA    = Instr::regRIdField( instr );
+            valA            = Instr::ldilValField( instr ) << 10;
             valB            = 0;
             
         } break;
@@ -520,8 +557,8 @@ void FetchDecodeStage::process( ) {
         
         } break;
             
-        case OP_LDWE:
-        case OP_STWE: {
+        case OP_LDWE: case OP_LDHE: case OP_LDBE:
+        case OP_STWE: case OP_STHE: case OP_STBE: {
             
             if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
                 
@@ -535,16 +572,8 @@ void FetchDecodeStage::process( ) {
             
         } break;
             
-        case OP_PRB: {
-            
-            regIdForValB    = Instr::regBIdField( instr );
-            valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = 0;
-            
-        } break;
-            
-        case OP_LDWA:
-        case OP_STWA: {
+        case OP_LDWA: case OP_LDHA: case OP_LDBA:
+        case OP_STWA: case OP_STHA: case OP_STBA: {
             
             if ( instrPrivLevel > 0 ) {
                 
@@ -561,6 +590,14 @@ void FetchDecodeStage::process( ) {
             regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
             valX            = Instr::immGen8S10( instr );
+            
+        } break;
+            
+        case OP_PRB: {
+            
+            regIdForValB    = Instr::regBIdField( instr );
+            valB            = core -> gReg[ regIdForValB ].get( );
+            valX            = 0;
             
         } break;
             
@@ -628,10 +665,9 @@ void FetchDecodeStage::process( ) {
                 
                 valB = instrOfs;
            
-                if ( tlbEntryPtr ->tPageType( ) == 3 ) {
+                if ( tlbEntryPtr -> tPageType( ) == 3 ) {
                     
                     // ??? set to privlevel in teh status register the TLB entry ... if greater privilege.
-                    
                     
                 }
             }
@@ -689,7 +725,7 @@ void FetchDecodeStage::process( ) {
                 case 0: {
                     
                     regIdForValB    = Instr::regBIdField( instr );
-                    valB = core -> gReg[ regIdForValB ].get( ) & 0x3C;
+                    valB            = core -> gReg[ regIdForValB ].get( ) & 0x3C;
                     
                 } break;
                     
@@ -739,6 +775,8 @@ void FetchDecodeStage::process( ) {
         } break;
             
         case OP_BRK: {
+            
+            // ??? what would we do here ? It is kind of a trap ...
             
         } break;
             
@@ -794,6 +832,8 @@ void FetchDecodeStage::process( ) {
     if (( opCode == OP_CBR ) || ( opCode == OP_TBR )) {
         
         if ( Instr::immOfsSignField( instr )) {
+            
+            // ??? we add a signed value to an unsigned value .... 
             
             psInstrOfs.set( Instr::add32( instrOfs, Instr::immGen8S6( instr )));
             core -> maStage -> psValX.set( 1 );

@@ -44,34 +44,21 @@
 namespace {
 
 //‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-// This methods does a sign extension for a 24bit word to 32bit so that the host CPU 32-bit arithmetic will
-// produce the correct results.
-//
-//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-uint32_t signExt32( uint32_t arg ) {
-    
-    return(( arg & 0x00800000 ) ? ( arg | 0xFF000000 ) : ( arg & 0x00FFFFFF ));
-}
-
-//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 // A little helper function to compare two register values for the CBR instruction. This is a bit tricky as
 // we run on a 32-bit machine. First, we sign extend to a 32-bt value and then do teh requested comparison.
-// //‐‐‐‐‐‐uint32_t‐‐uint32_t‐‐‐uint32_t‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool compareCond( uint32_t instr, uint32_t valA, uint32_t valB ) {
-    
-    int32_t tmpA = signExt32( valA );
-    int32_t tmpB = signExt32( valB );
-    
+   
     switch( Instr::cbrCondField( instr )) {
             
-        case CC_EQ: return( tmpA == tmpB );
-        case CC_LT: return( tmpA < tmpB );
-        case CC_GT: return( tmpA > tmpB );
-        case CC_HI: return((uint32_t) tmpA > (uint32_t) tmpB );
-        case CC_NE: return( tmpA != tmpB );
-        case CC_LE: return( tmpA <= tmpB );
-        case CC_GE: return( tmpA >= tmpB );
-        case CC_LS: return( (uint32_t) valA < (uint32_t) tmpB );
+        case CC_EQ: return( valA == valB );
+        case CC_LT: return(((int32_t) valA )  < ((int32_t) valB ));
+        case CC_GT: return(((int32_t) valA )  > ((int32_t) valB ));
+        case CC_HI: return(((uint32_t) valA ) > ((uint32_t) valB ));
+        case CC_NE: return( valA != valB );
+        case CC_LE: return(((int32_t) valA )  <= ((int32_t) valB ));
+        case CC_GE: return(((int32_t) valA )  >= ((int32_t) valB ));
+        case CC_LS: return(((uint32_t) valA ) < ((uint32_t) valB ));
         default: return( false );
     }
 }
@@ -82,18 +69,15 @@ bool compareCond( uint32_t instr, uint32_t valA, uint32_t valB ) {
 //
 //‐‐‐‐‐‐---------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool testCond( uint32_t instr, uint32_t val ) {
-    
-    int32_t tmp = signExt32( val );
-    
+  
     switch ( Instr::tbrCondField( instr )) {
             
-            
-        case CC_EQ: return( tmp == 0 );
-        case CC_GT: return( tmp > 0 );
-        case CC_LT: return( tmp < 0 );
-        case CC_NE: return( tmp != 0 );
-        case CC_LE: return( tmp <= 0 );
-        case CC_GE: return( tmp >= 0 );
+        case CC_EQ: return( val == 0 );
+        case CC_GT: return( val >  0 );
+        case CC_LT: return( val <  0 );
+        case CC_NE: return( val != 0 );
+        case CC_LE: return( val <= 0 );
+        case CC_GE: return( val >= 0 );
         default: return ( false );
     }
 }
@@ -173,7 +157,7 @@ void ExecuteStage::flushPipeLine( ) {
     
     psInstrSeg.set( instrSeg );
     psInstrOfs.set( instrOfs );
-    psInstr.set( 0 );  // ??? what to really set ...
+    psInstr.set( NOP_INSTR );
     psValA.set( 0 );
     psValB.set( 0 );
     psValX.set( 0 );
@@ -495,8 +479,6 @@ void ExecuteStage::process( ) {
             
         case OP_CBR: {
             
-            bool bInstr = Instr::immOfsSignField( instr );
-            
             if (( compareCond( instr, valA, valB )) != ( branchTaken )) {
                 
                 core -> fdStage -> psInstrSeg.set( instrSeg );
@@ -507,9 +489,7 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_TBR: {
-            
-            bool bInstr = Instr::immOfsSignField( instr );
-            
+          
             if (( testCond( instr, valA )) != ( branchTaken )) {
                 
                 core -> fdStage -> psInstrSeg.set( instrSeg );

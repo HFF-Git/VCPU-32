@@ -6,7 +6,7 @@
 // The instruction disassemble routine will format an instruction word in human readable form. An instruction
 // has the general format
 //
-//      OpCode [ Opcode Options ] [ source ] [ target ]
+//      OpCode [ Opcode Options ] [ target ] [ source ] 
 //
 // The disassemble routine will analyze an instruction word and present the instruction portion in the above
 // order. It does make heavy use of the CPU24Instr inline routines to get to the fields and values.
@@ -36,42 +36,21 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-// ??? how to allow for displaying the immediate values in different formats ?
-// ??? immediate bit fields have varying length...
-
 //------------------------------------------------------------------------------------------------------------
-// Signed math.
+// "printImmVal" disply an immediate value in the selected radix. Octals and hex numbers are printed unsigned
+// quantities, decimal numbers are interpreted as signed integers. Most often decimal notation is used to
+// specifiy offsets on indexed addressing modes.
 //
 //------------------------------------------------------------------------------------------------------------
-int signedVal( uint32_t val ) {
-    
-    return((int) val );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "displayHalfWord" lists out a 16-bit word in the specified number base. The half word is a 12-bit signed
-// number. For decimal formatting we make sure to show a now "-nnnn" value.
-//
-// ??? see how hex and octal look ....
-//------------------------------------------------------------------------------------------------------------
-void displayHalfWord( uint32_t val, TokId fmtType ) {
+void printImmVal( uint32_t val, TokId fmtType = TOK_HEX ) {
     
     if ( val == 0 ) fprintf( stdout, "0" );
     
     else {
-        
-        val = val & 0xFFFF;
-        
-        if ( fmtType == TOK_DEC ) {
-            
-            if ( val & 0x8000 ) {
-                
-                fprintf( stdout, "-%4d", val );
-            }
-            else fprintf( stdout, "%4d", val );
-        }
-        else if ( fmtType == TOK_OCT  ) fprintf( stdout, "%#06o", val );
-        else if ( fmtType == TOK_HEX )  fprintf( stdout, "%#0x6x", val );
+       
+        if      ( fmtType == TOK_DEC )  fprintf( stdout, "%d", ((int) val ));
+        else if ( fmtType == TOK_OCT  ) fprintf( stdout, "%#0o", val );
+        else if ( fmtType == TOK_HEX )  fprintf( stdout, "%#0x", val );
         else                            fprintf( stdout, "**num***" );
     }
 }
@@ -118,19 +97,17 @@ void displayTestCodes( uint32_t tstCode ) {
 
 //------------------------------------------------------------------------------------------------------------
 // There are quite a few instructions that use the operand argument format. This routine will format such
-// an operand.
+// an operand. The disassembler shows all modes, also the ones that the assembler does not use directly.
 //
 //------------------------------------------------------------------------------------------------------------
 void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
     switch ( Instr::opModeField( instr )) {
             
-        case OP_MODE_IMM:      fprintf( stdout, "%d", signedVal( Instr::immGen0S14( instr ))); break;
-            
-        case OP_MODE_NO_REGS:  break;
-            
-        case OP_MODE_REG_A:    fprintf( stdout, "R%d", Instr::regAIdField( instr )); break;
-        case OP_MODE_REG_B:    fprintf( stdout, "R%d", Instr::regBIdField( instr )); break;
+        case OP_MODE_IMM:      printImmVal( Instr::immGen0S14( instr ));                break;
+        case OP_MODE_NO_REGS:  fprintf( stdout, "0,n0");                                break;
+        case OP_MODE_REG_A:    fprintf( stdout, "0, R%d", Instr::regAIdField( instr )); break;
+        case OP_MODE_REG_B:    fprintf( stdout, "R%d, 0", Instr::regBIdField( instr )); break;
             
         case OP_MODE_REG_A_B: {
             
@@ -146,12 +123,12 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         } break;
             
-        case OP_MODE_EXT_INDX_W: {
+        case OP_MODE_EXT_INDX_W: 
+        case OP_MODE_EXT_INDX_H:
+        case OP_MODE_EXT_INDX_B: {
             
-            fprintf( stdout, "%d(S%d,R%d)",
-                    signedVal( Instr::immGen0S6( instr )),
-                    Instr::regAIdField( instr ),
-                    Instr::regBIdField( instr ));
+            printImmVal( Instr::immGen0S6( instr ), TOK_DEC );
+            fprintf( stdout, "(S%d,R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
             
         } break;
             
@@ -162,7 +139,8 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_MODE_GR14_INDX_W: case OP_MODE_GR14_INDX_H: case OP_MODE_GR14_INDX_B:
         case OP_MODE_GR15_INDX_W: case OP_MODE_GR15_INDX_H: case OP_MODE_GR15_INDX_B: {
             
-            fprintf( stdout, "%d(R%d)", signedVal( Instr::immGen0S14( instr )), Instr::opModeField( instr ));
+            printImmVal( Instr::immGen0S14( instr ), TOK_DEC );
+            fprintf( stdout, "(R%d)", Instr::opModeField( instr ));
             
         } break;
             
@@ -188,7 +166,7 @@ void displayOpCode( uint32_t instr ) {
             case OP_MODE_GR10_INDX_W: case OP_MODE_GR11_INDX_W: case OP_MODE_GR12_INDX_W:
             case OP_MODE_GR13_INDX_W: case OP_MODE_GR14_INDX_W: case OP_MODE_GR15_INDX_W: {
                 
-                if ( ! ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR ))) fprintf( stdout, "W" );
+               // ??? we currently do not show the "W"
                 
             } break;
                 
@@ -377,14 +355,13 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
         
         if (( opCode == OP_STWA ) || ( opCode == OP_STHA ) || ( opCode == OP_STBA )) {
             
-            fprintf( stdout, "%d(R%d)", signedVal( Instr::immGen8S10( instr )), Instr::regBIdField( instr ));
+            printImmVal( Instr::immGen8S10( instr ));
+            fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
         }
         else if (( opCode == OP_STWE ) || ( opCode == OP_STHE ) || ( opCode == OP_STBE )) {
             
-            fprintf( stdout, "%d(S%d,R%d)",
-                    signedVal( Instr::immGen8S6( instr )),
-                    Instr::regAIdField( instr ),
-                    Instr::regBIdField( instr ));
+            printImmVal( Instr::immGen8S6( instr ), TOK_DEC );
+            fprintf( stdout, "(S%d,R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
         }
         else displayOperandModeField( instr, fmtId );
     }
@@ -474,7 +451,9 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_LDHA:
         case OP_LDBA: {
             
-            fprintf( stdout, ",%d(R%d)", signedVal( Instr::immGen8S10( instr )), Instr::regBIdField( instr ));
+            fprintf( stdout, "," );
+            printImmVal( Instr::immGen8S10( instr ), TOK_DEC );
+            fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
             
         } break;
             
@@ -482,10 +461,9 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_LDHE:
         case OP_LDBE: {
             
-            fprintf( stdout, ",%d(S%d,R%d)",
-                    signedVal( Instr::immGen8S6( instr )),
-                    Instr::regAIdField( instr ),
-                    Instr::regBIdField( instr ));
+            fprintf( stdout, "," );
+            printImmVal( Instr::immGen8S6( instr ), TOK_DEC );
+            fprintf( stdout, "(S%d,R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
             
         } break;
             
@@ -501,19 +479,13 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         } break;
             
-        case OP_B: {
-            
-            fprintf( stdout, "%i", signedVal( Instr::immGen8S14( instr )));
-            
-        } break;
-            
+        case OP_B: 
         case OP_GATE:
         case OP_BL: {
             
-            fprintf( stdout, ",%i", signedVal( Instr::immGen8S14( instr )));
+            printImmVal( Instr::immGen8S14( instr ), TOK_DEC );
             
         } break;
-            
             
         case OP_BR: {
             
@@ -542,33 +514,29 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_BE:
         case OP_BLE: {
             
-            fprintf( stdout, "%d,", signedVal( Instr::immGen12S6( instr )));
-            fprintf( stdout, "(S%d", Instr::regAIdField( instr ));
-            fprintf( stdout, ",R%d)", Instr::regBIdField( instr ));
+            printImmVal( Instr::immGen12S6( instr ));
+            fprintf( stdout, ",(S%d,R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
             
         } break;
             
         case OP_CBR: {
             
-            fprintf( stdout, "R%d", Instr::regAIdField( instr ));
-            fprintf( stdout, ",R%d", Instr::regBIdField( instr ));
-            fprintf( stdout, ",%d", signedVal( Instr::immGen8S6( instr )));
+            fprintf( stdout, "R%d,R%d,", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
+            printImmVal( Instr::immGen8S6( instr ));
             
         } break;
             
         case OP_TBR: {
             
-            fprintf( stdout, "R%d,%d", Instr::regBIdField( instr ), signedVal( Instr::immGen8S6( instr )));
+            fprintf( stdout, "R%d,", Instr::regBIdField( instr ));
+            printImmVal( Instr::immGen8S6( instr ));
             
         } break;
             
         case OP_MR: {
             
-            if ( Instr::mrMovDirField( instr )) {
-                
-                fprintf( stdout, ",R%d", Instr::regRIdField( instr ));
-                
-            } else {
+            if ( Instr::mrMovDirField( instr )) fprintf( stdout, ",R%d", Instr::regRIdField( instr ));
+            else {
                 
                 if ( Instr::mrRegTypeField( instr )) fprintf( stdout, ",C%d", Instr::mrArgField( instr ));
                 else fprintf( stdout, ",S%d", Instr::regBIdField( instr ));
@@ -581,9 +549,9 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             fprintf( stdout, "," );
             switch( Instr::mstModeField( instr )) {
                     
-                case 0: fprintf( stdout, "R%d", Instr::regBIdField( instr ));  break;
+                case 0:  fprintf( stdout, "R%d", Instr::regBIdField( instr ));  break;
                 case 1:
-                case 2: displayHalfWord( Instr::mstArgField( instr ), fmtId ); break;
+                case 2:  fprintf( stdout, "0x%x4", Instr::mstArgField( instr )); break;
                 default: fprintf( stdout, "***" );
             }
             

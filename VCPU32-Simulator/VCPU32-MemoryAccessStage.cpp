@@ -99,7 +99,7 @@ void MemoryAccessStage::stallPipeLine( ) {
     
     core -> exStage -> psInstrSeg.set( instrSeg );
     core -> exStage -> psInstrOfs.set( instrOfs );
-    core -> exStage -> psInstr.set( 0 );  // ??? what to really set ...
+    core -> exStage -> psInstr.set( NOP_INSTR );
     core -> exStage -> psValA.set( 0 );
     core -> exStage -> psValB.set( 0 );
     core -> exStage -> psValX.set( 0 );
@@ -135,9 +135,9 @@ void MemoryAccessStage::setStalled( bool arg ) {
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::flushPipeLine( ) {
     
-    psInstr.set( 0 );  // ??? what to really set ...
     psInstrSeg.set( instrSeg );
     psInstrOfs.set( instrOfs );
+    psInstr.set( NOP_INSTR );
     psValA.set( 0 );
     psValB.set( 0 );
     psValX.set( 0 );
@@ -288,16 +288,16 @@ void MemoryAccessStage::process( ) {
     bool        unCacheable = false;
     
     bool readAccessInstr  = ((( opMode >= 4 ) &&
-                                    (( opCode == OP_ADD ) || ( opCode == OP_SUB )    ||
-                                     ( opCode == OP_CMP ) || ( opCode == OP_AND )    ||
-                                     ( opCode == OP_OR )  || ( opCode == OP_XOR )    ||
-                                     ( opCode ==     OP_LD )  || ( opCode == OP_LDWR )))   ||
-                                   ( opCode == OP_LDWA ) || ( opCode == OP_LDWE ) ||
+                              (( opCode == OP_ADD ) || ( opCode == OP_SUB )    ||
+                               ( opCode == OP_CMP ) || ( opCode == OP_AND )    ||
+                               ( opCode == OP_OR )  || ( opCode == OP_XOR )    ||
+                               ( opCode == OP_LD )  || ( opCode == OP_LDWR )))   ||
+                             ( opCode == OP_LDWA ) || ( opCode == OP_LDWE ) ||
                              ( opCode == OP_LDHA ) || ( opCode == OP_LDHE ) ||
                              ( opCode == OP_LDBA ) || ( opCode == OP_LDBE ));
     
-    bool writeAccessInstr = (( opCode == OP_ST )  || ( opCode == OP_STWC ) ||
-                                   ( opCode == OP_STWE ) || ( opCode == OP_STWA ) ||
+    bool writeAccessInstr = (( opCode == OP_ST )  || ( opCode == OP_STWC )  ||
+                             ( opCode == OP_STWE ) || ( opCode == OP_STWA ) ||
                              ( opCode == OP_STHE ) || ( opCode == OP_STHA ) ||
                              ( opCode == OP_STBE ) || ( opCode == OP_STBA ));
     
@@ -310,12 +310,14 @@ void MemoryAccessStage::process( ) {
     switch( opCode ) {
             
         case OP_ADD:    case OP_SUB:    case OP_AND:    case OP_OR:     case OP_XOR:
-        case OP_CMP:    case OP_LOD:    case     OP_LD:     case OP_ST:     case OP_LDWR:
+        case OP_CMP:    case OP_LOD:    case OP_LD:     case OP_ST:     case OP_LDWR:
         case OP_STWC: {
             
             switch( opMode ) {
                     
-                case OP_MODE_EXT_INDX_W: {
+                case OP_MODE_EXT_INDX_W: 
+                case OP_MODE_EXT_INDX_H:
+                case OP_MODE_EXT_INDX_B: {
                     
                     valS            = core -> sReg[ Instr::regAIdField( instr ) ].get( );
                     valX            = Instr::add32( valB, valX );
@@ -323,8 +325,6 @@ void MemoryAccessStage::process( ) {
                     regIdForValB    = MAX_GREGS;
                     
                 } break;
-                    
-                    
                     
                 case OP_MODE_GR10_INDX_W:
                 
@@ -344,8 +344,8 @@ void MemoryAccessStage::process( ) {
             
         } break;
             
-        case OP_LDWE:
-        case OP_STWE: {
+        case OP_LDWE: case OP_LDHE: case OP_LDBE:
+        case OP_STWE: case OP_STHE: case OP_STBE: {
             
             valS            = core -> sReg[ Instr::regAIdField( instr ) ].get( );
             valX            = Instr::add32( valB, valX );
@@ -354,8 +354,8 @@ void MemoryAccessStage::process( ) {
             
         } break;
             
-        case OP_LDWA:
-        case OP_STWA: {
+        case OP_LDWA: case OP_LDHA: case OP_LDBA:
+        case OP_STWA: case OP_STHA: case OP_STBA: {
             
             valX            = Instr::add32( valB, valX );
             regIdForValX    = MAX_GREGS;
@@ -425,11 +425,8 @@ void MemoryAccessStage::process( ) {
         } break;
             
         case OP_MR: {
-            
-            // ??? needs some more work for the new options ...
-            
+           
             if ( ! Instr::mrMovDirField( instr )) {
-                
                 
                 if ( Instr::mrRegTypeField( instr ))  valB = core -> cReg[ instr & 0x3C ].get( );
                 else valB = core -> sReg[ Instr::regBIdField( instr ) ].get( );
@@ -462,8 +459,8 @@ void MemoryAccessStage::process( ) {
             
         case OP_PTLB: {
             
-            CpuTlb        *tlbPtr  = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
-            uint32_t    tlbSeg = (( Instr::tlbAdrModeField( instr )) ?
+            CpuTlb      *tlbPtr = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
+            uint32_t    tlbSeg  = (( Instr::tlbAdrModeField( instr )) ?
                                       core -> sReg[ Instr::segSelect( valB )].get( ) :
                                       core -> sReg[ Instr::regAIdField( instr ) ].get( ));
             
@@ -582,11 +579,13 @@ void MemoryAccessStage::process( ) {
             }
             
             unCacheable = tlbEntryPtr -> tUncachable( );
-            pAdr        = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;
+            pAdr        = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;  // ??? check physTag in TLB, should be PPN.
         }
         else pAdr = valX;
        
         bool rStat = false;
+        
+        // ??? need a way to load/store words, half-words, bytes.
        
         if ( unCacheable ) {
             
