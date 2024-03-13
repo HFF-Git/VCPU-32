@@ -1172,7 +1172,7 @@ void DrvCmds::testMemCmd( char *cmdBuf ) {
         }
     }
     
-    glb -> cpu -> mem -> readWordPhys( ofs, &valB );
+    glb -> cpu -> mem -> readPhys( ofs, 4, &valB );
     
     if ((( valA == valB ) && ( cmdId == CMD_TMEQ )) || (( valA != valB ) && ( cmdId == CMD_TMNE ))) {
         

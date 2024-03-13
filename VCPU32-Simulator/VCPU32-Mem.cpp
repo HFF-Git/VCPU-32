@@ -89,6 +89,12 @@ enum MemOpState : uint16_t {
     MO_WRITE_WORD_PHYS          = 21,
 };
 
+
+
+// ???? general: we thin in bytes from now on...... !!!!!!
+
+
+
 //------------------------------------------------------------------------------------------------------------
 // Helper functions. We want to make sure that the size values are a power of two and also compute the block
 // size number of bits and bit mask for it. Note that for block size only 4, 8 and 16 is allowed.
@@ -287,15 +293,15 @@ uint16_t CpuMem::matchTag( uint32_t index, uint32_t tag ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "readWordVirt" is called from the CPU pipeline data access stage to read a word to the L1 cache. The
-// virtual adress is "seg.ofs". The "adrTag" parameter is the physical address tag stored in the TLB. If the
+// "readVirt" is called from the CPU pipeline data access stage to read data from the L1 cache. The virtual
+// adress is "seg.ofs". The "adrTag" parameter is the physical address tag stored in the TLB. If the
 // L1 cache is IDLE, we directly check to see if we have a valid block containing the word. If so, the data is
 // returned right away and we have no cycle penalty. Otherwise, we first need to ALLOCATE a slot and read in
 // the block. The next cycle will start processing the request. Note that the CPU core layer will call this
 // routine every clock cycle as long as the operation is not completed, i.e. it is back to IDLE.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::readWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t *word ) {
+bool CpuMem::readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t *word ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
@@ -303,6 +309,8 @@ bool CpuMem::readWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );
         
         if ( matchSet < cDesc.blockSets ) {
+            
+            // ??? needs to be changed to fetch a byte, a half-word, a word...
           
             uint32_t *dataPtr = &dataArray[ matchSet ] [ blockIndex * cDesc.blockSize ];
             *word = dataPtr[ ofs & blockBitMask ];
@@ -327,14 +335,14 @@ bool CpuMem::readWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "writeWordVirt" is called from the CPU pipeline data access stage to write a word to the L1 cache. The
-// virtual adress is "seg.ofs". The "adrTag" parameter is the physical address tag stored in the TLB. If the
-// L1 cache is IDLE, we directly check to see if we have a valid block containing the word. If so, the data
-// is stored right away and we have no cycle penalty. Othwerwise, we follow the same logic as described for
-// the read virtual word operation.
+// "writeVirt" is called from the CPU pipeline data access stage to write data to the L1 cache. The virtual
+// adress is "seg.ofs". The "adrTag" parameter is the physical address tag stored in the TLB. If the L1 cache
+// is IDLE, we directly check to see if we have a valid block containing the word. If so, the data is stored
+// right away and we have no cycle penalty. Othwerwise, we follow the same logic as described for the read
+// virtual data operation.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::writeWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t word ) {
+bool CpuMem::writeVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t word ) {
     
     if ( opState.get( ) == MO_IDLE ) {
     
@@ -342,6 +350,8 @@ bool CpuMem::writeWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );
         
         if ( matchSet < cDesc.blockSets ) {
+            
+            // ??? needs to be changed to write a byte, a half-word, a word...
           
             uint32_t *dataPtr = &dataArray[ matchSet ] [ blockIndex * cDesc.blockSize ];
             dataPtr[ ofs & blockBitMask ] = word;
@@ -439,7 +449,7 @@ bool CpuMem::purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
 //
 // ??? does this call map to MEM ? it is intended for IO space ... how is is this modelled ?
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::readWordPhys( uint32_t adr, uint32_t *word, uint16_t pri ) {
+bool CpuMem::readPhys( uint32_t adr, uint32_t len, uint32_t *word, uint16_t pri ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
@@ -455,7 +465,7 @@ bool CpuMem::readWordPhys( uint32_t adr, uint32_t *word, uint16_t pri ) {
 //
 // ??? does this call map to MEM ? it is intended for IO space ...  how is is this modelled ?
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::writeWordPhys( uint32_t adr, uint32_t word, uint16_t pri ) {
+bool CpuMem::writePhys( uint32_t adr, uint32_t len, uint32_t word, uint16_t pri ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         

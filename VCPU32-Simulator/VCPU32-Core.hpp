@@ -53,7 +53,7 @@ enum VmemOptions : uint32_t {
 //------------------------------------------------------------------------------------------------------------
 const uint32_t  MAX_MEM_BLOCK_ENTRIES   = 16 * 1024 * 1024;    // ??? check ...
 const uint32_t  MAX_CACHE_BLOCK_ENTRIES = 1024;
-const uint16_t  MAX_BLOCK_SIZE          = 16;
+const uint16_t  MAX_BLOCK_SIZE          = 64;
 const uint16_t  MAX_BLOCK_SETS          = 4;
 
 //------------------------------------------------------------------------------------------------------------
@@ -262,8 +262,6 @@ struct TlbEntry {
     
 public:
     
-    // ??? fix the bit positions ... VUTDBX
-    
     inline bool     tValid( ) { return ( pInfo & 0x80000000 ); }
     inline void     setValid( bool arg ) { if ( arg ) pInfo |= 0x80000000; else  pInfo &= ~ 0x80000000; }
     
@@ -278,7 +276,7 @@ public:
     inline uint8_t  tPrivL2( ) { return( EXTR( pInfo, 9, 1 )); }
     inline uint16_t tProtectId( ) { return( EXTR( pInfo, 31, 16 )); }
     
-    inline uint32_t tPhysAdrTag( ) { return( aInfo << 12 ); }  // ??? check how it will be used...
+    inline uint32_t tPhysAdrTag( ) { return( aInfo << 12 ); }
     
     inline uint16_t tPhysPage( ) { return( EXTR( aInfo, 31, 20 )); }
     inline uint8_t  tPhysMemBank( ) { return( EXTR( aInfo, 11, 4 )); }
@@ -396,14 +394,14 @@ struct CpuMem {
     
     void            abortMemOp( );
     
-    bool            readWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t *word );
-    bool            writeWordVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t word );
+    bool            readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t *word );
+    bool            writeVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t word );
     
     bool            flushBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag );
     bool            purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag );
     
-    bool            readWordPhys( uint32_t adr, uint32_t *word, uint16_t pri = 0 );
-    bool            writeWordPhys( uint32_t adr, uint32_t word, uint16_t pri = 0 );
+    bool            readPhys( uint32_t adr, uint32_t len, uint32_t *word, uint16_t pri = 0 );
+    bool            writePhys( uint32_t adr, uint32_t len, uint32_t word, uint16_t pri = 0 );
 
     bool            readBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri = 0 );
     bool            writeBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri = 0 );

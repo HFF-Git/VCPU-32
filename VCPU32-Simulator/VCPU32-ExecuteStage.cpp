@@ -272,8 +272,9 @@ void ExecuteStage::process( ) {
     valA            = psValA.get( );
     valB            = psValB.get( );
     valX            = psValX.get( );
-    valR            = Instr::regRIdField( instr );
-    // RegIdForValR.set( MAX_GREGS );
+    valR            = 0;
+    
+    // RegIdForValR.set( MAX_GREGS ); // ??? what is this ?
     
     uint8_t opCode  = Instr::opCodeField( psInstr.get( ));
     
@@ -391,7 +392,7 @@ void ExecuteStage::process( ) {
             
             if ( Instr::extrSignedField( instr )) {
                 
-                if ( valR >> ( extrOpLen - 1 ) & 0x1 ) valR |= ( ~ extrOpBitMask );
+                if ( EXTR( valR, 31 - extrOpLen, 1 )) valR |= ( ~ extrOpBitMask );
             }
             
         } break;
@@ -427,9 +428,9 @@ void ExecuteStage::process( ) {
             
             if ( Instr::trapOvlField( instr )) {
                 
-                if ((( shAmt == 1 ) && ( valA & 000400000 )) ||
-                    (( shAmt == 2 ) && ( valA & 000600000 )) ||
-                    (( shAmt == 3 ) && ( valA & 000700000 ))) {
+                if ((( shAmt == 1 ) && ( valA & 0x80000000 )) ||
+                    (( shAmt == 2 ) && ( valA & 0xC0000000 )) ||
+                    (( shAmt == 3 ) && ( valA & 0xE0000000 ))) {
                     
                     setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
                     return;
@@ -440,7 +441,7 @@ void ExecuteStage::process( ) {
             
             if ( Instr::trapOvlField( instr )) {
                 
-                if (( valR ^ valA ) & ( valR ^ valB ) & 0x00800000 ) {
+                if (( valR ^ valA ) & ( valR ^ valB ) & 0x80000000 ) {
                     
                     setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
                     return;
@@ -450,6 +451,12 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_LDIL: {
+            
+            valR = valA;;  // ??? check ....
+            
+        } break;
+            
+        case OP_ADDIL: {
             
             valR = valA;;  // ??? check ....
             
@@ -466,7 +473,7 @@ void ExecuteStage::process( ) {
         case OP_BL:
         case OP_BLR: {
             
-            valR = Instr::add32( instrOfs, 1 );
+            valR = instrOfs + 4;
             
         } break;
             
@@ -501,7 +508,7 @@ void ExecuteStage::process( ) {
             
         case OP_GATE: {
             
-            valR = Instr::ofsSelect( valA ) | ( instrOfs & 047777777 );
+            valR = Instr::ofsSelect( valA ) | ( instrOfs & 047777777 ); // ??? check when we set R
             
         } break;
             
@@ -520,13 +527,13 @@ void ExecuteStage::process( ) {
             
         case OP_MST: {
             
-            valR = core -> stReg.get( ) & 077;
+            valR = core -> stReg.get( ) & 0x3F;
             
             switch ( Instr::mstModeField( instr )) {
                     
-                case 0: core -> stReg.set(( core -> stReg.get( ) & 00077777700 ) | ( valB & 077 ));
-                case 1: core -> stReg.set( core -> stReg.get( ) | ( valB & 077 )); break;
-                case 2: core -> stReg.set( core -> stReg.get( ) & (( ~ valB ) & 077 )); break;
+                case 0: core -> stReg.set(( core -> stReg.get( ) & 0xFFFFFFC0 ) | ( valB & 0x3F ));
+                case 1: core -> stReg.set( core -> stReg.get( ) | ( valB & 0x3F )); break;
+                case 2: core -> stReg.set( core -> stReg.get( ) & (( ~ valB ) & 0x3F )); break;
                 default: ;
             }
             

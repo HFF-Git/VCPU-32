@@ -102,10 +102,12 @@ void displayTestCodes( uint32_t tstCode ) {
 //------------------------------------------------------------------------------------------------------------
 void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
+    uint32_t opMode = Instr::opModeField( instr );
+    
     switch ( Instr::opModeField( instr )) {
             
         case OP_MODE_IMM:      printImmVal( Instr::immGen0S14( instr ));                break;
-        case OP_MODE_NO_REGS:  fprintf( stdout, "0,n0");                                break;
+        case OP_MODE_NO_REGS:  fprintf( stdout, "0, 0");                                break;
         case OP_MODE_REG_A:    fprintf( stdout, "0, R%d", Instr::regAIdField( instr )); break;
         case OP_MODE_REG_B:    fprintf( stdout, "R%d, 0", Instr::regBIdField( instr )); break;
             
@@ -140,7 +142,7 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_MODE_GR15_INDX_W: case OP_MODE_GR15_INDX_H: case OP_MODE_GR15_INDX_B: {
             
             printImmVal( Instr::immGen0S14( instr ), TOK_DEC );
-            fprintf( stdout, "(R%d)", Instr::opModeField( instr ));
+            fprintf( stdout, "(R%d)", Instr::mapOpModeToIndexReg( Instr::opModeField( instr )));
             
         } break;
             

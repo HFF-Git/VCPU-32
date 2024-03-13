@@ -285,9 +285,10 @@ void MemoryAccessStage::process( ) {
     uint8_t     opMode      = Instr::opModeField( instr );
     uint32_t    pOfs        = psValX.get( ) % PAGE_SIZE;
     uint32_t    pAdr        = 0;
+    uint32_t    dLen        = 0;
     bool        unCacheable = false;
     
-    bool readAccessInstr  = ((( opMode >= 4 ) &&
+    bool readAccessInstr  = ((( opMode >= 8 ) &&
                               (( opCode == OP_ADD ) || ( opCode == OP_SUB )    ||
                                ( opCode == OP_CMP ) || ( opCode == OP_AND )    ||
                                ( opCode == OP_OR )  || ( opCode == OP_XOR )    ||
@@ -326,11 +327,13 @@ void MemoryAccessStage::process( ) {
                     
                 } break;
                     
-                case OP_MODE_GR10_INDX_W:
-                
-                // ??? fill in the rest 
-                
-                {
+                case OP_MODE_REG_INDX_W:  case OP_MODE_REG_INDX_H:  case OP_MODE_REG_INDX_B:
+                case OP_MODE_GR10_INDX_W: case OP_MODE_GR10_INDX_H: case OP_MODE_GR10_INDX_B:
+                case OP_MODE_GR11_INDX_W: case OP_MODE_GR11_INDX_H: case OP_MODE_GR11_INDX_B:
+                case OP_MODE_GR12_INDX_W: case OP_MODE_GR12_INDX_H: case OP_MODE_GR12_INDX_B:
+                case OP_MODE_GR13_INDX_W: case OP_MODE_GR13_INDX_H: case OP_MODE_GR13_INDX_B:
+                case OP_MODE_GR14_INDX_W: case OP_MODE_GR14_INDX_H: case OP_MODE_GR14_INDX_B:
+                case OP_MODE_GR15_INDX_W: case OP_MODE_GR15_INDX_H: case OP_MODE_GR15_INDX_B: {
                     
                     valS            = core -> sReg[ Instr::segSelect( valB ) ].get( );
                     valX            = Instr::add32( valB, valX );
@@ -413,9 +416,7 @@ void MemoryAccessStage::process( ) {
         } break;
             
         case OP_GATE: {
-            
-            // ??? work was done in FD stage, we need to pass on the former priv level result ?
-            
+           
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             valB            = 0;
@@ -586,16 +587,17 @@ void MemoryAccessStage::process( ) {
         bool rStat = false;
         
         // ??? need a way to load/store words, half-words, bytes.
+        // ??? dLen depends on Instruction and/ or opMode!!!!!!!
        
         if ( unCacheable ) {
             
-            if      ( readAccessInstr )     rStat = core -> mem -> readWordPhys( pAdr, &valB );
-            else if ( writeAccessInstr )    rStat = core -> mem -> writeWordPhys( pAdr, valA );
+            if      ( readAccessInstr )     rStat = core -> mem -> readPhys( pAdr, 4, &valB );
+            else if ( writeAccessInstr )    rStat = core -> mem -> writePhys( pAdr, 4, valA );
         }
         else {
             
-            if      ( readAccessInstr )     rStat = core -> dCacheL1 -> readWordVirt( valS, valX, pAdr, &valB );
-            else if ( writeAccessInstr )    rStat = core -> dCacheL1 -> writeWordVirt( valS, valX, pAdr, valA );
+            if      ( readAccessInstr )     rStat = core -> dCacheL1 -> readVirt( valS, valX, pAdr, 4, &valB );
+            else if ( writeAccessInstr )    rStat = core -> dCacheL1 -> writeVirt( valS, valX, pAdr, 4, valA );
         }
         
         if ( ! rStat ) {

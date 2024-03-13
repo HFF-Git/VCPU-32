@@ -23,17 +23,49 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "7E19D03B-7E5B-411E-99E0-9852C73D0ABA"
+            uuid = "F95D0F33-CACF-4836-AFC3-507F69E8A9A5"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "VCPU32-Simulator/VCPU32-DrvDisAsm.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "630"
-            endingLineNumber = "630"
-            landmarkName = "DrvDisAsm::displayInstr(instr, fmt)"
-            landmarkType = "7">
+            startingLineNumber = "145"
+            endingLineNumber = "145"
+            landmarkName = "displayOperandModeField(instr, TOK_DEC)"
+            landmarkType = "9">
+            <Locations>
+               <Location
+                  uuid = "F95D0F33-CACF-4836-AFC3-507F69E8A9A5 - e54d092c68e112f4"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(anonymous namespace)::displayOperandModeField(unsigned int, TokId)"
+                  moduleName = "VCPU32-Simulator"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/helmutfieres/GitHub/VCPU-32/VCPU32-Simulator/VCPU32-DrvDisAsm.cpp"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "145"
+                  endingLineNumber = "145"
+                  offsetFromSymbolStart = "572">
+               </Location>
+               <Location
+                  uuid = "F95D0F33-CACF-4836-AFC3-507F69E8A9A5 - e54d092c68e112f4"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "(anonymous namespace)::displayOperandModeField(unsigned int, TokId)"
+                  moduleName = "VCPU32-Simulator"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/helmutfieres/GitHub/VCPU-32/VCPU32-Simulator/VCPU32-DrvDisAsm.cpp"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "145"
+                  endingLineNumber = "145"
+                  offsetFromSymbolStart = "532">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

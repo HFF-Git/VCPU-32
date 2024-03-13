@@ -536,7 +536,6 @@ public:
     static inline bool      depInZeroField( uint32_t instr )        { return( EXTR( instr, 10, 1  )); }
     static inline bool      depImmOptField( uint32_t instr )        { return( EXTR( instr, 11, 1  )); }
     static inline uint32_t  shlaSaField( uint32_t instr )           { return( EXTR( instr, 22, 2  )); }
-    static inline uint32_t  ldilValField( uint32_t instr )          { return( EXTR( instr, 14, 18 )); }
     static inline bool      mrZeroField( uint32_t instr )           { return( EXTR( instr, 10, 1  )); }
     static inline bool      mrMovDirField( uint32_t instr )         { return( EXTR( instr, 11, 1  )); }
     static inline bool      mrRegTypeField( uint32_t instr )        { return( EXTR( instr, 12, 1  )); }
@@ -552,6 +551,7 @@ public:
     static inline bool      pcaAdrModeField( uint32_t instr )       { return( EXTR( instr, 10, 1  )); }
     static inline bool      pcaKindField( uint32_t instr )          { return( EXTR( instr, 11, 1  )); }
     static inline bool      pcaPurgeFlushField( uint32_t instr )    { return( EXTR( instr, 12, 1  )); }
+    static inline bool      brkInfoField( uint32_t instr )          { return( EXTR( instr, 31, 16 )); }
     
     static inline uint32_t  segSelect( uint32_t arg )               { return( EXTR( arg, 1,  2  )); }
     static inline uint32_t  ofsSelect( uint32_t arg )               { return( EXTR( arg, 31, 30 )); }
@@ -611,6 +611,42 @@ public:
     static inline uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
         
         return ( arg1 + arg2 );
+    }
+    
+    static uint32_t mapOpModeToIndexReg( uint32_t opMode ) {
+        
+        switch ( opMode ) {
+                
+            case OP_MODE_GR10_INDX_W: case OP_MODE_GR10_INDX_H: case OP_MODE_GR10_INDX_B: return( 10 );
+            case OP_MODE_GR11_INDX_W: case OP_MODE_GR11_INDX_H: case OP_MODE_GR11_INDX_B: return( 11 );
+            case OP_MODE_GR12_INDX_W: case OP_MODE_GR12_INDX_H: case OP_MODE_GR12_INDX_B: return( 12 );
+            case OP_MODE_GR13_INDX_W: case OP_MODE_GR13_INDX_H: case OP_MODE_GR13_INDX_B: return( 13 );
+            case OP_MODE_GR14_INDX_W: case OP_MODE_GR14_INDX_H: case OP_MODE_GR14_INDX_B: return( 14 );
+            case OP_MODE_GR15_INDX_W: case OP_MODE_GR15_INDX_H: case OP_MODE_GR15_INDX_B: return( 15 );
+            default: return( 0 );
+                
+        }
+    }
+    
+    static uint32_t dataLenForOpMode( uint32_t opMode ) {
+        
+        switch( opMode ) {
+                
+            case OP_MODE_EXT_INDX_W:  case OP_MODE_REG_INDX_W:   case OP_MODE_GR10_INDX_W:
+            case OP_MODE_GR12_INDX_W: case OP_MODE_GR13_INDX_W:  case OP_MODE_GR14_INDX_W:
+            case OP_MODE_GR15_INDX_W: return( 4 );
+                
+                
+            case OP_MODE_EXT_INDX_H:  case OP_MODE_REG_INDX_H:   case OP_MODE_GR10_INDX_H:
+            case OP_MODE_GR12_INDX_H: case OP_MODE_GR13_INDX_H:  case OP_MODE_GR14_INDX_H:
+            case OP_MODE_GR15_INDX_H: return( 2 );
+                
+            case OP_MODE_EXT_INDX_B:  case OP_MODE_REG_INDX_B:   case OP_MODE_GR10_INDX_B:
+            case OP_MODE_GR12_INDX_B: case OP_MODE_GR13_INDX_B:  case OP_MODE_GR14_INDX_B:
+            case OP_MODE_GR15_INDX_B: return( 1 );
+                
+            default: return( 4 );
+        }
     }
 };
  

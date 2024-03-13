@@ -23,7 +23,7 @@
 #ifndef VCPU32Version_hpp
 #define VCPU32Version_hpp
 
-const char VERSION[ ]   = "B.00.01";
+const char VERSION[ ]   = "B.00.02";
 const int  PATCH_LEVEL  = 1;
 
 #endif
