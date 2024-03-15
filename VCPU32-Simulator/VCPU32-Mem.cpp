@@ -91,7 +91,7 @@ enum MemOpState : uint16_t {
 
 
 
-// ???? general: we thin in bytes from now on...... !!!!!!
+// ???? general: we think in bytes from now on...... !!!!!!
 
 
 

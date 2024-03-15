@@ -521,50 +521,48 @@ In the interest of a simplified hardware design, the opCode and opCode specific 
 
 Throughout the remainder of this document numbers are shown in three numeric formats. A decimal number is a number starting with the digits 1 .. 9. An octal number starts with the number 0, and a hex number starts with the "0x" prefix.
 
-
 ### Operand Encoding
 
-At the highest level the processor works with logical addresses. The **mode** field indicates which addressing mode is used. There are several address modes that are used to form an operand address. Most instructions have an operand mode and and operand data field which encodes the address mode and size of data to fetch. There are 32 address modes for instructions that use the operand encoding format. They can be grouped in four sets. Modes 0 .. 3 contains the immediate modes. Signed and unsigned values are supported. Modes 4 ..7 are the register modes. They refer to no register, one register and two registers. Modes 8 .. 15, 16 .. 23 and 24 .. 31 are the indexed adressing groups. They form the same address for the operand and only differ in the data size fetched. The following figure gives an overview of the instruction layout for instructions with an operand encoding. 
+The **operand mode** field in instructions that use operand modes for specifying one argument indicates mode is used. There are operand modes to define immediate values, registers or an address. Furthermore, the operand mode also encodes the data length of the operand. There are 32 operand modes for instructions that use the operand encoding format. They can be grouped in four sets. Modes 0 .. 3 contains the immediate and register modes, modes 4 ..7 are the register indexed modes and 8 .. 15, 16 .. 23 and 24 .. 31 are the indexed adressing groups. The following figure gives an overview of the instruction layout for instructions with an operand encoding. 
 
 ```
                          <-  res  -> <-opt -> <-   mode   -> <--------- operand --------------------->
        0                 6           10       13             18                24          28       31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : opCode          : r         :        : 0            :S : val                                  :  immediate
+      : opCode          : r         :        : 0            : val                                  :s :  immediate
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 1 - 3        : 0                                       :  undefined
+      : opCode          : r         :        : 1            : 0                           : b         :  one register
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 4            : 0                                       :  no register
+      : opCode          : r         :        : 2            : 0               : a         : b         :  two registers
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 5            : 0               : 0         : b         :  one register
+      : opCode          : r         :        : 3            : 0                                       :  undefined
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 6            : 0               : a         : 0         :  one register
+
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 7            : 0               : a         : b         :  two registers
+      : opCode          : r         :        : 4            : seg : 0         : a         : b         :  register indexed, word
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 8            : 0               : a         : b         :  register indexed, word
+      : opCode          : r         :        : 5            : seg : 0         : a         : b         :  register indexed, half
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 9            : S : ofs         : a         : b         :  extended indexed, word
+      : opCode          : r         :        : 6            : seg : 0         : a         : b         :  register indexed, byte
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 10 - 15      : S : ofs                                 :  indexed, word
+      : opCode          : r         :        : 7            : 0                                       :  undefined
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 16            :0               : a         : b         :  register indexed, half
+   
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 17           : S : ofs         : a         : b         :  extended indexed, half
+      : opCode          : r         :        : 8  - 15      : seg : ofs                            :S :  indexed, word
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 18 - 23      : S : ofs                                 :  indexed, half
+      : opCode          : r         :        : 16 - 23      : seg : ofs                            :S :  indexed, half
       :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 24           : 0               : a         : b         :  register indexed, byte
-      :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 25           : S : ofs         : a         : b         :  extended indexed, byte
-      :-----------------:-----------------------------------------------------------------------------:
-      : opCode          : r         :        : 26 - 31      : S : ofs                                 :  indexed, byte
+      : opCode          : r         :        : 24 - 31      : seg : ofs                            :S :  indexed, byte
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
-There is one **immediate operand mode**, which supports a signed 14-bit value. Depending on the sign, the value is sign or zero extended.The **register modes** specify no, one or two registers. Registers not used in a given mode are interpreted as a zero value. For example, an instruction SUB with operand mode 5 will subtract the "b" register from a zero value. This is essentially a negate operation then. Mode 4 is not a very practical opwerand mode, however it asimplifies the instruction decode hardware. An assembler could use that mode to for a NOP pseudo op.
+There is one **immediate operand mode**, which supports a signed 14-bit value. The sign bit is in the rightmost position of the field and removed from the value to encode. Depending on the sign, the remaining value im the field is sign or zero extended. The **register modes** specify one or two registers. Operand mode 1 sets "a" to zero. The operation "zero - b" can for example be used in the  SUB instruction, which will subtract the "b" register from a zero value. This is essentially a negate operation. Operand mode 2 will use "a" and "b" as input to the operation of the instruction.
 
-The machine addresses memory with a byte address. Modes 8 to 31 are the **indexed modes** structured in three groups, which access a word, a half-word or a byte. The computed address must be aligned with the size of data to fetch. The first mode in each group, i.e. 8, 16 or 24 is the register indexed mode. A register holding a signed offset is added to a base general register to form the address. The second mode, mode 9, 17 or 25 is the extended mode. The address is formed from the segment register in "a" and the base offset in "b" to which a signed offset can be added. The remaining modes, 10 .. 15, 18 . 23 and 26 .. 31 use a corresponding index register GR10 .. GR15 as the base register to which the signed offset is added. With the exception of the extended indexing mode, the final virtual address is built from the computed logical address and the segment register SR 4 .. SR 7 selected by the upper two bits of the logical address. 
+The machine addresses memory with a byte address. There are indexed and register indexed operand modes. Operand modes 4 to 6 are the **register indexed address modes**s, which will use a base registr "b" and add an offset in "a" to it, forming the final byte address offset. Mode 4 refers to a date word, mode 5 to a date half-word and mode 6 to a datde byte. Modes 8 to 31 are the **indexed address mode**s structured in three groups, which access a word, a half-word or a byte. The computed address must be aligned with the size of data to fetch. 
+
+
+-- seg---
 
 ### Memory Reference Instructions
 
@@ -3462,171 +3460,12 @@ None.
 
 This appendix lists all instructions by instruction group.
 
-### Computational Instructions
-
-```
-       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : ADD     ( 0x10 ): r         :C :L :O : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-      : SUB     ( 0x11 ): r         :C :L :O : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-      : AND     ( 0x12 ): r         :N :C :0 : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-      : OR      ( 0x13 ): r         :N :C :0 : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-      : XOR     ( 0x14 ): r         :N :C :0 : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-      : CMP     ( 0x15 ): r         : cond   : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-      : LOD     ( 0x016 ): r        : 0      : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-      : LSID    ( 0x17 ): r         : 0                                                   : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : LDIL    ( 0x02 ): r         : val                                                             :
-      :-----------------:-----------------------------------------------------------------------------:
-      : ADDIL   ( 0x03 ): r         : val                                                             :
-      :-----------------:-----------------------------------------------------------------------------:
-      : EXTR    ( 0x04 ): r         :S :A : 0               : len          : pos          : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : DEP     ( 0x05 ): r         :Z :A :I : 0            : len          : pos          : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : DSR     ( 0x06 ): r         : 0                     : shamt        :0 : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : SHLA    ( 0x07 ): r         :I :L :O : 0                     : sa  : 0            : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : CMR     ( 0x08 ): r         : cond   : 0                              : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-```
-
-### Memory Reference Instruction
-
-```
-       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDW/H/B ( 0x18 ): r         : 0      : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-      : STW/H/B ( 0x19 ): r         : 0      : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-      : LDWR    ( 0x1A ): r         : 0      : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-      : STWC    ( 0x1B ): r         : 0      : opMode       : opArg                                   :
-      :-----------------:-----------------------------------------------------------------------------:
-```
-
-### Absolute Memory Reference Instructions
-
-```
-       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWA    ( 0x20 ): r         : ofs2                  : ofs1                        : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : LDHA    ( 0x21 ): r         : ofs2                  : ofs1                        : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : LDBA    ( 0x22 ): r         : ofs2                  : ofs1                        : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : STWA    ( 0x23 ): r         : ofs2                  : ofs1                        : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : STHA    ( 0x24 ): r         : ofs2                  : ofs1                        : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : STBA    ( 0x25 ): r         : ofs2                  : ofs1                        : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-```
-
-### Extended Memory Reference Instructions
-
-```
-       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : LDWE    ( 0x28 ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : LDHE    ( 0x29 ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : LDBE    ( 0x2A ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : TDWE    ( 0x2B ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : STHE    ( 0x2C ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : STBE    ( 0x2D ): r         : ofs2                  : ofs1            : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-```
-
-### Control Flow Instructions
-
-```
-       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : B       ( 0x30 ): 0         : ofs2                  : ofs1                                    :
-      :-----------------:-----------------------------------------------------------------------------:
-      : BL      ( 0x31 ): r         : ofs2                  : ofs1                                    :
-      :-----------------:-----------------------------------------------------------------------------:
-      : GATE    ( 0x32 ): r         : ofs2                  : ofs1                                    :
-      :-----------------:-----------------------------------------------------------------------------:
-      : BR      ( 0x33 ): 0                                                               : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : BLR     ( 0x34 ): r         : 0                                                   : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : BV      ( 0x35 ): 0                                                               : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : BVR     ( 0x36 ): 0                                                   : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : BE      ( 0x37 ): ofs2                             : ofs1             : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : BLE     ( 0x38 ): ofs2                             : ofs1             : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : CBR     ( 0x39 ): cond   : ofs2                    : ofs1             : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : TBR     ( 0x3A ): cond   : ofs2                    : ofs1             : 0         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-```
-
-### System Control Instructions
-
-```
-       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : MR      ( 0x09 ): r         :Z :D :M :                                      : s               :
-      :-----------------:-----------------------------------------------------------------------------:
-      : MST     ( 0x0A ): r         :mode : 0                                       : s               :
-      :-----------------:-----------------------------------------------------------------------------:
-      : LDPA    ( 0x26 ): r         :L : 0                                    : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : PRB     ( 0x27 ): r         :L :R : 0                                 : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : ITLB    ( 0x3C ): r         :L :T :M : 0                              : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : PTLB    ( 0x3D ): 0         :L :T : 0                                 : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : PCA     ( 0x3E ): 0         :L :T :F : 0                              : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : RFI     ( 0x3F ): 0                                                                           :
-      :-----------------:-----------------------------------------------------------------------------:
-      : DIAG    ( 0x01 ): r         :                                         : a         : b         :
-      :-----------------:-----------------------------------------------------------------------------:
-      : BRK     ( 0x00 ): 0                                 : info                                    :
-      :-----------------:-----------------------------------------------------------------------------:
-```
-
-<!--------------------------------------------------------------------------------------------------------->
-
-
-<!--------------------------------------------------------------------------------------------------------->
-
-<div style="page-break-before: always;"></div>
-
-## Instruction Set Summary
-
-This appendix lists all instructions by instruction group.
-
-// ??? **note** version two .... 
-
 Key Requirements:
 
 - a large set of index registers
 - a reasonably large offset
 - all general regs can be used for computation
-- orthogonal where pssible
+- orthogonal where possible
 - no complex decision trees for HW
 - fields always in the same place where possible, especially for register ID fields
 
@@ -3645,16 +3484,7 @@ Benefits:
 
 ### Operand Modes
 
-Ideas:
-
-- more regular and (again) simplified
-- instruction assembler syntac does not need characters for registers, just numbers ( a la´ IBM )
-
-
 ```
-      "<num>"           ; e.g. ADD r1,#23          - immediate
-      "<b>"             ; e.g. ADD r1,r5           - one register
-      "<a>, <b>"        ; e.g. ADD r1,r5,r9        - two registers
 
                          <-  res  -> <-opt -> <-   mode   -> <--------- operand --------------------->
        0                 6           10       13             18                24          28       31
@@ -3667,10 +3497,6 @@ Ideas:
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 3            : 0                                       :  undefined
       :-----------------:-----------------------------------------------------------------------------:
-
-      "<a> ( <b> )"     : e.g. LDH r5, r2(s2, r8),r8  or  LDH r5, r2(r8), r9
-
-      :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 4            : seg : 0         : a         : b         :  register indexed, word
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 5            : seg : 0         : a         : b         :  register indexed, half
@@ -3679,25 +3505,16 @@ Ideas:
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 7            : 0                                       :  undefined
       :-----------------:-----------------------------------------------------------------------------:
-   
-      "<ofs> ( <s>, <b> )"  : e.g. ST r2(s2, r8), r6
-
-      :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 8  - 15      : seg : ofs                            :S :  indexed, word
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 16 - 23      : seg : ofs                            :S :  indexed, half
       :-----------------:-----------------------------------------------------------------------------:
       : opCode          : r         :        : 24 - 31      : seg : ofs                            :S :  indexed, byte
       :-----------------:-----------------------------------------------------------------------------:
-
       
 ```
 
 ### Computational Instructions
-
-      ADD    r1, #1000
-      ADD    r1, -32(r10)
-      ADD.LO r1, r2(s2, r8)
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
@@ -3717,13 +3534,6 @@ Ideas:
       : LOD     ( 0x16 ): r        : 0       : opMode       : opArg                                   :   
       :-----------------:-----------------------------------------------------------------------------:
 ```
-
-      - long address load
-
-      LDIL r8, L%0xFF880002
-      LD   R%0xFF880002(R8), r6
-
-      - pos field of EXTR and DEP contains (31-pos) for simpler HW
 
 ```
        
@@ -3764,9 +3574,6 @@ Ideas:
 
 ### Absolute Memory Reference Instructions
 
-      LDWA -1000(r3), r6
-      LDWAX r2(r9), r6
-
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
@@ -3779,8 +3586,6 @@ Ideas:
 ```
 
 ### Control Flow Instructions
-
-      CBR.EQ r1, r2, <ofs>
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
