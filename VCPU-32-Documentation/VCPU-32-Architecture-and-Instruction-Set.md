@@ -9,8 +9,10 @@
 <!--------------------------------------------------------------------------------------------------------->
 
 <style>
-	div {
-		text-align: justify;
+    div {
+	  text-align: justify;
+        orphans:3;
+        widow:2;
 	}
     table {
         width: 100%;
@@ -20,8 +22,12 @@
     	display: block;
     	margin-left: auto;
      	margin-right: auto;
-		max-width:100%;
+	max-width:100%;
     	height: auto;
+    }
+    blockquote {
+      orphans:3;
+      widow:2;
     }
 </style>
 
@@ -31,8 +37,8 @@
 # System Architecture and Instruction Set Reference
 
 Helmut Fieres
-Version B.00.02
-MArch, 2024
+Version B.00.03
+March, 2024
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -555,6 +561,7 @@ At the highest level the processor works with logical addresses. The **mode** fi
       : opCode          : r         :        : 26 - 31      : S : ofs                                 :  indexed, byte
       :-----------------:-----------------------------------------------------------------------------:
 ```
+
 There is one **immediate operand mode**, which supports a signed 14-bit value. Depending on the sign, the value is sign or zero extended.The **register modes** specify no, one or two registers. Registers not used in a given mode are interpreted as a zero value. For example, an instruction SUB with operand mode 5 will subtract the "b" register from a zero value. This is essentially a negate operation then. Mode 4 is not a very practical opwerand mode, however it asimplifies the instruction decode hardware. An assembler could use that mode to for a NOP pseudo op.
 
 The machine addresses memory with a byte address. Modes 8 to 31 are the **indexed modes** structured in three groups, which access a word, a half-word or a byte. The computed address must be aligned with the size of data to fetch. The first mode in each group, i.e. 8, 16 or 24 is the register indexed mode. A register holding a signed offset is added to a base general register to form the address. The second mode, mode 9, 17 or 25 is the extended mode. The address is formed from the segment register in "a" and the base offset in "b" to which a signed offset can be added. The remaining modes, 10 .. 15, 18 . 23 and 26 .. 31 use a corresponding index register GR10 .. GR15 as the base register to which the signed offset is added. With the exception of the extended indexing mode, the final virtual address is built from the computed logical address and the segment register SR 4 .. SR 7 selected by the upper two bits of the logical address. 
@@ -3480,9 +3487,9 @@ This appendix lists all instructions by instruction group.
       :-----------------:-----------------------------------------------------------------------------:
       : ADDIL   ( 0x03 ): r         : val                                                             :
       :-----------------:-----------------------------------------------------------------------------:
-      : EXTR    ( 0x04 ): r         :S :N :0                : len          : pos          : b         :
+      : EXTR    ( 0x04 ): r         :S :A : 0               : len          : pos          : b         :
       :-----------------:-----------------------------------------------------------------------------:
-      : DEP     ( 0x05 ): r         :Z :I :0                : len          : pos          : b         :
+      : DEP     ( 0x05 ): r         :Z :A :I : 0            : len          : pos          : b         :
       :-----------------:-----------------------------------------------------------------------------:
       : DSR     ( 0x06 ): r         : 0                     : shamt        :0 : a         : b         :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3579,7 +3586,7 @@ This appendix lists all instructions by instruction group.
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : MR      ( 0x09 ): r         :T : 0                                          : s               :
+      : MR      ( 0x09 ): r         :Z :D :M :                                      : s               :
       :-----------------:-----------------------------------------------------------------------------:
       : MST     ( 0x0A ): r         :mode : 0                                       : s               :
       :-----------------:-----------------------------------------------------------------------------:
@@ -3603,19 +3610,273 @@ This appendix lists all instructions by instruction group.
 
 <!--------------------------------------------------------------------------------------------------------->
 
+
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
+## Instruction Set Summary
+
+This appendix lists all instructions by instruction group.
+
+// ??? **note** version two .... 
+
+Key Requirements:
+
+- a large set of index registers
+- a reasonably large offset
+- all general regs can be used for computation
+- orthogonal where pssible
+- no complex decision trees for HW
+- fields always in the same place where possible, especially for register ID fields
+
+General idea:
+
+1. have a segment select field. if 0 -> index reg upper two bits select among SR4 .. 7. Otherwise select SR1, 2 or 3. SR0 is a scratch reg
+2. keep immediates in one field, move sign bit to the rightmost position of that field
+3. fix assign of "a" and "b" fields when used, top guidance 
+4. absolute address are seprate instructions and have only word data width
+
+Benefits: 
+
+- opModes now features 8 index registers. much better than just six and more regular
+- segment select allows for eliminating the extended instructions and operand modes
+- there ( for now ) no concatenated immediates fields
+
+### Operand Modes
+
+Ideas:
+
+- more regular and (again) simplified
+- instruction assembler syntac does not need characters for registers, just numbers ( a la´ IBM )
+
+
+```
+      "<num>"           ; e.g. ADD r1,#23          - immediate
+      "<b>"             ; e.g. ADD r1,r5           - one register
+      "<a>, <b>"        ; e.g. ADD r1,r5,r9        - two registers
+
+                         <-  res  -> <-opt -> <-   mode   -> <--------- operand --------------------->
+       0                 6           10       13             18                24          28       31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      : opCode          : r         :        : 0            : val                                  :s :  immediate
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 1            : 0                           : b         :  one register
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 2            : 0               : a         : b         :  two registers
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 3            : 0                                       :  undefined
+      :-----------------:-----------------------------------------------------------------------------:
+
+      "<a> ( <b> )"     : e.g. LDH r5, r2(s2, r8),r8  or  LDH r5, r2(r8), r9
+
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 4            : seg : 0         : a         : b         :  register indexed, word
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 5            : seg : 0         : a         : b         :  register indexed, half
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 6            : seg : 0         : a         : b         :  register indexed, byte
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 7            : 0                                       :  undefined
+      :-----------------:-----------------------------------------------------------------------------:
+   
+      "<ofs> ( <s>, <b> )"  : e.g. ST r2(s2, r8), r6
+
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 8  - 15      : seg : ofs                            :S :  indexed, word
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 16 - 23      : seg : ofs                            :S :  indexed, half
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         :        : 24 - 31      : seg : ofs                            :S :  indexed, byte
+      :-----------------:-----------------------------------------------------------------------------:
+
+      
+```
+
+### Computational Instructions
+
+      ADD    r1, #1000
+      ADD    r1, -32(r10)
+      ADD.LO r1, r2(s2, r8)
+
+```
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      : ADD     ( 0x10 ): r         :C :L :O : opMode       : opArg                                   :
+      :-----------------:-----------------------------------------------------------------------------:
+      : SUB     ( 0x11 ): r         :C :L :O : opMode       : opArg                                   :
+      :-----------------:-----------------------------------------------------------------------------:
+      : AND     ( 0x12 ): r         :N :C :0 : opMode       : opArg                                   :
+      :-----------------:-----------------------------------------------------------------------------:
+      : OR      ( 0x13 ): r         :N :C :0 : opMode       : opArg                                   :
+      :-----------------:-----------------------------------------------------------------------------:
+      : XOR     ( 0x14 ): r         :N :C :0 : opMode       : opArg                                   :
+      :-----------------:-----------------------------------------------------------------------------:
+      : CMP     ( 0x15 ): r         : cond   : opMode       : opArg                                   :
+      :-----------------:-----------------------------------------------------------------------------:
+      : LOD     ( 0x16 ): r        : 0       : opMode       : opArg                                   :   
+      :-----------------:-----------------------------------------------------------------------------:
+```
+
+      - long address load
+
+      LDIL r8, L%0xFF880002
+      LD   R%0xFF880002(R8), r6
+
+      - pos field of EXTR and DEP contains (31-pos) for simpler HW
+
+```
+       
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      : LSID    ( 0x01 ): r         : b         : 0                                                   :
+      :-----------------:-----------------------------------------------------------------------------:
+      : LDIL    ( 0x02 ): r         : val                                                             :
+      :-----------------:-----------------------------------------------------------------------------:
+      : ADDIL   ( 0x03 ): r         : val                                                             :
+      :-----------------:-----------------------------------------------------------------------------:
+      : EXTR    ( 0x04 ): r         :S :A :0               : len          : pos           : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : DEP     ( 0x05 ): r         :Z :A :I :             : len          : pos           : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : DSR     ( 0x06 ): r         : 0                    : shamt        :0 : a          : b         : 
+      :-----------------:-----------------------------------------------------------------------------:
+      : SHLA    ( 0x07 ): r         :I :L :O : 0                     : sa  :0 : a         : b         : 
+      :-----------------:-----------------------------------------------------------------------------:
+      : CMR     ( 0x08 ): r         :cond    : 0                              : a         : b         : 
+      :-----------------:-----------------------------------------------------------------------------:
+```
+
+### Memory Reference Instruction
+
+```
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      : LDW/H/B ( 0x18 ): r         : 0      : opMode       : opArg                                   :
+      :-----------------:-----------------------------------------------------------------------------:
+      : STW/H/B ( 0x19 ): r         : 0      : opMode       : opArg                                   :
+      :-----------------:-----------------------------------------------------------------------------:
+      : LDWR    ( 0x1A ): r         : 0      : opMode       : opArg                                   :
+      :-----------------:-----------------------------------------------------------------------------:
+      : STWC    ( 0x1B ): r         : 0      : opMode       : opArg                                   :
+      :-----------------:-----------------------------------------------------------------------------:
+```
+
+### Absolute Memory Reference Instructions
+
+      LDWA -1000(r3), r6
+      LDWAX r2(r9), r6
+
+```
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      : LDWA    ( 0x20 ): r         : ofs                                                 : b         : 
+      :-----------------:-----------------------------------------------------------------------------:
+      : LDWAX   ( 0x21 ): r         : 0                                       : a         : b         : 
+      :-----------------:-----------------------------------------------------------------------------:
+      : STWA    ( 0x23 ): r         : ofs                                                 : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+```
+
+### Control Flow Instructions
+
+      CBR.EQ r1, r2, <ofs>
+
+```
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      : B       ( 0x30 ): 0         : ofs                                                             :
+      :-----------------:-----------------------------------------------------------------------------:
+      : BL      ( 0x31 ): r         : ofs                                                             :
+      :-----------------:-----------------------------------------------------------------------------:
+      : GATE    ( 0x32 ): r         : ofs                                                             :
+      :-----------------:-----------------------------------------------------------------------------:
+      : BR      ( 0x33 ): 0                                                               : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : BLR     ( 0x34 ): r         : 0                                                   : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : BV      ( 0x35 ): 0                                                               : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : BVR     ( 0x36 ): 0                                                   : a         : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : BE      ( 0x37 ): ofs                                                 : a         : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : BLE     ( 0x38 ): ofs                                                 : a         : b         :      
+      :-----------------:-----------------------------------------------------------------------------:
+      : CBR     ( 0x39 ): cond   : ofs                                        : a         : b         : 
+      :-----------------:-----------------------------------------------------------------------------:
+      : TBR     ( 0x3A ): cond   : ofs                                        : 0         : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+```
+
+### System Control Instructions
+
+```
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      : MR      ( 0x09 ): r         :Z :D :M : 0                                    : s               :
+      :-----------------:-----------------------------------------------------------------------------:
+      : MST     ( 0x0A ): r         :mode : 0                                       : s               :
+      :-----------------:-----------------------------------------------------------------------------:
+      : LDPA    ( 0x26 ): r         :L : 0                                    : a         : b         :         
+      :-----------------:-----------------------------------------------------------------------------:
+      : PRB     ( 0x27 ): r         :L :R : 0                                 : a         : b         :         
+      :-----------------:-----------------------------------------------------------------------------:
+      : ITLB    ( 0x3C ): r         :L :T :M : 0                              : a         : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : PTLB    ( 0x3D ): 0         :L :T : 0                                 : a         : b         :      
+      :-----------------:-----------------------------------------------------------------------------:
+      : PCA     ( 0x3E ): 0         :L :T :F : 0                              : a         : b         :     
+      :-----------------:-----------------------------------------------------------------------------:
+      : DIAG    ( 0x3A ): r         :                                         : a         : b         :
+      :-----------------:-----------------------------------------------------------------------------:
+      : RFI     ( 0x3F ): 0                                                                           :
+      :-----------------:-----------------------------------------------------------------------------:
+      : BRK     ( 0x00 ): info1     : 0                    : info2                                    :
+      :-----------------:-----------------------------------------------------------------------------:
+```
+
+<!--------------------------------------------------------------------------------------------------------->
+
 <div style="page-break-before: always;"></div>
 
 ## TLB and Cache Models
 
-With the access time gap between a CPU and main memory, caches are an essential component. The pipeline design makes a reference to memory during instruction fetch and then optional data access. Since both operations potentially take place  for different instructions but in the same cycle, a separate **instruction cache** and **data cache** is a key part of the overall architecture. These two caches are called **L1 caches**. In addition, there could be a joint L2 cache to serve both L1 caches.
+A key part of the CPU is a cache and a TLB mechanism. The caches bridge the performance gap between a main memory and the CPU processing elements. In modern CPUs, there is even a hierarchy of cache layers. In addition, a virtual memory system needs a way to translate a virtual address to a physical address on each instruction. The translation look-aside buffers are therefore an indispensable component of such systems. Not surprisingly, VCPU-32 has caches and TLBs too.
+
+### Instruction and Data L1 Cache
+
+The pipeline design makes a reference to memory during instruction fetch and then optional data access. Since both operations potentially take place  for different instructions but in the same cycle, a separate **instruction cache** and **data cache** is a key part of the overall architecture. These two caches are called **L1 caches**.
+
+- direct mapped model
+- set associative model
+
+### Unified L2 Cache
+
+In addition to the L! caches, there could be a joint L2 cache to serve both L1 caches.
+
+- instruction L1 cache requests have priority over L2 data requests
+- 
+
+### Instruction to manage caches
+
+
+### Instruction and Data TLBs
 
 Computers with virtual addressing simply cannot work without a **translation look-aside buffer** (TLB). For each instruction using a virtual address for instruction fetch and data access a translation to the physical memory address needs to be performed. The TLB is a kind of cache for translations and comparable to the data caches, separate instruction and data TLBs are the common implementation.
 
+### Separate instruction and data TLB
+
+- essentially like a cache
+- direct mapped model
+- set associative model
+
 ### Joint TLBs
 
+- models with a small fully associative I-TLB fed from a joint TLB for code and data pages. 
 
+### Instructions to manage TLBs
 
-### L1 and L2 Caches
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -3630,9 +3891,17 @@ Computers with virtual addressing simply cannot work without a **translation loo
 
 ### Parameter passing
 
-### Calling Convention
+### Local Calls
 
 ### External Calls
+
+### Privilege level changes
+
+### Traps and Interrupt handling
+
+### Debug
+
+### Startup sequence
 
 <!--------------------------------------------------------------------------------------------------------->
 
