@@ -505,6 +505,71 @@ const uint32_t NOP_INSTR = 0; // ??? settle on one ...
 struct Instr {
   
 public:
+    
+    static inline bool getBit( uint32_t arg, int pos ) {
+        
+        return( arg & ( 1U << ( 31 - ( pos % 32 ))));
+    }
+    
+    static inline void setBit( uint32_t *arg, int pos ) {
+       
+        *arg |= ( 1U << ( 31 - ( pos % 32 )));
+    }
+    
+    static inline void clearBit( uint32_t *arg, int pos ) {
+        
+        *arg &= ~( 1U << ( 31 - ( pos % 32 )));
+    }
+    
+    static inline uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
+        
+        pos = pos % 32;
+        len = len % 32;
+        
+        uint32_t tmpM = ( 1U << pos ) - 1;
+        uint32_t tmpA = arg >> ( 31 - pos );
+        
+        if ( sign ) return( tmpA | ( ~ tmpM ));
+        else        return( tmpA & tmpM );
+    }
+    
+    static inline void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
+        
+        pos = pos % 32;
+        len = len % 32;
+        
+        uint32_t tmpM = ( 1U << len ) - 1;
+        
+        val = ( val & tmpM ) << ( 31 - pos );
+        
+        *arg = ( *arg & ( ~tmpM )) | val;
+    }
+    
+    static inline uint32_t signExtend( uint32_t arg, int len ) {
+        
+        len = len % 32;
+        
+        uint32_t tmpM = ( 1U << len ) - 1;
+        bool     sign = arg & ( 1U << ( 31 - len ));
+        
+        if ( sign ) return( arg |= ~ tmpM );
+        else        return( arg &= tmpM );
+    }
+    
+    static inline uint32_t lowSignExtend32( uint32_t arg, int len ) {
+        
+        len = len % 32;
+        
+        uint32_t tmpM = ( 1U << ( len - 1 )) - 1;
+        bool     sign = arg % 2;
+        
+        arg = arg >> 1;
+        
+        if ( sign ) return( arg |= ~ tmpM );
+        else        return( arg &= tmpM );
+    }
+    
+    // ??? phase out and use the bit numbers directly wiuth the routines above ...
    
     static inline uint32_t  opCodeField( uint32_t instr )           { return( EXTR( instr, 5,  6  )); }
     static inline uint32_t  regRIdField( uint32_t instr )           { return( EXTR( instr, 9,  4  )); }
@@ -553,8 +618,12 @@ public:
     static inline bool      pcaPurgeFlushField( uint32_t instr )    { return( EXTR( instr, 12, 1  )); }
     static inline bool      brkInfoField( uint32_t instr )          { return( EXTR( instr, 31, 16 )); }
     
+    // ??? keep those... but replacde the macors...
+    
     static inline uint32_t  segSelect( uint32_t arg )               { return( EXTR( arg, 1,  2  )); }
     static inline uint32_t  ofsSelect( uint32_t arg )               { return( EXTR( arg, 31, 30 )); }
+    
+    // ??? replace those with the getBitField routine...
     
     static inline uint32_t immGen0S14( uint32_t instr ) {
         
