@@ -293,14 +293,10 @@ void MemoryAccessStage::process( ) {
                                ( opCode == OP_CMP ) || ( opCode == OP_AND )    ||
                                ( opCode == OP_OR )  || ( opCode == OP_XOR )    ||
                                ( opCode == OP_LD )  || ( opCode == OP_LDWR )))   ||
-                             ( opCode == OP_LDWA ) || ( opCode == OP_LDWE ) ||
-                             ( opCode == OP_LDHA ) || ( opCode == OP_LDHE ) ||
-                             ( opCode == OP_LDBA ) || ( opCode == OP_LDBE ));
+                             ( opCode == OP_LDWA ));
     
     bool writeAccessInstr = (( opCode == OP_ST )  || ( opCode == OP_STWC )  ||
-                             ( opCode == OP_STWE ) || ( opCode == OP_STWA ) ||
-                             ( opCode == OP_STHE ) || ( opCode == OP_STHA ) ||
-                             ( opCode == OP_STBE ) || ( opCode == OP_STBA ));
+                             ( opCode == OP_STWA ) );
     
     setStalled( false );
     
@@ -347,18 +343,9 @@ void MemoryAccessStage::process( ) {
             
         } break;
             
-        case OP_LDWE: case OP_LDHE: case OP_LDBE:
-        case OP_STWE: case OP_STHE: case OP_STBE: {
-            
-            valS            = core -> sReg[ Instr::regAIdField( instr ) ].get( );
-            valX            = Instr::add32( valB, valX );
-            regIdForValX    = MAX_GREGS;
-            regIdForValB    = MAX_GREGS;
-            
-        } break;
-            
-        case OP_LDWA: case OP_LDHA: case OP_LDBA:
-        case OP_STWA: case OP_STHA: case OP_STBA: {
+       
+        case OP_LDWA:
+        case OP_STWA:  {
             
             valX            = Instr::add32( valB, valX );
             regIdForValX    = MAX_GREGS;

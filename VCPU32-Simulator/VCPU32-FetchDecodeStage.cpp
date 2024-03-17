@@ -58,12 +58,10 @@ bool maStageConsumesRegValBorX( uint32_t instr ) {
     
     return (( opCode == OP_BR )     || ( opCode == OP_BLR )     ||
             ( opCode == OP_BV )     || ( opCode == OP_BVR )     ||
-            ( opCode == OP_LDWA )   || ( opCode == OP_LDWE )    ||
-            ( opCode == OP_LDHA )   || ( opCode == OP_LDHE )    ||
-            ( opCode == OP_LDBA )   || ( opCode == OP_LDBE )    ||
-            ( opCode == OP_STWA )   || ( opCode == OP_STWE )    ||
-            ( opCode == OP_STHA )   || ( opCode == OP_STHE )    ||
-            ( opCode == OP_STBA )   || ( opCode == OP_STBE )    ||
+            ( opCode == OP_LDWA )   || ( opCode == OP_LDWAX )   ||
+           
+            ( opCode == OP_STWA )   ||
+           
             ( opCode == OP_BE )     || ( opCode == OP_BLE )     ||
             ( opCode == OP_ITLB )   || ( opCode == OP_PTLB )    ||
             (( opCode == OP_PCA ))  ||
@@ -512,23 +510,7 @@ void FetchDecodeStage::process( ) {
         
         } break;
             
-        case OP_LDWE: case OP_LDHE: case OP_LDBE:
-        case OP_STWE: case OP_STHE: case OP_STBE: {
-            
-            if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
-                
-                regIdForValA    = Instr::regRIdField( instr );
-                valA            = core -> gReg[ regIdForValA ].get( );
-            }
-            
-            regIdForValB    = Instr::regBIdField( instr );
-            valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = Instr::immGen8S6( instr );
-            
-        } break;
-            
-        case OP_LDWA: case OP_LDHA: case OP_LDBA:
-        case OP_STWA: case OP_STHA: case OP_STBA: {
+        case OP_LDWA: case OP_LDWAX: case OP_STWA: {
             
             if ( instrPrivLevel > 0 ) {
                 

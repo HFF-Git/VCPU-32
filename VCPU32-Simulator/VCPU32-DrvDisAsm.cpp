@@ -355,15 +355,10 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
     }
     else if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
         
-        if (( opCode == OP_STWA ) || ( opCode == OP_STHA ) || ( opCode == OP_STBA )) {
+        if ( opCode == OP_STWA )  {
             
             printImmVal( Instr::immGen8S10( instr ));
             fprintf( stdout, "(R%d)", Instr::regBIdField( instr ));
-        }
-        else if (( opCode == OP_STWE ) || ( opCode == OP_STHE ) || ( opCode == OP_STBE )) {
-            
-            printImmVal( Instr::immGen8S6( instr ), TOK_DEC );
-            fprintf( stdout, "(S%d,R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
         }
         else displayOperandModeField( instr, fmtId );
     }
@@ -449,9 +444,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         } break;
             
-        case OP_LDWA:
-        case OP_LDHA:
-        case OP_LDBA: {
+        case OP_LDWA: {
             
             fprintf( stdout, "," );
             printImmVal( Instr::immGen8S10( instr ), TOK_DEC );
@@ -459,23 +452,13 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         } break;
             
-        case OP_LDWE:
-        case OP_LDHE:
-        case OP_LDBE: {
+        case OP_LDWAX: {
             
-            fprintf( stdout, "," );
-            printImmVal( Instr::immGen8S6( instr ), TOK_DEC );
-            fprintf( stdout, "(S%d,R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
+            // ??? fill in ...
             
         } break;
-            
-        case OP_STWA:
-        case OP_STHA:
-        case OP_STBA:
-            
-        case OP_STWE:
-        case OP_STHE:
-        case OP_STBE: {
+
+        case OP_STWA: {
             
             fprintf( stdout, ",R%d", Instr::regRIdField( instr ));
             

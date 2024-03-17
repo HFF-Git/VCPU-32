@@ -463,7 +463,6 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_LD:
-        case OP_LDWE:
         case OP_LDWA: {
             
             valR = valB;
