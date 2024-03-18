@@ -312,25 +312,9 @@ void MemoryAccessStage::process( ) {
             
             switch( opMode ) {
                     
-                case OP_MODE_EXT_INDX_W: 
-                case OP_MODE_EXT_INDX_H:
-                case OP_MODE_EXT_INDX_B: {
-                    
-                    valS            = core -> sReg[ Instr::regAIdField( instr ) ].get( );
-                    valX            = Instr::add32( valB, valX );
-                    regIdForValX    = MAX_GREGS;
-                    regIdForValB    = MAX_GREGS;
-                    
-                } break;
-                    
-                case OP_MODE_REG_INDX_W:  case OP_MODE_REG_INDX_H:  case OP_MODE_REG_INDX_B:
-                case OP_MODE_GR10_INDX_W: case OP_MODE_GR10_INDX_H: case OP_MODE_GR10_INDX_B:
-                case OP_MODE_GR11_INDX_W: case OP_MODE_GR11_INDX_H: case OP_MODE_GR11_INDX_B:
-                case OP_MODE_GR12_INDX_W: case OP_MODE_GR12_INDX_H: case OP_MODE_GR12_INDX_B:
-                case OP_MODE_GR13_INDX_W: case OP_MODE_GR13_INDX_H: case OP_MODE_GR13_INDX_B:
-                case OP_MODE_GR14_INDX_W: case OP_MODE_GR14_INDX_H: case OP_MODE_GR14_INDX_B:
-                case OP_MODE_GR15_INDX_W: case OP_MODE_GR15_INDX_H: case OP_MODE_GR15_INDX_B: {
-                    
+                case OP_MODE_REG_INDX_W:    case OP_MODE_REG_INDX_H:    case OP_MODE_REG_INDX_B:
+                case OP_MODE_INDX_W:        case OP_MODE_INDX_H:        case OP_MODE_INDX_B: {
+              
                     valS            = core -> sReg[ Instr::segSelect( valB ) ].get( );
                     valX            = Instr::add32( valB, valX );
                     regIdForValX    = MAX_GREGS;

@@ -106,16 +106,15 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
     switch ( Instr::opModeField( instr )) {
             
-        case OP_MODE_IMM:      printImmVal( Instr::immGen0S14( instr ));                break;
-        case OP_MODE_NO_REGS:  fprintf( stdout, "0, 0");                                break;
-        case OP_MODE_REG_A:    fprintf( stdout, "0, R%d", Instr::regAIdField( instr )); break;
-        case OP_MODE_REG_B:    fprintf( stdout, "R%d, 0", Instr::regBIdField( instr )); break;
-            
-        case OP_MODE_REG_A_B: {
+        case OP_MODE_IMM:       printImmVal( Instr::immGen0S14( instr )); break;
+        case OP_MODE_ONE_REG:   fprintf( stdout, "0, R%d", Instr::regBIdField( instr )); break;
+        case OP_MODE_TWO_REG:   {
             
             fprintf( stdout, "R%d,R%d", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
             
         } break;
+            
+        case 3: fprintf( stdout, "***opMode(3)***" ); break;
             
         case OP_MODE_REG_INDX_W:
         case OP_MODE_REG_INDX_H:
@@ -125,28 +124,20 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         } break;
             
-        case OP_MODE_EXT_INDX_W: 
-        case OP_MODE_EXT_INDX_H:
-        case OP_MODE_EXT_INDX_B: {
+        case 7: fprintf( stdout, "***opMode(7)***" ); break;
             
-            printImmVal( Instr::immGen0S6( instr ), TOK_DEC );
-            fprintf( stdout, "(S%d,R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
-            
-        } break;
-            
-        case OP_MODE_GR10_INDX_W: case OP_MODE_GR10_INDX_H: case OP_MODE_GR10_INDX_B:
-        case OP_MODE_GR11_INDX_W: case OP_MODE_GR11_INDX_H: case OP_MODE_GR11_INDX_B:
-        case OP_MODE_GR12_INDX_W: case OP_MODE_GR12_INDX_H: case OP_MODE_GR12_INDX_B:
-        case OP_MODE_GR13_INDX_W: case OP_MODE_GR13_INDX_H: case OP_MODE_GR13_INDX_B:
-        case OP_MODE_GR14_INDX_W: case OP_MODE_GR14_INDX_H: case OP_MODE_GR14_INDX_B:
-        case OP_MODE_GR15_INDX_W: case OP_MODE_GR15_INDX_H: case OP_MODE_GR15_INDX_B: {
+        default: {
             
             printImmVal( Instr::immGen0S14( instr ), TOK_DEC );
-            fprintf( stdout, "(R%d)", Instr::mapOpModeToIndexReg( Instr::opModeField( instr )));
             
-        } break;
-            
-        default:  fprintf( stdout, "***opMode***" );
+            if ( Instr::opSegSelectField( instr ) > 0 ) {
+                
+                fprintf( stdout, "(S%d, R%d)", 
+                        Instr::mapOpModeToIndexReg( Instr::opModeField( instr )),
+                        Instr::opSegSelectField( instr ));
+            }
+            else fprintf( stdout, "(R%d)", Instr::mapOpModeToIndexReg( Instr::opModeField( instr )));
+        }
     }
 }
 
@@ -161,30 +152,22 @@ void displayOpCode( uint32_t instr ) {
     uint32_t opCode = Instr::opCodeField( instr );
     
     fprintf( stdout, "%s", opCodeTab[ opCode ].mnemonic );
+    
     if ( opCodeTab[ opCode ].flags & OP_MODE_INSTR ) {
         
-        switch ( Instr::opModeField( instr )) {
-                
-            case OP_MODE_GR10_INDX_W: case OP_MODE_GR11_INDX_W: case OP_MODE_GR12_INDX_W:
-            case OP_MODE_GR13_INDX_W: case OP_MODE_GR14_INDX_W: case OP_MODE_GR15_INDX_W: {
-                
-               // ??? we currently do not show the "W"
-                
-            } break;
-                
-            case OP_MODE_GR10_INDX_H: case OP_MODE_GR11_INDX_H: case OP_MODE_GR12_INDX_H:
-            case OP_MODE_GR13_INDX_H: case OP_MODE_GR14_INDX_H: case OP_MODE_GR15_INDX_H: {
-                
-                fprintf( stdout, "H" );
-                
-            } break;
-                
-            case OP_MODE_GR10_INDX_B: case OP_MODE_GR11_INDX_B: case OP_MODE_GR12_INDX_B:
-            case OP_MODE_GR13_INDX_B: case OP_MODE_GR14_INDX_B: case OP_MODE_GR15_INDX_B: {
-                
-                fprintf( stdout, "B" );
-                
-            } break;
+        uint32_t opMode = Instr::opModeField( instr );
+        
+        if (( opMode <= 8 ) && ( opMode <= 15 )) {
+            
+            // ??? we currently do not show the "W", but perhaps could for LD and ST
+        }
+        else if (( opMode <= 16 ) && ( opMode <= 23 )) {
+            
+            fprintf( stdout, "H" );
+        }
+        else if (( opMode <= 24 ) && ( opMode <= 31 )) {
+            
+            fprintf( stdout, "B" );
         }
     }
 }
@@ -400,6 +383,8 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_LDIL:
         case OP_ADDIL: {
             
+            // ??? need to be able to print in all radix ?
+            
             fprintf( stdout, ", %d", Instr::immLeftField( instr ));
             
         } break;
@@ -454,8 +439,8 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         case OP_LDWAX: {
             
-            // ??? fill in ...
-            
+            fprintf( stdout, ",R%d(R%d)", Instr:: regAIdField( instr ), Instr::regBIdField( instr ));
+        
         } break;
 
         case OP_STWA: {

@@ -385,28 +385,14 @@ void FetchDecodeStage::process( ) {
                     
                 } break;
                     
-                case OP_MODE_NO_REGS: {
-                   
-                    valA = 0;
-                    valB = 0;
-                    
-                } break;
-                    
-                case OP_MODE_REG_A: {
-                    
-                    regIdForValA    = Instr::regAIdField( instr );
-                    valA            = core -> gReg[ regIdForValA ].get( );
-                    
-                } break;
-                    
-                case OP_MODE_REG_B: {
+                case OP_MODE_ONE_REG: {
                     
                     regIdForValB    = Instr::regBIdField( instr );
                     valB            = core -> gReg[ regIdForValB ].get( );
                     
                 } break;
                     
-                case OP_MODE_REG_A_B: {
+                case OP_MODE_TWO_REG: {
                     
                     regIdForValA    = Instr::regAIdField( instr );
                     regIdForValB    = Instr::regBIdField( instr );
@@ -415,26 +401,9 @@ void FetchDecodeStage::process( ) {
                     
                 } break;
                     
-                case OP_MODE_EXT_INDX_W: case OP_MODE_EXT_INDX_H: case OP_MODE_EXT_INDX_B: {
-                    
-                    if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
-                        
-                        regIdForValA    = Instr::regRIdField( instr );
-                        valA            = core -> gReg[ regIdForValA ].get( );
-                    }
-                    
-                    regIdForValB    = Instr::regBIdField( instr );
-                    valB            = core -> gReg[ regIdForValB ].get( );
-                    valX            = Instr::immGen0S6( instr );
-                    
-                } break;
-                    
-                case OP_MODE_GR10_INDX_W: case OP_MODE_GR10_INDX_H: case OP_MODE_GR10_INDX_B:
-                case OP_MODE_GR11_INDX_W: case OP_MODE_GR11_INDX_H: case OP_MODE_GR11_INDX_B:
-                case OP_MODE_GR12_INDX_W: case OP_MODE_GR12_INDX_H: case OP_MODE_GR12_INDX_B:
-                case OP_MODE_GR13_INDX_W: case OP_MODE_GR13_INDX_H: case OP_MODE_GR13_INDX_B:
-                case OP_MODE_GR14_INDX_W: case OP_MODE_GR14_INDX_H: case OP_MODE_GR14_INDX_B:
-                case OP_MODE_GR15_INDX_W: case OP_MODE_GR15_INDX_H: case OP_MODE_GR15_INDX_B: {
+                case OP_MODE_REG_INDX_W:
+                case OP_MODE_REG_INDX_H:
+                case OP_MODE_REG_INDX_B: {
                     
                     if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
                         
@@ -708,7 +677,8 @@ void FetchDecodeStage::process( ) {
             
         case OP_BRK: {
             
-            valA = Instr::brkInfoField( instr );
+            valA = Instr::brkInfo1Field( instr );
+            valA = Instr::brkInfo2Field( instr );
          
         } break;
             

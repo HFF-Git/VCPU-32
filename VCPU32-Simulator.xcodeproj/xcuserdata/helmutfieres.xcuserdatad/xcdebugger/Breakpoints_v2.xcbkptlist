@@ -23,16 +23,32 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "F95D0F33-CACF-4836-AFC3-507F69E8A9A5"
+            uuid = "864D2BEB-3B67-4167-BA87-E07FD6099B60"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "VCPU32-Simulator/VCPU32-DrvDisAsm.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "145"
-            endingLineNumber = "145"
-            landmarkName = "displayOperandModeField(instr, TOK_DEC)"
+            startingLineNumber = "600"
+            endingLineNumber = "600"
+            landmarkName = "DrvDisAsm::displayInstr(instr, fmt)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "5EC8C8AA-4CD4-4C56-A07A-42425419CDFD"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "VCPU32-Simulator/VCPU32-DrvDisAsm.cpp"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "158"
+            endingLineNumber = "158"
+            landmarkName = "displayOpCode(instr)"
             landmarkType = "9">
          </BreakpointContent>
       </BreakpointProxy>

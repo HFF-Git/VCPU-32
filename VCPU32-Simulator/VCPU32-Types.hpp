@@ -145,7 +145,10 @@ enum PipeLineStageRegId : uint32_t {
     PSTAGE_REG_ID_VAL_ST    = 8,
     PSTAGE_REG_ID_RID_A     = 9,
     PSTAGE_REG_ID_RID_B     = 10,
-    PSTAGE_REG_ID_RID_X     = 11
+    PSTAGE_REG_ID_RID_X     = 11,
+    
+    PSTAGE_REG_ID_MA_CTRL   = 12,
+    PSTAGE_REG_ID_EX_CTRL   = 13
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -238,38 +241,16 @@ enum TestConditionCodes : uint32_t {
 enum OpMode : uint32_t {
     
     OP_MODE_IMM             = 0x0,
+    OP_MODE_ONE_REG         = 0x01,
+    OP_MODE_TWO_REG         = 0x02,
     
-    OP_MODE_NO_REGS         = 0x04,
-    OP_MODE_REG_B           = 0x05,
-    OP_MODE_REG_A           = 0x06,
-    OP_MODE_REG_A_B         = 0x07,
+    OP_MODE_REG_INDX_W      = 0x04,
+    OP_MODE_REG_INDX_H      = 0x05,
+    OP_MODE_REG_INDX_B      = 0x06,
     
-    OP_MODE_REG_INDX_W      = 0x08,
-    OP_MODE_EXT_INDX_W      = 0x09,
-    OP_MODE_GR10_INDX_W     = 0x0A,
-    OP_MODE_GR11_INDX_W     = 0x0B,
-    OP_MODE_GR12_INDX_W     = 0x0C,
-    OP_MODE_GR13_INDX_W     = 0x0D,
-    OP_MODE_GR14_INDX_W     = 0x0E,
-    OP_MODE_GR15_INDX_W     = 0x0F,
-    
-    OP_MODE_REG_INDX_H      = 0x10,
-    OP_MODE_EXT_INDX_H      = 0x11,
-    OP_MODE_GR10_INDX_H     = 0x12,
-    OP_MODE_GR11_INDX_H     = 0x13,
-    OP_MODE_GR12_INDX_H     = 0x14,
-    OP_MODE_GR13_INDX_H     = 0x15,
-    OP_MODE_GR14_INDX_H     = 0x16,
-    OP_MODE_GR15_INDX_H     = 0x17,
-    
-    OP_MODE_REG_INDX_B      = 0x18,
-    OP_MODE_EXT_INDX_B      = 0x19,
-    OP_MODE_GR10_INDX_B     = 0x1A,
-    OP_MODE_GR11_INDX_B     = 0x1B,
-    OP_MODE_GR12_INDX_B     = 0x1C,
-    OP_MODE_GR13_INDX_B     = 0x1D,
-    OP_MODE_GR14_INDX_B     = 0x1E,
-    OP_MODE_GR15_INDX_B     = 0x1F
+    OP_MODE_INDX_W          = 0x08,
+    OP_MODE_INDX_H          = 0x10,
+    OP_MODE_INDX_B          = 0x18
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -320,8 +301,8 @@ enum InstrOpCode : uint8_t {
     
     OP_RSV_1C       = 0x1C,     // reserved
     OP_RSV_1D       = 0x1D,     // reserved
-    OP_RSV_1E       = 0x1E,     // reserved
-    OP_RSV_1F       = 0x1F,     // reserved
+    OP_LDPA         = 0x1E,     // load physical address
+    OP_PRB          = 0x1F,     // probe access
     
     // group two - branch type group
     
@@ -345,18 +326,18 @@ enum InstrOpCode : uint8_t {
     
     // group three - special and control group
     
-    OP_LDPA         = 0x30,     // load physical address
-    OP_PRB          = 0x31,     // probe access
-    OP_ITLB         = 0x32,     // insert into TLB
-    OP_PTLB         = 0x33,     // remove from TLB
-    OP_PCA          = 0x34,     // purge and flush cache
-    OP_DIAG         = 0x35,     // diagnostics instruction, tbd.
+    OP_RSV_30       = 0x30,     // reserved
+    OP_RSV_31       = 0x31,     // reserved
+    OP_RSV_32       = 0x32,     // reserved
+    OP_RSV_33       = 0x33,     // reserved
+    OP_RSV_34       = 0x34,     // reserved
+    OP_RSV_35       = 0x35,     // reserved
     OP_RSV_36       = 0x36,     // reserved
     OP_RSV_37       = 0x37,     // reserved
-    OP_RSV_38       = 0x38,     // reserved
-    OP_RSV_39       = 0x39,     // reserved
-    OP_RSV_3A       = 0x3A,     // reserved
-    OP_RSV_3B       = 0x3B,     // reserved
+    OP_ITLB         = 0x38,     // insert into TLB
+    OP_PTLB         = 0x39,     // remove from TLB
+    OP_PCA          = 0x3A,     // purge and flush cache
+    OP_DIAG         = 0x3B,     // diagnostics instruction, tbd.
     OP_LDWA         = 0x3C,     // load word from absolute address
     OP_LDWAX        = 0x3D,     // load word indexed from absolute address
     OP_STWA         = 0x3E,     // store word to absolute adress
@@ -389,8 +370,8 @@ enum instrFlags : uint32_t {
 // to simplifiy this checking. Each instruction is classified with the coresponding flags.
 //
 // ??? decide which way to go... no flags or all kinds of flags...
+// ??? should that be a local table for the dissasembler only ?
 //------------------------------------------------------------------------------------------------------------
-// ??? rework this table ... or get rid of it ...
 
 const struct opCodeInfo {
     
@@ -431,8 +412,8 @@ const struct opCodeInfo {
     /* 0x1B */  { "STWC",   OP_STWC,    ( STORE_INSTR | OP_MODE_INSTR ) },
     /* 0x1C */  { "RSV_1C", OP_RSV_1C,  ( NO_FLAGS ) },
     /* 0x1D */  { "RSV_1D", OP_RSV_1D,  ( NO_FLAGS ) },
-    /* 0x1E */  { "RSV_1E", OP_RSV_1E,  ( NO_FLAGS ) },
-    /* 0x1F */  { "RSV_1F", OP_RSV_1F,  ( NO_FLAGS ) },
+    /* 0x1E */  { "LDPA",   OP_LDPA,    ( LOAD_INSTR | PRIV_INSTR | REG_R_INSTR ) },
+    /* 0x1F */  { "PRB",    OP_PRB,     ( CTRL_INSTR | REG_R_INSTR ) },
     
     /* 0x20 */  { "B",      OP_B,       ( BRANCH_INSTR ) },
     /* 0x21 */  { "BL",     OP_BL,      ( BRANCH_INSTR | REG_R_INSTR ) },
@@ -451,18 +432,19 @@ const struct opCodeInfo {
     /* 0x2E */  { "RSV_2E", OP_RSV_2E,  ( NO_FLAGS ) },
     /* 0x2F */  { "RSV_2F", OP_RSV_2F,  ( NO_FLAGS ) },
     
-    /* 0x30 */  { "LDPA",   OP_LDPA,    ( LOAD_INSTR | PRIV_INSTR | REG_R_INSTR ) },
-    /* 0x31 */  { "PRB",    OP_PRB,     ( CTRL_INSTR | REG_R_INSTR ) },
-    /* 0x32 */  { "ITLB",   OP_ITLB,    ( CTRL_INSTR | PRIV_INSTR ) },
-    /* 0x43 */  { "PTLB",   OP_PTLB,    ( CTRL_INSTR | PRIV_INSTR ) },
-    /* 0x34 */  { "PCA",    OP_PCA,     ( CTRL_INSTR ) },
-    /* 0x35 */  { "DIAG",   OP_DIAG,    ( CTRL_INSTR ) },
+    /* 0x30 */  { "RSV_30", OP_RSV_30,  ( NO_FLAGS ) },
+    /* 0x31 */  { "RSV_31", OP_RSV_31,  ( NO_FLAGS ) },
+    /* 0x32 */  { "RSV_32", OP_RSV_32,  ( NO_FLAGS ) },
+    /* 0x33 */  { "RSV_33", OP_RSV_33,  ( NO_FLAGS ) },
+    /* 0x34 */  { "RSV_34", OP_RSV_34,  ( NO_FLAGS ) },
+    /* 0x35 */  { "RSV_35", OP_RSV_35,  ( NO_FLAGS ) },
     /* 0x36 */  { "RSV_36", OP_RSV_36,  ( NO_FLAGS ) },
     /* 0x37 */  { "RSV_37", OP_RSV_37,  ( NO_FLAGS ) },
-    /* 0x38 */  { "RSV_38", OP_RSV_38,  ( NO_FLAGS ) },
-    /* 0x39 */  { "RSV_39", OP_RSV_39,  ( NO_FLAGS ) },
-    /* 0x3A */  { "RSV_3A", OP_RSV_38,  ( NO_FLAGS ) },
-    /* 0x3B */  { "RSV_3B", OP_RSV_39,  ( NO_FLAGS ) },
+    
+    /* 0x38 */  { "ITLB",   OP_ITLB,    ( CTRL_INSTR | PRIV_INSTR ) },
+    /* 0x39 */  { "PTLB",   OP_PTLB,    ( CTRL_INSTR | PRIV_INSTR ) },
+    /* 0x3A */  { "PCA",    OP_PCA,     ( CTRL_INSTR ) },
+    /* 0x3B */  { "DIAG",   OP_DIAG,    ( CTRL_INSTR ) },
     /* 0x3C */  { "LDWA",   OP_LDWA,    ( LOAD_INSTR  | PRIV_INSTR | REG_R_INSTR  ) },
     /* 0x3D */  { "LDWAX",  OP_LDWAX,   ( LOAD_INSTR  | PRIV_INSTR | REG_R_INSTR  ) },
     /* 0x3E */  { "STWA",   OP_STWA,    ( STORE_INSTR | PRIV_INSTR ) },
@@ -522,7 +504,7 @@ public:
         pos = pos % 32;
         len = len % 32;
         
-        uint32_t tmpM = ( 1U << pos ) - 1;
+        uint32_t tmpM = ( 1U << len ) - 1;
         uint32_t tmpA = arg >> ( 31 - pos );
         
         if ( sign ) return( tmpA | ( ~ tmpM ));
@@ -564,60 +546,60 @@ public:
         if ( sign ) return( arg |= ~ tmpM );
         else        return( arg &= tmpM );
     }
-    
-    // ??? phase out and use the bit numbers directly wiuth the routines above ...
    
-    static inline uint32_t  opCodeField( uint32_t instr )           { return( EXTR( instr, 5,  6  )); }
-    static inline uint32_t  regRIdField( uint32_t instr )           { return( EXTR( instr, 9,  4  )); }
-    static inline uint32_t  regAIdField( uint32_t instr )           { return( EXTR( instr, 27, 4  )); }
-    static inline uint32_t  regBIdField( uint32_t instr )           { return( EXTR( instr, 31, 4  )); }
-    static inline uint32_t  opModeField( uint32_t instr )           { return( EXTR( instr, 17, 5  )); }
-    static inline uint32_t  cmpCondField( uint32_t instr )          { return( EXTR( instr, 12, 3  )); }
-    static inline uint32_t  cmrCondField( uint32_t instr )          { return( EXTR( instr, 12, 3  )); }
-    static inline uint32_t  cbrCondField( uint32_t instr )          { return( EXTR( instr, 8,  3  )); }
-    static inline uint32_t  tbrCondField( uint32_t instr )          { return( EXTR( instr, 8,  3  )); }
-    static inline uint32_t  immOfsSignField( uint32_t instr )       { return( EXTR( instr, 18, 1  )); }
-    static inline uint32_t  arithOpFlagField( uint32_t instr )      { return( EXTR( instr, 12, 3  )); }
-    static inline uint32_t  boolOpFlagField( uint32_t instr )       { return( EXTR( instr, 12, 3  )); }
-    static inline uint32_t  extrSignField( uint32_t instr )         { return( EXTR( instr, 10, 1  )); }
-    static inline uint32_t  depZeroField( uint32_t instr )          { return( EXTR( instr, 10, 1  )); }
-    static inline uint32_t  depImmField( uint32_t instr )           { return( EXTR( instr, 12, 1  )); }
-    static inline uint32_t  extrDepSaOptField( uint32_t instr )     { return( EXTR( instr, 11, 1  )); }
-    static inline uint32_t  extrDepLenField( uint32_t instr )       { return( EXTR( instr, 22, 5  )); }
-    static inline uint32_t  extrDepPosField( uint32_t instr )       { return( EXTR( instr, 27, 5  )); }
-    static inline uint32_t  dsrSaOptField( uint32_t instr )         { return( EXTR( instr, 11, 1  )); }
-    static inline uint32_t  dsrSaAmtField( uint32_t instr )         { return( EXTR( instr, 22, 5  )); }
-    static inline bool      shlaUseImmField( uint32_t instr )       { return( EXTR( instr, 22, 2  )); }
-    static inline bool      useCarryField( uint32_t instr )         { return( EXTR( instr, 10, 1  )); }
-    static inline bool      logicalOpField( uint32_t instr )        { return( EXTR( instr, 11, 1  )); }
-    static inline bool      trapOvlField( uint32_t instr )          { return( EXTR( instr, 12, 1  )); }
-    static inline bool      negateResField( uint32_t instr )        { return( EXTR( instr, 10, 1  )); }
-    static inline bool      complRegBField( uint32_t instr )        { return( EXTR( instr, 11, 1  )); }
-    static inline bool      extrSignedField( uint32_t instr )       { return( EXTR( instr, 10, 1  )); }
-    static inline bool      depInZeroField( uint32_t instr )        { return( EXTR( instr, 10, 1  )); }
-    static inline bool      depImmOptField( uint32_t instr )        { return( EXTR( instr, 11, 1  )); }
-    static inline uint32_t  shlaSaField( uint32_t instr )           { return( EXTR( instr, 22, 2  )); }
-    static inline bool      mrZeroField( uint32_t instr )           { return( EXTR( instr, 10, 1  )); }
-    static inline bool      mrMovDirField( uint32_t instr )         { return( EXTR( instr, 11, 1  )); }
-    static inline bool      mrRegTypeField( uint32_t instr )        { return( EXTR( instr, 12, 1  )); }
-    static inline uint32_t  mrArgField( uint32_t instr )            { return( EXTR( instr, 31, 6  )); }
-    static inline uint32_t  mstModeField( uint32_t instr )          { return( EXTR( instr, 11, 2  )); }
-    static inline uint32_t  mstArgField( uint32_t instr )           { return( EXTR( instr, 31, 6  )); }
-    static inline bool      prbAdrModeField( uint32_t instr )       { return( EXTR( instr, 10, 1  )); }
-    static inline bool      prbRwAccField( uint32_t instr )         { return( EXTR( instr, 11, 1  )); }
-    static inline bool      ldpaAdrModeField( uint32_t instr )      { return( EXTR( instr, 10, 1  )); }
-    static inline bool      tlbAdrModeField( uint32_t instr )       { return( EXTR( instr, 10, 1  )); }
-    static inline bool      tlbKindField( uint32_t instr )          { return( EXTR( instr, 11, 1  )); }
-    static inline bool      tlbArgModeField( uint32_t instr )       { return( EXTR( instr, 12, 1  )); }
-    static inline bool      pcaAdrModeField( uint32_t instr )       { return( EXTR( instr, 10, 1  )); }
-    static inline bool      pcaKindField( uint32_t instr )          { return( EXTR( instr, 11, 1  )); }
-    static inline bool      pcaPurgeFlushField( uint32_t instr )    { return( EXTR( instr, 12, 1  )); }
-    static inline bool      brkInfoField( uint32_t instr )          { return( EXTR( instr, 31, 16 )); }
+    static inline uint32_t  opCodeField( uint32_t instr )           { return( getBitField( instr, 5,  6  )); }
+    static inline uint32_t  regRIdField( uint32_t instr )           { return( getBitField( instr, 9,  4  )); }
+    static inline uint32_t  regAIdField( uint32_t instr )           { return( getBitField( instr, 27, 4  )); }
+    static inline uint32_t  regBIdField( uint32_t instr )           { return( getBitField( instr, 31, 4  )); }
+    static inline uint32_t  opModeField( uint32_t instr )           { return( getBitField( instr, 17, 5  )); }
+    static inline uint32_t  opSegSelectField( uint32_t instr )      { return( getBitField( instr, 19, 2  )); }
+    static inline uint32_t  cmpCondField( uint32_t instr )          { return( getBitField( instr, 12, 3  )); }
+    static inline uint32_t  cmrCondField( uint32_t instr )          { return( getBitField( instr, 12, 3  )); }
+    static inline uint32_t  cbrCondField( uint32_t instr )          { return( getBitField( instr, 8,  3  )); }
+    static inline uint32_t  tbrCondField( uint32_t instr )          { return( getBitField( instr, 8,  3  )); }
+    static inline uint32_t  arithOpFlagField( uint32_t instr )      { return( getBitField( instr, 12, 3  )); }
+    static inline uint32_t  boolOpFlagField( uint32_t instr )       { return( getBitField( instr, 12, 3  )); }
+    static inline uint32_t  extrDepLenField( uint32_t instr )       { return( getBitField( instr, 22, 5  )); }
+    static inline uint32_t  extrDepPosField( uint32_t instr )       { return( getBitField( instr, 27, 5  )); }
+    static inline uint32_t  dsrSaAmtField( uint32_t instr )         { return( getBitField( instr, 22, 5  )); }
+    static inline bool      shlaUseImmField( uint32_t instr )       { return( getBitField( instr, 22, 2  )); }
+    static inline uint32_t  shlaSaField( uint32_t instr )           { return( getBitField( instr, 22, 2  )); }
+    static inline uint32_t  mrArgField( uint32_t instr )            { return( getBitField( instr, 31, 6  )); }
+    static inline uint32_t  mstModeField( uint32_t instr )          { return( getBitField( instr, 11, 2  )); }
+    static inline uint32_t  mstArgField( uint32_t instr )           { return( getBitField( instr, 31, 6  )); }
+    static inline bool      brkInfo1Field( uint32_t instr )         { return( getBitField( instr, 9,  4  )); }
+    static inline bool      brkInfo2Field( uint32_t instr )         { return( getBitField( instr, 31, 16 )); }
     
-    // ??? keep those... but replacde the macors...
+    static inline uint32_t  immOfsSignField( uint32_t instr )       { return( getBit( instr, 18 )); }
+    static inline uint32_t  extrSignField( uint32_t instr )         { return( getBit( instr, 10 )); }
+    static inline uint32_t  depZeroField( uint32_t instr )          { return( getBit( instr, 10 )); }
+    static inline uint32_t  depImmField( uint32_t instr )           { return( getBit( instr, 12 )); }
+    static inline uint32_t  extrDepSaOptField( uint32_t instr )     { return( getBit( instr, 11 )); }
+    static inline uint32_t  dsrSaOptField( uint32_t instr )         { return( getBit( instr, 11 )); }
+    static inline bool      useCarryField( uint32_t instr )         { return( getBit( instr, 10 )); }
+    static inline bool      logicalOpField( uint32_t instr )        { return( getBit( instr, 11 )); }
+    static inline bool      trapOvlField( uint32_t instr )          { return( getBit( instr, 12 )); }
+    static inline bool      negateResField( uint32_t instr )        { return( getBit( instr, 10 )); }
+    static inline bool      complRegBField( uint32_t instr )        { return( getBit( instr, 11 )); }
+    static inline bool      extrSignedField( uint32_t instr )       { return( getBit( instr, 10 )); }
+    static inline bool      depInZeroField( uint32_t instr )        { return( getBit( instr, 10 )); }
+    static inline bool      depImmOptField( uint32_t instr )        { return( getBit( instr, 11 )); }
+    static inline bool      mrZeroField( uint32_t instr )           { return( getBit( instr, 10 )); }
+    static inline bool      mrMovDirField( uint32_t instr )         { return( getBit( instr, 11 )); }
+    static inline bool      mrRegTypeField( uint32_t instr )        { return( getBit( instr, 12 )); }
+    static inline bool      prbAdrModeField( uint32_t instr )       { return( getBit( instr, 10 )); }
+    static inline bool      prbRwAccField( uint32_t instr )         { return( getBit( instr, 11 )); }
+    static inline bool      ldpaAdrModeField( uint32_t instr )      { return( getBit( instr, 10 )); }
+    static inline bool      tlbAdrModeField( uint32_t instr )       { return( getBit( instr, 10 )); }
+    static inline bool      tlbKindField( uint32_t instr )          { return( getBit( instr, 11 )); }
+    static inline bool      tlbArgModeField( uint32_t instr )       { return( getBit( instr, 12 )); }
+    static inline bool      pcaAdrModeField( uint32_t instr )       { return( getBit( instr, 10 )); }
+    static inline bool      pcaKindField( uint32_t instr )          { return( getBit( instr, 11 )); }
+    static inline bool      pcaPurgeFlushField( uint32_t instr )    { return( getBit( instr, 12 )); }
     
-    static inline uint32_t  segSelect( uint32_t arg )               { return( EXTR( arg, 1,  2  )); }
-    static inline uint32_t  ofsSelect( uint32_t arg )               { return( EXTR( arg, 31, 30 )); }
+    
+    static inline uint32_t  segSelect( uint32_t arg )               { return( getBitField( arg, 1,  2  )); }
+    static inline uint32_t  ofsSelect( uint32_t arg )               { return( getBitField( arg, 31, 30 )); }
     
     // ??? replace those with the getBitField routine...
     
@@ -680,38 +662,18 @@ public:
     
     static uint32_t mapOpModeToIndexReg( uint32_t opMode ) {
         
-        switch ( opMode ) {
-                
-            case OP_MODE_GR10_INDX_W: case OP_MODE_GR10_INDX_H: case OP_MODE_GR10_INDX_B: return( 10 );
-            case OP_MODE_GR11_INDX_W: case OP_MODE_GR11_INDX_H: case OP_MODE_GR11_INDX_B: return( 11 );
-            case OP_MODE_GR12_INDX_W: case OP_MODE_GR12_INDX_H: case OP_MODE_GR12_INDX_B: return( 12 );
-            case OP_MODE_GR13_INDX_W: case OP_MODE_GR13_INDX_H: case OP_MODE_GR13_INDX_B: return( 13 );
-            case OP_MODE_GR14_INDX_W: case OP_MODE_GR14_INDX_H: case OP_MODE_GR14_INDX_B: return( 14 );
-            case OP_MODE_GR15_INDX_W: case OP_MODE_GR15_INDX_H: case OP_MODE_GR15_INDX_B: return( 15 );
-            default: return( 0 );
-                
-        }
+        if      (( opMode >= 8 ) && ( opMode <= 15 )) return( opMode );
+        else if (( opMode >= 16 ) && ( opMode <= 23 )) return( opMode - 8 );
+        else if (( opMode >= 24 ) && ( opMode <= 31 )) return( opMode - 16 );
+        else return( 0 );
     }
     
     static uint32_t dataLenForOpMode( uint32_t opMode ) {
         
-        switch( opMode ) {
-                
-            case OP_MODE_EXT_INDX_W:  case OP_MODE_REG_INDX_W:   case OP_MODE_GR10_INDX_W:
-            case OP_MODE_GR12_INDX_W: case OP_MODE_GR13_INDX_W:  case OP_MODE_GR14_INDX_W:
-            case OP_MODE_GR15_INDX_W: return( 4 );
-                
-                
-            case OP_MODE_EXT_INDX_H:  case OP_MODE_REG_INDX_H:   case OP_MODE_GR10_INDX_H:
-            case OP_MODE_GR12_INDX_H: case OP_MODE_GR13_INDX_H:  case OP_MODE_GR14_INDX_H:
-            case OP_MODE_GR15_INDX_H: return( 2 );
-                
-            case OP_MODE_EXT_INDX_B:  case OP_MODE_REG_INDX_B:   case OP_MODE_GR10_INDX_B:
-            case OP_MODE_GR12_INDX_B: case OP_MODE_GR13_INDX_B:  case OP_MODE_GR14_INDX_B:
-            case OP_MODE_GR15_INDX_B: return( 1 );
-                
-            default: return( 4 );
-        }
+        if      (( opMode >= 8 ) && ( opMode <= 15 )) return( 4 );
+        else if (( opMode >= 16 ) && ( opMode <= 23 )) return( 2 );
+        else if (( opMode >= 24 ) && ( opMode <= 31 )) return( 1 );
+        else return( 0 );
     }
 };
  
