@@ -12,7 +12,7 @@
 <style>
    div {
 	   text-align: justify;
-      orphans:2;
+      orphans:3;
       widow:2;
 	}
    table {
@@ -27,15 +27,23 @@
     	height: auto;
     }
    blockquote {
+      break-inside: avoid;
       orphans:3;
       widow:2;
     }
    code {
+      break-inside: avoid;
 	   font-size: 12px;
 	   line-height: 17px;
       orphans:3;
       widow:2;
    }
+   @media print {
+    code, blockquote, table, figure {
+      break-inside: avoid;
+   }
+}
+
 </style>
 
 
@@ -241,7 +249,6 @@ The **control registers** hold information about the processor configuration as 
 
 The VCPU-32 memory model features a **segmented memory model**. The address space consists of up to 2^32 segments, each of which holds up to 2^32 words in size. Segments are further subdivided into pages with a page size of 4K Words. The concatenation of segment ID and offset form a **virtual address**.
 
-
 ```
     0                                       31     0                          20            31
    :------------------------------------------:   :-------------------------------------------:
@@ -341,7 +348,7 @@ Protection IDs are typically used to form a grouping of access. A good example i
 
 The previous section depicted the virtual address translation. While the CPU architects the logical, virtual and physical address scheme, it does not specify how exactly the hardware supports the translation process. A very common model is to have for performance reasons TLBs for caching translation results and Caches for data caching. However, split TLBS and unified TLBs, L1 and L2 caches and other schemes are models to consider. This section just outline the common architecture and instructions to manage these CPU components.
 
-#### Translation Lookaside Buffer
+### Translation Lookaside Buffer
 
 For performance reasons, the virtual address translation result is stored in a translation look-aside buffer (TLB). Depending on the hardware implementation, there can be a combined TLB or a separate instruction TLB and data TLB. The TLB is essentially a copy of the page table entry information that represents the virtual page currently loaded at the physical address.
 
@@ -442,17 +449,17 @@ Each page table entry contains at least the virtual page address, the physical p
 Locating a virtual page in the page table requires to first index into the hash table and then follow the chain of page table entires.  The following code fragment is a possible hash function.
 
 ```cpp
-Hash function ( Example ):
+  Hash function ( Example ):
 
-const uint segShift         = 4;      // the number of bits to shift the segment part. This specifies how many
-                                      // consecutive pages will result in consecutive hash values.
-const uint pageOffsetBits  = 12;      // number of bits for page offset, page size of 4K
-const uint hashTableMask   = 0x3FF;   // a hash table of 1024 entries, memory size dependent, must be a power of two.
+  const uint segShift         = 4;      // the number of bits to shift the segment part. This specifies how many
+                                        // consecutive pages will result in consecutive hash values.
+  const uint pageOffsetBits  = 12;      // number of bits for page offset, page size of 4K
+  const uint hashTableMask   = 0x3FF;   // a hash table of 1024 entries, memory size dependent, must be a power of two.
 
-uint hash_index ( uint32_t segment, uint32_t offset ) {
+  uint hash_index ( uint32_t segment, uint32_t offset ) {
 
-    return(( segment << segShift ) ^ ( offset >> pageOffsetBits )) & hashTableMask;
-}
+     return(( segment << segShift ) ^ ( offset >> pageOffsetBits )) & hashTableMask;
+  }
 ```
 
 The function builds the hash index, which may also be used for TLB entries, virtually tagged caches and walking the page table itself. In case of a TLB miss, the hash value is directly available to the miss handler via a control register. In the example above, the segment portion is left shifted by a value of 4. The hash function will map 16 consecutive virtual pages to consecutive indices.
@@ -591,7 +598,7 @@ There are no auto pre/post offset adjustment or indirect modes. Indirect address
 
 ### Instruction Notation
 
-The instructions described in the following chapters contain the instruction word layout, a short description of the instruction and also a high level pseudo code of what the instruction does. The pseudo code uses a register notation describing by their class and index. For example, GR[5] labels general register 5. SR[x] represents the segment registers and CR[x] the control register. In addition, some control register also have dedicated names, such as for example the shift amount control register, labelled "shamt".
+The instructions described in the following chapters contain the instruction word layout, a short description of the instruction and also a high level pseudo code of what the instruction does. The pseudo code uses a register notation describing by their class and index. For example, GR[5] labels general register 5, SR[2] represents the segment register number 2 and CR[1] the control register number 1. In addition, some control register also have dedicated names, such as for example the shift amount control register, labelled "shamt".
 
 Instruction operation are described in a pseudo C style language using assignment and simple control structures to describe the instruction operation. In addition there are functions that perform operations and compute expressions. The following table lists these functions.
 
@@ -809,7 +816,7 @@ Loads the memory content into a general register using an absolute address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDWAX  ( 0x3D ) : r         : ofs                                     : a         : b         :
+   : LDWAX  ( 0x3D ) : r         : 0                                       : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2740,7 +2747,9 @@ The PRB instruction determines whether data access at the requested privilege le
 
 #### Notes
 
-None.
+Design note: The PRB instruction is typically used to probe access to a mememory address. This is for example the case when a privileged routine is testing the passed arguments. Since arguments are most of the time passed as logical addresses, tt would perhaps be better to use operand encoding for specifiying the addreess to probe. 
+
+// ??? **note** to decide...
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3266,6 +3275,7 @@ Computers with virtual addressing simply cannot work without a **translation loo
 <div style="page-break-before: always;"></div>
 
 ## VCPU-32 Runtime Environment
+
 
 
 ### Registers
