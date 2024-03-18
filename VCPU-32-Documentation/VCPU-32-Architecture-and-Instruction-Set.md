@@ -608,11 +608,10 @@ Instruction operation are described in a pseudo C style language using assignmen
 | Function | Description |
 |:---|:----|
 | **cat( x, y )** | concatenates the value of x and y. |
-| **catImm( x, y )** | Assembles the immediate fields of an instruction. There are several formats for encoding the immediate. The individual fields are concatenated with "x" being the left most number of bits, followed by "y". |
 | **lowSignExtend( x, len )** | performs a sign extension of the value "x". The sign bit is stored in the rightmost position and applied to the extracted field of the remainning left side bits. |
 | **signExtend( x, len )** | performs a sign extension of the value "x". The "len" parameter specifies the number of bits in the immediate. The sign bit is the leftmost bit. |
 | **zeroExtend( x, len )** | performs a zero bit extension of the value "x". The "len" parameter specifies the number of bits in the immediate.|
-| **segSelect( x )** | returns the segment register number based on the leftmost three bits of the argument "x". |
+| **segSelect( x )** | returns the segment register number based on the leftmost two bits of the argument "x". |
 | **operandAdrSeg( instr )** | computes the segment Id from the instruction and mode information. ( See the operand encoding diagram for modes ) |
 | **operandAdrOfs( instr )** | computes the offset portion from the instruction and mode information. ( See the operand encoding diagram for modes ) |
 | **operandBitLen( instr )** | computes the operand bit length from the instruction and mode information. ( See the operand encoding diagram for modes ) |
@@ -660,6 +659,7 @@ Loads a memory value into a general register.
 
 ```
    LDx r, a (b)           ; opMode 4, 5, 6
+   LDx r, a (seg, b)      ; opMode 4, 5, 6
    LDx r, ofs (b)         ; opMode 8 .. 15, 16 .. 23, 24 .. 31
    LDx r, ofs (seg, b)    ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
@@ -714,6 +714,7 @@ Stores a general register value into memory
 
 ```
    STx a (b), r            ; opMode 4, 5, 6
+   STx a (seg, b), r       ; opMode 4, 5, 6
    STx ofs (b), r          ; opMode 8 .. 15, 16 .. 23, 24 .. 31
    STx ofs (seg, b), r     ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
@@ -877,7 +878,7 @@ The store absolute instruction will store the target register into memory using 
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-   memStore( 0, GR[b] + signExtend( catImm( ofs1, ofs2 ), 18 ), GR[r], 32 );
+   memStore( 0, GR[b] + signExtend( ofs, 18 ), GR[r], 32 );
 ```
 
 #### Exceptions
@@ -904,6 +905,7 @@ Loads the operand into the target register from the address and marks that addre
 
 ```
    LDWR r, a (b)           ; opMode 4, 5, 6
+   LDWR r, a (seg, b)      ; opMode 4, 5, 6
    LDWR r, ofs (b)         ; opMode 8 .. 15, 16 .. 23, 24 .. 31
    LDWR r, ofs (seg, b)    ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
@@ -961,6 +963,7 @@ Conditionally store a value to memory.
 
 ```
    STWC a (b), r            ; opMode 4, 5, 6
+   STWC a (seg, b), r       ; opMode 4, 5, 6
    STWC ofs (b), r          ; opMode 8 .. 15, 16 .. 23, 24 .. 31
    STWC ofs (seg, b), r     ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
@@ -1122,8 +1125,8 @@ Loads the effective address offset of the operand.
 
 ```
    LDO r, val                   ; opMode 0  
+   LDO r, a (b)                 ; opMode 4 .. 6
    LDO r, ofs (b)               ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   LDO r, ofs (seg, b)          ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
 
 ```
@@ -1150,6 +1153,8 @@ The LDO instruction loads an offset into general register "r". For operand modes
 - Illegal Instruction Trap
 
 #### Notes
+
+The LDO instruction calculates the offset portion. Although the format of the instruction uses the operand encoding, the segemnt part is ignored of the operand mode is ignored, but can be specified. The assembler should by convention emit a seg field of zero.
 
 The assembler uses the LDO instruction in mode zero for a "LDI r, val" pseudo instruction to load an immediate value into a general register.
 
@@ -1566,7 +1571,7 @@ The GATE instruction computes the target address by adding "ofs" shifted by 2 bi
    
    } else priv <- 0;
 
-   IA-OFS     <- IA-OFS + signExt(( catImm( ofs1, ofs2 ) << 2 ), 24 );
+   IA-OFS     <- IA-OFS + signExt(( ofs << 2 ), 24 );
    IA-OFS.[P] <- priv;
 ```
 
@@ -1735,8 +1740,9 @@ Adds the operand to the target register.
    ADD[.<opt>]          r, b                 ; opMode 2
    ADD[.<opt>]          r, a, b              ; opMode 2
    ADD[(W|H|B)][.<opt>] r, a (b)             ; opMode 4 .. 6
+   ADD[(W|H|B)][.<opt>] r, a (seg, b)        ; opMode 4 .. 6
    ADD[(W|H|B)][.<opt>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   ADD[(W|H|B)][.<opt>] r, ofs ( seg, b)     ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   ADD[(W|H|B)][.<opt>] r, ofs (seg, b)      ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
 
 ```
@@ -1812,8 +1818,9 @@ Subtracts the operand from the target register.
    SUB[.<opt>]          r, b                 ; opMode 2
    SUB[.<opt>]          r, a, b              ; opMode 2
    SUB[(W|H|B)][.<opt>] r, a (b)             ; opMode 4 .. 6
+   SUB[(W|H|B)][.<opt>] r, a (seg, b)        ; opMode 4 .. 6
    SUB[(W|H|B)][.<opt>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   SUB[(W|H|B)][.<opt>] r, ofs ( seg, b)     ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   SUB[(W|H|B)][.<opt>] r, ofs (seg, b)      ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
 
 ```
@@ -1889,8 +1896,9 @@ Performs a bitwise AND of the operand and the target register and stores the res
    AND[.<opt>]          r, b                 ; opMode 2
    AND[.<opt>]          r, a, b              ; opMode 2
    AND[(W|H|B)][.<opt>] r, a (b)             ; opMode 4 .. 6
+   AND[(W|H|B)][.<opt>] r, a (seg, b)        ; opMode 4 .. 6
    AND[(W|H|B)][.<opt>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   AND[(W|H|B)][.<opt>] r, ofs ( seg, b)     ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   AND[(W|H|B)][.<opt>] r, ofs (seg, b)      ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
 
 ```
@@ -1961,8 +1969,9 @@ Performs a bitwise OR of the operand and the target register and stores the resu
    OR[.<opt>]          r, b                 ; opMode 2
    OR[.<opt>]          r, a, b              ; opMode 2
    OR[(W|H|B)][.<opt>] r, a (b)             ; opMode 4 .. 6
+   OR[(W|H|B)][.<opt>] r, a (seg, b)        ; opMode 4 .. 6
    OR[(W|H|B)][.<opt>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   OR[(W|H|B)][.<opt>] r, ofs ( seg, b)     ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   OR[(W|H|B)][.<opt>] r, ofs (seg, b)      ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
 
 ```
@@ -2033,6 +2042,7 @@ Performs a bitwise XORing the operand and the target register and stores the res
    XOR[.<opt>]          r, b                 ; opMode 2
    XOR[.<opt>]          r, a, b              ; opMode 2
    XOR[(W|H|B)][.<opt>] r, a (b)             ; opMode 4 .. 6
+   XOR[(W|H|B)][.<opt>] r, a (seg, b)        ; opMode 4 .. 6
    XOR[(W|H|B)][.<opt>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
    XOR[(W|H|B)][.<opt>] r, ofs ( seg, b)     ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
@@ -2105,6 +2115,7 @@ Compares a register and an operand and stores the comparison result in the targe
    CMP[.<opt>]           r, b                 ; opMode 2
    CMP[.<opt>]           r, a, b              ; opMode 2
    CMP[(W|H|B)][.<cond>] r, a (b)             ; opMode 4 .. 6
+   CMP[(W|H|B)][.<cond>] r, a (seg, b)        ; opMode 4 .. 6
    CMP[(W|H|B)][.<cond>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
    CMP[(W|H|B)][.<cond>] r, ofs (seg, b)      ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
@@ -2193,7 +2204,6 @@ Test a general register for a condition and conditionally move a register value 
 
 ```
    CMR [ .<cond> ] r, b, a
-   CMR [ .<cond> ] r, b, val
 ```
 
 ```
@@ -2220,9 +2230,6 @@ The conditional move instruction will test register "b" for the condition. If th
 #### Operation
 
 ```
-   if ( instr[I] ) tmp <- signExt( catImm( val1, a ), 16 );
-   else tmp <- GR[a];
-
    switch( cond ) {
 
       case 0: res <- ( GR[b] == 0 );   break;
@@ -2678,6 +2685,7 @@ Load the physical address for a virtual address.
 
 ```
    LDPA r, a (b)           ; opMode 4, 5, 6
+   LDPA r, a (seg, b)      ; opMode 4, 5, 6
    LDPA r, ofs (b)         ; opMode 8 .. 15, 16 .. 23, 24 .. 31
    LDPA r, ofs (seg, b)    ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
@@ -2730,6 +2738,7 @@ Probe data access to a virtual address.
 
 ```
    PRB r, a (b)           ; opMode 4, 5, 6
+   PRB r, a (seg, b)      ; opMode 4, 5, 6
    PRB r, ofs (b)         ; opMode 8 .. 15, 16 .. 23, 24 .. 31
    PRB r, ofs (seg, b)    ; opMode 8 .. 15, 16 .. 23, 24 .. 31
 ```
@@ -3028,7 +3037,7 @@ The DIAG instruction sends a command to an implementation hardware specific comp
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-   ...
+   ... to be defined
 ```
 
 #### Exceptions
