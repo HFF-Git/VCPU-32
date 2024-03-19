@@ -570,7 +570,7 @@ public:
     static inline bool      brkInfo1Field( uint32_t instr )         { return( getBitField( instr, 9,  4  )); }
     static inline bool      brkInfo2Field( uint32_t instr )         { return( getBitField( instr, 31, 16 )); }
     
-    static inline uint32_t  immOfsSignField( uint32_t instr )       { return( getBit( instr, 18 )); }
+    static inline uint32_t  immOfsSignField( uint32_t instr )       { return( getBit( instr, 18 )); }  // phase out...
     static inline uint32_t  extrSignField( uint32_t instr )         { return( getBit( instr, 10 )); }
     static inline uint32_t  depZeroField( uint32_t instr )          { return( getBit( instr, 10 )); }
     static inline uint32_t  depImmField( uint32_t instr )           { return( getBit( instr, 12 )); }
@@ -597,52 +597,15 @@ public:
     static inline bool      pcaKindField( uint32_t instr )          { return( getBit( instr, 11 )); }
     static inline bool      pcaPurgeFlushField( uint32_t instr )    { return( getBit( instr, 12 )); }
     
-    
     static inline uint32_t  segSelect( uint32_t arg )               { return( getBitField( arg, 1,  2  )); }
     static inline uint32_t  ofsSelect( uint32_t arg )               { return( getBitField( arg, 31, 30 )); }
     
-    // ??? replace those with the getBitField routine...
-    
-    static inline uint32_t immGen0S14( uint32_t instr ) {
+    static inline uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
         
-        uint32_t tmp = EXTR( instr, 31, 14 );
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen0S6( uint32_t instr ) {
+        pos = pos % 32;
+        len = len % 32;
         
-        uint32_t tmp = EXTR( instr, 23, 6 );
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFFFC0 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen2S14( uint32_t instr ) {
-      
-        uint32_t tmp = ( EXTR( instr, 17, 2 )) | ( EXTR( instr, 31, 14 ) << 2 );
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFF0000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen8S6( uint32_t instr ) {
-      
-        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 23, 6 ) << 8 ));
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen8S10( uint32_t instr ) {
-      
-        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 27, 10 ) << 8 ));
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFC0000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen8S14( uint32_t instr ) {
-      
-        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 31, 14 ) << 8 ));
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFC00000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen12S6( uint32_t instr ) {
-      
-        uint32_t tmp = ( EXTR( instr, 17, 12 ) | ( EXTR( instr, 23, 6 ) << 12 ));
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFC0000 ) : ( tmp ));
+        return( lowSignExtend32( Instr::getBitField( instr, pos, len ), len ));
     }
     
     static inline uint32_t immLeftField( uint32_t instr ) {
@@ -675,6 +638,46 @@ public:
         else if (( opMode >= 24 ) && ( opMode <= 31 )) return( 1 );
         else return( 0 );
     }
+    
+    
+    
+    
+    // ??? thex all go away...
+    
+    
+    static inline uint32_t immGen2S14( uint32_t instr ) {
+      
+        uint32_t tmp = ( EXTR( instr, 17, 2 )) | ( EXTR( instr, 31, 14 ) << 2 );
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFF0000 ) : ( tmp ));
+    }
+    
+    static inline uint32_t immGen8S6( uint32_t instr ) {
+      
+        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 23, 6 ) << 8 ));
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
+    }
+    
+    static inline uint32_t immGen8S10( uint32_t instr ) {
+      
+        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 27, 10 ) << 8 ));
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFC0000 ) : ( tmp ));
+    }
+    
+    static inline uint32_t immGen8S14( uint32_t instr ) {
+      
+        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 31, 14 ) << 8 ));
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFC00000 ) : ( tmp ));
+    }
+    
+    static inline uint32_t immGen12S6( uint32_t instr ) {
+      
+        uint32_t tmp = ( EXTR( instr, 17, 12 ) | ( EXTR( instr, 23, 6 ) << 12 ));
+        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFC0000 ) : ( tmp ));
+    }
+    
+    
+    
+    
 };
  
 #endif

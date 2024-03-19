@@ -44,8 +44,7 @@
       }
    }
    .hljs {
-
-   break-inside: avoid;
+      break-inside: avoid;
    }
 </style>
 
@@ -505,7 +504,7 @@ The control register I-BASE-ADR holds the absolute address of the interrupt vect
 | TrapId | Name |IA | P0 | P1 | P2 | Comment |
 |:----|:---|:---|:---|:---|:---|:---|
 | 0 | **reserved** | | ||||
-| 1 | ** Machine check** | IA of the current instruction | check type | - | - | |
+| 1 | **Machine check** | IA of the current instruction | check type | - | - | |
 | 2 | **Power Failure** | IA of the current instruction | -| - | - | |
 | 3 | **Recovery Counter Trap** | IA of the current instruction | -| - | - | |
 | 4 | **External Interrupt** | IA of the instruction to be executed after servicing the interrupt. | -| - | - | |
@@ -631,6 +630,17 @@ Instruction operation are described in a pseudo C style language using assignmen
 | **flushDataCache( seg, ofs )** | write the cache line that contains the virtual address back to memory and purge the entry. |
 | **purgeDataCache( seg, ofs )** | remove the cache line that contains the virtual address by simply invalidating it. |
 | **purgeInstructionCache( seg, ofs )** | remove the cache line that contains the virtual address by simply invalidating it. |
+
+Each instruction is also presented in an assembler style format. The field names found in the instruction format map to the names used in the assembler notation. The names used in the format, such as "r", "a" or "val" directly map to the fields in the instruction layout. An exception are the opMode format instructions where the names "opMode" and "opArg" are used. The following table shows these formats.
+
+| Operand Format | opMode | Example | Comment |
+|:---|:---|:---|:---|
+| Immediate | 0 | ADD r1, 500 | add 500 to the general register r1 |
+| One register | 1 | --- | opMode one uses a zero value and one register as operands. This opMode is typically used for implementing pseudo instructions |
+| Two register | 2 | OR r2, r6, r7 | a two register operation. Register r2 is encode in the "r" field, "r6" in "a" and "r7" in "b" |
+| Register indexed | 3 .. 7 | LD r6, r4(r10) | this opMode 3. Add r4 to r10 and use the upper two bits of the result to select among segment registers 4 to 7. The encoding will place a zero in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
+| Register indexed | 3 .. 7 | LD r6, r4(sr1, r10) | this is also opMode 3. Add r4 to r10 and use segment s1 as the segement register. The encoding will place a 1 in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
+| Indexed | 8 .. 15 | ST 100(r12), r4 | store r4 to the address formed by adding 100 to r12 and selecting based on the upper twop bits the segment register. "seg" field is zero, "ofs" field is 100, "opMode" field is 12. The operand modes 16 .. 23 and 24 .. 31 would do the same address calculation but store a half-word or byte dending on the opMode. For example, to store a half-word opMode is 20, to store a byte opMode is 28. The opCode would be STH or STB to indicate the operand size | 
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3101,7 +3111,7 @@ The instruction set allows for a rich set of options on the individual instructi
 
 | Pseudo Instruction | Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
-| **NOP** | NOP | OR  GR0, #0 | There are many instructions that can be used for a NOP. The idea is to pick one that does not affect the prgram state. |
+| **NOP** | NOP | OR  GR0, #0 | There are many instructions that can be used for a NOP. The idea is to pick one that does not affect the program state. |
 | **LDI** | LDI val | | |
 | **CLR** | CLR GRn | OR  GRn, #0 | Clears a general register. There are many instructions that can be used for a CLR. |
 | **MR** | MR GRx, GRy | OR GRx, GRy ; using operand mode 1 | Copies a general register to another general register. This overlaps MR for using two general registers. |
@@ -3271,14 +3281,20 @@ The pipeline design makes a reference to memory during instruction fetch and the
 - direct mapped model
 - set associative model
 
+CPU and L1  caches form the "core".
+
 ### Unified L2 Cache
 
-In addition to the L! caches, there could be a joint L2 cache to serve both L1 caches.
+In addition to the L1 caches, there could be a joint L2 cache to serve both L1 caches.
 
 - instruction L1 cache requests have priority over L2 data requests
 - 
 
+
+
 ### Instruction to manage caches
+
+- PCA instruction manages the cache flush and deletion. Insertion is always done in HW.
 
 
 ### Instruction and Data TLBs

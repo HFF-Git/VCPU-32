@@ -106,7 +106,7 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
     switch ( Instr::opModeField( instr )) {
             
-        case OP_MODE_IMM:       printImmVal( Instr::immGen0S14( instr )); break;
+        case OP_MODE_IMM:       printImmVal( Instr::immGenPosLenLowSign( instr, 31, 14 )); break;
         case OP_MODE_ONE_REG:   fprintf( stdout, "0, R%d", Instr::regBIdField( instr )); break;
         case OP_MODE_TWO_REG:   {
             
@@ -128,7 +128,7 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         default: {
             
-            printImmVal( Instr::immGen0S14( instr ), TOK_DEC );
+            printImmVal( Instr::immGenPosLenLowSign( instr, 31, 14 ), TOK_DEC );
             
             if ( Instr::opSegSelectField( instr ) > 0 ) {
                 
@@ -159,7 +159,7 @@ void displayOpCode( uint32_t instr ) {
         
         if (( opMode <= 8 ) && ( opMode <= 15 )) {
             
-            // ??? we currently do not show the "W", but perhaps could for LD and ST
+            if (( opCode == OP_LD ) || ( opCode == OP_ST )) fprintf( stdout, "W" );
         }
         else if (( opMode <= 16 ) && ( opMode <= 23 )) {
             
@@ -371,7 +371,8 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_ADD:    case OP_SUB:    case OP_CMP:
         case OP_AND:    case OP_OR:     case OP_XOR:
         case OP_LD:     case OP_ST:     case OP_LOD:
-        case OP_LDWR:   case OP_STWC: {
+        case OP_LDWR:   case OP_STWC:   case OP_PRB:
+        case OP_LDPA: {
             
             fprintf( stdout, "," );
             
@@ -524,20 +525,6 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
                 case 2:  fprintf( stdout, "0x%x4", Instr::mstArgField( instr )); break;
                 default: fprintf( stdout, "***" );
             }
-            
-        } break;
-            
-        case OP_PRB: {
-            
-            if ( Instr::prbAdrModeField( instr )) fprintf( stdout, ",(R%d)", Instr::regBIdField( instr ));
-            else fprintf( stdout, ",(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
-            
-        } break;
-            
-        case OP_LDPA: {
-            
-            if ( Instr::ldpaAdrModeField( instr )) fprintf( stdout, ",(R%d)", Instr::regBIdField( instr ));
-            else fprintf( stdout, ",(S%d, R%d)", Instr::regAIdField( instr ), Instr::regBIdField( instr ));
             
         } break;
             

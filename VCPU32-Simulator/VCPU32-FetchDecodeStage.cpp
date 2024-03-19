@@ -381,7 +381,7 @@ void FetchDecodeStage::process( ) {
                    
                     regIdForValA    = Instr::regRIdField( instr );
                     valA            = core -> gReg[ regIdForValA ].get( );
-                    valB            = Instr::immGen0S14( instr );
+                    valB            = Instr::immGenPosLenLowSign( instr, 31, 14 );
                     
                 } break;
                     
@@ -413,7 +413,7 @@ void FetchDecodeStage::process( ) {
                     
                     regIdForValB    = Instr::mapOpModeToIndexReg( Instr::opModeField( instr ));
                     valB            = core -> gReg[ regIdForValB ].get( );
-                    valX            = Instr::immGen0S14( instr );
+                    valX            = Instr::immGenPosLenLowSign( instr, 31, 12 );
                     
                 } break;
             }

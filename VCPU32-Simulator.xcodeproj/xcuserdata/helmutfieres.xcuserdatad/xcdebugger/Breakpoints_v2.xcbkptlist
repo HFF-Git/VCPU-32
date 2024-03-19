@@ -30,8 +30,8 @@
             filePath = "VCPU32-Simulator/VCPU32-DrvDisAsm.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "600"
-            endingLineNumber = "600"
+            startingLineNumber = "587"
+            endingLineNumber = "587"
             landmarkName = "DrvDisAsm::displayInstr(instr, fmt)"
             landmarkType = "7">
          </BreakpointContent>
