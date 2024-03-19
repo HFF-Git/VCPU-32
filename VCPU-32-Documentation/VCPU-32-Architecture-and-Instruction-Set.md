@@ -504,7 +504,7 @@ The control register I-BASE-ADR holds the absolute address of the interrupt vect
 | TrapId | Name |IA | P0 | P1 | P2 | Comment |
 |:----|:---|:---|:---|:---|:---|:---|
 | 0 | **reserved** | | ||||
-| 1 | **Machine check** | IA of the current instruction | check type | - | - | |
+| 1 | **Machine Check** | IA of the current instruction | check type | - | - | |
 | 2 | **Power Failure** | IA of the current instruction | -| - | - | |
 | 3 | **Recovery Counter Trap** | IA of the current instruction | -| - | - | |
 | 4 | **External Interrupt** | IA of the instruction to be executed after servicing the interrupt. | -| - | - | |
@@ -598,11 +598,25 @@ The **seg** field manages the segment register selection. A value of zero will u
 
 There are no auto pre/post offset adjustment or indirect modes. Indirect addressing modes are not pipeline friendly, they require an additional memory access. Pre or post offset adjustments have not been implemented so far. Nevertheless, auto pre/post adjustment would be an option for the load/store type instructions.
 
-### Instruction Notation
+### Instruction Operand Notation
 
-The instructions described in the following chapters contain the instruction word layout, a short description of the instruction and also a high level pseudo code of what the instruction does. The pseudo code uses a register notation describing by their class and index. For example, GR[5] labels general register 5, SR[2] represents the segment register number 2 and CR[1] the control register number 1. In addition, some control register also have dedicated names, such as for example the shift amount control register, labelled "shamt".
+Each instruction is also presented in an assembler style format. The field names found in the instruction format map to the names used in the assembler notation. The names used in the format, such as "r", "a" or "val" directly map to the fields in the instruction layout. An exception are the opMode format instructions where the names "opMode" and "opArg" are used. The following table shows these formats.
 
-Instruction operation are described in a pseudo C style language using assignment and simple control structures to describe the instruction operation. In addition there are functions that perform operations and compute expressions. The following table lists these functions.
+| Operand Format | opMode | Opareand Notation |  Example | Comment |
+|:---|:---|:---|:---|:---|
+| Immediate | 0 | ADD r1, 500 | add 500 to the general register r1 |
+| One register | 1 | --- | opMode one uses a zero value and one register as operands. This opMode is typically used for implementing pseudo instructions |
+| Two register | 2 | OR r2, r6, r7 | a two register operation. Register r2 is encode in the "r" field, "r6" in "a" and "r7" in "b" |
+| Register indexed | 3 .. 7 | LD r6, r4(r10) | this opMode 3. Add r4 to r10 and use the upper two bits of the result to select among segment registers 4 to 7. The encoding will place a zero in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
+| Register indexed | 3 .. 7 | LD r6, r4(sr1, r10) | this is also opMode 3. Add r4 to r10 and use segment s1 as the segement register. The encoding will place a 1 in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
+| Indexed | 8 .. 31 | ST 100(r12), r4 | store r4 to the virtual memery address formed by adding 100 to r12 and selecting based on the upper twop bits the segment register. "seg" field is zero, "ofs" field is 100, "opMode" field is 12. The operand modes 16 .. 23 and 24 .. 31 would do the same address calculation but store a half-word or byte dending on the opMode. For example, to store a half-word opMode is 20, to store a byte opMode is 28. The opCode would be STH or STB to indicate the operand size | 
+| Indexed | 8 .. 31 | ORH r5, 100( s1, r12) | OR r5 to the halfword content found at virtual memory address formed by adding 100 to r12 and segment regsistr s1. "seg" field is one, "ofs" field is 100, "opMode" field is 20 | 
+
+The instructioon described in the follwing chapter that use an operand encoding will refer to it with the name "oparand". As shown above, the operand syntax controls how the paramaters "seg", "val", "a", "b" and "opMode" are set in an instruction.
+
+### Instruction Operation Notation
+
+The instructions described in the following chapters contain the instruction word layout, a short description of the instruction and also a high level pseudo code of what the instruction does. The pseudo code uses a register notation describing by their class and index. For example, GR[5] labels general register 5, SR[2] represents the segment register number 2 and CR[1] the control register number 1. In addition, some control register also have dedicated names, such as for example the shift amount control register, labelled "shamt". Instruction operation are described in a pseudo C style language using assignment and simple control structures to describe the instruction operation. In addition there are functions that perform operations and compute expressions. The following table lists these functions.
 
 | Function | Description |
 |:---|:----|
@@ -631,17 +645,9 @@ Instruction operation are described in a pseudo C style language using assignmen
 | **purgeDataCache( seg, ofs )** | remove the cache line that contains the virtual address by simply invalidating it. |
 | **purgeInstructionCache( seg, ofs )** | remove the cache line that contains the virtual address by simply invalidating it. |
 
-Each instruction is also presented in an assembler style format. The field names found in the instruction format map to the names used in the assembler notation. The names used in the format, such as "r", "a" or "val" directly map to the fields in the instruction layout. An exception are the opMode format instructions where the names "opMode" and "opArg" are used. The following table shows these formats.
+### Instruction groups
 
-| Operand Format | opMode | Example | Comment |
-|:---|:---|:---|:---|
-| Immediate | 0 | ADD r1, 500 | add 500 to the general register r1 |
-| One register | 1 | --- | opMode one uses a zero value and one register as operands. This opMode is typically used for implementing pseudo instructions |
-| Two register | 2 | OR r2, r6, r7 | a two register operation. Register r2 is encode in the "r" field, "r6" in "a" and "r7" in "b" |
-| Register indexed | 3 .. 7 | LD r6, r4(r10) | this opMode 3. Add r4 to r10 and use the upper two bits of the result to select among segment registers 4 to 7. The encoding will place a zero in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
-| Register indexed | 3 .. 7 | LD r6, r4(sr1, r10) | this is also opMode 3. Add r4 to r10 and use segment s1 as the segement register. The encoding will place a 1 in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
-| Indexed | 8 .. 15 | ST 100(r12), r4 | store r4 to the address formed by adding 100 to r12 and selecting based on the upper twop bits the segment register. "seg" field is zero, "ofs" field is 100, "opMode" field is 12. The operand modes 16 .. 23 and 24 .. 31 would do the same address calculation but store a half-word or byte dending on the opMode. For example, to store a half-word opMode is 20, to store a byte opMode is 28. The opCode would be STH or STB to indicate the operand size | 
-
+The next chapters present the instruction set. The set iztself is divided into several groups. The **memory reference** group comntains the instructions to load ans store to virtual and physical memory. The **immediate** group contains the instructions for building an immediate value up to 32 bit. The **branch** group present the conditional and unconditioonal instructions. The **computational** instructions peform arithmetic, boolean and bit functions such as bit extract and deposit. Finally, the **control** instruction group contains all instructions for managing HW elements such as caches and TLBs, register movements, as well as traps and interrupt handling. 
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -668,10 +674,7 @@ Loads a memory value into a general register.
 #### Format
 
 ```
-   LDx r, a (b)           ; opMode 4, 5, 6
-   LDx r, a (seg, b)      ; opMode 4, 5, 6
-   LDx r, ofs (b)         ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   LDx r, ofs (seg, b)    ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   LDx r, operand
 ```
 
 ```
@@ -723,10 +726,7 @@ Stores a general register value into memory
 #### Format
 
 ```
-   STx a (b), r            ; opMode 4, 5, 6
-   STx a (seg, b), r       ; opMode 4, 5, 6
-   STx ofs (b), r          ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   STx ofs (seg, b), r     ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   STx operand, r            ; opMode 4, 5, 6
 ```
 
 ```
@@ -914,10 +914,7 @@ Loads the operand into the target register from the address and marks that addre
 #### Format
 
 ```
-   LDWR r, a (b)           ; opMode 4, 5, 6
-   LDWR r, a (seg, b)      ; opMode 4, 5, 6
-   LDWR r, ofs (b)         ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   LDWR r, ofs (seg, b)    ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   LDWR r, operand
 ```
 
 ```
@@ -972,10 +969,7 @@ Conditionally store a value to memory.
 #### Format
 
 ```
-   STWC a (b), r            ; opMode 4, 5, 6
-   STWC a (seg, b), r       ; opMode 4, 5, 6
-   STWC ofs (b), r          ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   STWC ofs (seg, b), r     ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   STWC operand r
 ```
 
 ```
@@ -1134,9 +1128,7 @@ Loads the effective address offset of the operand.
 #### Format
 
 ```
-   LDO r, val                   ; opMode 0  
-   LDO r, a (b)                 ; opMode 4 .. 6
-   LDO r, ofs (b)               ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   LDO r, operand         
 ```
 
 ```
@@ -1746,13 +1738,7 @@ Adds the operand to the target register.
 #### Format
 
 ```
-   ADD[.<opt>]          r, val               ; opMode 0
-   ADD[.<opt>]          r, b                 ; opMode 2
-   ADD[.<opt>]          r, a, b              ; opMode 2
-   ADD[(W|H|B)][.<opt>] r, a (b)             ; opMode 4 .. 6
-   ADD[(W|H|B)][.<opt>] r, a (seg, b)        ; opMode 4 .. 6
-   ADD[(W|H|B)][.<opt>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   ADD[(W|H|B)][.<opt>] r, ofs (seg, b)      ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   ADD[.<opt>] r, operand
 ```
 
 ```
@@ -1824,13 +1810,7 @@ Subtracts the operand from the target register.
 #### Format
 
 ```
-   SUB[.<opt>]          r, val               ; opMode 0
-   SUB[.<opt>]          r, b                 ; opMode 2
-   SUB[.<opt>]          r, a, b              ; opMode 2
-   SUB[(W|H|B)][.<opt>] r, a (b)             ; opMode 4 .. 6
-   SUB[(W|H|B)][.<opt>] r, a (seg, b)        ; opMode 4 .. 6
-   SUB[(W|H|B)][.<opt>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   SUB[(W|H|B)][.<opt>] r, ofs (seg, b)      ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   SUB[.<opt>] r, operand
 ```
 
 ```
@@ -1902,13 +1882,7 @@ Performs a bitwise AND of the operand and the target register and stores the res
 #### Format
 
 ```
-   AND[.<opt>]          r, val               ; opMode 0
-   AND[.<opt>]          r, b                 ; opMode 2
-   AND[.<opt>]          r, a, b              ; opMode 2
-   AND[(W|H|B)][.<opt>] r, a (b)             ; opMode 4 .. 6
-   AND[(W|H|B)][.<opt>] r, a (seg, b)        ; opMode 4 .. 6
-   AND[(W|H|B)][.<opt>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   AND[(W|H|B)][.<opt>] r, ofs (seg, b)      ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   AND[.<opt>] r, operand
 ```
 
 ```
@@ -1975,13 +1949,7 @@ Performs a bitwise OR of the operand and the target register and stores the resu
 #### Format
 
 ```
-   OR[.<opt>]          r, val               ; opMode 0
-   OR[.<opt>]          r, b                 ; opMode 2
-   OR[.<opt>]          r, a, b              ; opMode 2
-   OR[(W|H|B)][.<opt>] r, a (b)             ; opMode 4 .. 6
-   OR[(W|H|B)][.<opt>] r, a (seg, b)        ; opMode 4 .. 6
-   OR[(W|H|B)][.<opt>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   OR[(W|H|B)][.<opt>] r, ofs (seg, b)      ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   OR[.<opt>] r, operand
 ```
 
 ```
@@ -2048,13 +2016,7 @@ Performs a bitwise XORing the operand and the target register and stores the res
 #### Format
 
 ```
-   XOR[.<opt>]          r, val               ; opMode 0
-   XOR[.<opt>]          r, b                 ; opMode 2
-   XOR[.<opt>]          r, a, b              ; opMode 2
-   XOR[(W|H|B)][.<opt>] r, a (b)             ; opMode 4 .. 6
-   XOR[(W|H|B)][.<opt>] r, a (seg, b)        ; opMode 4 .. 6
-   XOR[(W|H|B)][.<opt>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   XOR[(W|H|B)][.<opt>] r, ofs ( seg, b)     ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   XOR[.<opt>] r, operand
 ```
 
 ```
@@ -2121,13 +2083,7 @@ Compares a register and an operand and stores the comparison result in the targe
 #### Format
 
 ```
-   CMP[.<opt>]           r, val               ; opMode 0
-   CMP[.<opt>]           r, b                 ; opMode 2
-   CMP[.<opt>]           r, a, b              ; opMode 2
-   CMP[(W|H|B)][.<cond>] r, a (b)             ; opMode 4 .. 6
-   CMP[(W|H|B)][.<cond>] r, a (seg, b)        ; opMode 4 .. 6
-   CMP[(W|H|B)][.<cond>] r, ofs (b)           ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   CMP[(W|H|B)][.<cond>] r, ofs (seg, b)      ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   CMP[.cond>] r, operand
 ```
 
 ```
@@ -2213,7 +2169,7 @@ Test a general register for a condition and conditionally move a register value 
 #### Format
 
 ```
-   CMR [ .<cond> ] r, b, a
+   CMR [.<cond>] r, b, a
 ```
 
 ```
@@ -2290,7 +2246,7 @@ Performs a bit field extract from a general register and stores the result in th
 #### Format
 
 ```
-   EXTR [ .<opt> ] r, b, pos, len
+   EXTR [.<opt>] r, b, pos, len
 ```
 
 ```
@@ -2338,8 +2294,7 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 #### Format
 
 ```
-   DEP [ .<opt> ] r, b, pos, len
-   DEP [ .<opt> ] r, val, pos, len
+   DEP [.<opt>] r, b, pos, len
 ```
 
 ```
@@ -2389,7 +2344,7 @@ Performs a right shift of two concatenated registers for shift amount bits and s
 #### Format
 
 ```
-   DSR [ .<opt> ] r, b, a, shAmt
+   DSR [.<opt>] r, b, a, shAmt
 ```
 
 ```
@@ -2434,8 +2389,7 @@ Performs a combined shift left and add operation and stores the result into the 
 #### Format
 
 ```
-   SHLA [ .<opt> ] r, a, b, smAmt
-   SHLA [ .<opt> ] r, a, val, smAmt
+   SHLA [.<opt>] r, a, b, smAmt
 ```
 
 ```
@@ -2539,7 +2493,7 @@ Copy data from or to a segment or control register.
 #### Format
 
 ```
-   MR r, s
+   MR [.<opt>] r, s
 ```
 
 ```
@@ -2694,10 +2648,7 @@ Load the physical address for a virtual address.
 #### Format
 
 ```
-   LDPA r, a (b)           ; opMode 4, 5, 6
-   LDPA r, a (seg, b)      ; opMode 4, 5, 6
-   LDPA r, ofs (b)         ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   LDPA r, ofs (seg, b)    ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   LDPA r, operand
 ```
 
 ```
@@ -2747,10 +2698,7 @@ Probe data access to a virtual address.
 #### Format
 
 ```
-   PRB r, a (b)           ; opMode 4, 5, 6
-   PRB r, a (seg, b)      ; opMode 4, 5, 6
-   PRB r, ofs (b)         ; opMode 8 .. 15, 16 .. 23, 24 .. 31
-   PRB r, ofs (seg, b)    ; opMode 8 .. 15, 16 .. 23, 24 .. 31
+   PRB r, operand
 ```
 
 ```
@@ -2879,7 +2827,6 @@ Removes a translation entry from the TLB.
 #### Format
 
 ```
-   PTLB <opt> (b)
    PTLB <opt> (a, b)
 ```
 
@@ -2893,7 +2840,6 @@ Removes a translation entry from the TLB.
 #### Description
 
 The DTLB instruction removes a translation from the instruction or data TLB by marking the entry invalid. The virtual address is encoded in "a" for the segment register and "b" for the offset. The "T" bit indicates whether the instruction or the data TLB is addressed. A value of zero references the instruction TLB, a value of one refers to the data TLB. 
-
 
 #### Operation
 
@@ -2928,12 +2874,11 @@ Flush and / or remove cache lines from the cache.
 #### Format
 
 ```
-   PCA <opt> (b)
    PCA <opt> (a, b)
 ```
 
 ```
-       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : PCA    ( 0x3A ) : 0         :T :F : 0                                 : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:

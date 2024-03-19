@@ -639,45 +639,6 @@ public:
         else return( 0 );
     }
     
-    
-    
-    
-    // ??? thex all go away...
-    
-    
-    static inline uint32_t immGen2S14( uint32_t instr ) {
-      
-        uint32_t tmp = ( EXTR( instr, 17, 2 )) | ( EXTR( instr, 31, 14 ) << 2 );
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFF0000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen8S6( uint32_t instr ) {
-      
-        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 23, 6 ) << 8 ));
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFFC000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen8S10( uint32_t instr ) {
-      
-        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 27, 10 ) << 8 ));
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFC0000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen8S14( uint32_t instr ) {
-      
-        uint32_t tmp = ( EXTR( instr, 17, 8 ) | ( EXTR( instr, 31, 14 ) << 8 ));
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFC00000 ) : ( tmp ));
-    }
-    
-    static inline uint32_t immGen12S6( uint32_t instr ) {
-      
-        uint32_t tmp = ( EXTR( instr, 17, 12 ) | ( EXTR( instr, 23, 6 ) << 12 ));
-        return ( EXTR( instr, 18, 1 ) ? ( tmp | 0xFFFC0000 ) : ( tmp ));
-    }
-    
-    
-    
-    
 };
  
 #endif

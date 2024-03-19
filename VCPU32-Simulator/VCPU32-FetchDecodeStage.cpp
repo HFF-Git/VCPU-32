@@ -495,7 +495,7 @@ void FetchDecodeStage::process( ) {
             
             regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = Instr::immGen8S10( instr );
+            valX            = Instr::immGenPosLenLowSign( instr, 31, 22 );
             
         } break;
             
@@ -525,7 +525,7 @@ void FetchDecodeStage::process( ) {
         case OP_BL: {
             
             valB = instrOfs;
-            valX = Instr::immGen8S14( instr );
+            valX = Instr::immGenPosLenLowSign( instr, 31, 22 );
             
         } break;
             
@@ -559,7 +559,7 @@ void FetchDecodeStage::process( ) {
             
             regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = Instr::immGen12S6( instr );
+            valX            = Instr::immGenPosLenLowSign( instr, 23, 18 );
             
         } break;
             
@@ -569,7 +569,7 @@ void FetchDecodeStage::process( ) {
             valA            = core -> gReg[ regIdForValA ].get( ); // ??? should set the previous priv level
             
             valB            = instrOfs;
-            valX            = Instr::immGen8S14( instr );
+            valX            = Instr::immGenPosLenLowSign( instr, 31, 22 );
             
             if ( core -> stReg.get( ) & ST_CODE_TRANSLATION_ENABLE ) {
                 
@@ -591,7 +591,7 @@ void FetchDecodeStage::process( ) {
             regIdForValB    = Instr::regBIdField( instr );
             valA            = core -> gReg[ regIdForValA ].get( );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = Instr::immGen8S6( instr );
+            valX            = Instr::immGenPosLenLowSign( instr, 23, 15 );
             
         } break;
             
@@ -599,7 +599,7 @@ void FetchDecodeStage::process( ) {
             
             regIdForValB    = Instr::regBIdField( instr );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = Instr::immGen8S6( instr );
+            valX            = Instr::immGenPosLenLowSign( instr, 23, 15 );
             
         } break;
             
@@ -737,13 +737,13 @@ void FetchDecodeStage::process( ) {
             
             // ??? we add a signed value to an unsigned value .... 
             
-            psInstrOfs.set( Instr::add32( instrOfs, Instr::immGen8S6( instr )));
+            psInstrOfs.set( Instr::add32( instrOfs, Instr::immGenPosLenLowSign( instr, 31, 22 )));
             core -> maStage -> psValX.set( 1 );
         }
         else {
             
             psInstrOfs.set( instrOfs + 4 );
-            core -> maStage -> psValX.set( Instr::immGen8S6( instr ));
+            core -> maStage -> psValX.set( Instr::immGenPosLenLowSign( instr, 31, 22 ));
         }
     }
     else psInstrOfs.set( instrOfs + 4 );
