@@ -229,7 +229,6 @@ void displayOpCode( uint32_t instr ) {
 void displayOpCodeOptions( uint32_t instr ) {
     
     uint32_t opCode = getBitField( instr, 5, 6 );
-    uint32_t opMode = getBitField( instr, 17, 5 );
     
     switch ( opCode ) {
             

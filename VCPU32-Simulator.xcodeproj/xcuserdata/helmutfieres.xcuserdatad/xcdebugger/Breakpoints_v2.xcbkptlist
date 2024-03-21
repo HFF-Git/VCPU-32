@@ -30,57 +30,10 @@
             filePath = "VCPU32-Simulator/VCPU32-DrvDisAsm.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "653"
-            endingLineNumber = "653"
-            landmarkName = "unknown"
-            landmarkType = "0">
-            <Locations>
-               <Location
-                  uuid = "864D2BEB-3B67-4167-BA87-E07FD6099B60 - c4ef1e7bcb6126cd"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "DrvDisAsm::displayInstr(unsigned int, TokId)"
-                  moduleName = "VCPU32-Simulator"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/helmutfieres/GitHub/VCPU-32/VCPU32-Simulator/VCPU32-DrvDisAsm.cpp"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "589"
-                  endingLineNumber = "589"
-                  offsetFromSymbolStart = "32">
-               </Location>
-               <Location
-                  uuid = "864D2BEB-3B67-4167-BA87-E07FD6099B60 - c4ef1e7bcb613c22"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "DrvDisAsm::displayInstr(unsigned int, TokId)"
-                  moduleName = "VCPU32-Simulator"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/helmutfieres/GitHub/VCPU-32/VCPU32-Simulator/VCPU32-DrvDisAsm.cpp"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "640"
-                  endingLineNumber = "640"
-                  offsetFromSymbolStart = "32">
-               </Location>
-               <Location
-                  uuid = "864D2BEB-3B67-4167-BA87-E07FD6099B60 - c4ef1e7bcb613e33"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "DrvDisAsm::displayInstr(unsigned int, TokId)"
-                  moduleName = "VCPU32-Simulator"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/helmutfieres/GitHub/VCPU-32/VCPU32-Simulator/VCPU32-DrvDisAsm.cpp"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "655"
-                  endingLineNumber = "655"
-                  offsetFromSymbolStart = "32">
-               </Location>
-            </Locations>
+            startingLineNumber = "652"
+            endingLineNumber = "652"
+            landmarkName = "DrvDisAsm::displayInstr(instr, fmt)"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

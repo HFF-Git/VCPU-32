@@ -3,11 +3,9 @@
 // VCPU32 - A 32-bit CPU - A TLB for VCPU-32
 //
 //------------------------------------------------------------------------------------------------------------
-// In modern CPUs with virtual addessing a TLBis essential. A TLB is a translation cache. It contains the
-// virtual adress and the corresponding physical adress as well as access indfomration for the page. Each
-// virtual memory reference will conslt the TLB, it is on the critical path.
-//
-//
+// A TLB is a translation cache. It contains the virtual adress and the corresponding physical adress as well
+// as access rights information for the page. Each virtual memory reference will conslt the TLB, it is on the
+// critical path.
 //
 //
 //------------------------------------------------------------------------------------------------------------
@@ -27,7 +25,6 @@
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Types.hpp"
 #include "VCPU32-Core.hpp"
-
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -81,7 +78,7 @@ uint16_t hashTlb( uint32_t seg, uint32_t ofs, uint32_t tlbSize ) {
 }; // namespace
 
 //------------------------------------------------------------------------------------------------------------
-// The TLB object. It is just an array of TLB entries. Any reference is done by using teh hash function to
+// The TLB object. It is just an array of TLB entries. Any reference is done by using the hash function to
 // get to an entry. The TLB size is rounded up to the nearest power of 2 from the passed TLB size.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -124,10 +121,7 @@ void CpuTlb::clearStats( ) {
 //------------------------------------------------------------------------------------------------------------
 void CpuTlb::tick( ) {
     
-    if ( tlbOpState != TO_IDLE ) {
-        
-        if ( reqDelayCnt > 0 ) reqDelayCnt --;
-    }
+    if (( tlbOpState != TO_IDLE ) & ( reqDelayCnt > 0 )) reqDelayCnt --;
 }
 
 void CpuTlb::process( ) {
@@ -249,9 +243,9 @@ void CpuTlb::abortTlbOp( ) {
     
     if ( tlbOpState != TO_IDLE ) {
         
-        tlbOpState    = TO_IDLE;
-        reqOp           = 0;
-        reqData         = 0;
+        tlbOpState  = TO_IDLE;
+        reqOp       = 0;
+        reqData     = 0;
     }
 }
 
@@ -268,7 +262,7 @@ bool CpuTlb::insertTlbEntryData( uint32_t seg, uint32_t ofs, uint32_t argAcc, ui
         ptr -> pInfo    = argAcc;
         ptr -> aInfo    = argAdr;
         ptr -> vpnHigh  = seg;
-        ptr -> vpnLow   = ofs & 07777;
+        ptr -> vpnLow   = ofs & 0xFFFF;
         ptr -> setValid( true );
         return( true );
     }
@@ -306,7 +300,7 @@ TlbEntry *CpuTlb::lookupTlbEntry( uint32_t seg, uint32_t ofs ) {
     
    tlbAccess++;
     
-    if (( ptr -> vpnHigh == seg ) && (( ptr -> vpnLow >> 12 ) == ( ofs >> 12 ))) {
+    if (( ptr -> vpnHigh == seg ) && (( ptr -> vpnLow >> PAGE_SIZE_BITS ) == ( ofs >> PAGE_SIZE_BITS ))) {
         
         return( ptr );
     }

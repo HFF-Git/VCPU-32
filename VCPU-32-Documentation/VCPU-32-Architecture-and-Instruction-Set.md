@@ -607,8 +607,8 @@ Each instruction is also presented in an assembler style format. The field names
 | Immediate | 0 | ADD r1, 500 | add 500 to the general register r1 |
 | One register | 1 | --- | opMode one uses a zero value and one register as operands. This opMode is typically used for implementing pseudo instructions |
 | Two register | 2 | OR r2, r6, r7 | a two register operation. Register r2 is encode in the "r" field, "r6" in "a" and "r7" in "b" |
-| Register indexed | 3 .. 7 | LD r6, r4(r10) | this opMode 3. Add r4 to r10 and use the upper two bits of the result to select among segment registers 4 to 7. The encoding will place a zero in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
-| Register indexed | 3 .. 7 | LD r6, r4(sr1, r10) | this is also opMode 3. Add r4 to r10 and use segment s1 as the segement register. The encoding will place a 1 in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
+| Register indexed | 4 .. 6 | LD r6, r4(r10) | this opMode 3. Add r4 to r10 and use the upper two bits of the result to select among segment registers 4 to 7. The encoding will place a zero in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
+| Register indexed | 4 .. 6 | LD r6, r4(sr1, r10) | this is also opMode 3. Add r4 to r10 and use segment s1 as the segement register. The encoding will place a 1 in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
 | Indexed | 8 .. 31 | ST 100(r12), r4 | store r4 to the virtual memery address formed by adding 100 to r12 and selecting based on the upper twop bits the segment register. "seg" field is zero, "ofs" field is 100, "opMode" field is 12. The operand modes 16 .. 23 and 24 .. 31 would do the same address calculation but store a half-word or byte dending on the opMode. For example, to store a half-word opMode is 20, to store a byte opMode is 28. The opCode would be STH or STB to indicate the operand size | 
 | Indexed | 8 .. 31 | ORH r5, 100( s1, r12) | OR r5 to the halfword content found at virtual memory address formed by adding 100 to r12 and segment regsistr s1. "seg" field is one, "ofs" field is 100, "opMode" field is 20 | 
 
@@ -1067,7 +1067,7 @@ The LDIL instruction will place an 22-bit value in the left portion of a registe
    LDO   r2, R%val(r10)
 ```
 
-will load the left hand side of the 32-bit value "val" into R10 and use the LOD instruction to add the right side part of "val"". The result is stored in R2. 
+will load the left hand side of the 32-bit value "val" into R10 and use the LDO instruction to add the right side part of "val"". The result is stored in R2. 
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -2715,18 +2715,20 @@ The PRB instruction determines whether data access at the requested privilege le
 #### Operation
 
 ```
-   if ( opMode < 4 ) illegalInstructionTrap( );
-
-   seg <- operandAdrSeg( instr );
-   ofs <- operandAdrOfs( instr );
-   
-   if ( ! searchDataTlbEntry( seg, ofs, &entry )) {
-
-      if      ((   instr.[M] ) && ( writeAccessAllowed( entry, instr.[P] )))    GR[r] <- 1;
-      else if (( ! instr.[M] ) && ( readAccessAllowed( entry, instr.[P] )))     GR[r] <- 1;
-      else                                                                      GR[r] <- 0;
+   if (( opMode == 4 ) || (( opMode >= 8 ) && ( opMode <=> 15 ))) {
       
-   } else nonAccessDataTlbMiss( );
+      seg <- operandAdrSeg( instr );
+      ofs <- operandAdrOfs( instr );
+   
+      if ( ! searchDataTlbEntry( seg, ofs, &entry )) {
+
+         if      ((   instr.[M] ) && ( writeAccessAllowed( entry, instr.[P] )))    GR[r] <- 1;
+         else if (( ! instr.[M] ) && ( readAccessAllowed( entry, instr.[P] )))     GR[r] <- 1;
+         else                                                                      GR[r] <- 0;
+      
+      } else nonAccessDataTlbMiss( );
+      
+   } else illegalInstructionTrap( );
 ```
 
 #### Exceptions
@@ -3138,7 +3140,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : ADDIL   ( 0x03 ): r         : val                                                             :
    :-----------------:-----------------------------------------------------------------------------:
-   : LOD     ( 0x16 ): r        : 0       : opMode       : opArg                                   :   
+   : LDO     ( 0x16 ): r        : 0       : opMode       : opArg                                   :   
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
