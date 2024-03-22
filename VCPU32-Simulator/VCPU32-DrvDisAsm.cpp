@@ -38,7 +38,7 @@ namespace {
 
 
 //------------------------------------------------------------------------------------------------------------
-// Instruction decoding means to get to bits and bit fields.
+// Instruction decoding means to get to bits and bit fields. Here is a set of helper functions.
 //
 //------------------------------------------------------------------------------------------------------------
 bool getBit( uint32_t arg, int pos ) {
@@ -72,10 +72,7 @@ static inline uint32_t lowSignExtend32( uint32_t arg, int len ) {
 }
 
 static inline uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
-    
-    pos = pos % 32;
-    len = len % 32;
-    
+   
     return( lowSignExtend32( Instr::getBitField( instr, pos, len ), len ));
 }
 
@@ -86,7 +83,6 @@ uint32_t mapOpModeToIndexReg( uint32_t opMode ) {
     else if (( opMode >= 24 ) && ( opMode <= 31 )) return( opMode - 16 );
     else return( 0 );
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 // "printImmVal" disply an immediate value in the selected radix. Octals and hex numbers are printed unsigned
@@ -343,12 +339,6 @@ void displayOpCodeOptions( uint32_t instr ) {
             
         } break;
             
-        case OP_MR: {
-            
-            // ??? decode the bits ?
-            
-        } break;
-            
         case OP_PRB: {
             
             if ( getBit( instr, 10 )) fprintf( stdout, ".W" );
@@ -439,7 +429,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         case OP_ADD:    case OP_SUB:    case OP_CMP:
         case OP_AND:    case OP_OR:     case OP_XOR:
-        case OP_LD:     case OP_ST:     case OP_LOD:
+        case OP_LD:     case OP_ST:     case OP_LDO:
         case OP_LDWR:   case OP_STWC:   case OP_PRB:
         case OP_LDPA: {
             
@@ -453,9 +443,8 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_LDIL:
         case OP_ADDIL: {
             
-            // ??? need to be able to print in all radix ?
-            
-            fprintf( stdout, ", %d", getBitField( instr, 31, 22 ));
+            fprintf( stdout, "," );
+            printImmVal( getBitField( instr, 31, 22 ), fmtId );
             
         } break;
             

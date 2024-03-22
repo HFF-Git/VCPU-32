@@ -40,7 +40,7 @@ namespace {
 //
 //------------------------------------------------------------------------------------------------------------
 const uint32_t  MAX_TLB_SIZE    = 2048;
-const uint8_t       SEG_SHIFT        = 4;
+const uint8_t   SEG_SHIFT       = 4;
 
 //------------------------------------------------------------------------------------------------------------
 // TLB state mchine states.
@@ -53,6 +53,27 @@ enum tlbOpState : uint32_t {
     TO_REQ_INSERT_PROT  = 2,
     TO_REQ_PURGE        = 3
 };
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+static inline bool getBit( uint32_t arg, int pos ) {
+    
+    return( arg & ( 1U << ( 31 - ( pos % 32 ))));
+}
+
+static inline uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    uint32_t tmpA = arg >> ( 31 - pos );
+    
+    if ( sign ) return( tmpA | ( ~ tmpM ));
+    else        return( tmpA & tmpM );
+}
 
 //------------------------------------------------------------------------------------------------------------
 // A little helper functions to round up the TLB size to power of two.
@@ -377,6 +398,84 @@ uint32_t CpuTlb::getTlbMiss( ) {
 uint32_t CpuTlb::getTlbWaitCycles( ) {
     
    return( tlbWaitCycles );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Getters/Setters for the TlbEntry.
+//
+//------------------------------------------------------------------------------------------------------------
+bool TlbEntry::tValid( ) {
+    
+    return ( pInfo & 0x80000000 );
+}
+void TlbEntry::setValid( bool arg ) {
+    
+    if ( arg ) pInfo |= 0x80000000; else  pInfo &= ~ 0x80000000;
+}
+
+bool TlbEntry::tUncachable( ) {
+    
+    return( getBitField( pInfo, 1, 1 ));
+}
+
+bool TlbEntry::tTrapPage( ) {
+    
+    return( getBitField( pInfo, 2, 1 ));
+}
+
+bool TlbEntry::tDirty( ) {
+    
+    return( getBitField( pInfo, 3, 1 ));
+}
+
+bool TlbEntry::tTrapDataPage( ) {
+    
+    return( getBitField( pInfo, 4, 1 ));
+}
+
+bool TlbEntry::tModifyExPage( ) {
+    
+    return( getBitField( pInfo, 5, 1 ));
+}
+
+uint32_t TlbEntry::tPageType( ) {
+    
+    return( getBitField( pInfo, 7, 2 ));
+}
+
+uint32_t  TlbEntry::tPrivL1( ) {
+    
+    return( getBitField( pInfo, 8, 1 ));
+}
+
+uint32_t  TlbEntry::tPrivL2( ) {
+    
+    return( getBitField( pInfo, 9, 1 ));
+}
+
+uint32_t TlbEntry::tProtectId( ) {
+    
+    return( getBitField( pInfo, 31, 16 ));
+}
+
+uint32_t TlbEntry::tPhysAdrTag( ) {
+    
+    return( aInfo << 12 );
+}
+
+uint32_t TlbEntry::tPhysPage( ) {
+    
+    return( getBitField( aInfo, 31, 20 ));
+}
+
+uint32_t TlbEntry::tPhysMemBank( ) {
+    
+    return( getBitField( aInfo, 11, 4 ));
+}
+
+uint32_t TlbEntry::tCpuId( ) {
+    
+    return( getBitField( aInfo, 7, 4 ));
 }
 
 

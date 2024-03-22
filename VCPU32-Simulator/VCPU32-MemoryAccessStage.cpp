@@ -43,6 +43,85 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+static inline bool getBit( uint32_t arg, int pos ) {
+    
+    return( arg & ( 1U << ( 31 - ( pos % 32 ))));
+}
+
+static inline void setBit( uint32_t *arg, int pos ) {
+   
+    *arg |= ( 1U << ( 31 - ( pos % 32 )));
+}
+
+static inline void clearBit( uint32_t *arg, int pos ) {
+    
+    *arg &= ~( 1U << ( 31 - ( pos % 32 )));
+}
+
+static inline uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    uint32_t tmpA = arg >> ( 31 - pos );
+    
+    if ( sign ) return( tmpA | ( ~ tmpM ));
+    else        return( tmpA & tmpM );
+}
+
+static inline void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    
+    val = ( val & tmpM ) << ( 31 - pos );
+    
+    *arg = ( *arg & ( ~tmpM )) | val;
+}
+
+static inline uint32_t signExtend( uint32_t arg, int len ) {
+    
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    bool     sign = arg & ( 1U << ( 31 - len ));
+    
+    if ( sign ) return( arg |= ~ tmpM );
+    else        return( arg &= tmpM );
+}
+
+static inline uint32_t lowSignExtend32( uint32_t arg, int len ) {
+    
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << ( len - 1 )) - 1;
+    bool     sign = arg % 2;
+    
+    arg = arg >> 1;
+    
+    if ( sign ) return( arg |= ~ tmpM );
+    else        return( arg &= tmpM );
+}
+
+uint32_t mapOpModeToIndexReg( uint32_t opMode ) {
+    
+    if      (( opMode >= 8 ) && ( opMode <= 15 )) return( opMode );
+    else if (( opMode >= 16 ) && ( opMode <= 23 )) return( opMode - 8 );
+    else if (( opMode >= 24 ) && ( opMode <= 31 )) return( opMode - 16 );
+    else return( 0 );
+}
+
+uint32_t mapOpModeToDataLen( uint32_t opMode ) {
+    
+    if      (( opMode == 4 ) || (( opMode >= 8 ) && ( opMode <= 15 ))) return( 4 );
+    else if (( opMode == 5 ) || (( opMode >= 16 ) && ( opMode <= 23 ))) return( 2 );
+    else if (( opMode == 6 ) || (( opMode >= 24 ) && ( opMode <= 31 ))) return( 1 );
+    else return( 0 );
+}
+
 }; // namespace
 
 //------------------------------------------------------------------------------------------------------------
@@ -281,12 +360,14 @@ void MemoryAccessStage::process( ) {
     valX            = psValX.get( );
     valS            = 0;
     
-    uint8_t     opCode      = Instr::opCodeField( instr );
-    uint8_t     opMode      = Instr::opModeField( instr );
+    uint8_t     opCode      = getBitField( instr, 5, 6 );
+    uint8_t     opMode      = getBitField( instr, 17, 5 );
     uint32_t    pOfs        = psValX.get( ) % PAGE_SIZE;
     uint32_t    pAdr        = 0;
-    uint32_t    dLen        = 0;
+    uint32_t    dLen        = 4;
     bool        unCacheable = false;
+    
+    // ??? a bit clearer .... how to do better ?
     
     bool readAccessInstr  = ((( opMode >= 8 ) &&
                               (( opCode == OP_ADD ) || ( opCode == OP_SUB )    ||
@@ -307,7 +388,7 @@ void MemoryAccessStage::process( ) {
     switch( opCode ) {
             
         case OP_ADD:    case OP_SUB:    case OP_AND:    case OP_OR:     case OP_XOR:
-        case OP_CMP:    case OP_LOD:    case OP_LD:     case OP_ST:     case OP_LDWR:
+        case OP_CMP:    case OP_LDO:    case OP_LD:     case OP_ST:     case OP_LDWR:
         case OP_STWC: {
             
             switch( opMode ) {
@@ -315,6 +396,7 @@ void MemoryAccessStage::process( ) {
                 case OP_MODE_REG_INDX_W:    case OP_MODE_REG_INDX_H:    case OP_MODE_REG_INDX_B:
                 case OP_MODE_INDX_W:        case OP_MODE_INDX_H:        case OP_MODE_INDX_B: {
               
+                    dLen            = mapOpModeToDataLen( opMode );
                     valS            = core -> sReg[ Instr::segSelect( valB ) ].get( );
                     valX            = Instr::add32( valB, valX );
                     regIdForValX    = MAX_GREGS;
@@ -327,9 +409,9 @@ void MemoryAccessStage::process( ) {
             
         } break;
             
-       
         case OP_LDWA:
-        case OP_STWA:  {
+        case OP_LDWAX:
+        case OP_STWA: {
             
             valX            = Instr::add32( valB, valX );
             regIdForValX    = MAX_GREGS;
@@ -338,18 +420,7 @@ void MemoryAccessStage::process( ) {
         } break;
             
         case OP_B:
-        case OP_BL: {
-            
-            core -> fdStage -> psInstrSeg.set( instrSeg );
-            core -> fdStage -> psInstrOfs.set( Instr::add32( valB, valX ));
-            regIdForValX    = MAX_GREGS;
-            regIdForValB    = MAX_GREGS;
-            valB            = 0;
-            valX            = 0;
-            flushPipeLine( );
-            
-        } break;
-            
+        case OP_BL:
         case OP_BR:
         case OP_BLR:
         case OP_BV:
@@ -408,10 +479,10 @@ void MemoryAccessStage::process( ) {
             
         case OP_ITLB: {
             
-            CpuTlb *tlbPtr    = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
-            uint32_t tlbSeg = (( Instr::tlbAdrModeField( instr )) ?
-                                   core -> sReg[ Instr::segSelect( valB )].get( ) :
-                                   core -> sReg[ Instr::regAIdField( instr ) ].get( ));
+            CpuTlb *tlbPtr  = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
+            
+            uint32_t tlbSeg = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
+            uint32_t tlbOfs = core -> gReg[ getBitField( instr, 31, 4 ) ].get( );
             
             bool rStat = false;
             
@@ -431,10 +502,10 @@ void MemoryAccessStage::process( ) {
             
         case OP_PTLB: {
             
-            CpuTlb      *tlbPtr = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
-            uint32_t    tlbSeg  = (( Instr::tlbAdrModeField( instr )) ?
-                                      core -> sReg[ Instr::segSelect( valB )].get( ) :
-                                      core -> sReg[ Instr::regAIdField( instr ) ].get( ));
+            CpuTlb *tlbPtr  = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
+            
+            uint32_t tlbSeg = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
+            uint32_t tlbOfs = core -> gReg[ getBitField( instr, 31, 4 ) ].get( );
             
             if ( ! tlbPtr -> purgeTlbEntry( tlbSeg, Instr::ofsSelect( valB ))) {
                 
@@ -448,19 +519,11 @@ void MemoryAccessStage::process( ) {
             
             CpuTlb      *tlbPtr = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
             CpuMem      *cPtr   = ( Instr::pcaKindField( instr )) ?  core -> dCacheL1 : core -> iCacheL1;
-            uint32_t    seg     = 0;
-            uint32_t    ofs     = 0;
             
-            if ( Instr::pcaAdrModeField( instr )) {
-                
-                seg = core -> sReg[ Instr::segSelect( valB )].get( );
-                ofs = Instr::ofsSelect( valB );
-            }
-            else {
-                
-                seg = core -> sReg[ Instr::regAIdField( instr ) ].get( );
-                ofs = valB;
-            }
+            uint32_t    seg     = core -> sReg[ Instr::regAIdField( instr ) ].get( );
+            uint32_t    ofs     = valB;
+            
+            // ??? simplify ... this is quite complex to do in one cycle ...
             
             TlbEntry *tlbEntryPtr = tlbPtr -> lookupTlbEntry( seg, ofs );
             if ( tlbEntryPtr == nullptr ) {
@@ -486,7 +549,10 @@ void MemoryAccessStage::process( ) {
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Data load or store.
+    // Data load or store. This is the second half for instructions that read or write to memory. Access to
+    // the IO memory space is never cached. A physical memory address is handled by either accessing in
+    // virtual or absolute access mode. Finally, if code translation is enabled and the uncacachbel bit is
+    // set, the data access will bypass the cache.
     //
     //--------------------------------------------------------------------------------------------------------
     if ( readAccessInstr || writeAccessInstr ) {
@@ -551,24 +617,30 @@ void MemoryAccessStage::process( ) {
             }
             
             unCacheable = tlbEntryPtr -> tUncachable( );
-            pAdr        = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;  // ??? check physTag in TLB, should be PPN.
+            pAdr        = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;
         }
         else pAdr = valX;
-       
+    
         bool rStat = false;
         
-        // ??? need a way to load/store words, half-words, bytes.
-        // ??? dLen depends on Instruction and/ or opMode!!!!!!!
-       
-        if ( unCacheable ) {
+        if ( pAdr <= MAX_PHYS_MEM_SIZE ) {
             
-            if      ( readAccessInstr )     rStat = core -> mem -> readPhys( pAdr, 4, &valB );
-            else if ( writeAccessInstr )    rStat = core -> mem -> writePhys( pAdr, 4, valA );
-        }
-        else {
+            // ??? change to use IO memory oBject...
+            if      ( readAccessInstr )     rStat = core -> mem -> readPhys( pAdr, dLen, &valB );
+            else if ( writeAccessInstr )    rStat = core -> mem -> writePhys( pAdr, dLen, valA );
             
-            if      ( readAccessInstr )     rStat = core -> dCacheL1 -> readVirt( valS, valX, pAdr, 4, &valB );
-            else if ( writeAccessInstr )    rStat = core -> dCacheL1 -> writeVirt( valS, valX, pAdr, 4, valA );
+        } else {
+            
+            if ( unCacheable ) {
+                
+                if      ( readAccessInstr )  rStat = core -> mem -> readPhys( pAdr, dLen, &valB );
+                else if ( writeAccessInstr ) rStat = core -> mem -> writePhys( pAdr, dLen, valA );
+            }
+            else {
+                
+                if      ( readAccessInstr )  rStat = core -> dCacheL1 -> readVirt( valS, valX, pAdr, dLen, &valB );
+                else if ( writeAccessInstr ) rStat = core -> dCacheL1 -> writeVirt( valS, valX, pAdr, dLen, valA );
+            }
         }
         
         if ( ! rStat ) {

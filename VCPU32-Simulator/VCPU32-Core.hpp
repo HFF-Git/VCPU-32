@@ -42,7 +42,6 @@ enum VmemOptions : uint32_t {
     VMEM_T_L2_UNIFIED_CACHE     = 4
 };
 
-
 //------------------------------------------------------------------------------------------------------------
 // Basic constants for TLB, caches and memory. The intended hardware will perform a lookup of TLB and caches
 // in paralell. As a consequence the number of bits needed to respresent the block entries cannot be greater
@@ -100,7 +99,6 @@ enum MemoryObjRegId : uint32_t {
     MC_REG_BLOCK_SIZE       = 12,
     MC_REG_SETS             = 13
 };
-
 
 //------------------------------------------------------------------------------------------------------------
 // We support two types of TLB. The split instruction and data TLB and a unified, dual ported TLB.
@@ -247,46 +245,45 @@ private:
 // this is is the more flexible way. In a real hardeware implementation, the bit fields wizld just store
 // the bank and page index values.
 //
+//   0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+//  :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+//  : 0         : CPU-ID    : Bank      : PPN                                                       :  ainfo
+//  :-----------------------------------------------------------------------------------------------:
 //
-//      pInfo - as in architecture document...
-//      aInfo - as in architecture document...
-//
-//      adrTag[0:3]      - CPU Id.
-//      adrTag[4:7]      - memory bank
-//      adrTag[8:19]     - memory page
-//      adrTag[20:31]    - memory page offset
-//
+//   0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+//  :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+//  :U :T :D :B : PT  :P1:P2: 0                     : Protect-Id                                    :  pInfo
+//  :-----------------------------------------------------------------------------------------------:
 //
 //------------------------------------------------------------------------------------------------------------
 struct TlbEntry {
     
 public:
     
-    inline bool     tValid( ) { return ( pInfo & 0x80000000 ); }
-    inline void     setValid( bool arg ) { if ( arg ) pInfo |= 0x80000000; else  pInfo &= ~ 0x80000000; }
+    bool        tValid( );
+    void        setValid( bool arg );
     
-    inline bool     tUncachable( ) { return( EXTR( pInfo, 1, 1 )); }
-    inline bool     tTrapPage( ) { return( EXTR( pInfo, 2, 1 )); }
-    inline bool     tDirty( ) { return( EXTR( pInfo, 3, 1 )); }
-    inline bool     tTrapDataPage( ) { return( EXTR( pInfo, 4, 1 )); }
-    inline bool     tModifyExPage( ) { return( EXTR( pInfo, 5, 1 )); }
+    bool        tUncachable( );
+    bool        tTrapPage( );
+    bool        tDirty( );
+    bool        tTrapDataPage( );
+    bool        tModifyExPage( );
     
-    inline int      tPageType( ) { return( EXTR( pInfo, 7, 2 )); }
-    inline uint8_t  tPrivL1( ) { return( EXTR( pInfo, 8, 1 )); }
-    inline uint8_t  tPrivL2( ) { return( EXTR( pInfo, 9, 1 )); }
-    inline uint16_t tProtectId( ) { return( EXTR( pInfo, 31, 16 )); }
+    uint32_t    tPageType( );
+    uint32_t    tPrivL1( );
+    uint32_t    tPrivL2( );
+    uint32_t    tProtectId( );
     
-    inline uint32_t tPhysAdrTag( ) { return( aInfo << 12 ); }
+    uint32_t    tPhysAdrTag( );
     
-    inline uint16_t tPhysPage( ) { return( EXTR( aInfo, 31, 20 )); }
-    inline uint8_t  tPhysMemBank( ) { return( EXTR( aInfo, 11, 4 )); }
-    inline uint8_t  tCpuId( ) { return( EXTR( aInfo, 7, 4 )); }
-       
-    uint32_t        vpnHigh;
-    uint32_t        vpnLow;
-    uint32_t        pInfo;
-    uint32_t        aInfo;
-    uint32_t        adrtag;
+    uint32_t    tPhysPage( );
+    uint32_t    tPhysMemBank( );
+    uint32_t    tCpuId( );
+
+    uint32_t    vpnHigh;
+    uint32_t    vpnLow;
+    uint32_t    pInfo;
+    uint32_t    aInfo;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -457,6 +454,38 @@ private:
     uint32_t        *dataArray[ MAX_BLOCK_SETS ]    = { nullptr };
     CpuMem          *lowerMem                       = nullptr;
     void            ( CpuMem::*stateMachine )( )    = nullptr;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// ??? IO memory space...
+//
+// ??? have a read/write phys methods, also tick, process, etc.
+// ??? OR we could model it as IO memory that does not allocate actual memory... it is IO.
+// ??? how to actually do IO registers ?
+//
+//------------------------------------------------------------------------------------------------------------
+struct CpuIoMem {
+    
+    CpuIoMem( CpuMemDesc *mDesc );
+    
+    void            reset( );
+    void            tick( );
+    void            process( );
+    void            clearStats( );
+    
+    void            abortMemOp( );
+    
+    bool            readPhys( uint32_t adr, uint32_t len, uint32_t *word, uint16_t pri = 0 );
+    bool            writePhys( uint32_t adr, uint32_t len, uint32_t word, uint16_t pri = 0 );
+    
+   
+    uint32_t        getMissCnt( );
+    uint32_t        getDirtyMissCnt( );
+    uint32_t        getAccessCnt( );
+    uint32_t        getWaitCycleCnt( );
+    
+
+    // ??? under construction ...
 };
 
 //------------------------------------------------------------------------------------------------------------

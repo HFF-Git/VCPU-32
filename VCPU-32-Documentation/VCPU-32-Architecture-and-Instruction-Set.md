@@ -109,7 +109,7 @@ In contrast to similar historical register-memory designs, there is no operation
 
 ### Memory and IO Address Model
 
-VCPU-32 features a physical memory address range of 32-bits. The picture below depicts the physical memory address layout. The physical address range is divided into a memory data portion and an I/O portion. The I/O portion is further divided into 16 channel data areas. Channel zero represents the CPU itself. All others represent a hardware I/O channel. The entire address range is directly accessible with load and store instructions.
+VCPU-32 features a physical memory address range of 32-bits. The picture below depicts the physical memory address layout. The physical address range is divided into a memory data portion and an I/O portion. The entire address range is directly accessible with load and store instructions.
 
 ```
     0                                     31
@@ -128,13 +128,13 @@ VCPU-32 features a physical memory address range of 32-bits. The picture below d
    :                                     :          |                 : Processor dependent code (16Mb )    :
    :                                     :          |                 :                                     :
    :                                     :          |   0xF1000000 -> :-------------------------------------:
-   :                                     :          |                 : I/O Channel 1 (16Mb )               :
    :                                     :          |                 :                                     :
-   :                                     :          |   0xF2000000 -> :-------------------------------------:
+   :                                     :          |                 :                                     :
+   :                                     :          |                 :-------------------------------------:
    :-------------------------------------: ---------+                 :            . . .                    :
    :                                     :                            :                                     : 
-   :            IO                       :              0xFF000000 -> :-------------------------------------:
-   :                                     :                            : I/O Channel 15 (16Mb )              :
+   :            IO                       :                            :-------------------------------------:
+   :                                     :                            :                                     :
    :                                     :                            :                                     :
    :-------------------------------------: 0xFFFFFFFF --------------->:-------------------------------------:
 ```
@@ -3243,6 +3243,10 @@ In addition to the L1 caches, there could be a joint L2 cache to serve both L1 c
 
 - PCA instruction manages the cache flush and deletion. Insertion is always done in HW.
 
+### Uncachable Pages
+
+- short comment why and what ...
+
 
 ### Instruction and Data TLBs
 
@@ -3267,25 +3271,83 @@ Computers with virtual addressing simply cannot work without a **translation loo
 
 ## VCPU-32 Runtime Environment
 
+No CPU architecture with an idea of a runtime environment. Although the instruction set is generic enough to implement many models of runtime environments, there are common principles that exploit the CPU architecture. In fact, several CPU concepts were selected with a runtime already in mind.
 
+### Register Usage
 
-### Registers
+The CPU features general registers, segment registers and control registers. As described before, all general registers can do computation, but only register 8 to 15 can be used as base register in the indexed addressing modes. Segment registers complement the general register set. A combination of a general index register and a segment register form a virtual address. To avoid juggling on every access both a segment and an index register, the segment register selection field in the respective instructions will either implicitly pick one of the upper four segment registers or specify on of the segment registers 1 to 3. This scheme allows to use in most cases just the offset portion of the virtual address when passing pointers to function and so on. The segment register is implicitly encoded in the upper two bits. 
+
+Segment 4 to 7 thus play a special role in the runtime environment. An execution thread, i.e. a **task**, in the runtime environment expects access to three data areas. The outermost area is the **system global area**, which is created at system start and never changed for there on. Segment register 7 is assigned to contain the segment ID of this space. Once set at system startup, its content will never change. Since the upper two bits of the address offset select the segment register, the maximum size of these areas is 30bits i.e. one gByte. Several executing tasks belonging to the same job are provided with the **job data area**. All threads belonging to the job have access to it via the SR6 segment register. This register is set every time the execution changes to a thread of another job. This area can be up to one gByte in size. Finally, in a similar manner, the task local data is pointed to by the segment register 5. This data area contains through local data and the stack. This register will also change on every task switch. Naturally, setting these registers is a privileged operation.
+
+```
+
+a nice picture
+
+```
+
+// ??? what about SR4 ? tracks module code segment for literal access.
 
 ### Stack Frame
 
+```
+
+a nice picture of the frame area
+
+```
+
+```
+
+a nice picture of the frame marker
+
+```
+
 ### Parameter passing
+
+// by value
+// by short pointer
+// explicit by passing seg and ofs.
 
 ### Local Calls
 
+// the BL instruction
+// the BV instruction
+
+// leaf procedures
+
 ### External Calls
 
+// BLE instruction
+// BE instruction
+
 ### Privilege level changes
+
+// GATE instruction and external calls
 
 ### Traps and Interrupt handling
 
 ### Debug
 
+
+
 ### Startup sequence
+
+
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
+## VCPU-32 Input/Output system
+
+// ??? note what part do we architect ?
+
+### The IO space
+
+VCPU-32 implements a memory papped I/O architecture. 1/16 of physical memory address space is dedicated to the I/O system.
+
+### Concept of an I/O Module
+
+### External Interrupts
+
 
 <!--------------------------------------------------------------------------------------------------------->
 

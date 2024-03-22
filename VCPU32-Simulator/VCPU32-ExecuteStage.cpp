@@ -43,6 +43,69 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+static inline bool getBit( uint32_t arg, int pos ) {
+    
+    return( arg & ( 1U << ( 31 - ( pos % 32 ))));
+}
+
+static inline void setBit( uint32_t *arg, int pos ) {
+   
+    *arg |= ( 1U << ( 31 - ( pos % 32 )));
+}
+
+static inline void clearBit( uint32_t *arg, int pos ) {
+    
+    *arg &= ~( 1U << ( 31 - ( pos % 32 )));
+}
+
+static inline uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    uint32_t tmpA = arg >> ( 31 - pos );
+    
+    if ( sign ) return( tmpA | ( ~ tmpM ));
+    else        return( tmpA & tmpM );
+}
+
+static inline void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    
+    val = ( val & tmpM ) << ( 31 - pos );
+    
+    *arg = ( *arg & ( ~tmpM )) | val;
+}
+
+static inline uint32_t signExtend( uint32_t arg, int len ) {
+    
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    bool     sign = arg & ( 1U << ( 31 - len ));
+    
+    if ( sign ) return( arg |= ~ tmpM );
+    else        return( arg &= tmpM );
+}
+
+static inline uint32_t lowSignExtend32( uint32_t arg, int len ) {
+    
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << ( len - 1 )) - 1;
+    bool     sign = arg % 2;
+    
+    arg = arg >> 1;
+    
+    if ( sign ) return( arg |= ~ tmpM );
+    else        return( arg &= tmpM );
+}
+
 //‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 // A little helper function to compare two register values for the CBR instruction. This is a bit tricky as
 // we run on a 32-bit machine. First, we sign extend to a 32-bt value and then do teh requested comparison.
@@ -346,7 +409,7 @@ void ExecuteStage::process( ) {
             
         case OP_AND: {
             
-            if ( Instr::complRegBField( instr )) valB = ~ valB;
+            if ( getBitField( instr, 31, 4 )) valB = ~ valB;
             valR = valA & valB;
             if ( Instr::negateResField( instr )) valR = ~ valR;
             
@@ -392,7 +455,7 @@ void ExecuteStage::process( ) {
             
             if ( Instr::extrSignedField( instr )) {
                 
-                if ( EXTR( valR, 31 - extrOpLen, 1 )) valR |= ( ~ extrOpBitMask );
+                if ( Instr::getBitField( valR, 31 - extrOpLen, 1 )) valR |= ( ~ extrOpBitMask );
             }
             
         } break;
@@ -516,7 +579,7 @@ void ExecuteStage::process( ) {
             if ( Instr::mrMovDirField( instr )) {
                 
                 if ( Instr::mrRegTypeField( instr ))
-                    core -> sReg[ Instr::regBIdField( instr ) ].set( valB );
+                    core -> sReg[ getBitField( instr, 31, 4 ) ].set( valB );
                 else
                     core -> cReg[ Instr::mrArgField( instr  ) ].set( valB );
             

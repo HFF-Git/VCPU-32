@@ -49,8 +49,8 @@ const uint32_t  MAX_BANKS               = 16U;
 const uint32_t  MAX_CPU_IDS             = 16U;
 
 const uint32_t  MAX_MEMORY_SIZE         = UINT32_MAX;
+const uint32_t  MAX_PHYS_MEM_SIZE       = UINT32_MAX - ( UINT32_MAX / 16 );
 const uint32_t  MAX_IO_MEM_SIZE         = UINT32_MAX / 16;
-const uint32_t  MAX_PHYS_MEM_SIZE       = UINT32_MAX - MAX_IO_MEM_SIZE;
 
 const uint8_t   MAX_TRAP_ID             = 32;
 const uint8_t   TRAP_CODE_BLOCK_SIZE    = 32;
@@ -186,7 +186,6 @@ enum TrapId : uint32_t {
     BREAK_TRAP              = 18,
 };
 
-
 //------------------------------------------------------------------------------------------------------------
 // A memory reference is checked for access type. The acces types specify the read, write and execute
 // operations allowed for the target address.
@@ -263,7 +262,7 @@ enum OpMode : uint32_t {
 //------------------------------------------------------------------------------------------------------------
 enum InstrOpCode : uint8_t {
     
-    // group zero - sregister based, special
+    // group zero - register based, special
     
     OP_BRK          = 0x00,     // break for debug
     OP_LSID         = 0x01,     // load segement id
@@ -291,7 +290,7 @@ enum InstrOpCode : uint8_t {
     OP_OR           = 0x13,     // target = target | operand ; option to negate the result
     OP_XOR          = 0x14,     // target = target ^ operand ; option to negate the result
     OP_CMP          = 0x15,     // subtract reg2 from reg1 and set target reg
-    OP_LOD          = 0x16,     // load offset
+    OP_LDO          = 0x16,     // load offset
     OP_RSV_17       = 0x17,     // reserved
 
     OP_LD           = 0x18,     // target = [ operand ]   // covers LDW, LDH, LDB
@@ -404,7 +403,7 @@ const struct opCodeInfo {
     /* 0x13 */  { "OR",     OP_OR,      ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x14 */  { "XOR",    OP_XOR,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x15 */  { "CMP",    OP_CMP,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x16 */  { "LOD",    OP_LOD,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x16 */  { "LOD",    OP_LDO,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x17 */  { "RSV_17", OP_RSV_17,  ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x18 */  { "LD",     OP_LD,      ( LOAD_INSTR  | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x19 */  { "ST",     OP_ST,      ( STORE_INSTR | OP_MODE_INSTR ) },
@@ -476,10 +475,6 @@ const uint32_t NOP_INSTR = 0; // ??? settle on one ...
 // value. If the sign bit is set, the concatenatd field is sign extended.
 //
 //------------------------------------------------------------------------------------------------------------
-#define MASK( m ) (( 1U << m ) - 1 )
-#define EXTR( i, p, l ) ((( i ) >> ( 31 - p )) & ( MASK( l )))
-#define DEP( i, a, p, l ) i = ((( i ) & (( ~ MASK( l )) << ( 31 - p ))) | (( a ) & (( MASK( l )) << ( 31 - p ))));
-
 struct Instr {
   
 public:
@@ -610,12 +605,12 @@ public:
     
     static inline uint32_t immLeftField( uint32_t instr ) {
         
-        return( EXTR( instr, 31, 22 ));
+        return( getBitField( instr, 31, 22 ));
     }
     
     static inline uint32_t immRightField( uint32_t instr ) {
         
-        return( EXTR( instr, 31, 10 ));
+        return( getBitField( instr, 31, 10 ));
     }
     
     static inline uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
