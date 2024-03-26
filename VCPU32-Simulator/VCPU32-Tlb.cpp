@@ -460,7 +460,7 @@ uint32_t TlbEntry::tProtectId( ) {
 
 uint32_t TlbEntry::tPhysAdrTag( ) {
     
-    return( aInfo << 12 );
+    return( getBitField( aInfo, 32, 28 ));
 }
 
 uint32_t TlbEntry::tPhysPage( ) {

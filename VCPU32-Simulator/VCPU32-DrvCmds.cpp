@@ -172,6 +172,10 @@ struct {
     { "GR13",               "R13",      GR_SET,             GR_13                   },
     { "GR14",               "R14",      GR_SET,             GR_14                   },
     { "GR15",               "R15",      GR_SET,             GR_15                   },
+
+    
+    // ??? alias names according to runtime convention ... or we need to abandin the Idea of "GR" and "R" and just use "R"
+    
     
     { "SR0",                "S0",       SR_SET,             SR_0                    },
     { "SR1",                "S1",       SR_SET,             SR_1                    },
@@ -181,6 +185,10 @@ struct {
     { "SR5",                "S5",       SR_SET,             SR_5                    },
     { "SR6",                "S6",       SR_SET,             SR_6                    },
     { "SR7",                "S7",       SR_SET,             SR_7                    },
+    
+    
+    // ??? alias names according to runtime convention ... or we need to abandin the Idea of "SR" and "S" and just use "R"
+    
     
     { "CR0",                "",         CR_SET,             CR_0                    },
     { "CR1",                "",         CR_SET,             CR_1                    },
@@ -215,6 +223,10 @@ struct {
     { "CR30",               "TMP-6",    CR_SET,             CR_30                   },
     { "CR31",               "TMP-7",    CR_SET,             CR_31                   },
     
+    
+    // ??? alias names according to runtime convention ... or we need to abandin the Idea of "CR" and "R" and just use "C"
+    
+  
     { "IA-SEG",             "",         PS_SET,             PS_IA_SEG               },
     { "IA-OFS",             "",         PS_SET,             PS_IA_OFS               },
     { "ST-REG",             "",         PS_SET,             PS_STATUS               },
@@ -599,12 +611,10 @@ int DrvCmds::promptYesNoCancel( char *promptStr ) {
 // found, an invalid command or an empty command line status. We loop inside the routine until we receive
 // a valid command line or an EOF.
 //
-// Warning: on a Mac, fgets does read in a string. On the terminal, the erase chacracter needs to be set
-// to NOT send a control-H to the input. The cursor keys are just echoed to the input line and I do not know
-// a way to make them actually move around in the input line.
+// Warning: on a Mac, fgets does read in a string. On the terminal program configuration, the erase chacracter
+// needs to be set to NOT send a control-H to the input. The cursor keys are just echoed to the input line
+// and I do not know a way to make them actually move around in the input line.
 //
-// ??? still sometimes the window mode hangs. Another mystery...
-// ??? try adding a clearerr( stdin ) before fgets ? ?
 //------------------------------------------------------------------------------------------------------------
 bool DrvCmds::readCmdLine( char *cmdBuf ) {
     
@@ -1682,6 +1692,8 @@ void DrvCmds::displayPhysMemCmd( char *cmdBuf ) {
         return;
     }
     
+    // ??? work in PDC andc IO space...
+    
     if (( ofs > memSize ) || ( ofs + len > memSize )) {
         
         fprintf( stdout, "Offset / Len exceeds physical memory size\n" );
@@ -1744,6 +1756,10 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
         return;
     }
     
+    
+    // ??? work in PDC andc IO space...
+    
+    
     if ( numOfVal >= 1 ) {
         
         dataPtr     = mem -> getMemBlockEntry( ofs / blockSize ) + ( ofs % blockSize );
@@ -1797,6 +1813,7 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
 // Load physical memory command. All we do is to refer to the script approach of executing a script file
 // with a ton of MA commands.
 //
+// ??? do we load PDC space ? ( it is a ROM .... would be cool to load that place from a file ).
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::loadPhysMemCmd( char *cmdBuf ) {
     
@@ -1812,6 +1829,7 @@ void DrvCmds::loadPhysMemCmd( char *cmdBuf ) {
 //
 // SMF <path> [ <ofs> <len> ]
 //
+// ?? do we save anything from PDC and IO space ? perhaps not ...
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
     

@@ -43,13 +43,14 @@
 
 //------------------------------------------------------------------------------------------------------------
 // Tokens are the labels for reserved words recognized by the command input. They also serve as attribute
-// values andn numeric for some command options and settings.
+// values and numeric for some command options and settings.
 //
 //------------------------------------------------------------------------------------------------------------
 enum TokId : uint16_t {
     
     //--------------------------------------------------------------------------------------------------------
     // General tokens.
+    //
     //--------------------------------------------------------------------------------------------------------
     TOK_NIL                 = 0,    TOK_INV                 = 1,    TOK_ALL                 = 2,
     TOK_TRUE                = 3,    TOK_FALSE               = 4,    TOK_DEF                 = 5,
@@ -73,6 +74,7 @@ enum TokId : uint16_t {
     
     //--------------------------------------------------------------------------------------------------------
     // Environment variable tokens.
+    //
     //--------------------------------------------------------------------------------------------------------
     ENV_TYP_INT             = 500,  ENV_TYP_UINT            = 501,  ENV_TYP_STR             = 502,
     ENV_TYP_BOOL            = 503,  ENV_TYP_TOK             = 504,
@@ -176,6 +178,8 @@ enum TokId : uint16_t {
     CR_27                   = 4327, CR_28                   = 4328, CR_29                   = 4329,
     CR_30                   = 4330, CR_31                   = 4331,
     
+    // ??? add tokens for runtime lablels of registers... e.g Rx -> SP and so on...
+    
     PS_IA_SEG               = 4400, PS_IA_OFS               = 4401, PS_STATUS               = 4402,
     
     FD_IA_SEG               = 4500, FD_IA_OFS               = 4501, FD_INSTR                = 4502,
@@ -272,10 +276,12 @@ private:
 
 
 //-----------------------------------------------------------------------------------------------------------
-// The "CPU24DrvBaseWin" class. The Terminal Screen will be in screen mode a list if screen subwindows. Each
-// sub window is an instance of a specific window class with this class as the base class. There are routines
-// common to all windows to enable/ disable, set the lines displayed and so on. There are also abstact
-// methods that the inheriting class needs to implement. Examples are to initialize redraw and so on.
+// The "CPU24DrvBaseWin" class. The Terminal Screen will be in screen mode a set of stacks each with a list
+// of screen subwindows. The default is one stack, the general register set window and the command line
+// window, which also spans all stacks. Each sub window is an instance of a specific window class with this
+// class as the base class. There are routines common to all windows to enable/ disable, set the lines
+// displayed and so on. There are also abstact methods that the inheriting class needs to implement.
+// Examples are to initialize a window, redraw and so on.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWin {

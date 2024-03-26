@@ -133,9 +133,9 @@ uint32_t getBlockBitMask( uint16_t blockSize ) {
 // memory layer, if applicable.
 //
 //------------------------------------------------------------------------------------------------------------
-CpuMem::CpuMem( CpuMemDesc *cfg, CpuMem *mem ) {
+CpuMem::CpuMem( CpuPhysMemDesc *cfg, CpuMem *mem ) {
     
-    memcpy( &cDesc, cfg, sizeof( CpuMemDesc ));
+    memcpy( &cDesc, cfg, sizeof( CpuPhysMemDesc ));
     
     uint32_t limit = (( cDesc.type == MEM_T_PHYS_MEM ) ? MAX_MEM_BLOCK_ENTRIES : MAX_CACHE_BLOCK_ENTRIES );
     

@@ -178,11 +178,22 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
             printImmVal( Instr::immGenPosLenLowSign( instr, 31, 14 ), TOK_DEC );
             
-            if ( getBitField( instr, 19, 2 ) > 0 ) {
-                
-                fprintf( stdout, "(S%d, R%d)", mapOpModeToIndexReg( opMode ), getBitField( instr, 19, 2 ));
+            switch( getBitField( instr, 19, 2 )) {
+                    
+                case 0: {
+                    
+                    fprintf( stdout, "(R%d)", mapOpModeToIndexReg( opMode ));
+                    
+                } break;
+                    
+                case 1:
+                case 2:
+                case 3: {
+                    
+                    fprintf( stdout, "(S%d, R%d)", getBitField( instr, 19, 2 ), opMode );
+                    
+                } break;
             }
-            else fprintf( stdout, "(R%d)", mapOpModeToIndexReg( opMode ));
         }
     }
 }
@@ -202,15 +213,15 @@ void displayOpCode( uint32_t instr ) {
     
     if ( opCodeTab[ opCode ].flags & OP_MODE_INSTR ) {
         
-        if (( opMode <= 8 ) && ( opMode <= 15 )) {
+        if (( opMode == 4 ) || (( opMode >= 8 ) && ( opMode <= 15 ))) {
             
             if (( opCode == OP_LD ) || ( opCode == OP_ST )) fprintf( stdout, "W" );
         }
-        else if (( opMode <= 16 ) && ( opMode <= 23 )) {
+        else if (( opMode == 5 ) || (( opMode >= 16 ) && ( opMode <= 23 ))) {
             
             fprintf( stdout, "H" );
         }
-        else if (( opMode <= 24 ) && ( opMode <= 31 )) {
+        else if (( opMode == 6 ) || (( opMode >= 24 ) && ( opMode <= 31 ))) {
             
             fprintf( stdout, "B" );
         }

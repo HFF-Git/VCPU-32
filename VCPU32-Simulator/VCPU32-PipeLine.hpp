@@ -32,15 +32,6 @@
 #include "VCPU32-Core.hpp"
 
 
-
-
-// ??? idea: have one or two words to specify what the MA and EX stage should do. It is all decoded in the
-// FD stage. Display these words also in the command driver.
-
-
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // The instruction fetch and decode stage will retrieve the next instruction. The instruction address to be
 // used is read from the instruction address register address. Depending on whether code address translation
@@ -161,11 +152,6 @@ public:
     CpuReg          psRegIdForValB;
     CpuReg          psRegIdForValX;
     
-    // ??? add two control words...
-    
-    CpuReg          psMaStageControl;
-    CpuReg          psExStageOntrol;
-    
     uint8_t         regIdForValA;
     uint8_t         regIdForValB;
     uint8_t         regIdForValX;
@@ -224,10 +210,6 @@ public:
     CpuReg          psValA;
     CpuReg          psValB;
     CpuReg          psValX;
-    
-    // ??? add one control words...
-    
-    CpuReg          psExStageOntrol;
     
     uint8_t         regIdForValR;
     uint32_t        valR;
