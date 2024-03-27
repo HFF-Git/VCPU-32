@@ -625,7 +625,7 @@ public:
     
 private:
     
-    static const uint MAX_FILE_NAME_SIZE = 256;
+ // static const uint MAX_FILE_NAME_SIZE = 256;
     
     bool    openTextFile( );
     int     readTextFileLine( int linePos, char *lineBuf, int bufLen );
@@ -633,7 +633,7 @@ private:
     FILE    *textFile          = nullptr;
     int     fileSizeLines      = 0;
     int     lastLinePos        = 0;
-    char    fileName[ MAX_FILE_NAME_SIZE ];
+    char    fileName[ 256 ];
 };
 
 //-----------------------------------------------------------------------------------------------------------

@@ -658,7 +658,7 @@ void CpuMem::processL1CacheRequest( ) {
                 }
             }
             
-            if ( reqTargetSet >= cDesc.blockSets ) reqTargetSet = random( ) % cDesc.blockSets;
+            if ( reqTargetSet >= cDesc.blockSets ) reqTargetSet = rand( ) % cDesc.blockSets;
             
             MemTagEntry *tagPtr = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
             
