@@ -43,22 +43,22 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-static inline bool getBit( uint32_t arg, int pos ) {
+bool getBit( uint32_t arg, int pos ) {
     
     return( arg & ( 1U << ( 31 - ( pos % 32 ))));
 }
 
-static inline void setBit( uint32_t *arg, int pos ) {
+void setBit( uint32_t *arg, int pos ) {
    
     *arg |= ( 1U << ( 31 - ( pos % 32 )));
 }
 
-static inline void clearBit( uint32_t *arg, int pos ) {
+void clearBit( uint32_t *arg, int pos ) {
     
     *arg &= ~( 1U << ( 31 - ( pos % 32 )));
 }
 
-static inline uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
+uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     
     pos = pos % 32;
     len = len % 32;
@@ -70,7 +70,7 @@ static inline uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = 
     else        return( tmpA & tmpM );
 }
 
-static inline void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
+void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
     
     pos = pos % 32;
     len = len % 32;
@@ -82,7 +82,7 @@ static inline void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) 
     *arg = ( *arg & ( ~tmpM )) | val;
 }
 
-static inline uint32_t signExtend( uint32_t arg, int len ) {
+uint32_t signExtend( uint32_t arg, int len ) {
     
     len = len % 32;
     
@@ -93,7 +93,7 @@ static inline uint32_t signExtend( uint32_t arg, int len ) {
     else        return( arg &= tmpM );
 }
 
-static inline uint32_t lowSignExtend32( uint32_t arg, int len ) {
+uint32_t lowSignExtend32( uint32_t arg, int len ) {
     
     len = len % 32;
     
@@ -112,7 +112,7 @@ static inline uint32_t lowSignExtend32( uint32_t arg, int len ) {
 // //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool compareCond( uint32_t instr, uint32_t valA, uint32_t valB ) {
    
-    switch( Instr::cbrCondField( instr )) {
+    switch( getBitField( instr, 8, 3 )) {
             
         case CC_EQ: return( valA == valB );
         case CC_LT: return(((int32_t) valA )  < ((int32_t) valB ));
@@ -133,7 +133,7 @@ bool compareCond( uint32_t instr, uint32_t valA, uint32_t valB ) {
 //‐‐‐‐‐‐---------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool testCond( uint32_t instr, uint32_t val ) {
   
-    switch ( Instr::tbrCondField( instr )) {
+    switch ( getBitField( instr, 8, 3 )) {
             
         case CC_EQ: return( val == 0 );
         case CC_GT: return( val >  0 );
@@ -339,7 +339,7 @@ void ExecuteStage::process( ) {
     
     // RegIdForValR.set( MAX_GREGS ); // ??? what is this ?
     
-    uint8_t opCode  = Instr::opCodeField( psInstr.get( ));
+    uint8_t opCode  = getBitField( psInstr.get( ), 5, 6 );
     
     setStalled( false );
     
@@ -352,13 +352,13 @@ void ExecuteStage::process( ) {
         case OP_ADD: {
             
             valR = valA + valB;
-            if (( Instr::useCarryField( instr )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
+            if (( getBit( instr, 10 )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
             
             valCarry = ( valR > UINT32_MAX );
             
-            if ( Instr::logicalOpField( instr )) {
+            if ( getBit( instr, 11 )) {
                 
-                if (( valCarry ) && ( Instr::trapOvlField( instr ))) {
+                if (( valCarry ) && ( getBit( instr, 12 ))) {
                 
                  setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
                  return;
@@ -366,7 +366,7 @@ void ExecuteStage::process( ) {
             
             } else {
                 
-                if ( Instr::trapOvlField( instr )) {
+                if ( getBit( instr, 12 )) {
                     
                     if (( valR ^ valA ) & ( valR ^ valB ) & 0x80000000 ) {
                         
@@ -381,13 +381,13 @@ void ExecuteStage::process( ) {
         case OP_SUB: {
             
             valR = valA + ( ~ valB  ) + 1;
-            if (( Instr::useCarryField( instr )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
+            if (( getBit( instr, 10 )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
             
             valCarry = ( valR > UINT32_MAX );
             
-            if ( Instr::logicalOpField( instr )) {
+            if ( getBit( instr, 11 )) {
                 
-                if (( valCarry ) && ( Instr::trapOvlField( instr ))) {
+                if (( valCarry ) && ( getBit( instr, 12 ))) {
                 
                  setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
                  return;
@@ -395,7 +395,7 @@ void ExecuteStage::process( ) {
             
             } else {
                 
-                if ( Instr::trapOvlField( instr )) {
+                if ( getBit( instr, 12 )) {
                     
                     if (( valR ^ valA ) & ( valR ^ valB ) & 0x80000000 ) {
                         
@@ -411,23 +411,23 @@ void ExecuteStage::process( ) {
             
             if ( getBitField( instr, 31, 4 )) valB = ~ valB;
             valR = valA & valB;
-            if ( Instr::negateResField( instr )) valR = ~ valR;
+            if ( getBit( instr, 10 )) valR = ~ valR;
             
         } break;
             
         case OP_OR: {
             
-            if ( Instr::complRegBField( instr )) valB = ~ valB;
+            if ( getBit( instr, 11 )) valB = ~ valB;
             valR = valA | valB;
-            if ( Instr::negateResField( instr )) valR = ~ valR;
+            if ( getBit( instr, 10 )) valR = ~ valR;
             
         } break;
             
         case OP_XOR: {
             
-            if ( Instr::complRegBField( instr )) valB = ~ valB;
+            if ( getBit( instr, 11 )) valB = ~ valB;
             valR = valA ^ valB;
-            if ( Instr::negateResField( instr )) valR = ~ valR;
+            if ( getBit( instr, 10 )) valR = ~ valR;
             
         } break;
             
@@ -445,41 +445,45 @@ void ExecuteStage::process( ) {
             
         case OP_EXTR: {
             
-            uint8_t extrOpPos = Instr::extrDepPosField( instr );
-            uint8_t extrOpLen = Instr::extrDepLenField( instr );
+            // ??? use our getBitField/setBifield routines ?
             
-           if ( Instr::extrDepSaOptField( instr )) extrOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
+            uint8_t extrOpPos = getBitField( instr, 27, 5 );
+            uint8_t extrOpLen = getBitField( instr, 22, 5 );
+            
+           if ( getBit( instr, 11 )) extrOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
             
             uint32_t extrOpBitMask   = (( 1U << extrOpLen ) - 1 );
             valR = (( valB >> ( 31 - extrOpPos )) & extrOpBitMask );
             
-            if ( Instr::extrSignedField( instr )) {
+            if ( getBit( instr, 10 )) {
                 
-                if ( Instr::getBitField( valR, 31 - extrOpLen, 1 )) valR |= ( ~ extrOpBitMask );
+                if ( getBitField( valR, 31 - extrOpLen, 1 )) valR |= ( ~ extrOpBitMask );
             }
             
         } break;
             
         case OP_DEP: {
             
-            uint8_t depOpPos = Instr::extrDepPosField( instr );
-            uint8_t depOpLen = Instr::extrDepLenField( instr );
+            // ??? use our getBitField/setBifield routines ?
             
-            if ( Instr::extrDepSaOptField( instr )) depOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
+            uint8_t depOpPos = getBitField( instr, 27, 5 );
+            uint8_t depOpLen = getBitField( instr, 22, 5 );
+            
+            if ( getBit( instr, 11 )) depOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
             
             uint32_t    depOpBitMask    = (( 1U << depOpLen ) - 1 );
             uint32_t    temp1           = ( valB & depOpBitMask ) << ( 31 - depOpPos );
             uint32_t    temp2           = ( valA & ( ~ ( depOpBitMask << ( 31 - depOpPos ))));
             
-            valR = (( Instr::depInZeroField( instr )) ? ( temp1 ) : ( temp1 | temp2 ));
+            valR = (( getBit( instr, 10 )) ? ( temp1 ) : ( temp1 | temp2 ));
             
         } break;
             
         case OP_DSR: {
             
-            uint8_t shAmtLen = Instr::dsrSaAmtField( instr );
+            uint8_t shAmtLen = getBitField( instr, 22, 5 );
             
-            if ( Instr::dsrSaOptField( instr )) shAmtLen = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
+            if ( getBit( instr, 11 )) shAmtLen = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
         
             valR = (( valA >> shAmtLen ) | ( valB << ( WORD_SIZE - shAmtLen )));
             
@@ -487,9 +491,9 @@ void ExecuteStage::process( ) {
             
         case OP_SHLA: {
             
-            uint8_t shAmt = Instr::shlaSaField( instr );
+            uint8_t shAmt = getBitField( instr, 22, 2 );
             
-            if ( Instr::trapOvlField( instr )) {
+            if ( getBit( instr, 12 )) {
                 
                 if ((( shAmt == 1 ) && ( valA & 0x80000000 )) ||
                     (( shAmt == 2 ) && ( valA & 0xC0000000 )) ||
@@ -502,7 +506,7 @@ void ExecuteStage::process( ) {
             
             valR = ( valA << shAmt ) + valB;
             
-            if ( Instr::trapOvlField( instr )) {
+            if ( getBit( instr, 12 )) {
                 
                 if (( valR ^ valA ) & ( valR ^ valB ) & 0x80000000 ) {
                     
@@ -570,18 +574,18 @@ void ExecuteStage::process( ) {
             
         case OP_GATE: {
             
-            valR = Instr::ofsSelect( valA ) | ( instrOfs & 047777777 ); // ??? check when we set R
+            valR = getBitField( valA, 31, 30 ) | ( instrOfs & 047777777 ); // ??? check when we set R
             
         } break;
             
         case OP_MR: {
             
-            if ( Instr::mrMovDirField( instr )) {
+            if ( getBit( instr, 11 )) {
                 
-                if ( Instr::mrRegTypeField( instr ))
+                if ( getBit( instr, 12 ))
                     core -> sReg[ getBitField( instr, 31, 4 ) ].set( valB );
                 else
-                    core -> cReg[ Instr::mrArgField( instr  ) ].set( valB );
+                    core -> cReg[ getBitField( instr, 31, 5  ) ].set( valB );
             
             } else valR = valB;
              
@@ -591,7 +595,7 @@ void ExecuteStage::process( ) {
             
             valR = core -> stReg.get( ) & 0x3F;
             
-            switch ( Instr::mstModeField( instr )) {
+            switch ( getBitField( instr, 11, 2 )) {
                     
                 case 0: core -> stReg.set(( core -> stReg.get( ) & 0xFFFFFFC0 ) | ( valB & 0x3F ));
                 case 1: core -> stReg.set( core -> stReg.get( ) | ( valB & 0x3F )); break;
@@ -659,7 +663,7 @@ void ExecuteStage::process( ) {
     FetchDecodeStage *fdStage   = core -> fdStage;
     MemoryAccessStage *maStage  = core -> maStage;
     
-    if ( opCodeTab[ Instr::opCodeField( instr ) ].flags & REG_R_INSTR ) {
+    if ( opCodeTab[ getBitField( instr, 5, 6 ) ].flags & REG_R_INSTR ) {
         
         if ( fdStage -> regIdForValA == regIdForValR ) maStage -> psValA.set( valR );
         if ( fdStage -> regIdForValB == regIdForValR ) maStage -> psValB.set( valR );

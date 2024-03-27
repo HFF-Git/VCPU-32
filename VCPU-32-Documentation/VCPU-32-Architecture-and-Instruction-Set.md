@@ -3273,11 +3273,13 @@ Computers with virtual addressing simply cannot work without a **translation loo
 
 No CPU architecture with an idea of a runtime environment. Although the instruction set is generic enough to implement many models of runtime environments, there are common principles that exploit the CPU architecture. In fact, several CPU concepts were selected with a runtime already in mind.
 
+// ??? simple intro about what to expect in this chapter...
+
 ### Register Usage
 
 The CPU features general registers, segment registers and control registers. As described before, all general registers can do computation, but only register 8 to 15 can be used as base register in the indexed addressing modes. Segment registers complement the general register set. A combination of a general index register and a segment register form a virtual address. To avoid juggling on every access both a segment and an index register, the segment register selection field in the respective instructions will either implicitly pick one of the upper four segment registers or specify on of the segment registers 1 to 3. This scheme allows to use in most cases just the offset portion of the virtual address when passing pointers to function and so on. The segment register is implicitly encoded in the upper two bits. 
 
-Segment 4 to 7 thus play a special role in the runtime environment. An execution thread, i.e. a **task**, in the runtime environment expects access to three data areas. The outermost area is the **system global area**, which is created at system start and never changed for there on. Segment register 7 is assigned to contain the segment ID of this space. Once set at system startup, its content will never change. Since the upper two bits of the address offset select the segment register, the maximum size of these areas is 30bits i.e. one gByte. Several executing tasks belonging to the same job are provided with the **job data area**. All threads belonging to the job have access to it via the SR6 segment register. This register is set every time the execution changes to a thread of another job. This area can be up to one gByte in size. Finally, in a similar manner, the task local data is pointed to by the segment register 5. This data area contains through local data and the stack. This register will also change on every task switch. Naturally, setting these registers is a privileged operation.
+Segment 4 to 7 thus play a special role in the runtime environment. An execution thread, i.e. a **task**, in the runtime environment expects access to three data areas. The outermost area is the **system global area**, which is created at system start and never changed for there on. Segment register 7 is assigned to contain the segment ID of this space. Once set at system startup, its content will never change. Since the upper two bits of the address offset select the segment register, the maximum size of these areas is 30bits i.e. one gByte. Several executing tasks belonging to the same job are provided with the **job data area**. All threads belonging to the job have access to it via the SR6 segment register. This register is set every time the execution changes to a thread of another job. This area can be up to one gByte in size. Finally, in a similar manner, the task local data is pointed to by the segment register 5. This data area contains through local data and the stack. This register will also change on every task switch. Naturally, setting these registers is a privileged operation. Finally, segment register 4 will track the current code segment to allow for access to literals stored in that area.
 
 ```
 
@@ -3285,30 +3287,160 @@ a nice picture
 
 ```
 
-// ??? what about SR4 ? tracks module code segment for literal access.
+### Calling Conventions and Naming
 
-### Stack Frame
+The runtime description uses ...  basic namings...
+
+```
+          Caller                           Callee
+      :----------------:                :----------------:
+      :                :       :------->: entry          :
+      :                :       :        :                :
+      :                :       :        :                :
+      :     call       :--->---:        :                :
+      :     return     :---<---:        :                :
+      :                :       :        :                :
+      :                :       :        :                :
+      :                :       :        :                :
+      :                :       :        :                :
+      :                :       :        :                :
+      :                :       :--------: exit           :
+      :----------------:                :----------------:
+```
+
+In a procedure call there are **caller** and **callee**. **"Call"** transfers control to the callee. **"Entry"** is the point of entry to the callee. **"Exit"** is the point of exit from the caller. **"Return"** is the return point of program control to the caller. In addition, there could be pieces of code that enable more complex calling mechanisms such as inter module calls. They are called stubs. Typically, these stubs are added by a linker or loader when preparing the program.
+
+### Stack Frames
+
+During program execution procedures call other procedures. Upon entry, a procedure allocates a stack frame for local data, outgoing parameters and a frame maker used for keeping the execution thread data, such as returns links and so on. Generally, there are leaf and non-leaf procedures. A leaf procedure is one that does not make any further calls and perhaps need not to allocate a stack frame.
+
+```
+      :                                    :
+      :                                    :
+      :                                    :
+      :  :------------------------------:  :
+      :  : Formal parameters            :  :
+      :  :                              :  :
+      :  :                              :  :
+      :  :------------------------------:  :
+      :  :------------------------------:  :
+      :  : Frame Marker                 :  :
+      :  :                              :  :
+      :  :------------------------------:  :
+      :------------------------------------: <------- Previous tack Pointer
+      :  :------------------------------:  :
+      :  : Local data area              :  :
+      :  :                              :  :
+      :  :                              :  :
+      :  :                              :  :
+      :  :                              :  :
+      :  :                              :  :
+      :  :------------------------------:  :
+      :  :------------------------------:  :
+      :  : Actual parameters            :  :
+      :  :                              :  :
+      :  :------------------------------:  :
+      :  :------------------------------:  :
+      :  : Frame Marker                 :  :
+      :  :                              :  :
+      :  :------------------------------:  :
+      :------------------------------------: <------- Stack Pointer                               
+```
+
+The following figure shows the frame marker and outgoing parameter area in more detail.
 
 ```
 
-a nice picture of the frame area
+      :                                    :
+      :                                    :
+      :  :------------------------------:  :
+      :  :                              :  : SP - 40 
+      :  :------------------------------:  :
+      :  :                              :  : SP - 44
+      :  :------------------------------:  :
+      :  :                              :  : SP - 40: Formal Paramater 1 
+      :  :------------------------------:  :
+      :  :                              :  : SP - 36: Formal Paramater 0
+      :--:------------------------------:--:
+      :  :                              :  : SP - 32
+      :  :------------------------------:  :
+      :  :                              :  : SP - 28 
+      :  :------------------------------:  :
+      :  :                              :  : SP - 24
+      :  :------------------------------:  :
+      :  :                              :  : SP - 20
+      :  :------------------------------:  :
+      :  :                              :  : SP - 16
+      :  :------------------------------:  :
+      :  :                              :  : SP - 12
+      :  :------------------------------:  :
+      :  :                              :  : SP - 8 
+      :  :------------------------------:  :
+      :  :                              :  : SP - 4
+      :--:------------------------------:--: 
+                                            <------- SP - 0: Stack Pointer    
 
 ```
 
-```
+// need to assign what we keep in the frame maker.... 
+- previous stack pointer
+- return link
+- data for making external calls...
 
-a nice picture of the frame marker
+### Register Partitioning
+
+- what are which registers used for 
+
+```
+            General registers                           Segment registers
+         :--------------------------:                :--------------------------:
+      0  :                          :             0  :                          :
+         :--------------------------:                :--------------------------:
+      1  :                          :             1  :                          :
+         :--------------------------:                :--------------------------:
+      2  :                          :             2  :                          :
+         :--------------------------:                :--------------------------:
+      3  :                          :             3  :                          :
+         :--------------------------:                :--------------------------:
+      4  :                          :             4  :                          :
+         :--------------------------:                :--------------------------:
+      5  :                          :             5  :                          :
+         :--------------------------:                :--------------------------:
+      6  :                          :             6  :                          :
+         :--------------------------:                :--------------------------:
+      7  :                          :             7  :                          :
+         :--------------------------:                :--------------------------:
+      8  :                          :             
+         :--------------------------:           
+      9  :                          :             
+         :--------------------------:              
+      10 :                          :            
+         :--------------------------:               
+      11 :                          :             
+         :--------------------------:              
+      12 :                          :             
+         :--------------------------:              
+      13 :                          :             
+         :--------------------------:              
+      14 :                          :             
+         :--------------------------:              
+      15 :                          :             
+         :--------------------------:               
 
 ```
 
 ### Parameter passing
 
+// passed in the formal parameter area... 
+// first n arguments are passed in registers
 // by value
-// by short pointer
-// explicit by passing seg and ofs.
+// by reference short pointer 
+// by reference explicit seg and ofs.
+
 
 ### Local Calls
 
+// show a code sequence...
 // the BL instruction
 // the BV instruction
 
@@ -3316,6 +3448,9 @@ a nice picture of the frame marker
 
 ### External Calls
 
+// code stubs to facilitate the external call, motivation to keep all calls local calls and make the external call via these short code sequences
+// calling stub
+// called stub
 // BLE instruction
 // BE instruction
 
@@ -3325,8 +3460,8 @@ a nice picture of the frame marker
 
 ### Traps and Interrupt handling
 
-### Debug
 
+### Debug
 
 
 ### Startup sequence
@@ -3340,9 +3475,24 @@ a nice picture of the frame marker
 
 // ??? note what part do we architect ?
 
-### The IO space
+### The physical address space
 
-VCPU-32 implements a memory papped I/O architecture. 1/16 of physical memory address space is dedicated to the I/O system.
+VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory address space is dedicated to the I/O system. The IO Space is further divided into a memory address range for the processor dependent code and the IO modules.
+
+| Adress range start | end |Usage |
+|:---|:---|:---|
+| 0x00000000 | 0xEFFFFFFF | Physical memory |
+| 0xF0000000 | 0xF0FFFFFF | Processor dependent code |
+| 0xFF000000 | 0xFFFFFFFF | IO memory |
+
+#### Physical memory
+
+#### Processor Dependent Code
+
+#### IO Memory
+
+
+
 
 ### Concept of an I/O Module
 

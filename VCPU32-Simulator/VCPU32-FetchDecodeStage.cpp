@@ -80,6 +80,28 @@ uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
     return( lowSignExtend32( getBitField( instr, pos, len ), len ));
 }
 
+uint32_t immLeftField( uint32_t instr ) {
+    
+    return( getBitField( instr, 31, 22 ));
+}
+
+uint32_t immRightField( uint32_t instr ) {
+    
+    return( getBitField( instr, 31, 10 ));
+}
+
+uint32_t mapOpModeToIndexReg( uint32_t opMode ) {
+    
+    if      (( opMode >= 8 ) && ( opMode <= 15 )) return( opMode );
+    else if (( opMode >= 16 ) && ( opMode <= 23 )) return( opMode - 8 );
+    else if (( opMode >= 24 ) && ( opMode <= 31 )) return( opMode - 16 );
+    else return( 0 );
+}
+
+uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
+    
+    return ( arg1 + arg2 );
+}
 
 //------------------------------------------------------------------------------------------------------------
 // Instructions that will do computation in the MA stage may run into the case that the register content is
@@ -92,8 +114,8 @@ uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
 //------------------------------------------------------------------------------------------------------------
 bool maStageConsumesRegValBorX( uint32_t instr ) {
     
-    uint8_t opCode = Instr::opCodeField( instr );
-    uint8_t opMode = Instr::opModeField( instr );
+    uint8_t opCode = getBitField( instr, 5, 6 );
+    uint8_t opMode = getBitField( instr, 17, 5 );
     
     return (( opCode == OP_BR )     || ( opCode == OP_BLR )     ||
             ( opCode == OP_BV )     || ( opCode == OP_BVR )     ||
@@ -411,7 +433,7 @@ void FetchDecodeStage::process( ) {
     // Instruction Decode. Essentially a giant case statement.
     //
     //--------------------------------------------------------------------------------------------------------
-    uint32_t opCode = Instr::opCodeField( instr );
+    uint32_t opCode = getBitField( instr, 5, 6 );
 
     switch ( opCode ) {
         
@@ -419,7 +441,7 @@ void FetchDecodeStage::process( ) {
         case OP_CMP:    case OP_LD:     case OP_ST:     case OP_LDWR:   case OP_STWC:   
         case OP_LDO:    case OP_PRB:    case OP_LDPA: {
             
-            uint32_t opMode = Instr::opModeField( instr );
+            uint32_t opMode = getBitField( instr, 17, 5 );
             
             // ??? better check ... how do we bext cover all of them ?
             
@@ -439,7 +461,7 @@ void FetchDecodeStage::process( ) {
                     
                 case OP_MODE_IMM: {
                    
-                    regIdForValA    = Instr::regRIdField( instr );
+                    regIdForValA    = getBitField( instr, 9, 4 );
                     valA            = core -> gReg[ regIdForValA ].get( );
                     valB            = immGenPosLenLowSign( instr, 31, 14 );
                     
@@ -471,7 +493,7 @@ void FetchDecodeStage::process( ) {
                         valA            = core -> gReg[ regIdForValA ].get( );
                     }
                     
-                    regIdForValB    = Instr::mapOpModeToIndexReg( getBitField( instr, 17, 5 ));
+                    regIdForValB    = mapOpModeToIndexReg( getBitField( instr, 17, 5 ));
                     valB            = core -> gReg[ regIdForValB ].get( );
                     valX            = immGenPosLenLowSign( instr, 31, 12 );
                     
@@ -483,7 +505,7 @@ void FetchDecodeStage::process( ) {
         case OP_LDIL:   {
             
             regIdForValA    = getBitField( instr, 9, 4 );
-            valA            = Instr::immLeftField( instr ) << 10;
+            valA            = immLeftField( instr ) << 10;
             valB            = 0;
             
         } break;
@@ -492,7 +514,7 @@ void FetchDecodeStage::process( ) {
             
             regIdForValA    = getBitField( instr, 9, 4 );
             valA            = core -> gReg[ regIdForValA ].get( );
-            valB            = Instr::immLeftField( instr ) << 10;
+            valB            = immLeftField( instr ) << 10;
             
         } break;
             
@@ -555,7 +577,7 @@ void FetchDecodeStage::process( ) {
             
             regIdForValB    = getBitField( instr, 31, 4 );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = Instr::immGenPosLenLowSign( instr, 31, 22 );
+            valX            = immGenPosLenLowSign( instr, 31, 22 );
             
         } break;
             
@@ -643,7 +665,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_MR: {
             
-            if ( Instr::mrMovDirField( instr )) {
+            if ( getBit( instr, 11 )) {
                 
                 regIdForValB    = getBitField( instr, 9, 4 );
                 valB            = core -> gReg[ regIdForValB ].get( );
@@ -659,7 +681,7 @@ void FetchDecodeStage::process( ) {
                 return;
             }
             
-            switch( Instr::mstModeField( instr )) {
+            switch( getBitField( instr, 11, 2 )) {
                     
                 case 0: {
                     
@@ -732,13 +754,13 @@ void FetchDecodeStage::process( ) {
     //
     // ??? is that a relict of the former 5-stage pipeline ?
     //--------------------------------------------------------------------------------------------------------
-    if ( opCodeTab[ Instr::opCodeField( core -> maStage -> psInstr.get( ))].flags & REG_R_INSTR ) {
+    if ( opCodeTab[ getBitField( core -> maStage -> psInstr.get( ), 5, 6 )].flags & REG_R_INSTR ) {
         
         if ( maStageConsumesRegValBorX( instr )) {
             
-            if (( Instr::regRIdField( core -> maStage -> psInstr.get( )) == regIdForValA ) ||
-                ( Instr::regRIdField( core -> maStage -> psInstr.get( )) == regIdForValB ) ||
-                ( Instr::regRIdField( core -> maStage -> psInstr.get( )) == regIdForValX )) {
+            if (( getBitField( core -> maStage -> psInstr.get( ), 9, 4 ) == regIdForValA ) ||
+                ( getBitField( core -> maStage -> psInstr.get( ), 9, 4 ) == regIdForValB ) ||
+                ( getBitField( core -> maStage -> psInstr.get( ), 9, 4 ) == regIdForValX )) {
                 
                 stallPipeLine( );
                 return;
@@ -772,17 +794,17 @@ void FetchDecodeStage::process( ) {
     
     if (( opCode == OP_CBR ) || ( opCode == OP_TBR )) {
         
-        if ( Instr::immOfsSignField( instr )) {
+        if ( getBit( instr, 23 )) {
             
             // ??? we add a signed value to an unsigned value .... 
             
-            psInstrOfs.set( Instr::add32( instrOfs, Instr::immGenPosLenLowSign( instr, 31, 22 )));
+            psInstrOfs.set( add32( instrOfs, immGenPosLenLowSign( instr, 31, 22 )));
             core -> maStage -> psValX.set( 1 );
         }
         else {
             
             psInstrOfs.set( instrOfs + 4 );
-            core -> maStage -> psValX.set( Instr::immGenPosLenLowSign( instr, 31, 22 ));
+            core -> maStage -> psValX.set( immGenPosLenLowSign( instr, 31, 22 ));
         }
     }
     else psInstrOfs.set( instrOfs + 4 );

@@ -48,16 +48,6 @@ static inline bool getBit( uint32_t arg, int pos ) {
     return( arg & ( 1U << ( 31 - ( pos % 32 ))));
 }
 
-static inline void setBit( uint32_t *arg, int pos ) {
-   
-    *arg |= ( 1U << ( 31 - ( pos % 32 )));
-}
-
-static inline void clearBit( uint32_t *arg, int pos ) {
-    
-    *arg &= ~( 1U << ( 31 - ( pos % 32 )));
-}
-
 static inline uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     
     pos = pos % 32;
@@ -120,6 +110,11 @@ uint32_t mapOpModeToDataLen( uint32_t opMode ) {
     else if (( opMode == 5 ) || (( opMode >= 16 ) && ( opMode <= 23 ))) return( 2 );
     else if (( opMode == 6 ) || (( opMode >= 24 ) && ( opMode <= 31 ))) return( 1 );
     else return( 0 );
+}
+
+uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
+    
+    return ( arg1 + arg2 );
 }
 
 }; // namespace
@@ -397,8 +392,8 @@ void MemoryAccessStage::process( ) {
                 case OP_MODE_INDX_W:        case OP_MODE_INDX_H:        case OP_MODE_INDX_B: {
               
                     dLen            = mapOpModeToDataLen( opMode );
-                    valS            = core -> sReg[ Instr::segSelect( valB ) ].get( );
-                    valX            = Instr::add32( valB, valX );
+                    valS            = core -> sReg[ getBitField( valB, 1, 2 ) ].get( );
+                    valX            = add32( valB, valX );
                     regIdForValX    = MAX_GREGS;
                     regIdForValB    = MAX_GREGS;
                     
@@ -413,7 +408,7 @@ void MemoryAccessStage::process( ) {
         case OP_LDWAX:
         case OP_STWA: {
             
-            valX            = Instr::add32( valB, valX );
+            valX            = add32( valB, valX );
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             
@@ -427,7 +422,7 @@ void MemoryAccessStage::process( ) {
         case OP_BVR: {
             
             core -> fdStage -> psInstrSeg.set( instrSeg );
-            core -> fdStage -> psInstrOfs.set( Instr::add32( valB, valX ));
+            core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             valB            = 0;
@@ -439,8 +434,8 @@ void MemoryAccessStage::process( ) {
         case OP_BE:
         case OP_BLE: {
             
-            core -> fdStage -> psInstrSeg.set( core -> sReg[ Instr::regAIdField( instr ) ].get( ));
-            core -> fdStage -> psInstrOfs.set( Instr::add32( valB, valX ));
+            core -> fdStage -> psInstrSeg.set( core -> sReg[ getBitField( instr, 27, 4 ) ].get( ));
+            core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             valB            = 0;
@@ -453,7 +448,7 @@ void MemoryAccessStage::process( ) {
         case OP_TBR: {
             
             regIdForValX    = MAX_GREGS;
-            valX            = Instr::add32( instrOfs, valX );
+            valX            = add32( instrOfs, valX );
             
         } break;
             
@@ -469,28 +464,27 @@ void MemoryAccessStage::process( ) {
             
         case OP_MR: {
            
-            if ( ! Instr::mrMovDirField( instr )) {
+            if ( ! getBit( instr, 11 )) {
                 
-                if ( Instr::mrRegTypeField( instr ))  valB = core -> cReg[ instr & 0x3C ].get( );
-                else valB = core -> sReg[ Instr::regBIdField( instr ) ].get( );
+                if ( getBit( instr, 12 ))  valB = core -> cReg[ instr & 0x3C ].get( );
+                else valB = core -> sReg[ getBitField( instr, 31, 4 ) ].get( );
             }
             
         } break;
             
         case OP_ITLB: {
             
-            CpuTlb *tlbPtr  = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
+            CpuTlb *tlbPtr  = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
             
             uint32_t tlbSeg = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
-            uint32_t tlbOfs = core -> gReg[ getBitField( instr, 31, 4 ) ].get( );
             
             bool rStat = false;
             
-            if ( Instr::tlbArgModeField( instr ))
+            if (getBit( instr, 12 ))
                 
-                rStat = tlbPtr -> insertTlbEntryProt( tlbSeg, Instr::ofsSelect( valB ), valA );
+                rStat = tlbPtr -> insertTlbEntryProt( tlbSeg, getBitField( valB, 31, 30 ), valA );
             else
-                rStat = tlbPtr -> insertTlbEntryAdr( tlbSeg, Instr::ofsSelect( valB ), valA );
+                rStat = tlbPtr -> insertTlbEntryAdr( tlbSeg, getBitField( valB, 31, 30 ), valA );
             
             if ( ! rStat ) {
                 
@@ -502,12 +496,11 @@ void MemoryAccessStage::process( ) {
             
         case OP_PTLB: {
             
-            CpuTlb *tlbPtr  = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
+            CpuTlb *tlbPtr  = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
             
             uint32_t tlbSeg = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
-            uint32_t tlbOfs = core -> gReg[ getBitField( instr, 31, 4 ) ].get( );
-            
-            if ( ! tlbPtr -> purgeTlbEntry( tlbSeg, Instr::ofsSelect( valB ))) {
+           
+            if ( ! tlbPtr -> purgeTlbEntry( tlbSeg, getBitField( valB, 31, 30 ))) {
                 
                 stallPipeLine( );
                 return;
@@ -517,10 +510,10 @@ void MemoryAccessStage::process( ) {
             
         case OP_PCA: {
             
-            CpuTlb      *tlbPtr = ( Instr::tlbKindField( instr )) ? core -> dTlb : core -> iTlb;
-            CpuMem      *cPtr   = ( Instr::pcaKindField( instr )) ?  core -> dCacheL1 : core -> iCacheL1;
+            CpuTlb      *tlbPtr = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
+            CpuMem      *cPtr   = ( getBit( instr, 11 )) ?  core -> dCacheL1 : core -> iCacheL1;
             
-            uint32_t    seg     = core -> sReg[ Instr::regAIdField( instr ) ].get( );
+            uint32_t    seg     = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
             uint32_t    ofs     = valB;
             
             // ??? simplify ... this is quite complex to do in one cycle ...
@@ -528,13 +521,13 @@ void MemoryAccessStage::process( ) {
             TlbEntry *tlbEntryPtr = tlbPtr -> lookupTlbEntry( seg, ofs );
             if ( tlbEntryPtr == nullptr ) {
                 
-                setupTrapData(( Instr::pcaKindField( instr ) ? ITLB_NON_ACCESS_TRAP : DTLB_NON_ACCESS_TRAP ),
+                setupTrapData(( getBit( instr, 11 ) ? ITLB_NON_ACCESS_TRAP : DTLB_NON_ACCESS_TRAP ),
                               seg, ofs, core -> stReg.get( ));
                 flushPipeLine( );
                 return;
             }
             
-            if ( ! Instr::pcaPurgeFlushField( instr ))
+            if ( ! getBit( instr, 12 ))
                 cPtr -> flushBlockVirt( seg, ofs, tlbEntryPtr -> tPhysAdrTag( ));
             else
                 cPtr -> purgeBlockVirt( seg, ofs, tlbEntryPtr -> tPhysAdrTag( )); 
