@@ -606,10 +606,10 @@ Each instruction is also presented in an assembler style format. The field names
 |:---|:---|:---|:---|:---|
 | Immediate | 0 | ADD r1, 500 | add 500 to the general register r1 |
 | One register | 1 | --- | opMode one uses a zero value and one register as operands. This opMode is typically used for implementing pseudo instructions |
-| Two register | 2 | OR r2, r6, r7 | a two register operation. Register r2 is encode in the "r" field, "r6" in "a" and "r7" in "b" |
-| Register indexed | 4 .. 6 | LD r6, r4(r10) | this opMode 3. Add r4 to r10 and use the upper two bits of the result to select among segment registers 4 to 7. The encoding will place a zero in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
-| Register indexed | 4 .. 6 | LD r6, r4(sr1, r10) | this is also opMode 3. Add r4 to r10 and use segment s1 as the segement register. The encoding will place a 1 in the "seg" field, r4 in "a", r7 in "b" and r2 in "r" |
-| Indexed | 8 .. 31 | ST 100(r12), r4 | store r4 to the virtual memery address formed by adding 100 to r12 and selecting based on the upper twop bits the segment register. "seg" field is zero, "ofs" field is 100, "opMode" field is 12. The operand modes 16 .. 23 and 24 .. 31 would do the same address calculation but store a half-word or byte dending on the opMode. For example, to store a half-word opMode is 20, to store a byte opMode is 28. The opCode would be STH or STB to indicate the operand size | 
+| Two register | 2 | OR r2, r6, r7 | A two register operation. Register r2 is encode in the "r" field, "r6" in "a" and "r7" in "b" |
+| Register indexed | 4 .. 6 | LD r6, r4(r10) | opMode 4. Add r4 to r10 and use the upper two bits of the result to select among segment registers 4 to 6. The encoding will place a zero in the "seg" field, r4 in "a", r10 in "b" and r6 in "r" |
+| Register indexed | 4 .. 6 | LDH r6, r4(sr1, r10) | opMode 5. Add r4 to r10 and use segment s1 as the segment register. The encoding will place a one in the "seg" field, r4 in "a", r10 in "b" and r6 in "r" |
+| Indexed | 8 .. 31 | ST 100(r12), r4 | store r4 to the virtual memery address formed by adding 100 to r12 and selecting based on the upper two bits the segment register. "seg" field is zero, "ofs" field is 100, "opMode" field is 12. The operand modes 16 .. 23 and 24 .. 31 would do the same address calculation but store a half-word or byte depending on the opMode. For example, to store a half-word opMode is 20, to store a byte opMode is 28. The opCode would be STH or STB to indicate the operand size | 
 | Indexed | 8 .. 31 | ORH r5, 100( s1, r12) | OR r5 to the halfword content found at virtual memory address formed by adding 100 to r12 and segment regsistr s1. "seg" field is one, "ofs" field is 100, "opMode" field is 20 | 
 
 The instructioon described in the follwing chapter that use an operand encoding will refer to it with the name "oparand". As shown above, the operand syntax controls how the paramaters "seg", "val", "a", "b" and "opMode" are set in an instruction.
@@ -2394,7 +2394,7 @@ Performs a combined shift left and add operation and stores the result into the 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : SHLA   ( 0x07 ) : r         :Z :L :O : 0                     : sa  :0 : a      : b            :
+   : SHLA   ( 0x07 ) : r         :Z :L :O : 0                     : sa  :0 : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3231,7 +3231,7 @@ The processor unit and the L1 caches form the "CPU core". The pipeline design ma
                 |                                      v                     |             |
       :----------------------:               :----------------------:        |             |
       :                      :               :                      :        |             |
-      : L1 Instrucion Cache  :               : L1 Data Cache        :        |             |
+      : L1 Instruction Cache :               : L1 Data Cache        :        |             |
       :                      :               :                      :        |             |
       :----------------------:               :----------------------:        |             /
                 ^                                      ^                     |
@@ -3290,29 +3290,24 @@ In addition to the L1 caches, there could be a joint L2 cache to serve both L1 c
       :-------------------------------------------------------------:  :----------:
 ```
 
-
-
-- instruction L1 cache requests have priority over L2 data requests
-- 
-
-
+In contrast to the L1 caches, the L2 cache is physically indexed and physically tagged. The L2 cache is also inclusive, which means that a cache line entry in a L1 cache must exist also in the L2 cache. A cache flush operation can thus always assume that there is an entry in the L2 as the target block.
 
 ### Instruction to manage caches
 
-- PCA instruction manages the cache flush and deletion. Insertion is always done in HW.
+While cache flushes and deletions are possible under softwre control, cache insertions are alway done by hardware. The PCA instruction manages the cache flush and deletion. 
 
 ### Uncachable Pages
 
-- short comment why and what ...
-
+The CPU address range consist of the memory and the IO portion. The IO portion is always uncachable. Data is accessed directly from the CPU to the physical memory or I/O subsystem hardware. Virtual pages that map to a physical memory address are optionally uncachable. The TLB maitains a bit that indicates whether data can be brought into the cache or not.
 
 ### Instruction and Data TLBs
 
 Computers with virtual addressing simply cannot work without a **translation look-aside buffer** (TLB). For each instruction using a virtual address for instruction fetch and data access a translation to the physical memory address needs to be performed. The TLB is a kind of cache for translations and comparable to the data caches, separate instruction and data TLBs are the common implementation.
 
-### Separate instruction and data TLB
+### Separate Instruction and Data TLB
 
-- essentially like a cache
+TLBs are indxed by a portion of the virtual address. 
+
 - direct mapped model
 - set associative model
 
@@ -3321,6 +3316,8 @@ Computers with virtual addressing simply cannot work without a **translation loo
 - models with a small fully associative I-TLB fed from a joint TLB for code and data pages. 
 
 ### Instructions to manage TLBs
+
+TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for insertion and deletion of TLB entries.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3333,17 +3330,47 @@ No CPU architecture with an idea of a runtime environment. Although the instruct
 
 // ??? simple intro about what to expect in this chapter...
 
+### The bigger picture
+
+The following figure depicts a high level overview of a software system for VCPU-32. At the center is the executioon thread, which is called **task**s. Tasks are grouped into **job**s. At the highest level is the **system**. 
+
+```
+      :---------------------------------------------------------------------------------------:
+      : SYSTEM                                                                                :
+      :                                                                                       :
+      :    :----------------------------:   :----------------------------:                    :
+      :    : JOB 1                      :   : JOB 2                      :   . . . .          :
+      :    :                            :   :                            :                    :
+      :    :  :----------------------:  :   :  :----------------------:  :                    :
+      :    :  : TASK 1               :  :   :  : TASK 1               :  :                    :
+      :    :  :                      :  :   :  :                      :  :                    :
+      :    :  :                      :  :   :  :                      :  :                    :
+      :    :  :                      :  :   :  :                      :  :                    :
+      :    :  :----------------------:  :   :  :----------------------:  :                    :
+      :    :                            :   :                            :                    :
+      :    :  :----------------------:  :   :  :----------------------:  :                    :
+      :    :  : TASK 2               :  :   :  : TASK 2               :  :                    :
+      :    :  :                      :  :   :  :                      :  :                    :
+      :    :  :                      :  :   :  :                      :  :                    :
+      :    :  :                      :  :   :  :                      :  :                    :
+      :    :  :----------------------:  :   :  :----------------------:  :                    :
+      :    :                            :   :                            :                    :
+      :    :   . . .                    :   :  . . .                     :                    :
+      :    :                            :   :                            :                    :
+      :    :                            :   :                            :                    :
+      :    :                            :   :                            :                    :
+      :    :----------------------------:   :----------------------------:                    :
+      :                                                                                       :
+      :---------------------------------------------------------------------------------------:
+```
+
 ### Register Usage
 
 The CPU features general registers, segment registers and control registers. As described before, all general registers can do computation, but only register 8 to 15 can be used as base register in the indexed addressing modes. Segment registers complement the general register set. A combination of a general index register and a segment register form a virtual address. To avoid juggling on every access both a segment and an index register, the segment register selection field in the respective instructions will either implicitly pick one of the upper four segment registers or specify on of the segment registers 1 to 3. This scheme allows to use in most cases just the offset portion of the virtual address when passing pointers to function and so on. The segment register is implicitly encoded in the upper two bits. 
 
 Segment 4 to 7 thus play a special role in the runtime environment. An execution thread, i.e. a **task**, in the runtime environment expects access to three data areas. The outermost area is the **system global area**, which is created at system start and never changed for there on. Segment register 7 is assigned to contain the segment ID of this space. Once set at system startup, its content will never change. Since the upper two bits of the address offset select the segment register, the maximum size of these areas is 30bits i.e. one gByte. Several executing tasks belonging to the same job are provided with the **job data area**. All threads belonging to the job have access to it via the SR6 segment register. This register is set every time the execution changes to a thread of another job. This area can be up to one gByte in size. Finally, in a similar manner, the task local data is pointed to by the segment register 5. This data area contains through local data and the stack. This register will also change on every task switch. Naturally, setting these registers is a privileged operation. Finally, segment register 4 will track the current code segment to allow for access to literals stored in that area.
 
-```
 
-a nice picture
-
-```
 
 ### Calling Conventions and Naming
 
@@ -3480,9 +3507,9 @@ The following figure shows the frame marker and outgoing parameter area in more 
          :--------------------------:              
       13 :                          :             
          :--------------------------:              
-      14 :                          :             
+      14 :  Return link ( RL )      :             
          :--------------------------:              
-      15 :                          :             
+      15 :  Stack pointer ( SP )    :             
          :--------------------------:               
 
 ```

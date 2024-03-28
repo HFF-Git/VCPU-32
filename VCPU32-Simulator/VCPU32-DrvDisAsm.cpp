@@ -154,7 +154,7 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
     switch ( opMode ) {
             
-        case OP_MODE_IMM:       printImmVal( immGenPosLenLowSign( instr, 31, 14 )); break;
+        case OP_MODE_IMM:       printImmVal( immGenPosLenLowSign( instr, 31, 12 )); break;
         case OP_MODE_ONE_REG:   fprintf( stdout, "0,r%d", getBitField( instr, 31, 4 )); break;
         case OP_MODE_TWO_REG:   {
             
@@ -191,7 +191,7 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         default: {
             
-            printImmVal( immGenPosLenLowSign( instr, 31, 14 ), TOK_DEC );
+            printImmVal( immGenPosLenLowSign( instr, 31, 12 ), TOK_DEC );
             
             switch( getBitField( instr, 19, 2 )) {
                     
