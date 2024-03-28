@@ -112,7 +112,7 @@ In contrast to similar historical register-memory designs, there is no operation
 VCPU-32 features a physical memory address range of 32-bits. The picture below depicts the physical memory address layout. The physical address range is divided into a memory data portion and an I/O portion. The entire address range is directly accessible with load and store instructions.
 
 ```
-    0                                     31
+    0                                  31
    :-------------------------------------: 0x00000000
    :                                     :
    :                                     :
@@ -697,7 +697,7 @@ The load instruction will load the operand into the general register "r". See th
    ofs <- operandAdrOfs( instr );
    len <- operandBitLen( instr );
 
-   GR[ r ] <- zeroExtend( memLoad( seg, ofs, len ), 32 - len );
+   GR[r] <- zeroExtend( memLoad( seg, ofs, len ), len );
 ```
 
 #### Exceptions
@@ -749,7 +749,7 @@ The load instruction will store the data in general register "r" to memory. See 
    ofs <- operandAdrOfs( instr );
    len <- operandBitLen( instr );
 
-   memStore( seg, ofs, GR< r >, len );
+   memStore( seg, ofs, GR[r], len );
 ```
 
 #### Exceptions
@@ -798,7 +798,7 @@ The load absolute instruction will load the content of the physical memory addre
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-   GR[r] <- zeroExtend( memLoad( 0, GR[b] + lowSignExtend( ofs, 18 ), 32 ));
+   GR[r] <- memLoad( 0, GR[b] + lowSignExtend( ofs, 18 ), 32 );
 ```
 
 #### Exceptions
@@ -843,7 +843,7 @@ The load absolute indexed instruction will load the content of the physical memo
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-   GR[r] <- zeroExtend( memLoad( 0, GR[b] + GR[a], 32 ));
+   GR[r] <- memLoad( 0, GR[b] + GR[a], 32 );
 ```
 
 #### Exceptions
@@ -888,7 +888,7 @@ The store absolute instruction will store the target register into memory using 
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-   memStore( 0, GR[b] + signExtend( ofs, 18 ), GR[r], 32 );
+   memStore( 0, GR[b] + lowSignExtend( ofs, 18 ), GR[r], 32 );
 ```
 
 #### Exceptions
@@ -931,12 +931,12 @@ The LDWR instruction is used for implementing semaphore type operations. See the
 #### Operation
 
 ```
-   if (( opMode < 8 ) && ( opMode > 15 )) illegalInstructionTrap( );
+   if (! (( opMode == 4 ) || (( opMode >= 8 ) && ( opMode <= 15 )))) illegalInstructionTrap( );
 
    seg <- operandAdrSeg( instr );
    ofs <- operandAdrOfs( instr );
 
-   GR[r] <- zeroExtend( memLoad( seg, ofs, len ), 32 );
+   GR[r] <- memLoad( seg, ofs, 32 );
       
    lrValid = true;
    lrArg   = GR[r];
@@ -986,11 +986,10 @@ The STWC conditional instruction will store a value in "r" to the memory locatio
 #### Operation
 
 ```
-   if ( opMode < 4 ) illegalInstructionTrap( );
+   if (! (( opMode == 4 ) || (( opMode >= 8 ) && ( opMode <= 15 )))) illegalInstructionTrap( );
 
    if (( lrValid ) && ( lrVal == GR[r])) {
 
-      if (( opMode < 3 ) || ( opMode > 7 )) illegalInstructionTrap( );
       memStore( operandAdrSeg( instr ), operandAdrOfs( instr ), GR[r], 32 );
       GR[r] <- 0;
 
@@ -1094,7 +1093,7 @@ Adds an immediate value left aligned into the target register.
 
 #### Description
 
-The add immediate left instruction loads a 22-bit immediate value padded with zeroes on the right left aligned to the general register "r". Any overflows are ignored.
+The add immediate left instruction loads a 22-bit immediate value padded with zeroes on the right left aligned to the general register "r". Any potential overflows are ignored.
 
 #### Operation
 
@@ -1145,7 +1144,7 @@ The LDO instruction loads an offset into general register "r". For operand modes
 #### Operation
 
 ```
-   if (( opMode >= 1 ) && ( opMode <= 7 )) illegalInstructionTrap( );
+   if ( opMode < 4 ) illegalInstructionTrap( );
 
    GR[r] <- operandAdrOfs( instr );
 ```
@@ -1335,8 +1334,8 @@ The branch register instruction performs an unconditional IA-relative branch. Th
 #### Operation
 
 ```
-   GR[r]  <- IA-OFS, 4 ;
-   IA-OFS <- IA-OFS + ( GR[b] << 4 );
+   GR[r]  <- IA-OFS + 4 ;
+   IA-OFS <- IA-OFS + ( GR[b] << 2 );
 ```
 
 #### Exceptions
@@ -1470,7 +1469,7 @@ Since the BE instruction is a segment base relative branch, a branch to page wit
 
 ```
    IA-SEG <- GR[a];
-   IA-OFS <- GR[b] + lowSignExt(( ofs1 << 2 ), 20 );
+   IA-OFS <- GR[b] + lowSignExt(( ofs << 2 ), 20 );
 ```
 
 #### Exceptions
@@ -1573,7 +1572,7 @@ The GATE instruction computes the target address by adding "ofs" shifted by 2 bi
    
    } else priv <- 0;
 
-   IA-OFS     <- IA-OFS + signExt(( ofs << 2 ), 24 );
+   IA-OFS     <- IA-OFS + lowSignExt(( ofs << 2 ), 24 );
    IA-OFS.[P] <- priv;
 ```
 
@@ -1766,7 +1765,7 @@ The instruction fetches the operand and adds it to the general register "r". If 
                      len <- operandBitLen( instr );
 
                      tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len ); 
+                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
                      break;
 
       default: illegalInstructionTrap( );
@@ -1838,7 +1837,7 @@ The instruction fetches the operand and subtracts it from the general register "
                      len <- operandBitLen( instr );
 
                      tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len ); 
+                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
                      break;
 
       default: illegalInstructionTrap( );
@@ -1910,7 +1909,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
                      len <- operandBitLen( instr );
 
                      tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len ); 
+                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
                      break;
 
       default: illegalInstructionTrap( );
@@ -1977,7 +1976,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
                      len <- operandBitLen( instr );
 
                      tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len ); 
+                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
                      break;
 
       default: illegalInstructionTrap( );
@@ -1986,7 +1985,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
    if ( instr.[C]) tmpB <- ~ tmpB;
    res <- tmpA | tmpB;
 
-   if ( instr.[N]) res <- ~res;
+   if ( instr.[N]) res <- ~ res;
    GR[r] <- res;
 ```
 
@@ -2044,7 +2043,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
                      len <- operandBitLen( instr );
 
                      tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len ); 
+                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
                      break;
 
       default: illegalInstructionTrap( );
@@ -2053,7 +2052,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
    if ( instr.[C]) tmpB <- ~ tmpB;
    res <- tmpA ^ tmpB;
    
-   if ( instr.[N]) res <- ~res;
+   if ( instr.[N]) res <- ~ res;
    GR[r] <- res;
 ```
 
@@ -2122,7 +2121,7 @@ The compare condition are encoded as follows.
                      len <- operandBitLen( instr );
 
                      tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), 32 - len ); 
+                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
                      break;
 
       default: illegalInstructionTrap( );
@@ -2488,7 +2487,7 @@ The **DIAG** instruction is a control instructions to issue hardware specific im
 
 <hr>
 
-Copy data from or to a segment or control register.
+Copy data between a general register and a segment or control register.
 
 #### Format
 
@@ -2666,7 +2665,6 @@ The LDPA instruction returns the physical address for a logical or virtual addre
 
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
-
    if ( opMode < 4 ) illegalInstructionTrap( );
 
    seg <- operandAdrSeg( instr );
@@ -2715,20 +2713,18 @@ The PRB instruction determines whether data access at the requested privilege le
 #### Operation
 
 ```
-   if (( opMode == 4 ) || (( opMode >= 8 ) && ( opMode <=> 15 ))) {
-      
-      seg <- operandAdrSeg( instr );
-      ofs <- operandAdrOfs( instr );
-   
-      if ( ! searchDataTlbEntry( seg, ofs, &entry )) {
+   if ( opMode < 4 ) illegalInstructionTrap( );
 
-         if      ((   instr.[M] ) && ( writeAccessAllowed( entry, instr.[P] )))    GR[r] <- 1;
-         else if (( ! instr.[M] ) && ( readAccessAllowed( entry, instr.[P] )))     GR[r] <- 1;
-         else                                                                      GR[r] <- 0;
+   seg <- operandAdrSeg( instr );
+   ofs <- operandAdrOfs( instr );
+   
+   if ( ! searchDataTlbEntry( seg, ofs, &entry )) {
+
+      if      ((   instr.[M] ) && ( writeAccessAllowed( entry, instr.[P] )))    GR[r] <- 1;
+      else if (( ! instr.[M] ) && ( readAccessAllowed( entry, instr.[P] )))     GR[r] <- 1;
+      else                                                                      GR[r] <- 0;
       
-      } else nonAccessDataTlbMiss( );
-      
-   } else illegalInstructionTrap( );
+   } else nonAccessDataTlbMiss( );
 ```
 
 #### Exceptions
@@ -2779,7 +2775,7 @@ Depending on the "T" bit, the protection information part or the address part is
    : 0         : CPU-ID    : Bank      : PPN                                                       :      T = 0
    :-----------------------------------------------------------------------------------------------:
 
-	 0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    :U :T :D :B : AR        : 0                     : Protect-Id                                    :      T = 1
    :-----------------------------------------------------------------------------------------------:
@@ -2985,16 +2981,14 @@ Issues commands to hardware specific components and implementation features.
 
 #### Description
 
-The DIAG instruction sends a command to an implementation hardware specific components. The instruction accepst two arguments in the "a" and "b" field and returns a result in "r".
-
-// ??? **note** under construction... as we go along with hardware. In general, we should use "a" and "b" for passing arguments and "r" for a return status.
+The DIAG instruction sends a command to an implementation hardware specific components. The instruction accepts two argument registers "a" and "b" and returns a result in "r".  The meaning if the input and output arguments are processor implementation dependent and described in the respective processor documentation.
 
 #### Operation
 
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-   ... to be defined
+   ... perform the requested operation
 ```
 
 #### Exceptions
@@ -3067,8 +3061,8 @@ The instruction set allows for a rich set of options on the individual instructi
 | **LSL** | LSR GRx, sa | DEP.Z  Rx, Rx, 31 - sa, 32 - sa | |
 | **ROL** | ROL GRx, GRy, cnt | DSR Rx, Rx, cnt | |
 | **ROR** | ROR GRx, GRy, cnt | DSR Rx, Rx, 32 - cnt | |
-| **INC** | INC [ .<opt> ] GRx, val | ADD [ .<opt> ] GR x, val | |
-| **DEC** | DEC [ .<opt> ] GRx, val | SUB [ .<opt> ] GR x, val | |
+| **INC** | INC [ .< opt > ] GRx, val | ADD [ .< opt > ] GR x, val | |
+| **DEC** | DEC [ .< opt > ] GRx, val | SUB [ .< opt > ] GR x, val | |
 | **NEG** | NEG Grx | SUB [ .<opt> ] GRx, GRx, opMode 1 | |
 | **COM** | COM Grx | OR.N  GRx, GRx, opMode 1 | |
 
@@ -3223,16 +3217,80 @@ A key part of the CPU is a cache and a TLB mechanism. The caches bridge the perf
 
 ### Instruction and Data L1 Cache
 
-The pipeline design makes a reference to memory during instruction fetch and then optional data access. Since both operations potentially take place  for different instructions but in the same cycle, a separate **instruction cache** and **data cache** is a key part of the overall architecture. These two caches are called **L1 caches**.
+The processor unit and the L1 caches form the "CPU core". The pipeline design makes a reference to memory during instruction fetch and then optional data access. Since both operations potentially take place  for different instructions but in the same cycle, a separate **instruction cache** and **data cache** is a key part of the overall architecture. These two caches are called **L1 caches**.
+
+
+```
+      :---------------------------------------------------------------------------:        \
+      :                                                                           :        |
+      :                         Processor                                         :        |
+      :                                                                           :        |
+      :---------------------------------------------------------------------------:        |
+                ^                                      ^                     ^             |
+                |                                      |                     |             |     CPU Core
+                |                                      v                     |             |
+      :----------------------:               :----------------------:        |             |
+      :                      :               :                      :        |             |
+      : L1 Instrucion Cache  :               : L1 Data Cache        :        |             |
+      :                      :               :                      :        |             |
+      :----------------------:               :----------------------:        |             /
+                ^                                      ^                     |
+                |                                      |                     |
+                v                                      v                     v
+      :-------------------------------------------------------------:  :----------:      
+      :                                                             :  :          :      
+      :                         Memory                              :  :  I/O     :         
+      :                                                             :  :          :      
+      :-------------------------------------------------------------:  :----------:
+
+```
+
+In an implementation with just L1 caches, both caches will directly interface with the physical memory and IO space.
+
 
 - direct mapped model
 - set associative model
 
-CPU and L1  caches form the "core".
 
 ### Unified L2 Cache
 
-In addition to the L1 caches, there could be a joint L2 cache to serve both L1 caches.
+In addition to the L1 caches, there could be a joint L2 cache to serve both L1 caches. On a simultaneously issued cache request, the instruction cache request has priority.
+
+
+```
+      :---------------------------------------------------------------------------:        \
+      :                                                                           :        |
+      :                         Processor                                         :        |
+      :                                                                           :        |
+      :---------------------------------------------------------------------------:        |
+                ^                                      ^                     ^             |
+                |                                      |                     |             |     CPU Core
+                |                                      v                     |             |
+      :----------------------:               :----------------------:        |             |
+      :                      :               :                      :        |             |
+      : L1 Instrucion Cache  :               : L1 Data Cache        :        |             |
+      :                      :               :                      :        |             |
+      :----------------------:               :----------------------:        |             /
+                ^                                      ^                     |
+                |                                      |                     |
+                v                                      v                     |
+      :-------------------------------------------------------------:        |
+      :                                                             :        |
+      :                      Unified L2 Cache                       :        |
+      :                                                             :        |
+      :                                                             :        |
+      :-------------------------------------------------------------:        |
+                                   ^                                         |
+                                   |                                         |
+                                   v                                         v
+      :-------------------------------------------------------------:  :----------:      
+      :                                                             :  :          :      
+      :                         Memory                              :  :  I/O     :         
+      :                                                             :  :          :      
+      :-------------------------------------------------------------:  :----------:
+```
+
+
 
 - instruction L1 cache requests have priority over L2 data requests
 - 
