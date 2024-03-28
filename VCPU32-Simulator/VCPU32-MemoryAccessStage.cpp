@@ -96,22 +96,6 @@ static inline uint32_t lowSignExtend32( uint32_t arg, int len ) {
     else        return( arg &= tmpM );
 }
 
-uint32_t mapOpModeToIndexReg( uint32_t opMode ) {
-    
-    if      (( opMode >= 8 ) && ( opMode <= 15 )) return( opMode );
-    else if (( opMode >= 16 ) && ( opMode <= 23 )) return( opMode - 8 );
-    else if (( opMode >= 24 ) && ( opMode <= 31 )) return( opMode - 16 );
-    else return( 0 );
-}
-
-uint32_t mapOpModeToDataLen( uint32_t opMode ) {
-    
-    if      (( opMode == 4 ) || (( opMode >= 8 ) && ( opMode <= 15 ))) return( 4 );
-    else if (( opMode == 5 ) || (( opMode >= 16 ) && ( opMode <= 23 ))) return( 2 );
-    else if (( opMode == 6 ) || (( opMode >= 24 ) && ( opMode <= 31 ))) return( 1 );
-    else return( 0 );
-}
-
 uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
     
     return ( arg1 + arg2 );
@@ -356,7 +340,7 @@ void MemoryAccessStage::process( ) {
     valS            = 0;
     
     uint8_t     opCode      = getBitField( instr, 5, 6 );
-    uint8_t     opMode      = getBitField( instr, 17, 5 );
+    uint8_t     opMode      = getBitField( instr, 14, 2 );
     uint32_t    pOfs        = psValX.get( ) % PAGE_SIZE;
     uint32_t    pAdr        = 0;
     uint32_t    dLen        = 4;
@@ -388,10 +372,10 @@ void MemoryAccessStage::process( ) {
             
             switch( opMode ) {
                     
-                case OP_MODE_REG_INDX_W:    case OP_MODE_REG_INDX_H:    case OP_MODE_REG_INDX_B:
-                case OP_MODE_INDX_W:        case OP_MODE_INDX_H:        case OP_MODE_INDX_B: {
+                case OP_MODE_REG_INDX:
+                case OP_MODE_INDX: {
               
-                    dLen            = mapOpModeToDataLen( opMode );
+                    dLen            = getBitField( instr, 18, 2 );
                     valS            = core -> sReg[ getBitField( valB, 1, 2 ) ].get( );
                     valX            = add32( valB, valX );
                     regIdForValX    = MAX_GREGS;

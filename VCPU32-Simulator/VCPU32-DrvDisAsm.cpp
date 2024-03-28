@@ -150,66 +150,47 @@ void displayTestCodes( uint32_t tstCode ) {
 //------------------------------------------------------------------------------------------------------------
 void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
-    uint32_t opMode = getBitField( instr, 17, 5 );
+    uint32_t opMode = getBitField( instr, 14, 2 );
     
     switch ( opMode ) {
             
-        case OP_MODE_IMM:       printImmVal( immGenPosLenLowSign( instr, 31, 12 )); break;
-        case OP_MODE_ONE_REG:   fprintf( stdout, "0,r%d", getBitField( instr, 31, 4 )); break;
-        case OP_MODE_TWO_REG:   {
+        case OP_MODE_IMM: printImmVal( immGenPosLenLowSign( instr, 31, 17 )); break;
+          
+        case OP_MODE_REG: {
             
-            fprintf( stdout, "r%d,r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            if ( getBitField( instr, 16, 2 ) == 0 ) {
+                
+                fprintf( stdout, "0,r%d", getBitField( instr, 31, 4 ));
+            }
+            else if ( getBitField( instr, 16, 2 ) == 1 ) {
+                
+                fprintf( stdout, "r%d,r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            }
+            else fprintf( stdout, "**reg**" );
             
         } break;
             
-        case 3: fprintf( stdout, "***opMode(3)***" ); break;
+        case OP_MODE_REG_INDX: {
             
-        case OP_MODE_REG_INDX_W:
-        case OP_MODE_REG_INDX_H:
-        case OP_MODE_REG_INDX_B: {
-            
-            switch( getBitField( instr, 19, 2 )) {
-                    
-                case 0: {
-                    
-                    fprintf( stdout, "(r%d)", mapOpModeToIndexReg( opMode ));
-                    
-                } break;
-                    
-                case 1:
-                case 2:
-                case 3: {
-                    
-                    fprintf( stdout, "(s%d,r%d)", getBitField( instr, 19, 2 ), opMode );
-                    
-                } break;
+            if ( getBitField( instr, 16, 2 ) == 0 ) {
+                
+                fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
             }
+            else fprintf( stdout, "(s%d,r%d)", getBitField( instr, 16, 2 ), getBitField( instr, 31, 4 ));
             
         } break;
             
-        case 7: fprintf( stdout, "***opMode(7)***" ); break;
+        case OP_MODE_INDX: {
             
-        default: {
+            printImmVal( immGenPosLenLowSign( instr, 27, 9 ), TOK_DEC );
             
-            printImmVal( immGenPosLenLowSign( instr, 31, 12 ), TOK_DEC );
-            
-            switch( getBitField( instr, 19, 2 )) {
-                    
-                case 0: {
-                    
-                    fprintf( stdout, "(r%d)", mapOpModeToIndexReg( opMode ));
-                    
-                } break;
-                    
-                case 1:
-                case 2:
-                case 3: {
-                    
-                    fprintf( stdout, "(s%d,r%d)", getBitField( instr, 19, 2 ), opMode );
-                    
-                } break;
+            if ( getBitField( instr, 16, 2 ) == 0 ) {
+                
+                fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
             }
-        }
+            else fprintf( stdout, "(s%d,r%d)", getBitField( instr, 16, 2 ), getBitField( instr, 31, 4 ));
+            
+        } break;
     }
 }
 
@@ -222,23 +203,17 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
 void displayOpCode( uint32_t instr ) {
     
     uint32_t opCode = getBitField( instr, 5, 6 );
-    uint32_t opMode = getBitField( instr, 17, 5 );
     
     fprintf( stdout, "%s", opCodeTab[ opCode ].mnemonic );
     
     if ( opCodeTab[ opCode ].flags & OP_MODE_INSTR ) {
         
-        if (( opMode == 4 ) || (( opMode >= 8 ) && ( opMode <= 15 ))) {
-            
-            if (( opCode == OP_LD ) || ( opCode == OP_ST )) fprintf( stdout, "W" );
-        }
-        else if (( opMode == 5 ) || (( opMode >= 16 ) && ( opMode <= 23 ))) {
-            
-            fprintf( stdout, "H" );
-        }
-        else if (( opMode == 6 ) || (( opMode >= 24 ) && ( opMode <= 31 ))) {
-            
-            fprintf( stdout, "B" );
+        switch ( getBitField( instr, 18, 2 )) {
+                
+            case 0:  if (( opCode == OP_LD ) || ( opCode == OP_ST )) fprintf( stdout, "W" ); break;
+            case 1:  fprintf( stdout, "H" ); break;
+            case 2:  fprintf( stdout, "B" ); break;
+            default: fprintf( stdout, "**dw**" );
         }
     }
 }

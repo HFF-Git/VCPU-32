@@ -69,7 +69,7 @@ March, 2024
 >
 > "Seriously?“
 >
-> “OK, seriously. Designers of the eighties CPUs almost all used a micro-coded approach with hundreds of instructions. The nineties shifted to RSIC based designs with large sets of registers, fixed word instruction length, and instructions that are in general pipeline friendly. What if these principles had found their way earlier into these designs? What if a large virtual address space, a fixed instruction length and simple pipeline friendly instructions had found their way into these designs ?
+> “OK, seriously. Designers of the eighties CPUs almost all used a micro-coded approach with hundreds of instructions. Also, registers were not really gesneric but often had a special function or meaning. The nineties shifted to RSIC based designs with large sets of registers, fixed word instruction length, and instructions that are in general pipeline friendly. What if these principles had found their way earlier into these designs? What if a large virtual address space, a fixed instruction length and simple pipeline friendly instructions had found their way into these designs ?
 >
 > A 32-bit vintage CPU will give us a good set of design challenges to look into and opportunities to include modern RISC features and learn about instruction sets and pipeline design as any other CPU. Although not a modern design, it will still be a useful CPU. Let's see where this leads us."
 >
@@ -161,7 +161,7 @@ VCPU-32 is a big endian 32-bit machine. The fundamental data type is a 32-bit ma
 
 ### General Register Model
 
-VCPU-32 features a set of registers. They are grouped in general registers, segment registers and control registers. There are eight general registers, labeled GR0 to GR15, and eight segment registers, labeled SR0 to SR7. All general registers can do arithmetic and logical operations. Register GR10 to GR15 are additionally labelled index registers, which are used in the addressing modes. The eight segment registers hold the segment part of the virtual address. The control registers contain system level information such as protection registers and interrupt and trap data registers.
+VCPU-32 features a set of registers. They are grouped in general registers, segment registers and control registers. There are sixteen general registers, labeled GR0 to GR15, and eight segment registers, labeled SR0 to SR7. All general registers can do arithmetic and logical operations. The eight segment registers hold the segment part of the virtual address. The control registers contain system level information such as protection registers and interrupt and trap data registers.
 
 ```
                   Segment                         General                           Control
@@ -556,45 +556,35 @@ In the interest of a simplified hardware design, the opCode and opCode specific 
 
 ### Operand Encoding
 
-The **operand mode** field in instructions that use operand modes for specifying one argument indicates mode is used. There are operand modes to define immediate values, registers or an address. Furthermore, the operand mode also encodes the data length of the operand. There are 32 operand modes for instructions that use the operand encoding format. They can be grouped in four sets. Modes 0 .. 3 contains the immediate and register modes, modes 4 ..7 are the register indexed modes and 8 .. 15, 16 .. 23 and 24 .. 31 are the indexed adressing groups. The following figure gives an overview of the instruction layout for instructions with an operand encoding. 
+The **operand mode** field in instructions that use operand modes is used to specify how the second operand is decoded. There are four operand mode groups that define immediate value modes, register modes, and addressing modes. 
+
+
+
+ The following figure gives an overview of the instruction layout for instructions with operand encoding. 
 
 ```
-                      <-  res  -> <-opt -> <-   mode   -> <--------- operand --------------------->
+   <--- operation --> <-  res  -> <-opt -> <------------- operand -------------------------------->
     0                 6           10       13             18                24          28       31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : opCode          : r         :        : 0            : val                                  :s :  immediate
+   : opCode          : r         :        : 0   : val                                              :  immediate
    :-----------------:-----------------------------------------------------------------------------:
-   : opCode          : r         :        : 1            : 0                           : b         :  one register
+   : opCode          : r         :        : 1   : 0   : 0                              : b         :  one register
    :-----------------:-----------------------------------------------------------------------------:
-   : opCode          : r         :        : 2            : 0               : a         : b         :  two registers
+   : opCode          : r         :        : 1   : 1   : 0                  : a         : b         :  two registers
    :-----------------:-----------------------------------------------------------------------------:
-   : opCode          : r         :        : 3            : 0                                       :  undefined
+   : opCode          : r         :        : 2   : seg : dw  :              : a         : b         :  register indexed
    :-----------------:-----------------------------------------------------------------------------:
-
-   :-----------------:-----------------------------------------------------------------------------:
-   : opCode          : r         :        : 4            : seg : 0         : a         : b         :  register indexed, word
-   :-----------------:-----------------------------------------------------------------------------:
-   : opCode          : r         :        : 5            : seg : 0         : a         : b         :  register indexed, half
-   :-----------------:-----------------------------------------------------------------------------:
-   : opCode          : r         :        : 6            : seg : 0         : a         : b         :  register indexed, byte
-   :-----------------:-----------------------------------------------------------------------------:
-   : opCode          : r         :        : 7            : 0                                       :  undefined
-   :-----------------:-----------------------------------------------------------------------------:
-   
-   :-----------------:-----------------------------------------------------------------------------:
-   : opCode          : r         :        : 8  - 15      : seg : ofs                            :S :  indexed, word
-   :-----------------:-----------------------------------------------------------------------------:
-   : opCode          : r         :        : 16 - 23      : seg : ofs                            :S :  indexed, half
-   :-----------------:-----------------------------------------------------------------------------:
-   : opCode          : r         :        : 24 - 31      : seg : ofs                            :S :  indexed, byte
+   : opCode          : r         :        : 3   : seg : dw  : ofs                      : b         :  indexed
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
-There is one **immediate operand mode**, which supports a signed 14-bit value. The sign bit is in the rightmost position of the field and removed from the value to encode. Depending on the sign, the remaining value im the field is sign or zero extended. The **register modes** specify one or two registers for the operation. Operand mode 1 sets "a" to zero and passes the other argument in "b". This mode is typically used for operations that use a zero value as one of the arguments. For example, the operation "zero - b" can be used in the  SUB instruction, which will subtract the "b" register from a zero value. This is essentially a negate operation. Operand mode 2 will use "a" and "b" as input to the operation of the instruction.
+There is one **immediate operand mode**, which supports a signed 17-bit value. The sign bit is in the rightmost position of the field. Depending on the sign, the remaining value in the field is sign extended or zero extended. 
 
-The machine addresses memory with a byte address. There are indexed and register indexed operand modes. Operand modes 4 to 6 are the **register indexed address modes**s, which will use a base register "b" and add an offset in "a" to it, forming the final byte address offset. Mode 4 refers to a date word, mode 5 to a date half-word and mode 6 to a datde byte. Modes 8 to 31 are the **indexed address mode**s structured in three groups, which access a word, a half-word or a byte. The mode group map to an index register R8 to R15, i.e. mode 8, 16 and 24 to R8, 9, 17 and 25 to R9 and so on. For the indexed operand modes, the computed address must be aligned with the size of data to fetch. 
+The **register modes** specify one or two registers for the operation. Operand group mode 1 features two sub modes. Submode 0 sets "a" to zero and passes the other argument in "b". This mode is typically used for operations that use a zero value as one of the arguments. For example, the operation "zero - b" can be used in the  SUB instruction, which will subtract the "b" register from a zero value. This is essentially a negate operation. Operand mode group 1 and sub mode 1 will use "a" and "b" as input to the operation of the instruction.
 
-The **seg** field manages the segment register selection. A value of zero will use the upper two bits of the computed offset to select from SR4 to SR7. A value of 1 to 3 will select SR1 to SR3. SR0 is not used in this operand scheme. It is used as a target register for an external branch or a segment scratch register.
+The machine addresses memory with a byte address. There are indexed and register indexed operand mode groups. Operand group mode 2 is the **register indexed address mode**, which will use a base register "b" and add an offset in "a" to it, forming the final byte address offset. The **seg** field manages the segment register selection. A value of zero will use the upper two bits of the computed offset to select from SR4 to SR7. A value of 1 to 3 will select SR1 to SR3. SR0 is not used in this operand scheme. It is used as a target register for an external branch or a segment scratch register. The **dw**** field specifes the data field width. A value of zero represent a word, 1 a half-word and 2 a byte. The computed address must be aligned with the size of data to fetch. 
+
+The final operand mode group is the **indexed address mode** group. The operand address is built by adding an offset to the base register "b". The offset field is a signed 11 bit field. The sign bit is in the rightmost position of the field. Depending on the sign, the remaining value in the field is sign extended or zero extended. The **dw**** field specifes the data field width. A value of zero represent a word, 1 a half-word and 2 a byte. The computed address must be aligned with the size of data to fetch. 
 
 There are no auto pre/post offset adjustment or indirect modes. Indirect addressing modes are not pipeline friendly, they require an additional memory access. Pre or post offset adjustments have not been implemented so far. Nevertheless, auto pre/post adjustment would be an option for the load/store type instructions.
 
@@ -602,17 +592,17 @@ There are no auto pre/post offset adjustment or indirect modes. Indirect address
 
 Each instruction is also presented in an assembler style format. The field names found in the instruction format map to the names used in the assembler notation. The names used in the format, such as "r", "a" or "val" directly map to the fields in the instruction layout. An exception are the opMode format instructions where the names "opMode" and "opArg" are used. The following table shows these formats.
 
-| Operand Format | opMode | Opareand Notation |  Example | Comment |
-|:---|:---|:---|:---|:---|
+| Operand Format | opMode Group | Assembler Notation Example | Comment
+|:---|:---|:---|:---|
 | Immediate | 0 | ADD r1, 500 | add 500 to the general register r1 |
-| One register | 1 | --- | opMode one uses a zero value and one register as operands. This opMode is typically used for implementing pseudo instructions |
-| Two register | 2 | OR r2, r6, r7 | A two register operation. Register r2 is encode in the "r" field, "r6" in "a" and "r7" in "b" |
-| Register indexed | 4 .. 6 | LD r6, r4(r10) | opMode 4. Add r4 to r10 and use the upper two bits of the result to select among segment registers 4 to 6. The encoding will place a zero in the "seg" field, r4 in "a", r10 in "b" and r6 in "r" |
-| Register indexed | 4 .. 6 | LDH r6, r4(sr1, r10) | opMode 5. Add r4 to r10 and use segment s1 as the segment register. The encoding will place a one in the "seg" field, r4 in "a", r10 in "b" and r6 in "r" |
-| Indexed | 8 .. 31 | ST 100(r12), r4 | store r4 to the virtual memery address formed by adding 100 to r12 and selecting based on the upper two bits the segment register. "seg" field is zero, "ofs" field is 100, "opMode" field is 12. The operand modes 16 .. 23 and 24 .. 31 would do the same address calculation but store a half-word or byte depending on the opMode. For example, to store a half-word opMode is 20, to store a byte opMode is 28. The opCode would be STH or STB to indicate the operand size | 
-| Indexed | 8 .. 31 | ORH r5, 100( s1, r12) | OR r5 to the halfword content found at virtual memory address formed by adding 100 to r12 and segment regsistr s1. "seg" field is one, "ofs" field is 100, "opMode" field is 20 | 
+| One register | 1 | --- | SubMode 0. A zero value and one register as operand operation. This opMode combination is typically used for implementing pseudo instructions |
+| Two register | 1 | OR r2, r6, r7 | SubMode 1. A two register operation. "r2" in "r", "r6" in "a" and "r7" in "b" |
+| Register indexed | 2 | LD r6, r4(r10) | Add r4 to r10 and use the upper two bits of the result to select among segment registers 4 to 7.  "seg" field is 0, "dw" field is 0, r4 in "a", r10 in "b" and r6 in "r" |
+| Register indexed | 2 | LDH r6, r4(sr1, r10) | Add r4 to r10 and use segment s1 as the segment register. "seg" field is 1, "dw" field is 1, r4 in "a", r10 in "b" and r6 in "r" |
+| Indexed | 3 | ST 100(r12), r4 | Store r4 to the virtual memory address formed by adding 100 to r12 and selecting based on the upper two bits the segment register. "seg" field is 0, "dw" field is 0, "ofs" field is 100, r12 in "b" | 
+| Indexed | 3 | ORH r5, 100( s1, r12) | OR r5 to the halfword content found at virtual memory address formed by adding 100 to r12 and segment register s1. "seg" field is one, "dw" field is 1, "ofs" field is 100, r12 in "b"  | 
 
-The instructioon described in the follwing chapter that use an operand encoding will refer to it with the name "oparand". As shown above, the operand syntax controls how the paramaters "seg", "val", "a", "b" and "opMode" are set in an instruction.
+The instruction described in the following chapter that use an operand encoding will refer to it with the name "operand". As shown above, the operand syntax controls how the parameters "opMode", "seg", "dw", "val", "a" and "b" are set in an instruction.
 
 ### Instruction Operation Notation
 
@@ -680,18 +670,18 @@ Loads a memory value into a general register.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDx    ( 0x18 ) : r         : 0      : opMode       :  opArg                                  :
+   : LDx    ( 0x18 ) : r         : 0      : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The load instruction will load the operand into the general register "r". See the section on operand encoding for the defined operand modes. OpModes 0 to 3 are undefined and result in an illegal instruction trap.
+The load instruction will load the operand into the general register "r". See the section on operand encoding for the defined operand modes. OpModes 0 and 1 are undefined for this instruction and result in an illegal instruction trap.
 
 #### Operation
 
 ```
-   if ( opMode < 4 ) illegalInstructionTrap( );
+   if ( opMode < 2 ) illegalInstructionTrap( );
 
    seg <- operandAdrSeg( instr );
    ofs <- operandAdrOfs( instr );
@@ -726,24 +716,24 @@ Stores a general register value into memory
 #### Format
 
 ```
-   STx operand, r            ; opMode 4, 5, 6
+   STx operand, r
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : STx    ( 0x19 ) : r         : 0      : opMode       :  opArg                                  :
+   : STx    ( 0x19 ) : r         : 0      : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The load instruction will store the data in general register "r" to memory. See the section on operand encoding for the defined operand modes. Operand modes 0 - 7, 8, 16, and 24 are undefined for this instruction and result in illegal instruction trap. Note that there is no register indexed mode for the STx instruction. In contrast to the LDx instruction, the STx instruction would need to access three registers ( the value to store, the base and index register ), which would require a greater hardware effort.
+The load instruction will store the data in general register "r" to memory. See the section on operand encoding for the defined operand modes. Operand modes 0 to 2 are undefined for this instruction and result in illegal instruction trap. Note that there is no register indexed mode for the STx instruction. In contrast to the LDx instruction, the STx instruction would need to access three registers ( the value to store, the base and index register ), which would require a greater hardware effort.
 
 #### Operation
 
 ```
-   if ( opMode < 8 ) illegalInstructionTrap( );
+   if ( opMode != 3 ) illegalInstructionTrap( );
 
    seg <- operandAdrSeg( instr );
    ofs <- operandAdrOfs( instr );
@@ -791,7 +781,7 @@ Loads the memory content into a general register using an absolute address.
 
 #### Description
 
-The load absolute instruction will load the content of the physical memory address into the general register "r". The absolute 32-bit address is computed from adding the signed offset to general register "b". The LDwA instructions is a privileged instructions.
+The load absolute instruction will load the content of the physical memory address into the general register "r". The absolute 32-bit address is computed by adding the signed offset to general register "b". The LDwA instructions is a privileged instructions.
 
 #### Operation
 
@@ -836,7 +826,7 @@ Loads the memory content into a general register using an absolute address.
 
 #### Description
 
-The load absolute indexed instruction will load the content of the physical memory address into the general register "r". The absolute 32-bit address is computed from adding the signed offset in register "a" to general register "b". The LDWAX instructions is a privileged instructions.
+The load absolute indexed instruction will load the content of the physical memory address into the general register "r". The absolute 32-bit address is computed by adding the signed offset in register "a" to general register "b". The LDWAX instructions is a privileged instructions.
 
 #### Operation
 
@@ -881,7 +871,7 @@ Stores a general register value into memory using an absolute physical address.
 
 #### Description
 
-The store absolute instruction will store the target register into memory using a physical address. The absolute 32-bit address is computed from adding the signed offset to general register "b". The STWA instructions are privileged instructions.
+The store absolute instruction will store the target register into memory using a physical address. The absolute 32-bit address is computed by adding the signed offset to general register "b". The STWA instructions are privileged instructions.
 
 #### Operation
 
@@ -920,18 +910,18 @@ Loads the operand into the target register from the address and marks that addre
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDWR   ( 0x1A ) : r         : 0      : opMode       : opArg                                   :
+   : LDWR   ( 0x1A ) : r         : 0      : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The LDWR instruction is used for implementing semaphore type operations. See the section on operand encoding for the defined operand mode encoding. The first part of the instruction behaves exactly like the LDW instruction. A logical memory address is computed. Next, the memory content is loaded into general register "r". The second part remembers the address and will detect any modifying reference to it.
+The LDWR instruction is used for implementing semaphore type operations. See the section on operand encoding for the defined operand mode encoding. The first part of the instruction behaves exactly like the LDW instruction. A logical memory address is computed. Next, the memory content is loaded into general register "r". The second part remembers the address and will detect any modifying reference to it. The LDWR instruction supports only word addressing.
 
 #### Operation
 
 ```
-   if (! (( opMode == 4 ) || (( opMode >= 8 ) && ( opMode <= 15 )))) illegalInstructionTrap( );
+   if (( opMode < 2 ) || ( dataWidth != 0 )) illegalInstructionTrap( );
 
    seg <- operandAdrSeg( instr );
    ofs <- operandAdrOfs( instr );
@@ -975,18 +965,18 @@ Conditionally store a value to memory.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : STWC   ( 0x1B ) : r         : 0      : opMode       : opArg                                   :
+   : STWC   ( 0x1B ) : r         : 0      : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The STWC conditional instruction will store a value in "r" to the memory location specified by the operand address. The store is however only performed when the data location has not been written to since the last load reference instruction execution for that address. If the operation is successful a value of zero is returned otherwise a value of one. See the section on operand encoding for the defined operand mode encoding. 
+The STWC conditional instruction will store a value in "r" to the memory location specified by the operand address. The store is however only performed when the data location has not been written to since the last load reference instruction execution for that address. If the operation is successful a value of zero is returned otherwise a value of one. See the section on operand encoding for the defined operand mode encoding. Only OpMode 3 with word data length is allowed.
 
 #### Operation
 
 ```
-   if (! (( opMode == 4 ) || (( opMode >= 8 ) && ( opMode <= 15 )))) illegalInstructionTrap( );
+   if (( opMode < 3 ) || ( dataWidth != 0 )) illegalInstructionTrap( );
 
    if (( lrValid ) && ( lrVal == GR[r])) {
 
@@ -1133,18 +1123,18 @@ Loads the effective address offset of the operand.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDO    ( 0x16 ) : r         : 0      : opMode       : opArg                                   :
+   : LDO    ( 0x16 ) : r         : 0      : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The LDO instruction loads an offset into general register "r". For operand modes 0 the immediate value is loaded. For operand modes 4 .. 7 and 8 .. 31, the instruction just performs the address computation part comparable to the **LDx** instruction, however with no memory access. See the section on the defined operand modes. Note that the does not matter whether the word, half-word or byte related operand mode is used for the address offset computation. In the assembler notation the "W", "H" and "B" option is therefore omitted.
+The LDO instruction loads an offset into general register "r". For operand mode 0 the immediate value is loaded. For operand modes 2 and 3 the instruction just performs the address computation part comparable to the **LDx** instruction, however with no memory access. See the section on the defined operand modes. Note that the does not matter whether the word, half-word or byte related operand mode is used for the address offset computation. In the assembler notation the "W", "H" and "B" option is therefore omitted.
 
 #### Operation
 
 ```
-   if ( opMode < 4 ) illegalInstructionTrap( );
+   if ( opMode == 2 ) illegalInstructionTrap( );
 
    GR[r] <- operandAdrOfs( instr );
 ```
@@ -1157,7 +1147,7 @@ The LDO instruction loads an offset into general register "r". For operand modes
 
 The LDO instruction calculates the offset portion. Although the format of the instruction uses the operand encoding, the segemnt part is ignored of the operand mode is ignored, but can be specified. The assembler should by convention emit a seg field of zero.
 
-The assembler uses the LDO instruction in mode zero for a "LDI r, val" pseudo instruction to load an immediate value into a general register.
+The assembler uses the LDO instruction in opMode zero for a "LDI r, val" pseudo instruction to load an immediate value into a general register.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1743,7 +1733,7 @@ Adds the operand to the target register.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : ADD    ( 0x10 ) : r         :C :L :O : opMode       : opArg                                   :
+   : ADD    ( 0x10 ) : r         :C :L :O : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1756,19 +1746,32 @@ The instruction fetches the operand and adds it to the general register "r". If 
 ```
    switch( opMode ) {
 
-      case 0:        tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
-      case 1:        tmpA <- 0 ;    tmpB <- GR[b];                      break;
-      case 2:        tmpA <- GR[a]; tmpB <- GR[b];                      break;
+      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
+      
+      case 1:  {
 
-      case 8 .. 31:  seg <- operandAdrSeg( instr );
-                     ofs <- operandAdrOfs( instr );
-                     len <- operandBitLen( instr );
+         if ( instr.[DW] == 0 ) {
 
-                     tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
-                     break;
+            tmpA <- 0 ; tmpB <- GR[b]; 
+         }
+         else {
 
-      default: illegalInstructionTrap( );
+            tmpA <- GR[a]; tmpB <- GR[b];
+         }
+
+      } break;
+
+      case 2: 
+      case 3: {
+
+         seg <- operandAdrSeg( instr );
+         ofs <- operandAdrOfs( instr );
+         len <- operandBitLen( instr );
+
+         tmpA <- GR[r];
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
+      
+      } break;     
    }
 
    if ( instr.[C] ) res <- tmpA + tmpB + instr.[C];
@@ -1815,7 +1818,7 @@ Subtracts the operand from the target register.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : SUB    ( 0x11 ) : r         :C :L :O : opMode       : opArg                                   :
+   : SUB    ( 0x11 ) : r         :C :L :O : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1828,19 +1831,32 @@ The instruction fetches the operand and subtracts it from the general register "
 ```
      switch( opMode ) {
 
-      case 0:        tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
-      case 1:        tmpA <- 0 ;    tmpB <- GR[b];                      break;
-      case 2:        tmpA <- GR[a]; tmpB <- GR[b];                      break;
+      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
+      
+      case 1:  {
 
-      case 8 .. 31:  seg <- operandAdrSeg( instr );
-                     ofs <- operandAdrOfs( instr );
-                     len <- operandBitLen( instr );
+         if ( instr.[DW] == 0 ) {
 
-                     tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
-                     break;
+            tmpA <- 0 ; tmpB <- GR[b]; 
+         }
+         else {
 
-      default: illegalInstructionTrap( );
+            tmpA <- GR[a]; tmpB <- GR[b];
+         }
+
+      } break;
+
+      case 2: 
+      case 3: {
+
+         seg <- operandAdrSeg( instr );
+         ofs <- operandAdrOfs( instr );
+         len <- operandBitLen( instr );
+
+         tmpA <- GR[r];
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
+      
+      } break;     
    }
 
    if ( instr.[C] ) res <- tmpA - tmpB + instr.[C];
@@ -1887,7 +1903,7 @@ Performs a bitwise AND of the operand and the target register and stores the res
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : AND    ( 0x12 ) : r         :N :C :0 : opMode       : opArg                                   :
+   : AND    ( 0x12 ) : r         :N :C :0 : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1900,19 +1916,32 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
    switch( opMode ) {
 
-      case 0:        tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
-      case 1:        tmpA <- 0 ;    tmpB <- GR[b];                      break;
-      case 2:        tmpA <- GR[a]; tmpB <- GR[b];                      break;
+      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
+      
+      case 1:  {
 
-      case 8 .. 31:  seg <- operandAdrSeg( instr );
-                     ofs <- operandAdrOfs( instr );
-                     len <- operandBitLen( instr );
+         if ( instr.[DW] == 0 ) {
 
-                     tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
-                     break;
+            tmpA <- 0 ; tmpB <- GR[b]; 
+         }
+         else {
 
-      default: illegalInstructionTrap( );
+            tmpA <- GR[a]; tmpB <- GR[b];
+         }
+
+      } break;
+
+      case 2: 
+      case 3: {
+
+         seg <- operandAdrSeg( instr );
+         ofs <- operandAdrOfs( instr );
+         len <- operandBitLen( instr );
+
+         tmpA <- GR[r];
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
+      
+      } break;     
    }
 
    if ( instr.[C]) tmpB <- ~ tmpB;
@@ -1954,7 +1983,7 @@ Performs a bitwise OR of the operand and the target register and stores the resu
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : OR     ( 0x13 ) : r         :N :C :0 : opMode       : opArg                                   :
+   : OR     ( 0x13 ) : r         :N :C :0 : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1967,19 +1996,32 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
    switch( opMode ) {
 
-      case 0:        tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
-      case 1:        tmpA <- 0 ;    tmpB <- GR[b];                      break;
-      case 2:        tmpA <- GR[a]; tmpB <- GR[b];                      break;
+      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
+      
+      case 1:  {
 
-      case 8 .. 31:  seg <- operandAdrSeg( instr );
-                     ofs <- operandAdrOfs( instr );
-                     len <- operandBitLen( instr );
+         if ( instr.[DW] == 0 ) {
 
-                     tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
-                     break;
+            tmpA <- 0 ; tmpB <- GR[b]; 
+         }
+         else {
 
-      default: illegalInstructionTrap( );
+            tmpA <- GR[a]; tmpB <- GR[b];
+         }
+
+      } break;
+
+      case 2: 
+      case 3: {
+
+         seg <- operandAdrSeg( instr );
+         ofs <- operandAdrOfs( instr );
+         len <- operandBitLen( instr );
+
+         tmpA <- GR[r];
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
+      
+      } break;     
    }
 
    if ( instr.[C]) tmpB <- ~ tmpB;
@@ -2021,7 +2063,7 @@ Performs a bitwise XORing the operand and the target register and stores the res
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : XOR    ( 0x14 ) : r         :N :C :0 : opMode       : opArg                                   :
+   : XOR    ( 0x14 ) : r         :N :C :0 : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2034,19 +2076,32 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
    switch( opMode ) {
 
-      case 0:        tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
-      case 1:        tmpA <- 0 ;    tmpB <- GR[b];                      break;
-      case 2:        tmpA <- GR[a]; tmpB <- GR[b];                      break;
+      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
+      
+      case 1:  {
 
-      case 8 .. 31:  seg <- operandAdrSeg( instr );
-                     ofs <- operandAdrOfs( instr );
-                     len <- operandBitLen( instr );
+         if ( instr.[DW] == 0 ) {
 
-                     tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
-                     break;
+            tmpA <- 0 ; tmpB <- GR[b]; 
+         }
+         else {
 
-      default: illegalInstructionTrap( );
+            tmpA <- GR[a]; tmpB <- GR[b];
+         }
+
+      } break;
+
+      case 2: 
+      case 3: {
+
+         seg <- operandAdrSeg( instr );
+         ofs <- operandAdrOfs( instr );
+         len <- operandBitLen( instr );
+
+         tmpA <- GR[r];
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
+      
+      } break;     
    }
 
    if ( instr.[C]) tmpB <- ~ tmpB;
@@ -2088,7 +2143,7 @@ Compares a register and an operand and stores the comparison result in the targe
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : CMP    ( 0x15 ) : r         : cond   : opMode       : opArg                                   :
+   : CMP    ( 0x15 ) : r         : cond   : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2112,19 +2167,32 @@ The compare condition are encoded as follows.
 ```
    switch( opMode ) {
 
-      case 0:        tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
-      case 1:        tmpA <- 0 ;    tmpB <- GR[b];                      break;
-      case 2:        tmpA <- GR[a]; tmpB <- GR[b];                      break;
+      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 14 ); break;
+      
+      case 1:  {
 
-      case 8 .. 31:  seg <- operandAdrSeg( instr );
-                     ofs <- operandAdrOfs( instr );
-                     len <- operandBitLen( instr );
+         if ( instr.[DW] == 0 ) {
 
-                     tmpA <- GR[r];
-                     tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
-                     break;
+            tmpA <- 0 ; tmpB <- GR[b]; 
+         }
+         else {
 
-      default: illegalInstructionTrap( );
+            tmpA <- GR[a]; tmpB <- GR[b];
+         }
+
+      } break;
+
+      case 2: 
+      case 3: {
+
+         seg <- operandAdrSeg( instr );
+         ofs <- operandAdrOfs( instr );
+         len <- operandBitLen( instr );
+
+         tmpA <- GR[r];
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
+      
+      } break;     
    }
 
    switch ( cond ) {
@@ -2653,7 +2721,7 @@ Load the physical address for a virtual address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDPA    ( 0x1E ): r         : 0      : opMode       : opArg                                   :
+   : LDPA    ( 0x1E ): r         : 0      : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2665,7 +2733,7 @@ The LDPA instruction returns the physical address for a logical or virtual addre
 
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
-   if ( opMode < 4 ) illegalInstructionTrap( );
+   if ( opMode < 2 ) illegalInstructionTrap( );
 
    seg <- operandAdrSeg( instr );
    ofs <- operandAdrOfs( instr );
@@ -2702,7 +2770,7 @@ Probe data access to a virtual address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : PRB    ( 0x1F ) : r         :M : 0   : opMode       : opArg                                   :
+   : PRB    ( 0x1F ) : r         :M : 0   : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2713,7 +2781,7 @@ The PRB instruction determines whether data access at the requested privilege le
 #### Operation
 
 ```
-   if ( opMode < 4 ) illegalInstructionTrap( );
+   if ( opMode < 2 ) illegalInstructionTrap( );
 
    seg <- operandAdrSeg( instr );
    ofs <- operandAdrOfs( instr );
@@ -3050,7 +3118,7 @@ The instruction opCode for BRK is the opCode value of zero. A zero instruction w
 
 The instruction set allows for a rich set of options on the individual instruction functions. Setting a defined option bit in the instruction adds useful capabilities to an instruction with little additional overhead to the overall data path. For better readability, pseudo operations could be defined that allows for an easier usage. Furthermore, some instructions have no assembler format counterpart. The only way to execute them is through the pseudo operation. This applies for example to the operand mode one case in computational instructions. For pseudo instructions, options and traps are those specified by the actually used instructions.
 
-| Pseudo Instruction | Assembler Syntax |  Possible Implementation | Purpose |
+| Pseudo Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
 | **NOP** | NOP | OR  GR0, #0 | There are many instructions that can be used for a NOP. The idea is to pick one that does not affect the program state. |
 | **LDI** | LDI val | | |
@@ -3080,17 +3148,17 @@ This appendix lists all instructions by instruction group.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : ADD     ( 0x10 ): r         :C :L :O : opMode       : opArg                                   :
+   : ADD     ( 0x10 ): r         :C :L :O : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
-   : SUB     ( 0x11 ): r         :C :L :O : opMode       : opArg                                   :
+   : SUB     ( 0x11 ): r         :C :L :O : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
-   : AND     ( 0x12 ): r         :N :C :0 : opMode       : opArg                                   :
+   : AND     ( 0x12 ): r         :N :C :0 : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
-   : OR      ( 0x13 ): r         :N :C :0 : opMode       : opArg                                   :
+   : OR      ( 0x13 ): r         :N :C :0 : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
-   : XOR     ( 0x14 ): r         :N :C :0 : opMode       : opArg                                   :
+   : XOR     ( 0x14 ): r         :N :C :0 : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
-   : CMP     ( 0x15 ): r         : cond   : opMode       : opArg                                   :
+   : CMP     ( 0x15 ): r         : cond   : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3116,13 +3184,13 @@ This appendix lists all instructions by instruction group.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDW/H/B ( 0x18 ): r         : 0      : opMode       : opArg                                   :
+   : LDW/H/B ( 0x18 ): r         : 0      : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
-   : STW/H/B ( 0x19 ): r         : 0      : opMode       : opArg                                   :
+   : STW/H/B ( 0x19 ): r         : 0      : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDWR    ( 0x1A ): r         : 0      : opMode       : opArg                                   :
+   : LDWR    ( 0x1A ): r         : 0      : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
-   : STWC    ( 0x1B ): r         : 0      : opMode       : opArg                                   :
+   : STWC    ( 0x1B ): r         : 0      : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3134,7 +3202,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : ADDIL   ( 0x03 ): r         : val                                                             :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDO     ( 0x16 ): r        : 0       : opMode       : opArg                                   :   
+   : LDO     ( 0x16 ): r        : 0       : operand                                                : 
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3189,9 +3257,9 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : MST     ( 0x0A ): r         :mode : 0                                       : s               :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDPA    ( 0x1E ): r         : 0      : opMode       : opArg                                   :           
+   : LDPA    ( 0x1E ): r         : 0      : operand                                                :          
    :-----------------:-----------------------------------------------------------------------------:
-   : PRB     ( 0x1F ): r         :M : 0   : opMode       : opArg                                   :        
+   : PRB     ( 0x1F ): r         :M : 0   : operand                                                :       
    :-----------------:-----------------------------------------------------------------------------:
    : ITLB    ( 0x38 ): r         :T :M : 0                                 : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
@@ -3221,27 +3289,27 @@ The processor unit and the L1 caches form the "CPU core". The pipeline design ma
 
 
 ```
-      :---------------------------------------------------------------------------:        \
-      :                                                                           :        |
-      :                         Processor                                         :        |
-      :                                                                           :        |
-      :---------------------------------------------------------------------------:        |
-                ^                                      ^                     ^             |
-                |                                      |                     |             |     CPU Core
-                |                                      v                     |             |
-      :----------------------:               :----------------------:        |             |
-      :                      :               :                      :        |             |
-      : L1 Instruction Cache :               : L1 Data Cache        :        |             |
-      :                      :               :                      :        |             |
-      :----------------------:               :----------------------:        |             /
-                ^                                      ^                     |
-                |                                      |                     |
-                v                                      v                     v
-      :-------------------------------------------------------------:  :----------:      
-      :                                                             :  :          :      
-      :                         Memory                              :  :  I/O     :         
-      :                                                             :  :          :      
-      :-------------------------------------------------------------:  :----------:
+      :---------------------------------------------------------------------------------:        \
+      :                                                                                 :        |
+      :                         Processor                                               :        |
+      :                                                                                 :        |
+      :---------------------------------------------------------------------------------:        |
+                ^                                      ^                        ^                |
+                |                                      |                        |                |     CPU Core
+                |                                      v                        |                |
+      :----------------------:               :----------------------:           |                |
+      :                      :               :                      :           |                |
+      : L1 Instruction Cache :               : L1 Data Cache        :           |                |
+      :                      :               :                      :           |                |
+      :----------------------:               :----------------------:           |                /
+                ^                                      ^                        |
+                |                                      |                        |
+                v                                      v                        v
+      :-------------------------------------------------------------:  :----------------:      
+      :                                                             :  :                :      
+      :                         Memory                              :  :     I/O        :         
+      :                                                             :  :                :      
+      :-------------------------------------------------------------:  :----------------:
 
 ```
 
@@ -3258,36 +3326,36 @@ In addition to the L1 caches, there could be a joint L2 cache to serve both L1 c
 
 
 ```
-      :---------------------------------------------------------------------------:        \
-      :                                                                           :        |
-      :                         Processor                                         :        |
-      :                                                                           :        |
-      :---------------------------------------------------------------------------:        |
-                ^                                      ^                     ^             |
-                |                                      |                     |             |     CPU Core
-                |                                      v                     |             |
-      :----------------------:               :----------------------:        |             |
-      :                      :               :                      :        |             |
-      : L1 Instrucion Cache  :               : L1 Data Cache        :        |             |
-      :                      :               :                      :        |             |
-      :----------------------:               :----------------------:        |             /
-                ^                                      ^                     |
-                |                                      |                     |
-                v                                      v                     |
-      :-------------------------------------------------------------:        |
-      :                                                             :        |
-      :                      Unified L2 Cache                       :        |
-      :                                                             :        |
-      :                                                             :        |
-      :-------------------------------------------------------------:        |
-                                   ^                                         |
-                                   |                                         |
-                                   v                                         v
-      :-------------------------------------------------------------:  :----------:      
-      :                                                             :  :          :      
-      :                         Memory                              :  :  I/O     :         
-      :                                                             :  :          :      
-      :-------------------------------------------------------------:  :----------:
+      :---------------------------------------------------------------------------------:        \
+      :                                                                                 :        |
+      :                         Processor                                               :        |
+      :                                                                                 :        |
+      :---------------------------------------------------------------------------------:        |
+                ^                                      ^                        ^                |
+                |                                      |                        |                |     CPU Core
+                |                                      v                        |                |
+      :----------------------:               :----------------------:           |                |
+      :                      :               :                      :           |                |
+      : L1 Instruction Cache :               : L1 Data Cache        :           |                |
+      :                      :               :                      :           |                |
+      :----------------------:               :----------------------:           |                /
+                ^                                      ^                        |
+                |                                      |                        |
+                v                                      v                        |
+      :-------------------------------------------------------------:           |
+      :                                                             :           |
+      :                      Unified L2 Cache                       :           |
+      :                                                             :           |
+      :                                                             :           |
+      :-------------------------------------------------------------:           |
+                                   ^                                            |
+                                   |                                            |
+                                   v                                            v
+      :-------------------------------------------------------------:  :----------------:      
+      :                                                             :  :                :      
+      :                         Memory                              :  :     I/O        :         
+      :                                                             :  :                :      
+      :-------------------------------------------------------------:  :----------------:
 ```
 
 In contrast to the L1 caches, the L2 cache is physically indexed and physically tagged. The L2 cache is also inclusive, which means that a cache line entry in a L1 cache must exist also in the L2 cache. A cache flush operation can thus always assume that there is an entry in the L2 as the target block.
@@ -3326,13 +3394,11 @@ TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for
 
 ## VCPU-32 Runtime Environment
 
-No CPU architecture with an idea of a runtime environment. Although the instruction set is generic enough to implement many models of runtime environments, there are common principles that exploit the CPU architecture. In fact, several CPU concepts were selected with a runtime already in mind.
-
-// ??? simple intro about what to expect in this chapter...
+No CPU architecture with an idea of a runtime environment. Although the instruction set is generic enough to implement many models of runtime environments, there are common principles that exploit the CPU architecture. In fact, several CPU concepts were selected with a runtime already in mind. This chapter will first present a high level system model, the register convention, execution model, calling convention and overall runtime model.
 
 ### The bigger picture
 
-The following figure depicts a high level overview of a software system for VCPU-32. At the center is the executioon thread, which is called **task**s. Tasks are grouped into **job**s. At the highest level is the **system**. 
+The following figure depicts a high level overview of a software system for VCPU-32. At the center is the executioon thread, which is called a **task**. Tasks belong to a **job**. At the highest level is the **system**. At any point in time the CPU is executing a task of a job or system level functions.
 
 ```
       :---------------------------------------------------------------------------------------:
@@ -3366,11 +3432,28 @@ The following figure depicts a high level overview of a software system for VCPU
 
 ### Register Usage
 
-The CPU features general registers, segment registers and control registers. As described before, all general registers can do computation, but only register 8 to 15 can be used as base register in the indexed addressing modes. Segment registers complement the general register set. A combination of a general index register and a segment register form a virtual address. To avoid juggling on every access both a segment and an index register, the segment register selection field in the respective instructions will either implicitly pick one of the upper four segment registers or specify on of the segment registers 1 to 3. This scheme allows to use in most cases just the offset portion of the virtual address when passing pointers to function and so on. The segment register is implicitly encoded in the upper two bits. 
+The CPU features general registers, segment registers and control registers. As described before, all general registers can do computation as well as address computation. Segment registers complement the general register set. A combination of a general index register and a segment register form a virtual address. To avoid juggling on every access both a segment and an index register, the segment register selection field in the respective instructions will either implicitly pick one of the upper four segment registers or specify on of the segment registers 1 to 3. This scheme allows to use in most cases just the offset portion of the virtual address when passing pointers to function and so on. The segment register is implicitly encoded in the upper two bits. 
 
-Segment 4 to 7 thus play a special role in the runtime environment. An execution thread, i.e. a **task**, in the runtime environment expects access to three data areas. The outermost area is the **system global area**, which is created at system start and never changed for there on. Segment register 7 is assigned to contain the segment ID of this space. Once set at system startup, its content will never change. Since the upper two bits of the address offset select the segment register, the maximum size of these areas is 30bits i.e. one gByte. Several executing tasks belonging to the same job are provided with the **job data area**. All threads belonging to the job have access to it via the SR6 segment register. This register is set every time the execution changes to a thread of another job. This area can be up to one gByte in size. Finally, in a similar manner, the task local data is pointed to by the segment register 5. This data area contains through local data and the stack. This register will also change on every task switch. Naturally, setting these registers is a privileged operation. Finally, segment register 4 will track the current code segment to allow for access to literals stored in that area.
+Segment 4 to 7 thus play a special role in the runtime environment. An execution thread, i.e. a **task**, in the runtime environment expects access to three data areas. The outermost area is the **system global area**, which is created at system start and never changed for there on. Segment register 7 is assigned to contain the segment ID of this space. Once set at system startup, its content will never change. Since the upper two bits of the address offset select the segment register, the maximum size of these areas is 30 bits i.e. one gByte. Several executing tasks belonging to the same job are provided with the **job data area**. All threads belonging to the job have access to it via the SR6 segment register. This register is set every time the execution changes to a thread of another job. This area can be up to one gByte in size. Finally, in a similar manner, the task local data is pointed to by the segment register 5. This data area contains through local data and the stack. 
 
+```
+        SR7                         SR6                         SR5                          SR4
+      :--------------------:      :--------------------:      :--------------------:       :--------------------: 
+      :                    :      :                    :      :                    :       :                    :
+      :                    :      :                    :      :                    :       :                    :
+      : System Data        :      : Job Data           :      :  Task Data         :       : Module Code        :
+      :                    :      :                    :      :                    :       :                    :
+      :                    :      :                    :      :                    :       :                    :
+      :                    :      :                    :      :                    :       :                    :
+      :                    :      :                    :      :                    :       :                    :
+      :--------------------:      :--------------------:      :--------------------:       :--------------------: 
+            
+                                                              \----------------- current Job -------------------/
 
+                                  \---------------------------- current Job ------------------------------------/
+```
+
+Switching between task will set SR5 to the segment contaiing the task data and stack. SR6 is set to the job data segment to which the task belongs. Naturally, setting any of these registers is a privileged operation. SR4 will track the current code module so that program literals can be referenced. SR7 never changes after system startup. 
 
 ### Calling Conventions and Naming
 
@@ -3459,9 +3542,9 @@ The following figure shows the frame marker and outgoing parameter area in more 
       :  :------------------------------:  :
       :  :                              :  : SP - 12
       :  :------------------------------:  :
-      :  :                              :  : SP - 8 
+      :  : Return link                  :  : SP - 8 
       :  :------------------------------:  :
-      :  :                              :  : SP - 4
+      :  : Previous Stack Pointer       :  : SP - 4
       :--:------------------------------:--: 
                                             <------- SP - 0: Stack Pointer    
 
@@ -3474,26 +3557,26 @@ The following figure shows the frame marker and outgoing parameter area in more 
 
 ### Register Partitioning
 
-- what are which registers used for 
+To the programmer general registers and segment registers are the primary registers to work with. Although the registers have no special hardware meaning, the runtime convention assigns to some of the registers to a dedicated purpose.
 
 ```
             General registers                           Segment registers
          :--------------------------:                :--------------------------:
-      0  :                          :             0  :                          :
+      0  :                          :             0  : Return Segment Link      :
          :--------------------------:                :--------------------------:
-      1  :                          :             1  :                          :
+      1  :                          :             1  : general purpose          :
          :--------------------------:                :--------------------------:
-      2  :                          :             2  :                          :
+      2  :                          :             2  : general purpose          :
          :--------------------------:                :--------------------------:
-      3  :                          :             3  :                          :
+      3  :                          :             3  : general purpose          :
          :--------------------------:                :--------------------------:
-      4  :                          :             4  :                          :
+      4  :                          :             4  : Code Literals Segment    :
          :--------------------------:                :--------------------------:
-      5  :                          :             5  :                          :
+      5  :                          :             5  : Task Segment ( stack )   :
          :--------------------------:                :--------------------------:
-      6  :                          :             6  :                          :
+      6  :                          :             6  : Job Segment              :
          :--------------------------:                :--------------------------:
-      7  :                          :             7  :                          :
+      7  :                          :             7  : System Segment           :
          :--------------------------:                :--------------------------:
       8  :                          :             
          :--------------------------:           
@@ -3511,7 +3594,6 @@ The following figure shows the frame marker and outgoing parameter area in more 
          :--------------------------:              
       15 :  Stack pointer ( SP )    :             
          :--------------------------:               
-
 ```
 
 ### Parameter passing

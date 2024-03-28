@@ -30,10 +30,42 @@
             filePath = "VCPU32-Simulator/VCPU32-MemoryAccessStage.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "506"
-            endingLineNumber = "506"
+            startingLineNumber = "490"
+            endingLineNumber = "490"
             landmarkName = "MemoryAccessStage::process()"
             landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "0BFCC977-CA22-4231-8484-7B691A3212D0 - ab487c02d6f9245a"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "MemoryAccessStage::process()"
+                  moduleName = "VCPU32-Simulator"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/helmutfieres/GitHub/VCPU-32/VCPU32-Simulator/VCPU32-MemoryAccessStage.cpp"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "506"
+                  endingLineNumber = "506"
+                  offsetFromSymbolStart = "2004">
+               </Location>
+               <Location
+                  uuid = "0BFCC977-CA22-4231-8484-7B691A3212D0 - ab487c02d6f9266a"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "MemoryAccessStage::process()"
+                  moduleName = "VCPU32-Simulator"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/helmutfieres/GitHub/VCPU-32/VCPU32-Simulator/VCPU32-MemoryAccessStage.cpp"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "490"
+                  endingLineNumber = "490"
+                  offsetFromSymbolStart = "2032">
+               </Location>
+            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

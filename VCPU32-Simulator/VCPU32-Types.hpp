@@ -239,16 +239,9 @@ enum TestConditionCodes : uint32_t {
 enum OpMode : uint32_t {
     
     OP_MODE_IMM             = 0x0,
-    OP_MODE_ONE_REG         = 0x01,
-    OP_MODE_TWO_REG         = 0x02,
-    
-    OP_MODE_REG_INDX_W      = 0x04,
-    OP_MODE_REG_INDX_H      = 0x05,
-    OP_MODE_REG_INDX_B      = 0x06,
-    
-    OP_MODE_INDX_W          = 0x08,
-    OP_MODE_INDX_H          = 0x10,
-    OP_MODE_INDX_B          = 0x18
+    OP_MODE_REG             = 0x1,
+    OP_MODE_REG_INDX        = 0x2,
+    OP_MODE_INDX            = 0x3
 };
 
 //------------------------------------------------------------------------------------------------------------

@@ -90,14 +90,6 @@ uint32_t immRightField( uint32_t instr ) {
     return( getBitField( instr, 31, 10 ));
 }
 
-uint32_t mapOpModeToIndexReg( uint32_t opMode ) {
-    
-    if      (( opMode >= 8 ) && ( opMode <= 15 )) return( opMode );
-    else if (( opMode >= 16 ) && ( opMode <= 23 )) return( opMode - 8 );
-    else if (( opMode >= 24 ) && ( opMode <= 31 )) return( opMode - 16 );
-    else return( 0 );
-}
-
 uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
     
     return ( arg1 + arg2 );
@@ -457,7 +449,7 @@ void FetchDecodeStage::process( ) {
                 return;
             }
             
-            switch ( getBitField( instr, 5, 6 )) {
+            switch ( getBitField( instr, 14, 2 )) {
                     
                 case OP_MODE_IMM: {
                    
@@ -467,25 +459,21 @@ void FetchDecodeStage::process( ) {
                     
                 } break;
                     
-                case OP_MODE_ONE_REG: {
+                case OP_MODE_REG: {
+                    
+                    if ( getBitField( instr, 15, 2 ) > 0 ) {
+                        
+                        regIdForValA    = getBitField( instr, 27, 4 );
+                        valA            = core -> gReg[ regIdForValA ].get( );
+                    }
                     
                     regIdForValB    = getBitField( instr, 31, 4 );
                     valB            = core -> gReg[ regIdForValB ].get( );
                     
                 } break;
                     
-                case OP_MODE_TWO_REG: {
-                    
-                    regIdForValA    = getBitField( instr, 27, 4 );
-                    regIdForValB    = getBitField( instr, 31, 4 );
-                    valA            = core -> gReg[ regIdForValA ].get( );
-                    valB            = core -> gReg[ regIdForValB ].get( );
-                    
-                } break;
-                    
-                case OP_MODE_REG_INDX_W:
-                case OP_MODE_REG_INDX_H:
-                case OP_MODE_REG_INDX_B: {
+               
+                case OP_MODE_REG_INDX: {
                     
                     if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
                         
@@ -493,7 +481,7 @@ void FetchDecodeStage::process( ) {
                         valA            = core -> gReg[ regIdForValA ].get( );
                     }
                     
-                    regIdForValB    = mapOpModeToIndexReg( getBitField( instr, 17, 5 ));
+                    regIdForValB    = getBitField( instr, 31, 4 );
                     valB            = core -> gReg[ regIdForValB ].get( );
                     valX            = immGenPosLenLowSign( instr, 31, 12 );
                     
