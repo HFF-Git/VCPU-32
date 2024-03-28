@@ -168,7 +168,22 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_MODE_REG_INDX_H:
         case OP_MODE_REG_INDX_B: {
             
-            fprintf( stdout, "r%d(r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            switch( getBitField( instr, 19, 2 )) {
+                    
+                case 0: {
+                    
+                    fprintf( stdout, "(r%d)", mapOpModeToIndexReg( opMode ));
+                    
+                } break;
+                    
+                case 1:
+                case 2:
+                case 3: {
+                    
+                    fprintf( stdout, "(s%d,r%d)", getBitField( instr, 19, 2 ), opMode );
+                    
+                } break;
+            }
             
         } break;
             

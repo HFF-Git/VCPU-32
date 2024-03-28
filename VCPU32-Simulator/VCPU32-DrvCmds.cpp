@@ -545,7 +545,7 @@ void DrvCmds::printWelcome( ) {
     
     if ( isatty( fileno( stdin ))) {
         
-        fprintf( stdout, "CPU24 Simulator, Version: %s\n", glb -> env -> getEnvValStr( ENV_PROG_VERSION ));
+        fprintf( stdout, "VCPU-32 Simulator, Version: %s\n", glb -> env -> getEnvValStr( ENV_PROG_VERSION ));
     }
 }
 

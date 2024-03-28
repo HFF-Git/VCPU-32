@@ -624,9 +624,7 @@ public:
     void    drawLine( int index );
     
 private:
-    
- // static const uint MAX_FILE_NAME_SIZE = 256;
-    
+
     bool    openTextFile( );
     int     readTextFileLine( int linePos, char *lineBuf, int bufLen );
     
