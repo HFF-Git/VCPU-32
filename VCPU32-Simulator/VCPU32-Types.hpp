@@ -339,8 +339,8 @@ enum InstrOpCode : uint8_t {
 // During the instruction execution, there is a lot to check about the instructions defined. To speed up the
 // process, each instruction and any special attribute to know about it is stored in a literal table. For
 // each opCode there is a table entry which contains the opCode itself and flags that describe the
-// instruction. These flags are used by the stages to identify characteristics of the instruction instead of
-// long "if" or "switch" statements to test an instruction.
+// instruction. These flags are used by the pipeline stages to identify characteristics of the instruction
+// instead of long "if" or "switch" statements to test an instruction.
 //
 //------------------------------------------------------------------------------------------------------------
 enum instrFlags : uint32_t {
@@ -354,14 +354,14 @@ enum instrFlags : uint32_t {
     OP_MODE_INSTR       = ( 1U << 5 ),
     REG_R_INSTR         = ( 1U << 6 ),
     PRIV_INSTR          = ( 1U << 7 )
+    
+    // ??? add READ_INSTR and WRITE_INSTR for MA stage ?
 };
 
 //------------------------------------------------------------------------------------------------------------
 // The instruction decoder needs to do a lot of checking on the opcode. Naturally. The following flags help
-// to simplifiy this checking. Each instruction is classified with the coresponding flags.
+// to simplifiy this checking. Each instruction is classified with the relevant flags.
 //
-// ??? decide which way to go... no flags or all kinds of flags...
-// ??? should that be a local table for the dissasembler only ?
 //------------------------------------------------------------------------------------------------------------
 const struct opCodeInfo {
     

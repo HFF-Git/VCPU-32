@@ -11,7 +11,7 @@
 
 <style>
    div {
-	   text-align: justify;
+      text-align: justify;
       orphans:3;
       widow:2;
 	}
@@ -23,7 +23,7 @@
     	display: block;
     	margin-left: auto;
      	margin-right: auto;
-	   max-width:100%;
+	max-width:100%;
     	height: auto;
     }
    blockquote {
@@ -33,8 +33,8 @@
     }
    code {
       break-inside: avoid;
-	   font-size: 12px;
-	   line-height: 17px;
+      font-size: 12px;
+      line-height: 17px;
       orphans:3;
       widow:2;
    }
@@ -285,7 +285,7 @@ The VCPU-32 memory model features a **segmented memory model**. The address spac
 
 ### Address Translation
 
-VCPU-32 defines three types of addresses. At the programmer's level there is the **logical address**. The logical address is a 32-bit word, which contains a 2-bit segment register selector and a 30-bit offset. During data access the segment selector selects from the segment register set SR4 to SR7 and forms together with the 30-bit offset a virtual address. From a logical to virtual translation perspective, the logical address needs to be loaded into an index registers GR8 to GR15. 
+VCPU-32 defines three types of addresses. At the programmer's level there is the **logical address**. The logical address is a 32-bit word, which contains a 2-bit segment register selector and a 30-bit offset. During data access with a logical address the segment selector selects from the segment register set SR4 to SR7 and forms together with the remaining 30-bit offset a virtual address. Since the upper two bits are inherently fixed, the address range in the particular segment is one of four possible 30-bit quadrants. For example, when the upper two bits are zero, the first quadrant 0x00000000 to 0x3FFFFFFF is addressable. When the upper two bits are 0x2, the reachable address range is 0x80000000 to 0xBFFFFFF. When the segment registers SR4 to SR7 would point to the same segment, the entire address range is reachable via a logical address. It is however more likely that these registers point to different segments though.
 
 The **virtual address** is the concatenation of a segment and an offset. Together they form a maximum address range of 2^32 segments with 2^32 bits each. Once the virtual address is formed, the translation process is the same for both virtual addressing modes. The following figure shows the translation process for a logical address. A virtual address is translated to a **physical address**. A logical address is an address with the upper two bits indicating which segment register to use and the offset an unsigned index into the segment. The resulting virtual address will have in this case the upper two bits set to zero.
 
@@ -637,7 +637,7 @@ The instructions described in the following chapters contain the instruction wor
 
 ### Instruction groups
 
-The next chapters present the instruction set. The set iztself is divided into several groups. The **memory reference** group comntains the instructions to load ans store to virtual and physical memory. The **immediate** group contains the instructions for building an immediate value up to 32 bit. The **branch** group present the conditional and unconditioonal instructions. The **computational** instructions peform arithmetic, boolean and bit functions such as bit extract and deposit. Finally, the **control** instruction group contains all instructions for managing HW elements such as caches and TLBs, register movements, as well as traps and interrupt handling. 
+The next chapters present the instruction set. The set itself is divided into several groups. The **memory reference** group contains the instructions to load ans store to virtual and physical memory. The **immediate** group contains the instructions for building an immediate value up to 32 bit. The **branch** group present the conditional and unconditional instructions. The **computational** instructions perform arithmetic, boolean and bit functions such as bit extract and deposit. Finally, the **control** instruction group contains all instructions for managing HW elements such as caches and TLBs, register movements, as well as traps and interrupt handling. 
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -3171,7 +3171,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : DEP     ( 0x05 ): r         :Z :A :I :             : len          : pos           : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : DSR     ( 0x06 ): r         : 0                    : shamt        :0 : a          : b         : 
+   : DSR     ( 0x06 ): r         : 0                    : shamt         :0 : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
    : SHLA    ( 0x07 ): r         :I :L :O : 0                     : sa  :0 : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
@@ -3362,7 +3362,7 @@ In contrast to the L1 caches, the L2 cache is physically indexed and physically 
 
 ### Instruction to manage caches
 
-While cache flushes and deletions are possible under softwre control, cache insertions are alway done by hardware. The PCA instruction manages the cache flush and deletion. 
+While cache flushes and deletions are possible under software control, cache insertions are alway done by hardware. The PCA instruction manages the cache flush and deletion. 
 
 ### Uncachable Pages
 
@@ -3398,7 +3398,7 @@ No CPU architecture with an idea of a runtime environment. Although the instruct
 
 ### The bigger picture
 
-The following figure depicts a high level overview of a software system for VCPU-32. At the center is the executioon thread, which is called a **task**. Tasks belong to a **job**. At the highest level is the **system**. At any point in time the CPU is executing a task of a job or system level functions.
+The following figure depicts a high level overview of a software system for VCPU-32. At the center is the execution thread, which is called a **task**. Tasks belong to a **job**. At the highest level is the **system**. At any point in time the CPU is executing a task of a job or system level functions.
 
 ```
       :---------------------------------------------------------------------------------------:
@@ -3562,7 +3562,7 @@ To the programmer general registers and segment registers are the primary regist
 ```
             General registers                           Segment registers
          :--------------------------:                :--------------------------:
-      0  :                          :             0  : Return Segment Link      :
+      0  :  Scratch                 :             0  : Return Segment Link      :
          :--------------------------:                :--------------------------:
       1  :                          :             1  : general purpose          :
          :--------------------------:                :--------------------------:
@@ -3602,7 +3602,7 @@ To the programmer general registers and segment registers are the primary regist
 // first n arguments are passed in registers
 // by value
 // by reference short pointer 
-// by reference explicit seg and ofs.
+// by reference explicit segment and offset.
 
 
 ### Local Calls

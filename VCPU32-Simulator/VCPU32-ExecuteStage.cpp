@@ -324,7 +324,7 @@ void ExecuteStage::setPipeLineReg( uint32_t pReg, uint32_t val ) {
 // method in the CPU core, which drives the stages, will actually check for traps and handle them.
 //
 //
-// ??? what would we do about the segment and control registers hazards, if at all ?
+// ??? what would we do about segment and control registers hazards, if at all ?
 // ??? note: this is a long routine. Perhaps we should split this into smaller portions.
 //------------------------------------------------------------------------------------------------------------
 void ExecuteStage::process( ) {
@@ -353,6 +353,8 @@ void ExecuteStage::process( ) {
             
             valR = valA + valB;
             if (( getBit( instr, 10 )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
+            
+            // ??? this neecs to be revised too.... ( if valR - valA > valB or so ... )
             
             valCarry = ( valR > UINT32_MAX );
             
@@ -383,6 +385,8 @@ void ExecuteStage::process( ) {
             valR = valA + ( ~ valB  ) + 1;
             if (( getBit( instr, 10 )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
             
+            // ??? this neecs to be revised too.... ( if valR - valA > valB or so ... )
+            
             valCarry = ( valR > UINT32_MAX );
             
             if ( getBit( instr, 11 )) {
@@ -409,7 +413,7 @@ void ExecuteStage::process( ) {
             
         case OP_AND: {
             
-            if ( getBitField( instr, 31, 4 )) valB = ~ valB;
+            if ( getBit( instr, 11 )) valB = ~ valB;
             valR = valA & valB;
             if ( getBit( instr, 10 )) valR = ~ valR;
             
@@ -444,32 +448,24 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_EXTR: {
-            
-            // ??? use our getBitField/setBifield routines ?
-            
+           
             uint8_t extrOpPos = getBitField( instr, 27, 5 );
             uint8_t extrOpLen = getBitField( instr, 22, 5 );
             
-           if ( getBit( instr, 11 )) extrOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
+            if ( getBit( instr, 11 )) extrOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
             
-            uint32_t extrOpBitMask   = (( 1U << extrOpLen ) - 1 );
-            valR = (( valB >> ( 31 - extrOpPos )) & extrOpBitMask );
-            
-            if ( getBit( instr, 10 )) {
-                
-                if ( getBitField( valR, 31 - extrOpLen, 1 )) valR |= ( ~ extrOpBitMask );
-            }
+            valR = getBitField( valB, extrOpPos, extrOpLen, getBit( instr, 10 ));
             
         } break;
             
         case OP_DEP: {
             
-            // ??? use our getBitField/setBifield routines ?
-            
             uint8_t depOpPos = getBitField( instr, 27, 5 );
             uint8_t depOpLen = getBitField( instr, 22, 5 );
             
             if ( getBit( instr, 11 )) depOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
+            
+            // ??? use our setBifield routines ?
             
             uint32_t    depOpBitMask    = (( 1U << depOpLen ) - 1 );
             uint32_t    temp1           = ( valB & depOpBitMask ) << ( 31 - depOpPos );
@@ -494,6 +490,8 @@ void ExecuteStage::process( ) {
             uint8_t shAmt = getBitField( instr, 22, 2 );
             
             if ( getBit( instr, 12 )) {
+                
+                // ??? check that this works for logical and signed values... ?
                 
                 if ((( shAmt == 1 ) && ( valA & 0x80000000 )) ||
                     (( shAmt == 2 ) && ( valA & 0xC0000000 )) ||
@@ -524,6 +522,8 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_ADDIL: {
+            
+            // ??? where does the add take place ?
             
             valR = valA;;  // ??? check ....
             
@@ -573,6 +573,8 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_GATE: {
+            
+            // ??? cross check what this instruction actually does...
             
             valR = getBitField( valA, 31, 30 ) | ( instrOfs & 047777777 ); // ??? check when we set R
             

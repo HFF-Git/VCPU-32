@@ -405,6 +405,8 @@ void MemoryAccessStage::process( ) {
         case OP_BV:
         case OP_BVR: {
             
+            // ??? shift 2 bits business ?
+            
             core -> fdStage -> psInstrSeg.set( instrSeg );
             core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
             regIdForValX    = MAX_GREGS;
@@ -417,6 +419,8 @@ void MemoryAccessStage::process( ) {
             
         case OP_BE:
         case OP_BLE: {
+            
+            // ??? shift 2 bits business ?
             
             core -> fdStage -> psInstrSeg.set( core -> sReg[ getBitField( instr, 27, 4 ) ].get( ));
             core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
@@ -437,6 +441,8 @@ void MemoryAccessStage::process( ) {
         } break;
             
         case OP_GATE: {
+            
+            // ??? we need to do address arithmiteic stuff too ...
            
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
@@ -458,9 +464,8 @@ void MemoryAccessStage::process( ) {
             
         case OP_ITLB: {
             
-            CpuTlb *tlbPtr  = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
-            
-            uint32_t tlbSeg = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
+            CpuTlb      *tlbPtr = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
+            uint32_t    tlbSeg  = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
             
             bool rStat = false;
             
@@ -480,9 +485,8 @@ void MemoryAccessStage::process( ) {
             
         case OP_PTLB: {
             
-            CpuTlb *tlbPtr  = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
-            
-            uint32_t tlbSeg = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
+            CpuTlb   *  tlbPtr = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
+            uint32_t    tlbSeg = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
            
             if ( ! tlbPtr -> purgeTlbEntry( tlbSeg, getBitField( valB, 31, 30 ))) {
                 
@@ -500,7 +504,7 @@ void MemoryAccessStage::process( ) {
             uint32_t    seg     = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
             uint32_t    ofs     = valB;
             
-            // ??? simplify ... this is quite complex to do in one cycle ...
+            // ??? simplify ... this is quite complex to do in one cycle ... perhaps spread over MA and EX stage
             
             TlbEntry *tlbEntryPtr = tlbPtr -> lookupTlbEntry( seg, ofs );
             if ( tlbEntryPtr == nullptr ) {
@@ -594,6 +598,9 @@ void MemoryAccessStage::process( ) {
             }
             
             unCacheable = tlbEntryPtr -> tUncachable( );
+            
+            // revise the TLB data, see ITLB comment in FD stage ...
+            //
             pAdr        = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;
         }
         else pAdr = valX;
@@ -602,11 +609,12 @@ void MemoryAccessStage::process( ) {
         
         if ( pAdr <= MAX_PHYS_MEM_SIZE ) {
             
-            // ??? change to use IO memory oBject...
             if      ( readAccessInstr )     rStat = core -> mem -> readPhys( pAdr, dLen, &valB );
             else if ( writeAccessInstr )    rStat = core -> mem -> writePhys( pAdr, dLen, valA );
             
         } else {
+            
+            // ??? change to use IO memory oBject...
             
             if ( unCacheable ) {
                 

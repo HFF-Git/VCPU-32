@@ -459,6 +459,8 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_EXTR:
         case OP_DEP: {
             
+            // ??? fix: the value is 31-pos, convert back to what actually means ?
+            
             fprintf( stdout, ",r%d", getBitField( instr, 31, 4 ));
             
             if ( getBit( instr, 11 )) fprintf( stdout, ",shamt" );
