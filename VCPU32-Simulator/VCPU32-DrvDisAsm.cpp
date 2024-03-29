@@ -154,7 +154,7 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
     switch ( opMode ) {
             
-        case OP_MODE_IMM: printImmVal( immGenPosLenLowSign( instr, 31, 17 )); break;
+        case OP_MODE_IMM: printImmVal( immGenPosLenLowSign( instr, 31, 17 ), TOK_DEC ); break;
           
         case OP_MODE_REG: {
             

@@ -65,6 +65,21 @@
                   endingLineNumber = "490"
                   offsetFromSymbolStart = "2032">
                </Location>
+               <Location
+                  uuid = "0BFCC977-CA22-4231-8484-7B691A3212D0 - ab487c02d6f926e6"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "MemoryAccessStage::process()"
+                  moduleName = "VCPU32-Simulator"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/helmutfieres/GitHub/VCPU-32/VCPU32-Simulator/VCPU32-MemoryAccessStage.cpp"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "494"
+                  endingLineNumber = "494"
+                  offsetFromSymbolStart = "2032">
+               </Location>
             </Locations>
          </BreakpointContent>
       </BreakpointProxy>

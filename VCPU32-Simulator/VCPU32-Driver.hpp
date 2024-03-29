@@ -91,11 +91,11 @@ enum TokId : uint16_t {
     ENV_CMD_CNT             = 550,  ENV_SHOW_CMD_CNT        = 551,  ENV_FMT_DEF             = 552,
     ENV_EXIT_CODE           = 553,  ENV_WORDS_PER_LINE      = 554,
     
-    ENV_PROG_VERSION        = 555,  ENV_PROG_PATCH_LEVEL    = 556,
+    ENV_PROG_VERSION        = 555,  ENV_GIT_BRANCH          = 556,  ENV_PROG_PATCH_LEVEL    = 557,
     
-    ENV_STEP_IN_CLOCKS      = 557,  ENV_PASS_CNT            = 558,  ENV_FAIL_CNT            = 559,
+    ENV_STEP_IN_CLOCKS      = 558,  ENV_PASS_CNT            = 559,  ENV_FAIL_CNT            = 560,
     
-    ENV_WIN_MIN_ROWS        = 560,  ENV_WIN_TX_WIDTH        = 561,
+    ENV_WIN_MIN_ROWS        = 561,  ENV_WIN_TX_WIDTH        = 562,
     
     //--------------------------------------------------------------------------------------------------------
     // Command Sets.

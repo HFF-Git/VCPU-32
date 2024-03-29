@@ -282,9 +282,9 @@ enum InstrOpCode : uint8_t {
     OP_OR           = 0x13,     // target = target | operand ; option to negate the result
     OP_XOR          = 0x14,     // target = target ^ operand ; option to negate the result
     OP_CMP          = 0x15,     // subtract reg2 from reg1 and set target reg
-    OP_LDO          = 0x16,     // load offset
-    OP_RSV_17       = 0x17,     // reserved
-
+    OP_RSV_16       = 0x16,     // reserved
+    OP_LDO          = 0x17,     // load offset
+   
     OP_LD           = 0x18,     // target = [ operand ]   // covers LDW, LDH, LDB
     OP_ST           = 0x19,     // [ operand ] = target   // covers STW, STH, STB
     OP_LDWR         = 0x1A,     // load word referenced
@@ -394,8 +394,8 @@ const struct opCodeInfo {
     /* 0x13 */  { "OR",     OP_OR,      ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x14 */  { "XOR",    OP_XOR,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x15 */  { "CMP",    OP_CMP,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x16 */  { "LOD",    OP_LDO,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x17 */  { "RSV_17", OP_RSV_17,  ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x16 */  { "RSV_16", OP_RSV_16,  ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x17 */  { "LOD",    OP_LDO,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x18 */  { "LD",     OP_LD,      ( LOAD_INSTR  | OP_MODE_INSTR | REG_R_INSTR ) },
     /* 0x19 */  { "ST",     OP_ST,      ( STORE_INSTR | OP_MODE_INSTR ) },
     /* 0x1A */  { "LDWR",   OP_LDWR,    ( LOAD_INSTR  | OP_MODE_INSTR | REG_R_INSTR ) },

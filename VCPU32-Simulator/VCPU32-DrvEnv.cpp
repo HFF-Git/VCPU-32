@@ -70,6 +70,8 @@ struct EnvTabEntry {
         .envId = ENV_WORDS_PER_LINE,    .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 8         },
     { .name = "VERSION",
         .envId = ENV_PROG_VERSION,      .envTyp = ENV_TYP_STR,  .rOnly = false,  .sVal = nullptr   },
+    { .name = "GIT-BRANCH",
+        .envId = ENV_GIT_BRANCH,        .envTyp = ENV_TYP_STR,  .rOnly = false,  .sVal = nullptr   },
     { .name = "PATCH_LEVEL",
         .envId = ENV_PROG_PATCH_LEVEL,  .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 0         },
     { .name = "STEP-IN-CLOCKS",

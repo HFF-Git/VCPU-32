@@ -156,77 +156,65 @@ struct {
     { "DTR",                "",         SET_NIL,            TOK_DTR                 },
     { "TX",                 "",         SET_NIL,            TOK_TX                  },
     
-    { "GR0",                "R0",       GR_SET,             GR_0                    },
-    { "GR1",                "R1",       GR_SET,             GR_1                    },
-    { "GR2",                "R2",       GR_SET,             GR_2                    },
-    { "GR3",                "R3",       GR_SET,             GR_3                    },
-    { "GR4",                "R4",       GR_SET,             GR_4                    },
-    { "GR5",                "R5",       GR_SET,             GR_5                    },
-    { "GR6",                "R6",       GR_SET,             GR_6                    },
-    { "GR7",                "R7",       GR_SET,             GR_7                    },
-    { "GR8",                "R8",       GR_SET,             GR_8                    },
-    { "GR9",                "R9",       GR_SET,             GR_9                    },
-    { "GR10",               "R10",      GR_SET,             GR_10                   },
-    { "GR11",               "R11",      GR_SET,             GR_11                   },
-    { "GR12",               "R12",      GR_SET,             GR_12                   },
-    { "GR13",               "R13",      GR_SET,             GR_13                   },
-    { "GR14",               "R14",      GR_SET,             GR_14                   },
-    { "GR15",               "R15",      GR_SET,             GR_15                   },
+    { "R0",                 "TMP",      GR_SET,             GR_0                    },
+    { "R1",                 "",         GR_SET,             GR_1                    },
+    { "R2",                 "",         GR_SET,             GR_2                    },
+    { "R3",                 "",         GR_SET,             GR_3                    },
+    { "R4",                 "",         GR_SET,             GR_4                    },
+    { "R5",                 "",         GR_SET,             GR_5                    },
+    { "R6",                 "",         GR_SET,             GR_6                    },
+    { "R7",                 "",         GR_SET,             GR_7                    },
+    { "R8",                 "",         GR_SET,             GR_8                    },
+    { "R9",                 "",         GR_SET,             GR_9                    },
+    { "R10",                "",         GR_SET,             GR_10                   },
+    { "R11",                "",         GR_SET,             GR_11                   },
+    { "R12",                "",         GR_SET,             GR_12                   },
+    { "R13",                "",         GR_SET,             GR_13                   },
+    { "R14",                "RL",       GR_SET,             GR_14                   },
+    { "R15",                "SP",       GR_SET,             GR_15                   },
 
+    { "S0",                 "",         SR_SET,             SR_0                    },
+    { "S1",                 "",         SR_SET,             SR_1                    },
+    { "S2",                 "",         SR_SET,             SR_2                    },
+    { "S3",                 "",         SR_SET,             SR_3                    },
+    { "S4",                 "",         SR_SET,             SR_4                    },
+    { "S5",                 "",         SR_SET,             SR_5                    },
+    { "S6",                 "",         SR_SET,             SR_6                    },
+    { "S7",                 "",         SR_SET,             SR_7                    },
     
-    // ??? alias names according to runtime convention ... or we need to abandin the Idea of "GR" and "R" and just use "R"
-    
-    
-    { "SR0",                "S0",       SR_SET,             SR_0                    },
-    { "SR1",                "S1",       SR_SET,             SR_1                    },
-    { "SR2",                "S2",       SR_SET,             SR_2                    },
-    { "SR3",                "S3",       SR_SET,             SR_3                    },
-    { "SR4",                "S4",       SR_SET,             SR_4                    },
-    { "SR5",                "S5",       SR_SET,             SR_5                    },
-    { "SR6",                "S6",       SR_SET,             SR_6                    },
-    { "SR7",                "S7",       SR_SET,             SR_7                    },
-    
-    
-    // ??? alias names according to runtime convention ... or we need to abandin the Idea of "SR" and "S" and just use "R"
-    
-    
-    { "CR0",                "",         CR_SET,             CR_0                    },
-    { "CR1",                "",         CR_SET,             CR_1                    },
-    { "CR2",                "",         CR_SET,             CR_2                    },
-    { "CR3",                "",         CR_SET,             CR_3                    },
-    { "CR4",                "",         CR_SET,             CR_4                    },
-    { "CR5",                "",         CR_SET,             CR_5                    },
-    { "CR6",                "",         CR_SET,             CR_6                    },
-    { "CR7",                "",         CR_SET,             CR_7                    },
-    { "CR8",                "",         CR_SET,             CR_8                    },
-    { "CR9",                "",         CR_SET,             CR_9                    },
-    { "CR10",               "",         CR_SET,             CR_10                   },
-    { "CR11",               "",         CR_SET,             CR_11                   },
-    { "CR12",               "",         CR_SET,             CR_12                   },
-    { "CR13",               "",         CR_SET,             CR_13                   },
-    { "CR14",               "",         CR_SET,             CR_14                   },
-    { "CR15",               "",         CR_SET,             CR_15                   },
-    { "CR16",               "",         CR_SET,             CR_16                   },
-    { "CR17",               "",         CR_SET,             CR_17                   },
-    { "CR18",               "",         CR_SET,             CR_18                   },
-    { "CR19",               "",         CR_SET,             CR_19                   },
-    { "CR20",               "",         CR_SET,             CR_20                   },
-    { "CR21",               "",         CR_SET,             CR_21                   },
-    { "CR22",               "",         CR_SET,             CR_22                   },
-    { "CR23",               "",         CR_SET,             CR_23                   },
-    { "CR24",               "TMP-0",    CR_SET,             CR_24                   },
-    { "CR25",               "TMP-1",    CR_SET,             CR_25                   },
-    { "CR26",               "TMP-2",    CR_SET,             CR_26                   },
-    { "CR27",               "TMP-3",    CR_SET,             CR_27                   },
-    { "CR28",               "TMP-4",    CR_SET,             CR_28                   },
-    { "CR29",               "TMP-5",    CR_SET,             CR_29                   },
-    { "CR30",               "TMP-6",    CR_SET,             CR_30                   },
-    { "CR31",               "TMP-7",    CR_SET,             CR_31                   },
-    
-    
-    // ??? alias names according to runtime convention ... or we need to abandin the Idea of "CR" and "R" and just use "C"
-    
-  
+    { "C0",                 "",         CR_SET,             CR_0                    },
+    { "C1",                 "",         CR_SET,             CR_1                    },
+    { "C2",                 "",         CR_SET,             CR_2                    },
+    { "C3",                 "",         CR_SET,             CR_3                    },
+    { "C4",                 "",         CR_SET,             CR_4                    },
+    { "C5",                 "",         CR_SET,             CR_5                    },
+    { "C6",                 "",         CR_SET,             CR_6                    },
+    { "C7",                 "",         CR_SET,             CR_7                    },
+    { "C8",                 "",         CR_SET,             CR_8                    },
+    { "C9",                 "",         CR_SET,             CR_9                    },
+    { "C10",                "",         CR_SET,             CR_10                   },
+    { "C11",                "",         CR_SET,             CR_11                   },
+    { "C12",                "",         CR_SET,             CR_12                   },
+    { "C13",                "",         CR_SET,             CR_13                   },
+    { "C14",                "",         CR_SET,             CR_14                   },
+    { "C15",                "",         CR_SET,             CR_15                   },
+    { "C16",                "",         CR_SET,             CR_16                   },
+    { "C17",                "",         CR_SET,             CR_17                   },
+    { "C18",                "",         CR_SET,             CR_18                   },
+    { "C19",                "",         CR_SET,             CR_19                   },
+    { "C20",                "",         CR_SET,             CR_20                   },
+    { "C21",                "",         CR_SET,             CR_21                   },
+    { "C22",                "",         CR_SET,             CR_22                   },
+    { "C23",                "",         CR_SET,             CR_23                   },
+    { "C24",                "TMP-0",    CR_SET,             CR_24                   },
+    { "C25",                "TMP-1",    CR_SET,             CR_25                   },
+    { "C26",                "TMP-2",    CR_SET,             CR_26                   },
+    { "C27",                "TMP-3",    CR_SET,             CR_27                   },
+    { "C28",                "TMP-4",    CR_SET,             CR_28                   },
+    { "C29",                "TMP-5",    CR_SET,             CR_29                   },
+    { "C30",                "TMP-6",    CR_SET,             CR_30                   },
+    { "C31",                "TMP-7",    CR_SET,             CR_31                   },
+   
     { "IA-SEG",             "",         PS_SET,             PS_IA_SEG               },
     { "IA-OFS",             "",         PS_SET,             PS_IA_OFS               },
     { "ST-REG",             "",         PS_SET,             PS_STATUS               },
@@ -540,12 +528,14 @@ void DrvCmds::printErrMsg( ErrMsgId errNum, char *argStr ) {
 void DrvCmds::printWelcome( ) {
     
     glb -> env -> setEnvVal( ENV_PROG_VERSION, (char *) VERSION );
+    glb -> env -> setEnvVal( ENV_GIT_BRANCH, (char *) BRANCH );
     glb -> env -> setEnvVal( ENV_PROG_PATCH_LEVEL, PATCH_LEVEL );
     glb -> env -> setEnvVal( ENV_EXIT_CODE, 0 );
     
     if ( isatty( fileno( stdin ))) {
         
         fprintf( stdout, "VCPU-32 Simulator, Version: %s\n", glb -> env -> getEnvValStr( ENV_PROG_VERSION ));
+        fprintf( stdout, "Git Branch: %s\n", glb -> env -> getEnvValStr( ENV_GIT_BRANCH ));
     }
 }
 

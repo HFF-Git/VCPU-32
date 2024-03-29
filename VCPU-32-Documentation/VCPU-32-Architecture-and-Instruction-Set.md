@@ -1123,7 +1123,7 @@ Loads the effective address offset of the operand.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDO    ( 0x16 ) : r         : 0      : operand                                                :
+   : LDO    ( 0x17 ) : r         : 0      : operand                                                :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3131,8 +3131,12 @@ The instruction set allows for a rich set of options on the individual instructi
 | **ROR** | ROR GRx, GRy, cnt | DSR Rx, Rx, 32 - cnt | |
 | **INC** | INC [ .< opt > ] GRx, val | ADD [ .< opt > ] GR x, val | |
 | **DEC** | DEC [ .< opt > ] GRx, val | SUB [ .< opt > ] GR x, val | |
-| **NEG** | NEG Grx | SUB [ .<opt> ] GRx, GRx, opMode 1 | |
-| **COM** | COM Grx | OR.N  GRx, GRx, opMode 1 | |
+| **NEG** | NEG GRx | SUB [ .<opt> ] GRx, GRx, opMode 1 | |
+| **COM** | COM GRx | OR.N  GRx, GRx, opMode 1 | |
+| **LDSR** | LDSR SRx, GRy | MR SRx, GRy | |
+| **LDCR** | LDSR CRx, GRy | MR SRx, GRy | |
+| **STSR** | LDSR GRx, SRy | MR SRx, GRy | |
+| **STCR** | LDSR GRx, CRy | MR SRx, GRy | |
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3202,7 +3206,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : ADDIL   ( 0x03 ): r         : val                                                             :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDO     ( 0x16 ): r        : 0       : operand                                                : 
+   : LDO     ( 0x17 ): r         : 0      : operand                                                : 
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3681,6 +3685,15 @@ The first VCPU-32 implementation uses a three stage pipeline model. There stages
 - **Execute**. The Execute Stage will primarily do the computational work using the values passed from the MA stage. The computational result will be written back to the registers on the next clock cycle.
 
 Note that this is perhaps one of many ways to implement a pipeline. The three major stages could also be further divided internally. For example, the fetch and decode stage could consist of two sub stages. Likewise, the memory access stages could be divided into an address calculation sub-stage and the actual data access. Dividing into three stages however simplifies the bypass logic as there are only two spots to insert any register overriding. This is especially important for the memory access stage, which uses the register content to build addresses. Two separate stages, i.e. address computation and memory access, would require options to redo the address arithmetic when detecting a register interlock at the memory access stage.
+
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
+## Notes
+
+- how about a CHK instruction ? 
+- it would compare a register to be within 0 and anothr rgister: r = 0 <= a <= b. r is 0 or 1 then.
 
 <!--------------------------------------------------------------------------------------------------------->
 
