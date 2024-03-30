@@ -82,30 +82,6 @@ void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
     *arg = ( *arg & ( ~tmpM )) | val;
 }
 
-uint32_t signExtend( uint32_t arg, int len ) {
-    
-    len = len % 32;
-    
-    uint32_t tmpM = ( 1U << len ) - 1;
-    bool     sign = arg & ( 1U << ( 31 - len ));
-    
-    if ( sign ) return( arg |= ~ tmpM );
-    else        return( arg &= tmpM );
-}
-
-uint32_t lowSignExtend32( uint32_t arg, int len ) {
-    
-    len = len % 32;
-    
-    uint32_t tmpM = ( 1U << ( len - 1 )) - 1;
-    bool     sign = arg % 2;
-    
-    arg = arg >> 1;
-    
-    if ( sign ) return( arg |= ~ tmpM );
-    else        return( arg &= tmpM );
-}
-
 //‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 // A little helper function to compare two register values for the CBR instruction. This is a bit tricky as
 // we run on a 32-bit machine. First, we sign extend to a 32-bt value and then do teh requested comparison.
@@ -573,8 +549,8 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_GATE: {
-            
-            // ??? cross check what this instruction actually does...
+          
+            // ??? this should be tha place to perform the potential promotion...
             
             valR = getBitField( valA, 31, 30 ) | ( instrOfs & 047777777 ); // ??? check when we set R
             

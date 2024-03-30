@@ -515,22 +515,12 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_GATE:
         case OP_BL: {
             
-            printImmVal( immGenPosLenLowSign( instr, 31, 22 ), TOK_DEC );
+            printImmVal( immGenPosLenLowSign( instr, 31, 22 ) << 2, TOK_DEC );
                         
         } break;
             
-        case OP_BR: {
-            
-            fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
-            
-        } break;
-            
-        case OP_BLR: {
-            
-            fprintf( stdout, ",(r%d)", getBitField( instr, 31, 4 ));
-            
-        } break;
-            
+        case OP_BR:
+        case OP_BLR:
         case OP_BV: {
             
             fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
@@ -539,7 +529,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         case OP_BVR: {
             
-            fprintf( stdout, "(r%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            fprintf( stdout, "r%d(r%d)", getBitField( instr, 27, 4 ) << 2, getBitField( instr, 31, 4 ));
             
         } break;
             
@@ -547,21 +537,21 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_BLE: {
             
             printImmVal( immGenPosLenLowSign( instr, 23, 18 ));
-            fprintf( stdout, ",(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            fprintf( stdout, ",(s%d,r%d)", getBitField( instr, 27, 4 ) << 2, getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_CBR: {
             
             fprintf( stdout, "r%d,r%d,", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-            printImmVal( immGenPosLenLowSign( instr, 23, 15 ));
+            printImmVal( immGenPosLenLowSign( instr, 23, 15 ) << 2 );
             
         } break;
             
         case OP_TBR: {
             
             fprintf( stdout, "r%d,", getBitField( instr, 31, 4 ));
-            printImmVal( immGenPosLenLowSign( instr, 23, 15 ));
+            printImmVal( immGenPosLenLowSign( instr, 23, 15 ) << 2 );
             
         } break;
             

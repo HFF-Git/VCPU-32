@@ -82,8 +82,6 @@ namespace {
 // Fundamental constants for the window system.
 //
 //------------------------------------------------------------------------------------------------------------
-const int NUMERIC_L_FIELD_LEN   = 12;
-const int NUMERIC_S_FIELD_LEN   = 7;
 const int MAX_TEXT_FIELD_LEN    = 132;
 const int MAX_TEXT_LINE_SIZE    = 256;
 

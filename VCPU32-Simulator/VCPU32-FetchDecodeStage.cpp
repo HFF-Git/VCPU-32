@@ -535,7 +535,6 @@ void FetchDecodeStage::process( ) {
             
         } break;
             
-       
         case OP_EXTR: {
             
             regIdForValB    = getBitField( instr, 31, 4 );
@@ -600,22 +599,18 @@ void FetchDecodeStage::process( ) {
             
         case OP_B:
         case OP_BL: {
-            
-            // ??? shift 2 bits business ?
-            
+          
             valB = instrOfs;
-            valX = immGenPosLenLowSign( instr, 31, 22 );
+            valX = immGenPosLenLowSign( instr, 31, 22 ) << 2;
             
         } break;
             
         case OP_BR:
         case OP_BLR: {
             
-            // ??? shift 2 bits business ?
-            
             regIdForValB    = getBitField( instr, 31, 4 );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = instrOfs;
+            valX            = instrOfs << 2;
             
         } break;
             
@@ -631,32 +626,30 @@ void FetchDecodeStage::process( ) {
             // ??? shift 2 bits business ?
             
             regIdForValB    = getBitField( instr, 31, 4 );
-            valB            = core -> gReg[ regIdForValB ].get( );
             regIdForValX    = getBitField( instr, 27, 4 );
-            valX            = core -> gReg[ regIdForValX ].get( );
+            valB            = core -> gReg[ regIdForValB ].get( );
+            valX            = core -> gReg[ regIdForValX ].get( ) << 2;
             
         } break;
             
         case OP_BE:
         case OP_BLE: {
             
-            // ??? shift 2 bits business ?
-            
             regIdForValB    = getBitField( instr, 31, 4 );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = immGenPosLenLowSign( instr, 23, 18 );
+            valX            = immGenPosLenLowSign( instr, 23, 18 ) << 2;
             
         } break;
             
         case OP_GATE: {
-            
-            // ??? shift 2 bits business ?
-            
-            regIdForValA    = getBitField( instr, 9, 4 );
-            valA            = core -> gReg[ regIdForValA ].get( ); // ??? should set the previous priv level
-            
+           
             valB            = instrOfs;
-            valX            = immGenPosLenLowSign( instr, 31, 22 );
+            valX            = immGenPosLenLowSign( instr, 31, 22 ) << 2;
+            
+            
+            // ??? when do we exactly set the execution level in the status reg ? There are two instructions ahead
+            // of us which should NOT benefit from the potential priv change....
+            
             
             if ( core -> stReg.get( ) & ST_CODE_TRANSLATION_ENABLE ) {
                 

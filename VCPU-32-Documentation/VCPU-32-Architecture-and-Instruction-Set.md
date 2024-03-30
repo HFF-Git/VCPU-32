@@ -3402,7 +3402,7 @@ No CPU architecture with an idea of a runtime environment. Although the instruct
 
 ### The bigger picture
 
-The following figure depicts a high level overview of a software system for VCPU-32. At the center is the execution thread, which is called a **task**. Tasks belong to a **job**. At the highest level is the **system**. At any point in time the CPU is executing a task of a job or system level functions.
+The following figure depicts a high level overview of a software system for VCPU-32. At the center is the execution thread, which is called a **task**. A task will consist of the current execution object and the task data area. Tasks belong to a **job**. All tasks of a job share the job data area. At the highest level is the **system**, which contains the global data area for the system. All tasks make calls to system services. At any point in time the CPU is executing a task of a job or a system level functions. If the CPU has more than one core, there are as many tasks active as there are cores in the CPU.
 
 ```
       :---------------------------------------------------------------------------------------:
@@ -3434,6 +3434,8 @@ The following figure depicts a high level overview of a software system for VCPU
       :---------------------------------------------------------------------------------------:
 ```
 
+A running task accesses the areas through an address formed by the dedicated segment registers and the offset into this segment. The next section will describe how this high level system model will be mapped to the registers of the CPU.
+
 ### Register Usage
 
 The CPU features general registers, segment registers and control registers. As described before, all general registers can do computation as well as address computation. Segment registers complement the general register set. A combination of a general index register and a segment register form a virtual address. To avoid juggling on every access both a segment and an index register, the segment register selection field in the respective instructions will either implicitly pick one of the upper four segment registers or specify on of the segment registers 1 to 3. This scheme allows to use in most cases just the offset portion of the virtual address when passing pointers to function and so on. The segment register is implicitly encoded in the upper two bits. 
@@ -3457,11 +3459,11 @@ Segment 4 to 7 thus play a special role in the runtime environment. An execution
                                   \---------------------------- current Job ------------------------------------/
 ```
 
-Switching between task will set SR5 to the segment contaiing the task data and stack. SR6 is set to the job data segment to which the task belongs. Naturally, setting any of these registers is a privileged operation. SR4 will track the current code module so that program literals can be referenced. SR7 never changes after system startup. 
+Switching between task will set SR5 to the segment containing the task data and stack. SR6 is set to the job data segment to which the task belongs. Naturally, setting any of these registers is a privileged operation. SR4 will track the current code module so that program literals can be referenced. SR7 never changes after system startup. 
 
 ### Calling Conventions and Naming
 
-The runtime description uses ...  basic namings...
+The runtime description uses a basic model to describe the calling convention. The calling procedure is called the **caller**, the target procedure is called the **callee**.
 
 ```
           Caller                           Callee
@@ -3480,11 +3482,11 @@ The runtime description uses ...  basic namings...
       :----------------:                :----------------:
 ```
 
-In a procedure call there are **caller** and **callee**. **"Call"** transfers control to the callee. **"Entry"** is the point of entry to the callee. **"Exit"** is the point of exit from the caller. **"Return"** is the return point of program control to the caller. In addition, there could be pieces of code that enable more complex calling mechanisms such as inter module calls. They are called stubs. Typically, these stubs are added by a linker or loader when preparing the program.
+**"Call"** transfers control to the callee. **"Entry"** is the point of entry to the callee. **"Exit"** is the point of exit from the caller. **"Return"** is the return point of program control to the caller. In addition, there could be pieces of code that enable more complex calling mechanisms such as inter module calls. They are called stubs. Typically, these stubs are added by a linker or loader when preparing the program.
 
-### Stack Frames
+### Stack and Stack Frames
 
-During program execution procedures call other procedures. Upon entry, a procedure allocates a stack frame for local data, outgoing parameters and a frame maker used for keeping the execution thread data, such as returns links and so on. Generally, there are leaf and non-leaf procedures. A leaf procedure is one that does not make any further calls and perhaps need not to allocate a stack frame.
+During program execution procedures call other procedures. Upon entry, a procedure allocates a stack frame for local data, outgoing parameters and a frame maker used for keeping the execution thread data, such as returns links and so on. Generally, there are leaf and non-leaf procedures. A leaf procedure is one that does not make any further calls and perhaps need not to allocate a stack frame. The stack are will grow toward higher memory addresses. The data stack pointer will always points to the location where the next frame will be allocated. Addressing the current frame and the frame marker and parameter area of the previous is SP minus an offset.T
 
 ```
       :                                    :
@@ -3519,103 +3521,129 @@ During program execution procedures call other procedures. Upon entry, a procedu
       :------------------------------------: <------- Stack Pointer                               
 ```
 
-The following figure shows the frame marker and outgoing parameter area in more detail.
+A stack frame is the associated data area for a procedure. Its size is computed at compile time and will not change. The frame marker and the argument areas are also at known locations.  Since the overall frame size is fixed, i.e. computed at compile time, the callee can easily locate the incoming arguments by subtracting its own frame size and the position of the particular argument. The data stack pointer will always points to the location where the next frame will be allocated. Addressing the current frame and the frame marker and parameter area of the previous is SP minus an offset. The parameter area contains the formal arguments of the caller when making the call and potential return values when the caller returns.
+
+### Stack Frame Marker
+
+The frame marker is a fixed structure of 8 locations which will contains the data and link information for the call. It used by the caller to store that kind of data during the calling sequence.
 
 ```
 
       :                                    :
-      :                                    :
-      :  :------------------------------:  :
-      :  :                              :  : SP - 40 
-      :  :------------------------------:  :
-      :  :                              :  : SP - 44
-      :  :------------------------------:  :
-      :  :                              :  : SP - 40: Formal Paramater 1 
-      :  :------------------------------:  :
-      :  :                              :  : SP - 36: Formal Paramater 0
-      :--:------------------------------:--:
-      :  :                              :  : SP - 32
-      :  :------------------------------:  :
-      :  :                              :  : SP - 28 
-      :  :------------------------------:  :
-      :  :                              :  : SP - 24
-      :  :------------------------------:  :
-      :  :                              :  : SP - 20
-      :  :------------------------------:  :
-      :  :                              :  : SP - 16
-      :  :------------------------------:  :
-      :  :                              :  : SP - 12
-      :  :------------------------------:  :
-      :  : Return link                  :  : SP - 8 
-      :  :------------------------------:  :
-      :  : Previous Stack Pointer       :  : SP - 4
-      :--:------------------------------:--: 
-                                            <------- SP - 0: Stack Pointer    
+      :            . . . .                 :
+      :  :                              :  :
+      :  :------------------------------:  :                   |
+      :  :                              :  : SP - 40           |
+      :  :------------------------------:  :                   |
+      :  :                              :  : SP - 36           |
+      :--:------------------------------:--:                  <
+      :  :                              :  : SP - 32           |
+      :  :------------------------------:  :                   |
+      :  :                              :  : SP - 28           |
+      :  :------------------------------:  :                   |
+      :  :                              :  : SP - 24           |
+      :  :------------------------------:  :                   |
+      :  :                              :  : SP - 20           |
+      :  :------------------------------:  :                   |  Frame Marker
+      :  :                              :  : SP - 16           |
+      :  :------------------------------:  :                   |
+      :  :                              :  : SP - 12           |
+      :  :------------------------------:  :                   |
+      :  : Return link                  :  : SP - 8            |
+      :  :------------------------------:  :                   |
+      :  : Previous Stack Pointer       :  : SP - 4            |  
+      :--:------------------------------:--:                   /
+                                             SP - 0: Stack Pointer    
 
 ```
-
-// need to assign what we keep in the frame maker.... 
-- previous stack pointer
-- return link
-- data for making external calls...
 
 ### Register Partitioning
 
-To the programmer general registers and segment registers are the primary registers to work with. Although the registers have no special hardware meaning, the runtime convention assigns to some of the registers to a dedicated purpose.
+To the programmer general registers and segment registers are the primary registers to work with. Although the registers have no special hardware meaning, the runtime convention assigns to some of the registers a dedicated purpose. The registers are further divided into caller save and callee save registers. A register that needs to be preserved across a procedure call is either saved by the caller or the callee.
 
 ```
             General registers                           Segment registers
-         :--------------------------:                :--------------------------:
-      0  :  Scratch                 :             0  : Return Segment Link      :
-         :--------------------------:                :--------------------------:
-      1  :                          :             1  : general purpose          :
-         :--------------------------:                :--------------------------:
-      2  :                          :             2  : general purpose          :
-         :--------------------------:                :--------------------------:
-      3  :                          :             3  : general purpose          :
-         :--------------------------:                :--------------------------:
-      4  :                          :             4  : Code Literals Segment    :
-         :--------------------------:                :--------------------------:
-      5  :                          :             5  : Task Segment ( stack )   :
-         :--------------------------:                :--------------------------:
-      6  :                          :             6  : Job Segment              :
-         :--------------------------:                :--------------------------:
-      7  :                          :             7  : System Segment           :
-         :--------------------------:                :--------------------------:
-      8  :                          :             
-         :--------------------------:           
-      9  :                          :             
-         :--------------------------:              
-      10 :                          :            
-         :--------------------------:               
-      11 :                          :             
-         :--------------------------:              
-      12 :                          :             
-         :--------------------------:              
-      13 :                          :             
-         :--------------------------:              
-      14 :  Return link ( RL )      :             
-         :--------------------------:              
-      15 :  Stack pointer ( SP )    :             
-         :--------------------------:               
+         :-----------------------------:                :------------------------------:
+      0  :  Scratch                    :             0  : Return Segment Link          :
+         :-----------------------------:                :------------------------------:
+      1  :  Callee Save                :             1  : Caller save, general purpose :
+         :-----------------------------:                :------------------------------:
+      2  :  Callee Save                :             2  : Caller save, general purpose :
+         :-----------------------------:                :------------------------------:
+      3  :  Callee Save                :             3  : Callee Save, general purpose :
+         :-----------------------------:                :------------------------------:
+      4  :  Callee Save                :             4  : Code Literals Segment        :
+         :-----------------------------:                :------------------------------:
+      5  :  Callee Save                :             5  : Task Segment ( stack )       :
+         :-----------------------------:                :------------------------------:
+      6  :  Callee Save                :             6  : Job Segment                  :
+         :-----------------------------:                :------------------------------:
+      7  :  Callee Save                :             7  : System Segment               :
+         :-----------------------------:                :------------------------------:
+      8  :  Caller Save                :                
+         :-----------------------------:           
+      9  :  Caller Save, ARG3, RET3    :             
+         :-----------------------------:              
+      10 :  Caller Save, ARG2, RET2    :           
+         :-----------------------------:               
+      11 :  Caller Save, ARG1, RET1    :            
+         :-----------------------------:              
+      12 :  Caller Save, ARG0, RET0    :             
+         :-----------------------------:              
+      13 :  Global Data ( DP )         :             
+         :-----------------------------:              
+      14 :  Return link ( RL )         :             
+         :-----------------------------:              
+      15 :  Stack pointer ( SP )       :             
+         :-----------------------------:               
 ```
 
 ### Parameter passing
 
-// passed in the formal parameter area... 
-// first n arguments are passed in registers
-// by value
-// by reference short pointer 
-// by reference explicit segment and offset.
+The parameter area contains the formal arguments of the caller when making the call and potential return values when the caller returns. The first four arguments are passed in dedicated registers, ARG0 to ARG3. Although these arguments are passed in registers, the stack frame reserves a memory location for them. A parameter list larger than four arguments will use the next locations for ARG5, ARG6 and so on. These arguments are always passed in the corresponding frame memory locations.
 
+Upon return, the formal argument locations are used as the potential result return location. For example, a function return an integer value would return it in the register RET0.
 
 ### Local Calls
 
-// show a code sequence...
-// the BL instruction
-// the BV instruction
+Putting at all together, the following assembly code snippets a set of calling sequences. The first example will show a function that just adds two incoming arguments and returns the result. The example uses the register alias names. ARG0 and ARG1 are loaded with their values and a local call is made to the procedure. The target address of the called function is computed by the assembler and omitted in the examples to follow.
 
-// leaf procedures
+```
+      Caller "Func1"                               Callee "Func2"
+
+      LDI ARG0, 500
+      LDI ARG1, 300
+      BL  RL, "Func2"         ---------------->    ADD RET0, ARG0, ARG1
+      ...                     <---------------     BV RL 
+```
+
+The called function will just use the two incoming arguments, adds them and stores the result to RET0. The BV instruction will use the return address stored by the BL instruction to return. This example is very simple but also the most fundamental calling sequence. The called procedure does not make any further calls, hence there is no need to save a return link. In fact, the called procedure does not even need an own stack frame. Next is an example where the called procedure will itself also make a call. The called procedure also has two local variables.
+
+```
+      "Func1"                                "Func2"                   "Func3"
+
+      LDI ARG0, 500
+      LDI ARG1, 300
+      BL  RL, "Func1"      -------------->   ST -8(SP), RL
+                                             LDO SP, 56(SP)
+                 
+                                             ...
+
+                                             BL RL, "Func2"            --------------> ...
+
+                                             ...                       <-------------- BV RL
+
+                                             LDO -56(SP), SP
+                                             LD RL, -8(SP)
+      ...                  <--------------   BV RL 
+```
+
+The caller "Func1" will produce its arguments and stores them in ARG0 and ARG1, as in the example before. If there were more than four arguments, they would have been stored with a ST instruction in their stack frame location. The callee "Func2" is this time a procedure that calls another procedure and this needs a stack frame. First, the return link is saved to the frame marker of "Func1". RL will be overwritten by the call to "Func3" and hence needs to be saved. Next the stack frame for "Func2" is allocated. The size is 32bytes for the frame marker, 16 bytes for the 4 arguments ARG0 to ARG1. Note that even when there are fewer than 4 arguments, the space is allocated. Finally there are two local variables. In sum the frame is 56 bytes. The LDO instruction will move the stack accordingly. 
+
+The "Func2" procedure will its business and make a call to "Func3". The parameters are prepared and a BL instruction branches to "Func3". "Func3" is a leaf procedure and there is no need for saving RL. If "Func3" has local variables, then a frame will be allocated. Also, if "Func3" would use a callee save register, there needs to be a spill area to seve them before usage. The spill area is a pat of the local data area too. "Func3" returns with the BV instruction as before.
+
+When "Func2" returns, it will deallocate the stack frame by moving SP back to the previous frame, load the saved return link into RL and a BV instructions branches back to the aller "Func1". Phew.
+
 
 ### External Calls
 
@@ -3693,7 +3721,7 @@ Note that this is perhaps one of many ways to implement a pipeline. The three ma
 ## Notes
 
 - how about a CHK instruction ? 
-- it would compare a register to be within 0 and anothr rgister: r = 0 <= a <= b. r is 0 or 1 then.
+- it would compare a register to be within 0 and another register: r = 0 <= a <= b. r is 0 or 1 then.
 
 <!--------------------------------------------------------------------------------------------------------->
 

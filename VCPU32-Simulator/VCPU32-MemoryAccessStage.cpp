@@ -43,12 +43,12 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-static inline bool getBit( uint32_t arg, int pos ) {
+bool getBit( uint32_t arg, int pos ) {
     
     return( arg & ( 1U << ( 31 - ( pos % 32 ))));
 }
 
-static inline uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
+uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     
     pos = pos % 32;
     len = len % 32;
@@ -58,42 +58,6 @@ static inline uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = 
     
     if ( sign ) return( tmpA | ( ~ tmpM ));
     else        return( tmpA & tmpM );
-}
-
-static inline void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
-    
-    pos = pos % 32;
-    len = len % 32;
-    
-    uint32_t tmpM = ( 1U << len ) - 1;
-    
-    val = ( val & tmpM ) << ( 31 - pos );
-    
-    *arg = ( *arg & ( ~tmpM )) | val;
-}
-
-static inline uint32_t signExtend( uint32_t arg, int len ) {
-    
-    len = len % 32;
-    
-    uint32_t tmpM = ( 1U << len ) - 1;
-    bool     sign = arg & ( 1U << ( 31 - len ));
-    
-    if ( sign ) return( arg |= ~ tmpM );
-    else        return( arg &= tmpM );
-}
-
-static inline uint32_t lowSignExtend32( uint32_t arg, int len ) {
-    
-    len = len % 32;
-    
-    uint32_t tmpM = ( 1U << ( len - 1 )) - 1;
-    bool     sign = arg % 2;
-    
-    arg = arg >> 1;
-    
-    if ( sign ) return( arg |= ~ tmpM );
-    else        return( arg &= tmpM );
 }
 
 uint32_t add32( uint32_t arg1, uint32_t arg2 ) {

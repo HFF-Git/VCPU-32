@@ -293,6 +293,13 @@ uint16_t CpuMem::matchTag( uint32_t index, uint32_t tag ) {
 // the request. Note that the CPU core layer will call this routine every clock cycle as long as the operation
 // is not completed, i.e. it is back to IDLE.
 //
+
+// ??? general for all request type interfaces... what if the request paramater changed ? This could be the
+// case when for example the pipeline gets a new instruction target while serving a cache mis for the current
+// instruction target. The brnach type instructions store their target at the IA input, but it essentially
+// gets ignored... since the cache is busy and thus the new target gets lost. :-(
+
+
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t *word ) {
     

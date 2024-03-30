@@ -58,9 +58,15 @@ enum tlbOpState : uint32_t {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-static inline bool getBit( uint32_t arg, int pos ) {
+bool getBit( uint32_t arg, int pos ) {
     
     return( arg & ( 1U << ( 31 - ( pos % 32 ))));
+}
+
+void setBit( uint32_t *arg, int pos, bool val = true ) {
+   
+    if ( val )  *arg |= ( 1U << ( 31 - ( pos % 32 )));
+    else        *arg &= ~( 1U << ( 31 - ( pos % 32 )));
 }
 
 static inline uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
@@ -406,11 +412,12 @@ uint32_t CpuTlb::getTlbWaitCycles( ) {
 //------------------------------------------------------------------------------------------------------------
 bool TlbEntry::tValid( ) {
     
-    return ( pInfo & 0x80000000 );
+    return( getBit( pInfo, 0 ));
 }
+
 void TlbEntry::setValid( bool arg ) {
     
-    if ( arg ) pInfo |= 0x80000000; else  pInfo &= ~ 0x80000000;
+    setBit( &pInfo, 0, arg );
 }
 
 bool TlbEntry::tUncachable( ) {
