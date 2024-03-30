@@ -499,9 +499,12 @@ void ExecuteStage::process( ) {
             
         case OP_ADDIL: {
             
-            // ??? where does the add take place ?
+            // ??? where does the add take place ? -> MA stage
+            // ??? result goes to R0.
             
-            valR = valA;;  // ??? check ....
+            valR = valA;  // ??? check ....
+            
+            core -> gReg[ 0 ].set( valR );
             
         } break;
             

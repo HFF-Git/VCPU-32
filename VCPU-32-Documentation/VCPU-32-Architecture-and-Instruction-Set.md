@@ -1083,12 +1083,12 @@ Adds an immediate value left aligned into the target register.
 
 #### Description
 
-The add immediate left instruction loads a 22-bit immediate value padded with zeroes on the right left aligned to the general register "r". Any potential overflows are ignored.
+The add immediate left instruction loads a 22-bit immediate value padded with zeroes on the right left aligned to the general register "r" and place the result in general reister zero. Any potential overflows are ignored.
 
 #### Operation
 
 ```
-   GR[r] = GR[r] + ( val << 10 );
+   GR[0] = GR[r] + ( val << 10 );
 ```
 
 #### Exceptions
@@ -1097,11 +1097,11 @@ None.
 
 #### Notes
 
-The ADDIL instruction is typically used to produce a 32bit address offset in combination with the load and store instruction. The following example will use a 32-bit offset for loading a value into general register one. GR10 holds a logical address. The ADDIL instruction will add the left 22-bit portion padded with zeroes to the right to a register. The instruction sequence
+The ADDIL instruction is typically used to produce a 32bit address offset in combination with the load and store instruction. The following example will use a 32-bit offset for loading a value into general register one. GR11 holds a logical address. The ADDIL instruction will add the left 22-bit portion padded with zeroes to the right to GR11 and store the result in teh scratch register R0. The instruction sequence
 
 ```
-   ADDIL  R1, R11, L%ofs
-   LDW    R3, R%ofs(R11)
+   ADDIL  R11, L%ofs
+   LDW    R3, R%ofs(R0)
 ```
 
 <!--------------------------------------------------------------------------------------------------------->
