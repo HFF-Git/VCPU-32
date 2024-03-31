@@ -1561,7 +1561,6 @@ void DrvWinTlb::drawLine( int index ) {
         char            tmpBuf[ 32 ];
         
         printTextField((( tEntry -> tValid( )) ? (char *) "V" : (char *) "v" ), fmtDesc );
-        printTextField((( tEntry -> tUncachable( )) ? (char *) "U" : (char *) "u" ), fmtDesc );
         printTextField((( tEntry -> tDirty( )) ? (char *) "D" : (char *) "d" ), fmtDesc );
         printTextField((( tEntry -> tTrapPage( )) ? (char *) "P" : (char *) "p" ), fmtDesc );
         printTextField((( tEntry -> tTrapDataPage( )) ? (char *) "D" : (char *) "d" ), fmtDesc );

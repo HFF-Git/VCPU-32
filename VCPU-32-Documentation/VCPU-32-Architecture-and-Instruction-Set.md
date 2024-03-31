@@ -283,6 +283,8 @@ The VCPU-32 memory model features a **segmented memory model**. The address spac
        :-------------------------------------------:
 ```
 
+Implementations may not utilize the full 32-bit segment ID space. For example, a CPU could only implement a 16-bit segement Id, allowing for 65636 segments. Segments should be considered as address ranges from which an operatings system allocates virtual memory space for code and data objects. 
+
 ### Address Translation
 
 VCPU-32 defines three types of addresses. At the programmer's level there is the **logical address**. The logical address is a 32-bit word, which contains a 2-bit segment register selector and a 30-bit offset. During data access with a logical address the segment selector selects from the segment register set SR4 to SR7 and forms together with the remaining 30-bit offset a virtual address. Since the upper two bits are inherently fixed, the address range in the particular segment is one of four possible 30-bit quadrants. For example, when the upper two bits are zero, the first quadrant 0x00000000 to 0x3FFFFFFF is addressable. When the upper two bits are 0x2, the reachable address range is 0x80000000 to 0xBFFFFFF. When the segment registers SR4 to SR7 would point to the same segment, the entire address range is reachable via a logical address. It is however more likely that these registers point to different segments though.
@@ -317,7 +319,7 @@ The **virtual address** is the concatenation of a segment and an offset. Togethe
                                (optional )         \_______ physical page ___/\__ page ofs ___/
 ```
 
-Address translation can be enabled separately for instruction and data address translation. If virtual address translation for the instruction or data access is disabled, the 32 bit offset portion represents a physical address. A virtual address with a segment portion of zero will directly address physical memory, i.e the virtual address offset is the physical address. In a single CPU implementation, the physical address is the memory address. The maximum memory size is 4 Gbytes, unless memory banks are supported. Within a multi-CPU arrangement, the physical address can be augmented with a CPU ID which allows a set of CPUs share their physical range.
+Address translation can be enabled separately for instruction and data address translation. If virtual address translation for the instruction or data access is disabled, the 32 bit offset portion represents a physical address. A virtual address with a segment portion of zero will directly address physical memory, i.e the virtual address offset is the physical address. In a single CPU implementation, the physical address is the memory address. The maximum memory size is 4 Gbytes, unless memory banks are supported. Within a multi-CPU arrangement, the physical address can be augmented with a CPU Id which allows a set of up to 16 CPUs share their physical memory range. The IO memory portion is always private to a CPU.
 
 ### Access Control
 
@@ -359,7 +361,7 @@ TLB fields (example):
 
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   :V :U :T :D :B :X : AR        :                 : Protect-ID                                    :
+   :V :T :D :B :X :  : AR        :                 : Protect-ID                                    :
    :-----------------------------------------------------------------------------------------------:
    : VPN - high                                                                                    :
    :-----------------------------------------------------------------------------------------------:
@@ -372,7 +374,6 @@ TLB fields (example):
 | Field | Purpose |
 |:---|:---|
 | **V** | the entry is valid. |
-| **U** | un-cacheable. The page will not be cached, memory is accessed directly. |
 | **T** | page reference trap. If the bit is set, a reference to the page results in a trap.|
 | **D** | dirty trap. If the bit is set, the first write access to the TLB raises a trap.|
 | **B** | data reference trap. If the bit is set, access to the data page raises a trap. |
@@ -2845,7 +2846,7 @@ Depending on the "T" bit, the protection information part or the address part is
 
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   :U :T :D :B : AR        : 0                     : Protect-Id                                    :      T = 1
+   :V :T :D :B :X :  : AR        :                 : Protect-ID                                    :    T = 1
    :-----------------------------------------------------------------------------------------------:
 ```
 
@@ -3121,7 +3122,8 @@ The instruction set allows for a rich set of options on the individual instructi
 | Pseudo Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
 | **NOP** | NOP | OR  GR0, #0 | There are many instructions that can be used for a NOP. The idea is to pick one that does not affect the program state. |
-| **LDI** | LDI val | | |
+| **LDI** | LDI GRx, val | LDO GRx, val | If val is in the 17-bit range. |
+| **LDI** | LDI Grx, val | LDIL Grx, L%val; LDO   GRx, R%val(GRx) | The 32-bit value is stored with a two instruction sequence. |
 | **CLR** | CLR GRn | OR  GRn, #0 | Clears a general register. There are many instructions that can be used for a CLR. |
 | **MR** | MR GRx, GRy | OR GRx, GRy ; using operand mode 1 | Copies a general register to another general register. This overlaps MR for using two general registers. |
 | **ASR** | ASR GRx, sa | EXTR.S Rx, Rx, 31 - sa, 32 - sa | For the right shift operations, the shift amount is transformed into the bot position of the bit field and the length of the field to shift right. For arithmetic shifts, the result is sign extended. |
@@ -3299,21 +3301,21 @@ The processor unit and the L1 caches form the "CPU core". The pipeline design ma
       :                                                                                 :        |
       :---------------------------------------------------------------------------------:        |
                 ^                                      ^                        ^                |
-                |                                      |                        |                |     CPU Core
+                |                                      |                        |                |      CPU Core
                 |                                      v                        |                |
       :----------------------:               :----------------------:           |                |
       :                      :               :                      :           |                |
       : L1 Instruction Cache :               : L1 Data Cache        :           |                |
       :                      :               :                      :           |                |
-      :----------------------:               :----------------------:           |                /
-                ^                                      ^                        |
-                |                                      |                        |
-                v                                      v                        v
-      :-------------------------------------------------------------:  :----------------:      
-      :                                                             :  :                :      
-      :                         Memory                              :  :     I/O        :         
-      :                                                             :  :                :      
-      :-------------------------------------------------------------:  :----------------:
+      :----------------------:               :----------------------:           |                |
+                ^                                      ^                        |                /
+                |                                      |                        |                \
+                v                                      v                        v                |
+      :-------------------------------------------------------------:  :----------------:        |
+      :                                                             :  :                :        |      Memory
+      :                         Memory                              :  :     I/O        :        | 
+      :                                                             :  :                :        |
+      :-------------------------------------------------------------:  :----------------:        /
 
 ```
 
@@ -3336,41 +3338,37 @@ In addition to the L1 caches, there could be a joint L2 cache to serve both L1 c
       :                                                                                 :        |
       :---------------------------------------------------------------------------------:        |
                 ^                                      ^                        ^                |
-                |                                      |                        |                |     CPU Core
+                |                                      |                        |                |      CPU Core
                 |                                      v                        |                |
       :----------------------:               :----------------------:           |                |
       :                      :               :                      :           |                |
       : L1 Instruction Cache :               : L1 Data Cache        :           |                |
       :                      :               :                      :           |                |
-      :----------------------:               :----------------------:           |                /
-                ^                                      ^                        |
-                |                                      |                        |
-                v                                      v                        |
-      :-------------------------------------------------------------:           |
-      :                                                             :           |
-      :                      Unified L2 Cache                       :           |
-      :                                                             :           |
-      :                                                             :           |
-      :-------------------------------------------------------------:           |
-                                   ^                                            |
-                                   |                                            |
-                                   v                                            v
-      :-------------------------------------------------------------:  :----------------:      
-      :                                                             :  :                :      
-      :                         Memory                              :  :     I/O        :         
-      :                                                             :  :                :      
-      :-------------------------------------------------------------:  :----------------:
+      :----------------------:               :----------------------:           |                |
+                ^                                      ^                        |                /
+                |                                      |                        |                \
+                v                                      v                        |                |
+      :-------------------------------------------------------------:           |                |
+      :                                                             :           |                |
+      :                      Unified L2 Cache                       :           |                |
+      :                                                             :           |                |
+      :                                                             :           |                |      Memory
+      :-------------------------------------------------------------:           |                |
+                                   ^                                            |                |
+                                   |                                            |                |
+                                   v                                            v                |
+      :-------------------------------------------------------------:  :----------------:        |
+      :                                                             :  :                :        |
+      :                         Memory                              :  :     I/O        :        | 
+      :                                                             :  :                :        |
+      :-------------------------------------------------------------:  :----------------:        /
 ```
 
 In contrast to the L1 caches, the L2 cache is physically indexed and physically tagged. The L2 cache is also inclusive, which means that a cache line entry in a L1 cache must exist also in the L2 cache. A cache flush operation can thus always assume that there is an entry in the L2 as the target block.
 
-### Instruction to manage caches
+### Instructions to manage caches
 
-While cache flushes and deletions are possible under software control, cache insertions are alway done by hardware. The PCA instruction manages the cache flush and deletion. 
-
-### Uncachable Pages
-
-The CPU address range consist of the memory and the IO portion. The IO portion is always uncachable. Data is accessed directly from the CPU to the physical memory or I/O subsystem hardware. Virtual pages that map to a physical memory address are optionally uncachable. The TLB maitains a bit that indicates whether data can be brought into the cache or not.
+While cache flushes and deletions are under software control, cache insertions are alway done by hardware. The PCA instruction manages the cache flush and deletion. A cache is typically organized in cache lines, which are the unit of tranfer between the layers of the memory hierarchy. The PCA instruction will flush and/or purge the cache line corresponding to the virtual address. A data page ca be flushed and then purged or just purged. A code page can only be purged. 
 
 ### Instruction and Data TLBs
 
@@ -3434,7 +3432,7 @@ The following figure depicts a high level overview of a software system for VCPU
       :---------------------------------------------------------------------------------------:
 ```
 
-A running task accesses the areas through an address formed by the dedicated segment registers and the offset into this segment. The next section will describe how this high level system model will be mapped to the registers of the CPU.
+A running task accesses the data areas through an address formed by the dedicated segment registers and the offset into this segment. The next section will describe how this high level system model will be mapped to the registers of the CPU.
 
 ### Register Usage
 
@@ -3454,12 +3452,12 @@ Segment 4 to 7 thus play a special role in the runtime environment. An execution
       :                    :      :                    :      :                    :       :                    :
       :--------------------:      :--------------------:      :--------------------:       :--------------------: 
             
-                                                              \----------------- current Job -------------------/
+                                                              \----------------- current Task -------------------/
 
                                   \---------------------------- current Job ------------------------------------/
 ```
 
-Switching between task will set SR5 to the segment containing the task data and stack. SR6 is set to the job data segment to which the task belongs. Naturally, setting any of these registers is a privileged operation. SR4 will track the current code module so that program literals can be referenced. SR7 never changes after system startup. 
+Switching between task will set SR5 to the segment containing the task data and stack. SR6 is set to the job data segment to which the task belongs. Naturally, setting any of these registers is a privileged operation. SR4 will track the current code module so that program literals can be referenced. It will change when crossing a module boundary. SR7 never changes after system startup. 
 
 ### Calling Conventions and Naming
 
@@ -3598,17 +3596,50 @@ To the programmer general registers and segment registers are the primary regist
          :-----------------------------:               
 ```
 
+Some VCPU-32 instructions have a registers as an implicit target. For example, the ADDIL instruction uses general register zero as implicit target. The BLE instructions saves the return link implicitly in GR0 and SR0. The caller can rely on that certain register are preserved across the calls. In addition to the callee save registers already mentioned, the SP value, the DP value as well as SR4 to SR 7 are preserved across a call. In addition to the caller save segment registers, the processor status registers as well as any registers set by privileged code is not preserved across a procedure call.
+
 ### Parameter passing
 
-The parameter area contains the formal arguments of the caller when making the call and potential return values when the caller returns. The first four arguments are passed in dedicated registers, ARG0 to ARG3. Although these arguments are passed in registers, the stack frame reserves a memory location for them. A parameter list larger than four arguments will use the next locations for ARG5, ARG6 and so on. These arguments are always passed in the corresponding frame memory locations.
+The parameter area contains the formal arguments of the caller when making the call and potential return values when the caller returns. The first four arguments are passed in dedicated registers, ARG0 to ARG3. Although these arguments are always passed in registers, the stack frame reserves a memory location for them. A parameter list larger than four words will use the next locations for ARG5, ARG6 and so on. These arguments are always passed in the corresponding frame memory locations. Bytes, Half-Words and Words are passed by value in the argument register or corresponding memory location right-justified, zero-extended. A reference parameter is passed as a logical address. In case of a full virtual address both segment Id and offset occupy an argument slot each.
+
+// ??? open item: function labels...
 
 Upon return, the formal argument locations are used as the potential result return location. For example, a function return an integer value would return it in the register RET0.
 
 ### Local Calls
 
-Putting at all together, the following assembly code snippets a set of calling sequences. The first example will show a function that just adds two incoming arguments and returns the result. The example uses the register alias names. ARG0 and ARG1 are loaded with their values and a local call is made to the procedure. The target address of the called function is computed by the assembler and omitted in the examples to follow.
+
+The following figure shows a general flow of control for a local procedure call. In general the sequence consists of loading the arguments into registers or parameter area locations, saving any registers that are in the callers responsibility and branching to the target procedure. The called procedure will save the return link, allocate its stack frame and save any registers to be preserved across the call. Upon return, these registers are restored, the stack frame is deallocated and control transfers back via the return link to the caller procedure.
 
 ```
+      Caller:  ...
+               load arguments
+               save caller save registers
+               branch and link                      ------->  Callee:   save return link 
+                                                                        allocate stack frame
+                                                                        save callee save registers
+
+                                                                        ...
+
+                                                                        restore callee save registers
+                                                                        deallocate stack frame
+               restore caller save registers       <--------            branch to return link
+               ...
+```
+
+Depending on the kind of procedure, not all of these tasks need to be performed. For example, a leaf routine need not save the return link register. A routine with no local data, no usage pf callee save registers and being a leaf routine would not need a stack frame at all. there is great flexibility go omit steps not needed in the particular situation.
+
+The following assembly code snippets shows examples of the calling sequences. The first example will show a function that just adds two incoming arguments and returns the result. The example uses the register alias names. ARG0 and ARG1 are loaded with their values and a local call is made to the procedure. The target address of the called function is computed by the assembler and omitted in the examples to follow.
+
+```
+      Source code:
+
+      Func1( 500, 300 );                           int Func2( int a, b ) {
+                                                      return( a + b );
+                                                   }
+
+      Assembly:
+
       Caller "Func1"                               Callee "Func2"
 
       LDI ARG0, 500
@@ -3617,10 +3648,19 @@ Putting at all together, the following assembly code snippets a set of calling s
       ...                     <---------------     BV RL 
 ```
 
-The called function will just use the two incoming arguments, adds them and stores the result to RET0. The BV instruction will use the return address stored by the BL instruction to return. This example is very simple but also the most fundamental calling sequence. The called procedure does not make any further calls, hence there is no need to save a return link. In fact, the called procedure does not even need an own stack frame. Next is an example where the called procedure will itself also make a call. The called procedure also has two local variables.
+The called function will just use the two incoming arguments, adds them and stores the result to RET0. The BV instruction will use the return address stored by the BL instruction to return. This example is very simple but also the most fundamental calling sequence. The called procedure does not make any further calls, hence there is no need to save a return link. In fact, the called procedure does not even need an own stack frame. Next is a small example where the called procedure will itself also make a call. The called procedure also has two local variables.
 
 ```
-      "Func1"                                "Func2"                   "Func3"
+      Source code:
+
+      Func1( 500, 300 );                     int Func2( int a, b ) {                 int Func3( ) { } 
+                                                int local1, local2; 
+                                                Func3( a, b );
+                                             }
+
+      Assembly:
+
+      "Func1"                                "Func2"                                 "Func3"
 
       LDI ARG0, 500
       LDI ARG1, 300
@@ -3629,9 +3669,9 @@ The called function will just use the two incoming arguments, adds them and stor
                  
                                              ...
 
-                                             BL RL, "Func2"            --------------> ...
+                                             BL RL, "Func2"      -------------->     ...
 
-                                             ...                       <-------------- BV RL
+                                             ...                 <--------------     BV RL
 
                                              LDO -56(SP), SP
                                              LD RL, -8(SP)
@@ -3644,10 +3684,10 @@ The "Func2" procedure will its business and make a call to "Func3". The paramete
 
 When "Func2" returns, it will deallocate the stack frame by moving SP back to the previous frame, load the saved return link into RL and a BV instructions branches back to the aller "Func1". Phew.
 
-
 ### External Calls
 
 // code stubs to facilitate the external call, motivation to keep all calls local calls and make the external call via these short code sequences
+
 // calling stub
 // called stub
 // BLE instruction
@@ -3655,6 +3695,7 @@ When "Func2" returns, it will deallocate the stack frame by moving SP back to th
 
 ### Privilege level changes
 
+// privilege changes are also considered as external calls, although perhaps local calls
 // GATE instruction and external calls
 
 ### Traps and Interrupt handling
@@ -3663,7 +3704,9 @@ When "Func2" returns, it will deallocate the stack frame by moving SP back to th
 ### Debug
 
 
-### Startup sequence
+### System Startup sequence
+
+// what needs to be in place before we can load an operating system, or alike ... IPL / ISL ? 
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3704,7 +3747,7 @@ VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory add
 
 ### A pipelined CPU
 
-The first VCPU-32 implementation uses a three stage pipeline model. There stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
+The VCPU-32 reference implementation uses a three stage pipeline model. There stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
 
 - **Instruction fetch and decode**. The first stage will fetch the instruction word from memory and decode it. There are two parts. The first part of the stage will use the instruction address and attempt to fetch the instruction word from the instruction cache. At the same time the translation look-aside buffer will be checked whether the virtual to physical translation is available and if so whether the access rights match. The second part of the stage will decode the instruction and also read the general registers from the register file.
 

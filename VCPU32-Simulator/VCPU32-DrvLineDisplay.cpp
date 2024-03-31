@@ -245,7 +245,6 @@ void DrvLineDisplay::displayTlbEntry( TlbEntry *entry, TokId fmt ) {
     
     fprintf( stdout, "[" );
     if ( entry -> tValid( ))            fprintf( stdout, "V" ); else fprintf( stdout, "v" );
-    if ( entry -> tUncachable( ))       fprintf( stdout, "U" ); else fprintf( stdout, "u" );
     if ( entry -> tDirty( ))            fprintf( stdout, "D" ); else fprintf( stdout, "d" );
     if ( entry -> tTrapPage( ))         fprintf( stdout, "P" ); else fprintf( stdout, "p" );
     if ( entry -> tTrapDataPage( ))     fprintf( stdout, "D" ); else fprintf( stdout, "d" );

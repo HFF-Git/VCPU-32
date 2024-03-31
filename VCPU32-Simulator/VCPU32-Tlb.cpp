@@ -420,29 +420,24 @@ void TlbEntry::setValid( bool arg ) {
     setBit( &pInfo, 0, arg );
 }
 
-bool TlbEntry::tUncachable( ) {
+bool TlbEntry::tTrapPage( ) {
     
     return( getBitField( pInfo, 1, 1 ));
 }
 
-bool TlbEntry::tTrapPage( ) {
+bool TlbEntry::tDirty( ) {
     
     return( getBitField( pInfo, 2, 1 ));
 }
 
-bool TlbEntry::tDirty( ) {
+bool TlbEntry::tTrapDataPage( ) {
     
     return( getBitField( pInfo, 3, 1 ));
 }
 
-bool TlbEntry::tTrapDataPage( ) {
-    
-    return( getBitField( pInfo, 4, 1 ));
-}
-
 bool TlbEntry::tModifyExPage( ) {
     
-    return( getBitField( pInfo, 5, 1 ));
+    return( getBitField( pInfo, 4, 1 ));
 }
 
 uint32_t TlbEntry::tPageType( ) {

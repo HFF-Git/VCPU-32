@@ -308,9 +308,10 @@ void MemoryAccessStage::process( ) {
     uint32_t    pOfs        = psValX.get( ) % PAGE_SIZE;
     uint32_t    pAdr        = 0;
     uint32_t    dLen        = 4;
-    bool        unCacheable = false;
+   
     
-    // ??? a bit clearer .... how to do better ?
+    // ??? a bit clearer .... how to do better ? Add to opCodeTab flags ?
+    
     
     bool readAccessInstr  = ((( opMode >= 8 ) &&
                               (( opCode == OP_ADD ) || ( opCode == OP_SUB )    ||
@@ -495,9 +496,7 @@ void MemoryAccessStage::process( ) {
     
     //--------------------------------------------------------------------------------------------------------
     // Data load or store. This is the second half for instructions that read or write to memory. Access to
-    // the IO memory space is never cached. A physical memory address is handled by either accessing in
-    // virtual or absolute access mode. Finally, if code translation is enabled and the uncacachbel bit is
-    // set, the data access will bypass the cache.
+    // the IO memory space is never cached.
     //
     //--------------------------------------------------------------------------------------------------------
     if ( readAccessInstr || writeAccessInstr ) {
@@ -560,9 +559,7 @@ void MemoryAccessStage::process( ) {
                     return;
                 }
             }
-            
-            unCacheable = tlbEntryPtr -> tUncachable( );
-            
+           
             // revise the TLB data, see ITLB comment in FD stage ...
             //
             pAdr        = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;
@@ -573,25 +570,15 @@ void MemoryAccessStage::process( ) {
         
         if ( pAdr <= MAX_PHYS_MEM_SIZE ) {
             
-            if      ( readAccessInstr )     rStat = core -> mem -> readPhys( pAdr, dLen, &valB );
-            else if ( writeAccessInstr )    rStat = core -> mem -> writePhys( pAdr, dLen, valA );
+            if      ( readAccessInstr )  rStat = core -> dCacheL1 -> readVirt( valS, valX, pAdr, dLen, &valB );
+            else if ( writeAccessInstr ) rStat = core -> dCacheL1 -> writeVirt( valS, valX, pAdr, dLen, valA );
             
         } else {
             
-            // ??? change to use IO memory oBject...
-            
-            if ( unCacheable ) {
-                
-                if      ( readAccessInstr )  rStat = core -> mem -> readPhys( pAdr, dLen, &valB );
-                else if ( writeAccessInstr ) rStat = core -> mem -> writePhys( pAdr, dLen, valA );
-            }
-            else {
-                
-                if      ( readAccessInstr )  rStat = core -> dCacheL1 -> readVirt( valS, valX, pAdr, dLen, &valB );
-                else if ( writeAccessInstr ) rStat = core -> dCacheL1 -> writeVirt( valS, valX, pAdr, dLen, valA );
-            }
+            if      ( readAccessInstr )     rStat = core -> mem -> readPhys( pAdr, dLen, &valB );
+            else if ( writeAccessInstr )    rStat = core -> mem -> writePhys( pAdr, dLen, valA );
         }
-        
+    
         if ( ! rStat ) {
             
             stallPipeLine( );

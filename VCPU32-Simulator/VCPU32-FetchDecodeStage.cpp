@@ -323,7 +323,6 @@ void FetchDecodeStage::process( ) {
     uint32_t    pAdr            = instrOfs;
     uint32_t    pOfs            = instrOfs & PAGE_BIT_MASK;
     TlbEntry    *tlbEntryPtr    = nullptr;
-    bool        unCacheable     = false;
     
     setStalled( false );
     
@@ -360,45 +359,33 @@ void FetchDecodeStage::process( ) {
                 return;
             }
         }
-    
-        unCacheable = tlbEntryPtr -> tUncachable( );
         
         // ??? rethink this address. The TLB just keeps teh page bit also the bank and CPU id. All this does
         // fit in one 32-bit word. Bt we csannot also put in the offset.
         //
-        pAdr        = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;
+        pAdr = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Instruction word fetch. We have the physical address and now need to check whether this address is
-    // cachable. An address in IO Space is never cachable, and we pass on to the IO memory handler. A physical
-    // memory address is is handled by either reading in virtual or absolute access mode. Finally, if code
-    // translation is enabled and the uncacachbel bit is set, the data will read bypassing the cache.
+    // Instruction word fetch. If address translation was turned on, we have the segment and offset. If it was
+    // turned off or the access is an absolute address, the segment part is zero. Note that the architecture
+    // maps a "0.ofs" virtual address to "ofs" physical address. In both cases we will performa a virtual
+    // read, addfessig the cache. If the address is in physical memory, the data is cached, otherwise the
+    // address refers to I/O memory space and is never cached. We pass the request on to the IO memory
+    // handler.
     //
+    // ??? the name "readVirt" is perhaps a bit confusing ...
     //--------------------------------------------------------------------------------------------------------
     if ( pAdr <= MAX_PHYS_MEM_SIZE ) {
         
-        if ( unCacheable ) {
+        if ( ! core -> iCacheL1 -> readVirt( instrSeg, instrOfs, 4, pAdr, &instr )) {
             
-            if ( ! core -> mem -> readPhys( pAdr, 4, &instr )) {
-                
-                stallPipeLine( );
-                return;
-            }
-            
-        }  else {
-            
-            if ( ! core -> iCacheL1 -> readVirt( instrSeg, instrOfs, 4, pAdr, &instr )) {
-                
-                stallPipeLine( );
-                return;
-            }
+            stallPipeLine( );
+            return;
         }
         
     } else {
-        
-        // ??? needs to change to the readPhys of the IoMem object
-        //
+       
         if ( ! core -> mem -> readPhys( pAdr, 4, &instr )) {
             
             stallPipeLine( );
