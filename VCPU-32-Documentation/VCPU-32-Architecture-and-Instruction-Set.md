@@ -55,7 +55,129 @@
 
 Helmut Fieres
 Version B.00.03
-March, 2024
+April, 2024
+
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
+<!-- TOC -->
+
+- [VCPU-32 System Architecture and Instruction Set Reference](#vcpu-32-system-architecture-and-instruction-set-reference)
+    - [Introduction](#introduction)
+    - [Architecture Overview](#architecture-overview)
+        - [A Register Memory Architecture.](#a-register-memory-architecture)
+        - [Memory and IO Address Model](#memory-and-io-address-model)
+        - [Data Types](#data-types)
+        - [General Register Model](#general-register-model)
+        - [Processor State](#processor-state)
+        - [Control Registers](#control-registers)
+        - [Segmented Memory Model](#segmented-memory-model)
+        - [Address Translation](#address-translation)
+        - [Access Control](#access-control)
+        - [Adress translation and caching](#adress-translation-and-caching)
+        - [Translation Lookaside Buffer](#translation-lookaside-buffer)
+        - [Caches](#caches)
+        - [Page Tables](#page-tables)
+        - [Control Flow](#control-flow)
+        - [Privilege change](#privilege-change)
+        - [Interrupts and Exceptions](#interrupts-and-exceptions)
+    - [Instruction and Data Breakpoints](#instruction-and-data-breakpoints)
+    - [Instruction Set Overview](#instruction-set-overview)
+        - [General Instruction Encoding](#general-instruction-encoding)
+        - [Operand Encoding](#operand-encoding)
+        - [Instruction Operand Notation](#instruction-operand-notation)
+        - [Instruction Operation Notation](#instruction-operation-notation)
+        - [Instruction groups](#instruction-groups)
+    - [Memory Reference Instructions](#memory-reference-instructions)
+        - [LDW, LDH, LDB](#ldw-ldh-ldb)
+        - [STW, STH, STB](#stw-sth-stb)
+        - [LDWA](#ldwa)
+        - [LDWAX](#ldwax)
+        - [STWA](#stwa)
+        - [LDWR](#ldwr)
+        - [STWC](#stwc)
+    - [Immediate Instructions](#immediate-instructions)
+        - [LDIL](#ldil)
+        - [ADDIL](#addil)
+        - [LDO](#ldo)
+    - [Branch Instructions](#branch-instructions)
+        - [B](#b)
+        - [BL](#bl)
+        - [BR](#br)
+        - [BLR](#blr)
+        - [BV](#bv)
+        - [BVR](#bvr)
+        - [BE](#be)
+        - [BLE](#ble)
+        - [GATE](#gate)
+        - [CBR](#cbr)
+        - [TBR](#tbr)
+    - [Computational Instructions](#computational-instructions)
+        - [ADD](#add)
+        - [SUB](#sub)
+        - [AND](#and)
+        - [OR](#or)
+        - [XOR](#xor)
+        - [CMP](#cmp)
+        - [CMR](#cmr)
+        - [EXTR](#extr)
+        - [DEP](#dep)
+        - [DSR](#dsr)
+        - [SHLA](#shla)
+        - [LSID](#lsid)
+    - [System Control Instructions](#system-control-instructions)
+        - [MR](#mr)
+        - [MST](#mst)
+        - [LDPA](#ldpa)
+        - [PRB](#prb)
+        - [ITLB](#itlb)
+        - [PTLB](#ptlb)
+        - [PCA](#pca)
+        - [RFI](#rfi)
+        - [DIAG](#diag)
+        - [BRK](#brk)
+    - [Synthetic Instructions](#synthetic-instructions)
+    - [Instruction Set Summary](#instruction-set-summary)
+        - [Computational Instructions](#computational-instructions)
+        - [Memory Reference Instruction](#memory-reference-instruction)
+        - [Immediate Instructions](#immediate-instructions)
+        - [Absolute Memory Reference Instructions](#absolute-memory-reference-instructions)
+        - [Control Flow Instructions](#control-flow-instructions)
+        - [System Control Instructions](#system-control-instructions)
+    - [TLB and Cache Models](#tlb-and-cache-models)
+        - [Instruction and Data L1 Cache](#instruction-and-data-l1-cache)
+        - [Unified L2 Cache](#unified-l2-cache)
+        - [Instructions to manage caches](#instructions-to-manage-caches)
+        - [Instruction and Data TLBs](#instruction-and-data-tlbs)
+        - [Separate Instruction and Data TLB](#separate-instruction-and-data-tlb)
+        - [Joint TLBs](#joint-tlbs)
+        - [Instructions to manage TLBs](#instructions-to-manage-tlbs)
+    - [VCPU-32 Runtime Environment](#vcpu-32-runtime-environment)
+        - [The bigger picture](#the-bigger-picture)
+        - [Register Usage](#register-usage)
+        - [Calling Conventions and Naming](#calling-conventions-and-naming)
+        - [Stack and Stack Frames](#stack-and-stack-frames)
+        - [Stack Frame Marker](#stack-frame-marker)
+        - [Register Partitioning](#register-partitioning)
+        - [Parameter passing](#parameter-passing)
+        - [Local Calls](#local-calls)
+        - [External Calls](#external-calls)
+        - [Privilege level changes](#privilege-level-changes)
+        - [Traps and Interrupt handling](#traps-and-interrupt-handling)
+        - [Debug](#debug)
+        - [System Startup sequence](#system-startup-sequence)
+    - [VCPU-32 Input/Output system](#vcpu-32-inputoutput-system)
+        - [The physical address space](#the-physical-address-space)
+        - [Concept of an I/O Module](#concept-of-an-io-module)
+        - [External Interrupts](#external-interrupts)
+        - [A pipelined CPU](#a-pipelined-cpu)
+    - [Notes](#notes)
+        - [CHK instruction](#chk-instruction)
+        - [Address translation](#address-translation)
+
+<!-- /TOC -->
+
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -69,19 +191,19 @@ March, 2024
 >
 > "Seriously?“
 >
-> “OK, seriously. Designers of the eighties CPUs almost all used a micro-coded approach with hundreds of instructions. Also, registers were not really gesneric but often had a special function or meaning. The nineties shifted to RSIC based designs with large sets of registers, fixed word instruction length, and instructions that are in general pipeline friendly. What if these principles had found their way earlier into these designs? What if a large virtual address space, a fixed instruction length and simple pipeline friendly instructions had found their way into these designs ?
+> “OK, seriously. Designers of the eighties CPUs almost all used a micro-coded approach with hundreds of instructions. Also, registers were not really generic but often had a special function or meaning. And many instructions were rather complicated and the designers felt they were useful. The compiler writers often used a small subset ignoring these complex instructions because they were so specialized. The nineties shifted to RISC based designs with large sets of registers, fixed word instruction length, and instructions that are in general pipeline friendly. What if these principles had found their way earlier into these designs? What if a large virtual address space, a fixed instruction length and simple pipeline friendly instructions had found their way into these designs ?
 >
-> A 32-bit vintage CPU will give us a good set of design challenges to look into and opportunities to include modern RISC features and learn about instruction sets and pipeline design as any other CPU. Although not a modern design, it will still be a useful CPU. Let's see where this leads us."
+> A 32-bit vintage CPU will give us a good set of design challenges to look into and opportunities to include modern RISC features and learn about instruction sets and pipeline design as any other CPU. Although not a modern design, it will still be a useful CPU. Let's see where this leads us. Most importantly it is an undertaking that one person can truly understand. In todays systems this is became virtually impossible. And come on, it is simply fun to build something like a CPU on your own."
 >
 > "OK, so what do you have in mind ?"
 
-Welcome to VCPU-32. VCPU-32 is a simple 32-bit CPU with a register-memory model and a segmented virtual memory. The design is heavily influenced by Hewlett Packard's PA_RISC architecture, which was initially a 32 bit RISC-style register-register load-store machine. Many of the key architecture features came from there. However, other processors, the Data General MV8000, the DEC Alpha, and the IBM PowerPc, were also influential.
+Welcome to VCPU-32. VCPU-32 is a simple 32-bit CPU with a register-memory model and a segmented virtual memory. The design is heavily influenced by Hewlett Packard's PA_RISC architecture, which was initially a 32 bit RISC-style register-register load-store machine. Many of the key architecture features come from there. However, other processors, the Data General MV8000, the DEC Alpha, and the IBM PowerPc, were also influential.
 
 The original design goal that started this work was to truly understand the design process and implementation tradeoff for a simple pipelined CPU. While it is not a design goal to build a competitive CPU, the CPU should nevertheless be useful and largely follow established common practices. For example, instructions should not be invented because they seem to be useful, but rather designed with the assembler and compilers in mind. Instruction set design is also CPU design. Register memory architectures in the 80s were typically micro-coded complex instruction machine. In contrast, VCPU-32 instructions will be hard coded and should be in general "pipeline friendly" and avoid data and control hazards and stalls where possible.
 
-The instruction set design guidelines center around the following principles. First, in the interest of a simple and efficient instruction decoding step, instructions are of fixed length. A machine word is the instruction word length. As a consequence, address offsets are rather short and addressing modes are required for reaching the entire address range. Instead of a multitude of addressing modes, typically found in the CPUs of the 80s and 90s, VCPU-32 offers very few addressing modes with a simple base address - offset calculation model. No indirection or any addressing mode that would require to read a memory content for address calculation is part of the architecture.
+The instruction set design guidelines center around the following principles. First, in the interest of a simple and efficient instruction decoding step, instructions are of fixed length. A machine word is the instruction word length. As a consequence, address offsets are rather short and addressing modes are required for reaching the entire address range. Instead of a multitude of addressing modes, typically found in the CPUs of the 80s and 90s, VCPU-32 offers very few addressing modes with a simple base address - offset calculation model. No indirection or any addressing mode that would require to read a memory item for address calculation is part of the architecture.
 
-There will be few instructions in total, however, depending on the instruction several options for the instruction execution are encoded to make an instruction more versatile. For example, a boolean instruction will offer options to negate the result thus offering and "AND" and a "NAND" with one instruction. Wherever possible, useful options such as the one outlined before are added to an instruction, such that it covers a range of instructions typically found on the CPUs looked into.
+There will be few instructions in total, however, depending on the instruction several options for the instruction execution are encoded to make an instruction more versatile. For example, a boolean instruction will offer options to negate the result thus offering and "AND" and a "NAND" with one instruction. Wherever possible, useful options such as the one outlined before are added to an instruction, such that it covers a range of instructions typically found on the CPUs looked into. Great emphasis is placed in that such options do not overly complicated the pipeline and increase the overall data path length slightly.
 
 Modern RISC CPUs are load/store CPUs and feature a large number of general registers. Operations takes place between registers. VCPU-32 follows a slightly different route. There is a rather small number of general registers leading to a model where one operand is fetched from memory. There are however no instructions that read and write to memory in one instruction cycle as this would complicate the design considerably.
 
@@ -95,7 +217,7 @@ This document describes the architecture, instruction set and runtime for VCPU-3
 
 ## Architecture Overview
 
-This chapter presents an overview on the VCPU-32 architecture.
+This chapter presents an overview on the VCPU-32 architecture. The chapter introduces the memory model, the register set, address translation and trap handling. 
 
 ### A Register Memory Architecture.
 
@@ -245,7 +367,7 @@ The **control registers** hold information about the processor configuration as 
 | 19 |  **I-IA-OFS** | When an interrupt or trap is encountered, control register holds the current instruction address offset. |
 | 20 - 22 | **I-PARM-n** | Interrupts and pass along further information through these control registers. |
 | 23 | **I-EIM** | External interrupt mask. |
-| 24 - 31 | **TEMP-n** | These control registers are scratch pad registers. Temporary registers are typically used in an interrupt handlers as a scratch register space to save general registers so that they can be used in the interrupt routine handler. They also contain some further values for the actual interrupt. These register will neither be saved nor restored upon entry and exit from an interrupt. |
+| 24 - 31 | **TMP-n** | These control registers are scratch pad registers. Temporary registers are typically used in an interrupt handlers as a scratch register space to save general registers so that they can be used in the interrupt routine handler. They also contain some further values for the actual interrupt. These register will neither be saved nor restored upon entry and exit from an interrupt. |
 
 ### Segmented Memory Model
 
@@ -283,7 +405,7 @@ The VCPU-32 memory model features a **segmented memory model**. The address spac
        :-------------------------------------------:
 ```
 
-Implementations may not utilize the full 32-bit segment ID space. For example, a CPU could only implement a 16-bit segement Id, allowing for 65636 segments. Segments should be considered as address ranges from which an operatings system allocates virtual memory space for code and data objects. 
+Implementations may not utilize the full 32-bit segment ID space. For example, a CPU could only implement a 16-bit segment Id, allowing for 65636 segments. Segments should be considered as address ranges from which an operating system allocates virtual memory space for code and data objects. 
 
 ### Address Translation
 
@@ -365,7 +487,7 @@ TLB fields (example):
    :-----------------------------------------------------------------------------------------------:
    : VPN - high                                                                                    :
    :-----------------------------------------------------------------------------------------------:
-   : 0                                 : VPN - low                                                 :
+   : VPN - low                                                 : 0                                 :
    :-----------------------------------------------------------------------------------------------:
    : 0         : CPU-ID    : Bank      : PPN                                                       :
    :-----------------------------------------------------------------------------------------------:
@@ -386,7 +508,7 @@ TLB fields (example):
 | **PPN-BANK** | the memory bank number. ( to be defined ) |
 | **CPU-ID** | the CPU ID number. ( to be defined ) |
 
-When address translation is disabled, the respective TLB is is bypassed and the address represents a physical address in bank zero at the local CPU as described before. Also, protection ID checking is disabled. The U, D, T, B only apply to a data TLB. The X bit is only applies to the instruction TLB. When the processor cannot find the address translation in the TLB, a TLB miss trap will invoke a software handler. The handler will walk the page table for an entry that matches the virtual address and update the TLB with the corresponding physical address and access right information, otherwise the virtual page is not in main memory and there will be a page fault to be handled by the operating system. In a sense the TLB is the cache for the address translations found in the page table. The implementation of the TLB is hardware dependent.
+When address translation is disabled, the respective TLB is bypassed and the address represents a physical address in bank zero at the local CPU as described before. Also, protection ID checking is disabled. The U, D, T, B only apply to a data TLB. The X bit is only applies to the instruction TLB. When the processor cannot find the address translation in the TLB, a TLB miss trap will invoke a software handler. The handler will walk the page table for an entry that matches the virtual address and update the TLB with the corresponding physical address and access right information, otherwise the virtual page is not in main memory and there will be a page fault to be handled by the operating system. In a sense the TLB is the cache for the address translations found in the page table. The implementation of the TLB is hardware dependent.
 
 To accommodate an even larger physical memory, a memory bank identifier was added. Up to 16 banks are allowed. However, the LDA/STA instructions can only access the first bank, the bank with a zero identifier. All other banks can only be reached with a virtual address. The maximum physical memory is thus 64 Gbytes. The TLB contains a bank and the physical offset for as translation result. In addition, it is envisioned that several CPUs, up to 16 CPUs, can be connected to form a cluster. The CPU-ID the also becomes part of the physical address, referring to an address located on another CPU bank and offset. Right now, this feature is not supported yet.
 
@@ -412,19 +534,19 @@ Page Table Entry (Example):                                                     
                                                                                                        |
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31    |
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:   |
-   :V :U :T :D :B :X : AR        :                 : Protect-ID                                    : <-+
+   :V :T :D :B :X :  : AR        :                 : Protect-ID                                    : <-+
    :-----------------------------------------------------------------------------------------------:
    : reserved                                                                                      :
    :-----------------------------------------------------------------------------------------------:
    : reserved                                                                                      :
    :-----------------------------------------------------------------------------------------------:
    : reserved                                                                                      :
-   :-----------------------------------------------------------------------------------------------:
-   : reserved              :  Bank     : PPN                                                       :
-   :-----------------------------------------------------------------------------------------------:
-   : reserved                          : VPN - low                                                 :
    :-----------------------------------------------------------------------------------------------:
    : VPN - high                                                                                    :
+   :-----------------------------------------------------------------------------------------------:
+   : VPN - low                                                 : 0                                 : 
+   :-----------------------------------------------------------------------------------------------:
+   : reserved              :  Bank     : PPN                                                       :
    :-----------------------------------------------------------------------------------------------:
    : physical address of next entry in chain                                                       :
    :-----------------------------------------------------------------------------------------------:
@@ -435,7 +557,6 @@ Each page table entry contains at least the virtual page address, the physical p
 | Field | Purpose |
 |--------|--------|
 | **V** | the entry is valid. |
-| **U** | un-cacheable. The page will not be cached, memory is accessed directly. |
 | **T** | page reference trap. If the bit is set, a reference to the page results in a trap.|
 | **D** | dirty trap. If the bit is set, the first write access to the TLB raises a trap.|
 | **B** | data reference trap. If the bit is set, access to the data page raises a trap. |
@@ -475,7 +596,7 @@ Control flow is implemented through a set of branch instructions. They can be cl
 
 **Conditional Branches**. VCPU-32 features two conditional branch instructions. These instructions compares two register values or test a register for a certain condition. If the condition is met a branch to the target address is performed.  The target address is always a local address and the offset is instruction address relative. Conditional branches adopt a static prediction model. Forward branches are assumed not taken, backward branches are assumed taken.
 
-### Privilege changes
+### Privilege change
 
 Modern processors support the distinction between several privilege levels. Instructions can only access data or execute instructions when the privilege level matches the privilege level required. Two or four levels are the most common implementation. Changing between levels is often done with a kind of trap operation to a higher privilege level software, for example the operating system kernel. However, traps are expensive, as they cause a CPU pipeline to be flush when going through a trap handler.
 
@@ -529,7 +650,7 @@ The control register I-BASE-ADR holds the absolute address of the interrupt vect
 
 A fundamental requirement is the ability to set instruction and data breakpoints. An instruction breakpoint is encountering the BRK instruction in an instruction stream. The break instruction will cause an instruction break trap and pass control to the trap handler. Just like the other traps, the pipeline will be emptied by completing the instructions in flight and flushing all instructions after the break instruction. Since break instructions are normally not in the instruction stream, they need to be set dynamically in place of the instruction normally found at this instruction address. The key mechanism for a debugger is then to exchange the instruction where to set a break point, hit the breakpoint and replace again the break point instruction with the original instruction when the breakpoint is encountered. Upon continuation and a still valid breakpoint for that address, the break point needs to be set after the execution of the original instruction.
 
-Since a code is non-writeable, there needs to be a mechanism to allow the temporary modification of the instruction. One approach is to change the page type temporarily to a data page and do the modification and change it back again. Care has to be taken to ensure the caches are properly flushed, since a modification ends up in the data cache. Another approach is to allocate a debug bit for the page table. The continuous instruction privilege check would also check the debug bit and in this case allow to write to a code page. All these modifications only take place at the highest privilege level. When resuming the debugger, the original instruction executes and after execution, the break point instruction needs to be set again, if desired. This would be the second  trap, but this time only the break point is set again.
+Since a code page is non-writeable, there needs to be a mechanism to allow the temporary modification of the instruction. One approach is to allocate a debug bit for the page table. The continuous instruction privilege check would also check the debug bit and in this case allow to write to a code page. All these modifications only take place at the highest privilege level. When resuming the debugger, the original instruction executes and after execution, the break point instruction needs to be set again, if desired. This would be the second  trap, but this time only the break point is set again.
 
 Data breakpoints are traps that are taken when a data reference to the page is done. They do not modify the instruction stream. Depending on the data access, the trap could happen before or after the instruction that accesses the data. A write operation is trapped before the data is written, a read instruction is trapped after the instruction took place.
 
@@ -583,9 +704,9 @@ There is one **immediate operand mode**, which supports a signed 17-bit value. T
 
 The **register modes** specify one or two registers for the operation. Operand group mode 1 features two sub modes. Submode 0 sets "a" to zero and passes the other argument in "b". This mode is typically used for operations that use a zero value as one of the arguments. For example, the operation "zero - b" can be used in the  SUB instruction, which will subtract the "b" register from a zero value. This is essentially a negate operation. Operand mode group 1 and sub mode 1 will use "a" and "b" as input to the operation of the instruction.
 
-The machine addresses memory with a byte address. There are indexed and register indexed operand mode groups. Operand group mode 2 is the **register indexed address mode**, which will use a base register "b" and add an offset in "a" to it, forming the final byte address offset. The **seg** field manages the segment register selection. A value of zero will use the upper two bits of the computed offset to select from SR4 to SR7. A value of 1 to 3 will select SR1 to SR3. SR0 is not used in this operand scheme. It is used as a target register for an external branch or a segment scratch register. The **dw**** field specifes the data field width. A value of zero represent a word, 1 a half-word and 2 a byte. The computed address must be aligned with the size of data to fetch. 
+The machine addresses memory with a byte address. There are indexed and register indexed operand mode groups. Operand group mode 2 is the **register indexed address mode**, which will use a base register "b" and add an offset in "a" to it, forming the final byte address offset. The **seg** field manages the segment register selection. A value of zero will use the upper two bits of the computed offset to select from SR4 to SR7. A value of 1 to 3 will select SR1 to SR3. SR0 is not used in this operand scheme. It is used as a target register for an external branch or a segment scratch register. The **dw**** field specifies the data field width. A value of zero represent a word, 1 a half-word and 2 a byte. The computed address must be aligned with the size of data to fetch. 
 
-The final operand mode group is the **indexed address mode** group. The operand address is built by adding an offset to the base register "b". The offset field is a signed 11 bit field. The sign bit is in the rightmost position of the field. Depending on the sign, the remaining value in the field is sign extended or zero extended. The **dw**** field specifes the data field width. A value of zero represent a word, 1 a half-word and 2 a byte. The computed address must be aligned with the size of data to fetch. 
+The final operand mode group is the **indexed address mode** group. The operand address is built by adding an offset to the base register "b". The offset field is a signed 11 bit field. The sign bit is in the rightmost position of the field. Depending on the sign, the remaining value in the field is sign extended or zero extended. The **dw**** field specifies the data field width. An opMode value of zero represent a word, opMode 1 a half-word and opMode 2 a byte. OpMode 3 is reserved for a double word option, not implemented yet. The computed address must be aligned with the size of data item to fetch. 
 
 There are no auto pre/post offset adjustment or indirect modes. Indirect addressing modes are not pipeline friendly, they require an additional memory access. Pre or post offset adjustments have not been implemented so far. Nevertheless, auto pre/post adjustment would be an option for the load/store type instructions.
 
@@ -603,7 +724,7 @@ Each instruction is also presented in an assembler style format. The field names
 | Indexed | 3 | ST 100(r12), r4 | Store r4 to the virtual memory address formed by adding 100 to r12 and selecting based on the upper two bits the segment register. "seg" field is 0, "dw" field is 0, "ofs" field is 100, r12 in "b" | 
 | Indexed | 3 | ORH r5, 100( s1, r12) | OR r5 to the halfword content found at virtual memory address formed by adding 100 to r12 and segment register s1. "seg" field is one, "dw" field is 1, "ofs" field is 100, r12 in "b"  | 
 
-The instruction described in the following chapter that use an operand encoding will refer to it with the name "operand". As shown above, the operand syntax controls how the parameters "opMode", "seg", "dw", "val", "a" and "b" are set in an instruction.
+The instruction described in the following chapter that use an operand encoding will refer to it with the name "operand". As shown above, the operand syntax controls how the parameters "opMode", "seg", "dw", "val", "a" and "b" are set in an instruction. For opMode zero, the subModes are encoded in the "seg" field.
 
 ### Instruction Operation Notation
 
@@ -616,10 +737,10 @@ The instructions described in the following chapters contain the instruction wor
 | **signExtend( x, len )** | performs a sign extension of the value "x". The "len" parameter specifies the number of bits in the immediate. The sign bit is the leftmost bit. |
 | **zeroExtend( x, len )** | performs a zero bit extension of the value "x". The "len" parameter specifies the number of bits in the immediate.|
 | **segSelect( x )** | returns the segment register number based on the leftmost two bits of the argument "x". |
+| **ofsSelect( x )** | returns the 30-bit offset portion of the argument "x". |
 | **operandAdrSeg( instr )** | computes the segment Id from the instruction and mode information. ( See the operand encoding diagram for modes ) |
 | **operandAdrOfs( instr )** | computes the offset portion from the instruction and mode information. ( See the operand encoding diagram for modes ) |
 | **operandBitLen( instr )** | computes the operand bit length from the instruction and mode information. ( See the operand encoding diagram for modes ) |
-| **ofsSelect( x )** | returns the 30-bit offset portion of the argument "x". |
 | **rshift( x, amt )** | logical right shift of the bits in x by "amt" bits. |
 | **memLoad( seg, ofs, bitLen )** | loads data from virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. The bitLen is teh number of bits to load. If the bitLen is less than 32, the data is zero sign extended. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to load a word from physical memory.  |
 | **memStore( seg, ofs, val, bitLen )** | store data to virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to store the word "val" from physical memory. |
@@ -640,6 +761,7 @@ The instructions described in the following chapters contain the instruction wor
 
 The next chapters present the instruction set. The set itself is divided into several groups. The **memory reference** group contains the instructions to load ans store to virtual and physical memory. The **immediate** group contains the instructions for building an immediate value up to 32 bit. The **branch** group present the conditional and unconditional instructions. The **computational** instructions perform arithmetic, boolean and bit functions such as bit extract and deposit. Finally, the **control** instruction group contains all instructions for managing HW elements such as caches and TLBs, register movements, as well as traps and interrupt handling. 
 
+
 <!--------------------------------------------------------------------------------------------------------->
 
 <div style="page-break-before: always;"></div>
@@ -651,6 +773,7 @@ Memory reference instruction operate on memory and a general register with a uni
 The instructions use a **W** for word, a **H** for half-word and a **B** for byte operand size. The **LDx** and **STx** instruction are load and store using the operand encoding to specify the actual address. Using logical addresses restricts the segment size to 30-bit address range. To address the entire 32-bit range possible in a segment, the segment selector needs to specify one of the SR1 to SR3 registers. The **LDAW**, **LDWAX**  and **STAW** instruction implement access to the physical memory computing a physical address to access. For supporting atomic operations two instructions are provided. The **LDWR** instruction loads a value form memory and remember this access. The **STWC** instruction will store a value to the same location that the LR instructions used and return a failure if the value was modified since the last LR access. This CPU pipeline friendly pair of instructions allow to build higher level atomic operations on top.
 
 Memory reference instructions can be issued when data translation is on and off. When address translation is turned off, the memory reference instructions will ignore the segment part and replace it with a zero value. It is an architectural requirement that a virtual address with a segment Id of zero maps to an absolute address with the same offset. The absolute address mode instruction also works with translation turned on and off. The extended address mode instructions will raise a trap.
+
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -703,6 +826,7 @@ The load instruction will load the operand into the general register "r". See th
 #### Notes
 
 None.
+
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -1130,12 +1254,12 @@ Loads the effective address offset of the operand.
 
 #### Description
 
-The LDO instruction loads an offset into general register "r". For operand mode 0 the immediate value is loaded. For operand modes 2 and 3 the instruction just performs the address computation part comparable to the **LDx** instruction, however with no memory access. See the section on the defined operand modes. Note that the does not matter whether the word, half-word or byte related operand mode is used for the address offset computation. In the assembler notation the "W", "H" and "B" option is therefore omitted.
+The LDO instruction loads an offset into general register "r". For operand mode 0 the immediate value is loaded. For operand modes 2 and 3 the instruction just performs the address computation part comparable to the **LDx** instruction, however with no memory access. See the section on the defined operand modes.
 
 #### Operation
 
 ```
-   if ( opMode == 2 ) illegalInstructionTrap( );
+   if ( opMode == 1 ) illegalInstructionTrap( );
 
    GR[r] <- operandAdrOfs( instr );
 ```
@@ -1146,9 +1270,9 @@ The LDO instruction loads an offset into general register "r". For operand mode 
 
 #### Notes
 
-The LDO instruction calculates the offset portion. Although the format of the instruction uses the operand encoding, the segemnt part is ignored of the operand mode is ignored, but can be specified. The assembler should by convention emit a seg field of zero.
+The LDO instruction calculates the offset portion. Although the format of the instruction uses the operand encoding, the segemnt part is ignored, but can be specified. The assembler should by convention emit a seg field of zero. Also, it does not matter whether the word, half-word or byte related operand mode is used for the address offset computation. In the assembler notation the "W", "H" and "B" option is therefore omitted.
 
-The assembler uses the LDO instruction in opMode zero for a "LDI r, val" pseudo instruction to load an immediate value into a general register.
+The assembler uses the LDO instruction in opMode zero for a "LDI r, val" synthetic instruction to load an immediate value into a general register.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1552,19 +1676,18 @@ The GATE instruction computes the target address by adding "ofs" shifted by 2 bi
 #### Operation
 
 ```
-   GR[r] <- IA-OFS.[P];
+   GR[r]  <- ST.[P];
+   IA-OFS <- IA-OFS + lowSignExt(( ofs << 2 ), 24 );
 
    if ( ST.[C] ) {
 
-      searchInstructionTlbEntry( seg, ofs, &entry );
+      tmp = IA-OFS + lowSignExt(( ofs << 2 ), 24 );
 
-      if ( entry.[PageType] == 3 ) priv <- entry.[PL1];
-      else                         priv <- IA-OFS.[P];
+      searchInstructionTlbEntry( IA-SEG, tmp, &entry );
+
+      if ( entry.[PageType] == 3 ) ST.[P] <- entry.[PL1];
    
-   } else priv <- 0;
-
-   IA-OFS     <- IA-OFS + lowSignExt(( ofs << 2 ), 24 );
-   IA-OFS.[P] <- priv;
+   } else ST.[P] <- 0;
 ```
 
 #### Exceptions
@@ -3004,8 +3127,6 @@ Restore the processor state and restart execution.
 
 The RFI instruction restores the instruction address segment, instruction address offset and the processor status register from the control registers I-IA-SEG, I-IA-OFS and I-STAT.
 
-// ??? **note** perhaps an option to also restore some shadow regs ? ( GR and SRs ? )
-
 #### Operation
 
 ```
@@ -3023,6 +3144,8 @@ The RFI instruction restores the instruction address segment, instruction addres
 #### Notes
 
 The RFI instruction is also used to perform a context switch. Changing from one thread to another is accomplished by loading the control registers **I-IA-SEG**, **I-IA-OFS** and **I-STAT** and then issue the RFI instruction. Setting bits other than the system mask is generally accomplished by constructing the respective status word and then issuing an RFI instruction to set them.
+
+There could be an option to also restore some of the general and segment registers from a set of shadow registers to which they have been saved when the interrupt occurred. The current implementation does not offer this option.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3115,9 +3238,13 @@ The instruction opCode for BRK is the opCode value of zero. A zero instruction w
 
 <div style="page-break-before: always;"></div>
 
-## Pseudo Instructions
+## Synthetic Instructions
 
-The instruction set allows for a rich set of options on the individual instruction functions. Setting a defined option bit in the instruction adds useful capabilities to an instruction with little additional overhead to the overall data path. For better readability, pseudo operations could be defined that allows for an easier usage. Furthermore, some instructions have no assembler format counterpart. The only way to execute them is through the pseudo operation. This applies for example to the operand mode one case in computational instructions. For pseudo instructions, options and traps are those specified by the actually used instructions.
+The instruction set allows for a rich set of options on the individual instruction functions. Setting a defined option bit in the instruction adds useful capabilities to an instruction with little additional overhead to the overall data path. For better readability, synthetic instructions could be defined that allows for an easier usage. Furthermore, some instructions have no assembler syntax format counterpart. For example all the opMode one instructions cannot directly be written with the current assembler syntax. The only way to execute them is through defining a synthetic instruction where the assembler then generate the corresponding real instruction. 
+
+There is also the case where the assembler could simplify the coding process by emitting instruction sequences that implement often used code sequences. For example consider the load an immediate value operation. When the immediate value is larger than what the instruction field can hold, a two instruction sequence is used to load an arbitrary 32-bit value. An assembler could offer a generic "load immediate" synthetic instruction and either use a one instruction or two instruction sequence. Another example is the case where the offset to a base register is not large enough to reach the data item. A two instruction sequence using the ADDIL instruction could transparently be emitted by the assembler.
+
+The following table shows potential synthetic instructions.
 
 | Pseudo Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
@@ -3368,26 +3495,23 @@ In contrast to the L1 caches, the L2 cache is physically indexed and physically 
 
 ### Instructions to manage caches
 
-While cache flushes and deletions are under software control, cache insertions are alway done by hardware. The PCA instruction manages the cache flush and deletion. A cache is typically organized in cache lines, which are the unit of tranfer between the layers of the memory hierarchy. The PCA instruction will flush and/or purge the cache line corresponding to the virtual address. A data page ca be flushed and then purged or just purged. A code page can only be purged. 
+While cache flushes and deletions are under software control, cache insertions are alway done by hardware. The PCA instruction manages the cache flush and deletion. A cache is typically organized in cache lines, which are the unit of transfer between the layers of the memory hierarchy. The PCA instruction will flush and/or purge the cache line corresponding to the virtual address. A data page ca be flushed and then purged or just purged. A code page can only be purged. 
 
 ### Instruction and Data TLBs
 
-Computers with virtual addressing simply cannot work without a **translation look-aside buffer** (TLB). For each instruction using a virtual address for instruction fetch and data access a translation to the physical memory address needs to be performed. The TLB is a kind of cache for translations and comparable to the data caches, separate instruction and data TLBs are the common implementation.
+Computers with virtual addressing simply cannot work without a form of **translation look-aside buffer** (TLB). For each instruction using a virtual address for instruction fetch and data access a translation to the physical memory address needs to be performed. The TLB is a kind of cache for translations and comparable to the data caches, separate instruction and data TLBs are the common implementation.
 
 ### Separate Instruction and Data TLB
 
-TLBs are indxed by a portion of the virtual address. 
-
-- direct mapped model
-- set associative model
+TLBs are indexed by a portion of the virtual address. There is the option of a simple direct mapped TLB, set associative TLBs and a fully associative TLBs. Naturally, a fully associative TLB has only few entries versus the mapped models.
 
 ### Joint TLBs
 
-- models with a small fully associative I-TLB fed from a joint TLB for code and data pages. 
+Another implementation could combine both TLB units. Both types of translation are kept in one store. In addition, a small fully associative instruction TLB holds entries from the unified TLB. An instruction TLB miss has priority over a daa TKLB miss.
 
 ### Instructions to manage TLBs
 
-TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for insertion and deletion of TLB entries.
+TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for insertion and deletion of TLB entries. The insert into TLB instructions perform the insertion in two parts. The first instruction puts the address related information into a TLB entry but marks the entry not valid yet. The second insert into TLB instruction will enter access right related information and marks teh entry valid.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3480,7 +3604,7 @@ The runtime description uses a basic model to describe the calling convention. T
       :----------------:                :----------------:
 ```
 
-**"Call"** transfers control to the callee. **"Entry"** is the point of entry to the callee. **"Exit"** is the point of exit from the caller. **"Return"** is the return point of program control to the caller. In addition, there could be pieces of code that enable more complex calling mechanisms such as inter module calls. They are called stubs. Typically, these stubs are added by a linker or loader when preparing the program.
+**"Call"** transfers control to the callee. **"Entry"** is the point of entry to the callee. **"Exit"** is the point of exit from the caller. **"Return"** is the return point of program control to the caller. In addition, there could be pieces of code that enable more complex calling mechanisms such as inter module calls. They are called stubs. Typically, these stubs are added by a linker or loader when preparing the program. The section on external calls will explain stubs in more detail.
 
 ### Stack and Stack Frames
 
@@ -3608,7 +3732,6 @@ Upon return, the formal argument locations are used as the potential result retu
 
 ### Local Calls
 
-
 The following figure shows a general flow of control for a local procedure call. In general the sequence consists of loading the arguments into registers or parameter area locations, saving any registers that are in the callers responsibility and branching to the target procedure. The called procedure will save the return link, allocate its stack frame and save any registers to be preserved across the call. Upon return, these registers are restored, the stack frame is deallocated and control transfers back via the return link to the caller procedure.
 
 ```
@@ -3634,17 +3757,17 @@ The following assembly code snippets shows examples of the calling sequences. Th
 ```
       Source code:
 
-      Func1( 500, 300 );                           int Func2( int a, b ) {
+      func1( 500, 300 );                           int func2( int a, b ) {
                                                       return( a + b );
                                                    }
 
       Assembly:
 
-      Caller "Func1"                               Callee "Func2"
+      Caller "func1"                               Callee "func2"
 
       LDI ARG0, 500
       LDI ARG1, 300
-      BL  RL, "Func2"         ---------------->    ADD RET0, ARG0, ARG1
+      BL  RL, "func2"         ---------------->    ADD RET0, ARG0, ARG1
       ...                     <---------------     BV RL 
 ```
 
@@ -3653,23 +3776,23 @@ The called function will just use the two incoming arguments, adds them and stor
 ```
       Source code:
 
-      Func1( 500, 300 );                     int Func2( int a, b ) {                 int Func3( ) { } 
+      func1( 500, 300 );                     int func2( int a, b ) {                 int func3( ) { } 
                                                 int local1, local2; 
-                                                Func3( a, b );
+                                                func3( a, b );
                                              }
 
       Assembly:
 
-      "Func1"                                "Func2"                                 "Func3"
+      "func1"                                "func2"                                 "func3"
 
       LDI ARG0, 500
       LDI ARG1, 300
-      BL  RL, "Func1"      -------------->   ST -8(SP), RL
+      BL  RL, "func1"      -------------->   ST -8(SP), RL
                                              LDO SP, 56(SP)
                  
                                              ...
 
-                                             BL RL, "Func2"      -------------->     ...
+                                             BL RL, "func2"      -------------->     ...
 
                                              ...                 <--------------     BV RL
 
@@ -3678,20 +3801,46 @@ The called function will just use the two incoming arguments, adds them and stor
       ...                  <--------------   BV RL 
 ```
 
-The caller "Func1" will produce its arguments and stores them in ARG0 and ARG1, as in the example before. If there were more than four arguments, they would have been stored with a ST instruction in their stack frame location. The callee "Func2" is this time a procedure that calls another procedure and this needs a stack frame. First, the return link is saved to the frame marker of "Func1". RL will be overwritten by the call to "Func3" and hence needs to be saved. Next the stack frame for "Func2" is allocated. The size is 32bytes for the frame marker, 16 bytes for the 4 arguments ARG0 to ARG1. Note that even when there are fewer than 4 arguments, the space is allocated. Finally there are two local variables. In sum the frame is 56 bytes. The LDO instruction will move the stack accordingly. 
+The caller "func1" will produce its arguments and stores them in ARG0 and ARG1, as in the example before. If there were more than four arguments, they would have been stored with a ST instruction in their stack frame location. The callee "func2" is this time a procedure that calls another procedure and this needs a stack frame. First, the return link is saved to the frame marker of "Func1". RL will be overwritten by the call to "func3" and hence needs to be saved. Next the stack frame for "Func2" is allocated. The size is 32bytes for the frame marker, 16 bytes for the 4 arguments ARG0 to ARG1. Note that even when there are fewer than 4 arguments, the space is allocated. Finally there are two local variables. In sum the frame is 56 bytes. The LDO instruction will move the stack accordingly. 
 
-The "Func2" procedure will its business and make a call to "Func3". The parameters are prepared and a BL instruction branches to "Func3". "Func3" is a leaf procedure and there is no need for saving RL. If "Func3" has local variables, then a frame will be allocated. Also, if "Func3" would use a callee save register, there needs to be a spill area to seve them before usage. The spill area is a pat of the local data area too. "Func3" returns with the BV instruction as before.
+The "func2" procedure will its business and make a call to "func3". The parameters are prepared and a BL instruction branches to "func3". "func3" is a leaf procedure and there is no need for saving RL. If "func3" has local variables, then a frame will be allocated. Also, if "func3" would use a callee save register, there needs to be a spill area to seve them before usage. The spill area is a pat of the local data area too. "func3" returns with the BV instruction as before.
 
-When "Func2" returns, it will deallocate the stack frame by moving SP back to the previous frame, load the saved return link into RL and a BV instructions branches back to the aller "Func1". Phew.
+When "func2" returns, it will deallocate the stack frame by moving SP back to the previous frame, load the saved return link into RL and a BV instructions branches back to the aller "func1". Phew.
 
 ### External Calls
 
-// code stubs to facilitate the external call, motivation to keep all calls local calls and make the external call via these short code sequences
+Assemblers and compilers should not create different calling sequences depending on whether particular call is local to a module or referringto a procedure in another module. Procedure calls are thus always local calls. Likewise a called function will return via a local branch. When a call is crossing a module boundary, small peieces of code need to be added which perform the additional work. These code sequences are called **stubs**. There are import stubs that are added for a procedure that makes an external call and export stubs for procedure that are a target for an external call. 
 
-// calling stub
-// called stub
-// BLE instruction
-// BE instruction
+```
+       Calling module "A"                                       Called module "B"
+
+      :------------------------:                               :------------------------:
+      :                        :                               :                        :  
+      :                        :                               :                        :  
+      :                        :                               :                        :  
+      :------------------------:                               :------------------------:  
+      :  ...      func "FA"    :                               :           func "FB"    : <----: 
+      :  BL                    : ----:                         :                        :      :
+      :  ...                   : <--------------------:        :                        :      :
+      :                        :     :                :        : BV                     : ------------:
+      :------------------------:     :                :        :------------------------:      :      :
+      :                        :     :                :        :                        :      :      :
+      :                        :     :                :        :                        :      :      :
+      :                        :     :                :        :                        :      :      :
+      :------------------------:     :                :        :------------------------:      :      :
+      :                        : <---:      :----------------> : BL                     : -----:      :
+      :     Import Stub                     :         :        :                        :             :
+      :                        :            :         :        :                        :             :
+      : BLE                    : -----------:         :        :    Export Stub         :             :
+      :------------------------:                      :        :                        : <-----------:
+      :                        :                      :------- : BE                     :  
+      :                        :                               :------------------------:   
+      :                        :                               :                        :  
+      :                        :                               :                        :  
+      :------------------------:                               :------------------------:            
+```
+
+The diagram shows "FA" in module "A" calling "FB" in module "B". To call "FB", an import stub is added to module "A". All routines in "A" will use this stub when calling "FB" in module "B". After some housekeeping, the import stub makes an external call using the BLE instruction. The target is another stub, the export stub for "B". Every procedure that is export from a module needs to have such an export stub code sequence. The export stub will perform a local branch and link to the target procedure "FB". "FB" will upon return just branch back to the export stub. As a last step, the export stub will perform an external branch to the location after the call instruction in "FA".
 
 ### Privilege level changes
 
@@ -3763,15 +3912,27 @@ Note that this is perhaps one of many ways to implement a pipeline. The three ma
 
 ## Notes
 
+### CHK instruction
+
 - how about a CHK instruction ? 
 - it would compare a register to be within 0 and another register: r = 0 <= a <= b. r is 0 or 1 then.
 
-<!--------------------------------------------------------------------------------------------------------->
+### Address translation
 
-<div style="page-break-before: always;"></div>
+Segment zero by definition maps directly to absolute addresses. That is "0.ofs" is actually "ofs". What if that is combined with the design decision to bypass a TLB when the segment address is zero ? 
 
-## Table of Contents
+Addressing absolute memory is straightforward. Just use a "0.ofs" address. Interrupts and traps will jump to handlers in segment zero space and avoid address translation automatically. 
 
-[TOC]
+There are two translation enable bits in the status word. When they are set to zero, address translation is disabled and any address "seg.ofs" maps to "0.ofs" as we ignore the segment part. 
 
-<!--------------------------------------------------------------------------------------------------------->
+So, can we actually with this simple fact take out the translation bits in the status word ?
+
+How would the GATE instruction work ?
+
+Segment zero is the space that maps to physical memory and it will contains the interrupt / trap code and low level system data such as the page table and all other items that need to be addressed when we don't translate.
+
+
+
+
+
+
