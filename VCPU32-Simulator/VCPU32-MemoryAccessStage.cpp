@@ -245,10 +245,9 @@ void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The memory access stage is primarily responsible for access memory data used by instructions that need
-// to access memory. It will take the B and X value and compute the address offset for the memory data access.
-// This the stage where any segment or control register is accessed. Depending on the addressing mode the
-// offset calculation is a 22-bit or a 24-bit operation.
+// The memory access stage is primarily responsible for accessing memory data used by load and store type
+// instructions. It will take the B and X value and compute the address offset for the memory data access.
+// This the stage where any segment or control register is accessed.
 //
 // In addition, unconditional branches are further processed at this stage. The target branch offset is
 // computed using the adder of the MA stage. For branches that do not save a return link, we are done and
@@ -256,21 +255,21 @@ void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 // address is computed using the EX stage ALU and stored in a general register.
 //
 // For the conditional branch instruction, the predicted branch target based in the offset was already
-// processed in the FD stage. Now, the branch target address for the alternative target will be computed by
-// adding B and X, which were set accordingly in the FD stage. When the EX stage evaluates the branch
-// condition and determines that the branch was mispredicted, this adress will be used to continue the
-// instruction stream after flushing instructions fetched wrongly from the pipeline.
+// processed in the FD stage. In this stage, the branch target address for the alternative target will
+// be computed by adding B and X, which were set accordingly in the FD stage. When the EX stage evaluates
+// the branch condition and determines that the branch was mispredicted, this adress will be used to
+// continue the instruction stream after flushing instructions fetched wrongly from the pipeline.
 //
 // In general, the stall logic will always inhibit the update of the current and any previous pipeline
-// register as well as flush the next stage. Flushing is done by passing on a NOP instead of the current
+// register as well as flushing the next stage. Flushing is done by passing on a NOP instead of the current
 // instruction. Initially, the processing assumes a non-stalled pipeline, a stall will set the flags. During
 // the "ticks" executed, each time the stall is cleared but perhaps set again when the condition still exists.
 //
-// For instructions that access memory we will access memory data at this stage. OpMode 3.. 7 instructions
-// and all memory load type instructions, the data fetched will be stored into B. This stage is also the
-// starting point for a TLB or CACHE control instruction. If the TLB or Cache is busy, we stall in this stage
-// until we have access to these resources. All other instructions just pass the pipeline data for A,B and
-// X as well as the instruction address and instruction to the next stage.
+// For instructions that access memory we will access memory data in the second part of this stage. The
+// data fetched will be stored in B. This stage is also the starting point for a TLB or CACHE control
+// instruction. If the TLB or Cache is busy, we stall in this stage until we have access to these resources.
+// All other instructions just pass the pipeline data for A,B and X as well as the instruction address
+// and the instruction itself to the next stage.
 //
 // The MA stage is using valB and valX and valA, all of which may have been read from the general register
 // file during the FD stage. Certain instruction sequences can cause a RAW data hazard. In the case of the
@@ -282,7 +281,7 @@ void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 // to repeat the instruction MA stage with the correct data. For all these cases, the MA stage therefore
 // needs to be stalled until the correct value is written back to the general register and then resumed.
 // The FD stage passed the register IDs for A, B and X for this check. Note that the checking is actually
-// done at the EX stage. For memory access type instrcutions, we need to clear the regIdForValB and
+// done at the EX stage. For memory access type instructions, we need to clear the regIdForValB and
 // regIdForValX fields, as the register content was consumed in this stage.
 //
 // Note: when a trap occurs, the pipeline is stalled and the procedure returns rightaway.
@@ -347,7 +346,8 @@ void MemoryAccessStage::process( ) {
         case OP_BR:
         case OP_BLR:
         case OP_BV:
-        case OP_BVR: {
+        case OP_BVR: 
+        case OP_GATE: {
             
             core -> fdStage -> psInstrSeg.set( instrSeg );
             core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
@@ -379,19 +379,6 @@ void MemoryAccessStage::process( ) {
             
             regIdForValX    = MAX_GREGS;
             valX            = add32( instrOfs, valX );
-            
-        } break;
-            
-        case OP_GATE: {
-            
-            core -> fdStage -> psInstrSeg.set( instrSeg );
-            core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
-           
-            regIdForValX    = MAX_GREGS;
-            regIdForValB    = MAX_GREGS;
-            valB            = 0;
-            valX            = 0;
-            flushPipeLine( );
             
         } break;
             
@@ -465,11 +452,6 @@ void MemoryAccessStage::process( ) {
             
         } break;
             
-        default: {
-            
-            valS = 0;
-            valX = 0;
-        }
     }
     
     //--------------------------------------------------------------------------------------------------------
@@ -541,7 +523,7 @@ void MemoryAccessStage::process( ) {
            
             // revise the TLB data, see ITLB comment in FD stage ...
             //
-            pAdr        = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;
+            pAdr = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;
         }
         else pAdr = valX;
     

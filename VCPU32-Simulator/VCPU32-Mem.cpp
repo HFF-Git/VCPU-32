@@ -307,6 +307,8 @@ bool CpuMem::readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag
     
     if ( opState.get( ) == MO_IDLE ) {
         
+        // ??? we need to reflect that wre are passed a byte address...!!!!! FIX
+        
         uint32_t    blockIndex  = (( ofs >> blockBits ) % cDesc.blockEntries );
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );
         
@@ -350,6 +352,8 @@ bool CpuMem::readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag
 bool CpuMem::writeVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t word ) {
     
     if ( opState.get( ) == MO_IDLE ) {
+        
+        // ??? we need to reflect that wre are passed a byte address...!!!!! FIX
         
         uint32_t    blockIndex  = (( ofs >> blockBits ) % cDesc.blockEntries );
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );

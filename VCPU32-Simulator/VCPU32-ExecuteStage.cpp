@@ -329,17 +329,17 @@ void ExecuteStage::process( ) {
             
             valR = valA + valB;
             if (( getBit( instr, 10 )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
-           
+            
             valCarry = ( UINT32_MAX - valA > valB );
             
             if ( getBit( instr, 11 )) {
                 
                 if (( valCarry ) && ( getBit( instr, 12 ))) {
+                    
+                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                    return;
+                }
                 
-                 setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
-                 return;
-                 }
-            
             } else {
                 
                 if ( getBit( instr, 12 )) {
@@ -364,11 +364,11 @@ void ExecuteStage::process( ) {
             if ( getBit( instr, 11 )) {
                 
                 if (( valCarry ) && ( getBit( instr, 12 ))) {
+                    
+                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                    return;
+                }
                 
-                 setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
-                 return;
-                 }
-            
             } else {
                 
                 if ( getBit( instr, 12 )) {
@@ -420,7 +420,7 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_EXTR: {
-           
+            
             uint8_t extrOpPos = getBitField( instr, 27, 5 );
             uint8_t extrOpLen = getBitField( instr, 22, 5 );
             
@@ -447,7 +447,7 @@ void ExecuteStage::process( ) {
             uint8_t shAmtLen = getBitField( instr, 22, 5 );
             
             if ( getBit( instr, 11 )) shAmtLen = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
-        
+            
             valR = (( valA >> shAmtLen ) | ( valB << ( WORD_SIZE - shAmtLen )));
             
         } break;
@@ -458,11 +458,22 @@ void ExecuteStage::process( ) {
             
             if ( getBit( instr, 12 )) {
                 
-                // checl that the bits we shift out will nt be different from the MSB in the original word
-               
-                if ((( shAmt == 1 ) && ( valA & 0x80000000 )) ||
-                    (( shAmt == 2 ) && ( valA & 0xC0000000 )) ||
-                    (( shAmt == 3 ) && ( valA & 0xE0000000 ))) {
+                if (( shAmt == 1 ) & (( valA & 0x80000000 ) != ( valA & 0x40000000 ))) {
+                    
+                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
+                    return;
+                }
+                
+                else if (( shAmt == 2 ) & ((( valA & 0x80000000 ) != ( valA & 0x40000000 )) ||
+                                           (( valA & 0x80000000 ) != ( valA & 0x20000000 )))) {
+                    
+                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
+                    return;
+                }
+                
+                else if (( shAmt == 3 ) & ((( valA & 0x80000000 ) != ( valA & 0x40000000 )) ||
+                                           (( valA & 0x80000000 ) != ( valA & 0x20000000 )) ||
+                                           (( valA & 0x80000000 ) != ( valA & 0x10000000 )))) {
                     
                     setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
                     return;
@@ -489,7 +500,7 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_ADDIL: {
-          
+            
             valR = valA + valB;
             core -> gReg[ 0 ].set( valR );
             
@@ -528,7 +539,7 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_TBR: {
-          
+            
             if (( testCond( instr, valA )) != ( branchTaken )) {
                 
                 core -> fdStage -> psInstrSeg.set( instrSeg );
@@ -539,10 +550,11 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_GATE: {
-          
-            // ??? this should be the place to perform the potential promotion...
             
-            valR = getBitField( valA, 31, 30 ) | ( instrOfs & 047777777 ); // ??? check when we set R
+            // ??? the offset was already executed in the previous stage, all we do here is to set the status bit
+            // and return the former privilege status.
+            
+            valR = valB; // ??? check when we set R
             
         } break;
             
@@ -554,9 +566,9 @@ void ExecuteStage::process( ) {
                     core -> sReg[ getBitField( instr, 31, 4 ) ].set( valB );
                 else
                     core -> cReg[ getBitField( instr, 31, 5  ) ].set( valB );
-            
+                
             } else valR = valB;
-             
+            
         } break;
             
         case OP_MST: {
@@ -570,6 +582,12 @@ void ExecuteStage::process( ) {
                 case 2: core -> stReg.set( core -> stReg.get( ) & (( ~ valB ) & 0x3F )); break;
                 default: ;
             }
+            
+        } break;
+            
+        case OP_PCA: {
+            
+            // ??? do the second part of the PCA ?
             
         } break;
             

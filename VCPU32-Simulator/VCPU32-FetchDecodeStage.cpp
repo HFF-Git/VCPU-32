@@ -618,17 +618,13 @@ void FetchDecodeStage::process( ) {
             valB            = instrOfs;
             valX            = immGenLowSign( instr, 31, 22 ) << 2;
             
-            
             // ??? when do we exactly set the execution level in the status reg ? There are two instructions ahead
             // of us which should NOT benefit from the potential priv change....
             
             // ??? should we just get the TLB priv level and pass it onto the EX stage ?
             
-            
             if ( core -> stReg.get( ) & ST_CODE_TRANSLATION_ENABLE ) {
-                
-                valB = instrOfs;
-           
+               
                 if ( tlbEntryPtr -> tPageType( ) == 3 ) {
                     
                     if ( tlbEntryPtr -> tPrivL1( )) core -> stReg.set( core -> stReg.get( ) | ST_EXECUTION_LEVEL );
