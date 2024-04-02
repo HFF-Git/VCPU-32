@@ -309,20 +309,6 @@ void MemoryAccessStage::process( ) {
     uint32_t    pAdr        = 0;
     uint32_t    dLen        = 4;
    
-    
-    // ??? a bit clearer .... how to do better ? Add to opCodeTab flags ?
-    
-    
-    bool readAccessInstr  = ((( opMode >= 8 ) &&
-                              (( opCode == OP_ADD ) || ( opCode == OP_SUB )    ||
-                               ( opCode == OP_CMP ) || ( opCode == OP_AND )    ||
-                               ( opCode == OP_OR )  || ( opCode == OP_XOR )    ||
-                               ( opCode == OP_LD )  || ( opCode == OP_LDWR )))   ||
-                             ( opCode == OP_LDWA ));
-    
-    bool writeAccessInstr = (( opCode == OP_ST )  || ( opCode == OP_STWC )  ||
-                             ( opCode == OP_STWA ) );
-    
     setStalled( false );
     
     //--------------------------------------------------------------------------------------------------------
@@ -335,20 +321,13 @@ void MemoryAccessStage::process( ) {
         case OP_CMP:    case OP_LDO:    case OP_LD:     case OP_ST:     case OP_LDWR:
         case OP_STWC: {
             
-            switch( opMode ) {
-                    
-                case OP_MODE_REG_INDX:
-                case OP_MODE_INDX: {
-              
+            if ( opMode >= 2 ) {
+            
                     dLen            = getBitField( instr, 18, 2 );
                     valS            = core -> sReg[ getBitField( valB, 1, 2 ) ].get( );
                     valX            = add32( valB, valX );
                     regIdForValX    = MAX_GREGS;
                     regIdForValB    = MAX_GREGS;
-                    
-                } break;
-                    
-                default: ;
             }
             
         } break;
@@ -370,10 +349,9 @@ void MemoryAccessStage::process( ) {
         case OP_BV:
         case OP_BVR: {
             
-            // ??? shift 2 bits business ?
-            
             core -> fdStage -> psInstrSeg.set( instrSeg );
             core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
+            
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             valB            = 0;
@@ -384,11 +362,10 @@ void MemoryAccessStage::process( ) {
             
         case OP_BE:
         case OP_BLE: {
-            
-            // ??? shift 2 bits business ?
-            
+           
             core -> fdStage -> psInstrSeg.set( core -> sReg[ getBitField( instr, 27, 4 ) ].get( ));
             core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
+            
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             valB            = 0;
@@ -407,7 +384,8 @@ void MemoryAccessStage::process( ) {
             
         case OP_GATE: {
             
-            // ??? we need to do address arithmiteic stuff too ...
+            core -> fdStage -> psInstrSeg.set( instrSeg );
+            core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
            
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
@@ -498,8 +476,9 @@ void MemoryAccessStage::process( ) {
     // Data load or store. This is the second half for instructions that read or write to memory. Access to
     // the IO memory space is never cached.
     //
+    // ??? if "0.ofs" and "ofs" map to the same physical address, perhaps no need for a D Bit in ST.
     //--------------------------------------------------------------------------------------------------------
-    if ( readAccessInstr || writeAccessInstr ) {
+    if ( opCodeTab[ opCode ].flags & ( READ_INSTR | WRITE_INSTR )) {
         
         if ( core -> stReg.get( ) & ST_DATA_TRANSLATION_ENABLE ) {
             
@@ -511,7 +490,7 @@ void MemoryAccessStage::process( ) {
                 return;
             }
             
-            if ( readAccessInstr ) {
+            if ( opCodeTab[ opCode ].flags & READ_INSTR ) {
                 
                 if (( tlbEntryPtr -> tPageType( ) != ACC_READ_WRITE ) &&
                     ( tlbEntryPtr -> tPageType( ) != ACC_READ_ONLY )) {
@@ -528,7 +507,7 @@ void MemoryAccessStage::process( ) {
                     return;
                 }
             }
-            else if ( writeAccessInstr ) {
+            else if ( opCodeTab[ opCode ].flags & WRITE_INSTR ) {
                 
                 if (( tlbEntryPtr -> tPageType( ) != ACC_READ_WRITE ) &&
                     (( tlbEntryPtr -> tPageType( ) == ACC_EXECUTE ) && ( ! tlbEntryPtr -> tModifyExPage( ))) &&
@@ -570,13 +549,19 @@ void MemoryAccessStage::process( ) {
         
         if ( pAdr <= MAX_PHYS_MEM_SIZE ) {
             
-            if      ( readAccessInstr )  rStat = core -> dCacheL1 -> readVirt( valS, valX, pAdr, dLen, &valB );
-            else if ( writeAccessInstr ) rStat = core -> dCacheL1 -> writeVirt( valS, valX, pAdr, dLen, valA );
+            if ( opCodeTab[ opCode ].flags & READ_INSTR )
+                rStat = core -> dCacheL1 -> readVirt( valS, valX, pAdr, dLen, &valB );
+            else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
+                rStat = core -> dCacheL1 -> writeVirt( valS, valX, pAdr, dLen, valA );
             
         } else {
             
-            if      ( readAccessInstr )     rStat = core -> mem -> readPhys( pAdr, dLen, &valB );
-            else if ( writeAccessInstr )    rStat = core -> mem -> writePhys( pAdr, dLen, valA );
+            // ??? in IO space...
+            
+            if ( opCodeTab[ opCode ].flags & READ_INSTR )
+                rStat = core -> mem -> readPhys( pAdr, dLen, &valB );
+            else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
+                rStat = core -> mem -> writePhys( pAdr, dLen, valA );
         }
     
         if ( ! rStat ) {

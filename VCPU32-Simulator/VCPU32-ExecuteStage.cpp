@@ -329,10 +329,8 @@ void ExecuteStage::process( ) {
             
             valR = valA + valB;
             if (( getBit( instr, 10 )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
-            
-            // ??? this neecs to be revised too.... ( if valR - valA > valB or so ... )
-            
-            valCarry = ( valR > UINT32_MAX );
+           
+            valCarry = ( UINT32_MAX - valA > valB );
             
             if ( getBit( instr, 11 )) {
                 
@@ -361,9 +359,7 @@ void ExecuteStage::process( ) {
             valR = valA + ( ~ valB  ) + 1;
             if (( getBit( instr, 10 )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
             
-            // ??? this neecs to be revised too.... ( if valR - valA > valB or so ... )
-            
-            valCarry = ( valR > UINT32_MAX );
+            valCarry = ( valB > valA );
             
             if ( getBit( instr, 11 )) {
                 
@@ -441,13 +437,8 @@ void ExecuteStage::process( ) {
             
             if ( getBit( instr, 11 )) depOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
             
-            // ??? use our setBifield routines ?
-            
-            uint32_t    depOpBitMask    = (( 1U << depOpLen ) - 1 );
-            uint32_t    temp1           = ( valB & depOpBitMask ) << ( 31 - depOpPos );
-            uint32_t    temp2           = ( valA & ( ~ ( depOpBitMask << ( 31 - depOpPos ))));
-            
-            valR = (( getBit( instr, 10 )) ? ( temp1 ) : ( temp1 | temp2 ));
+            setBitField( &valA, depOpPos, depOpLen, valB );
+            valR = valA;
             
         } break;
             
@@ -467,8 +458,8 @@ void ExecuteStage::process( ) {
             
             if ( getBit( instr, 12 )) {
                 
-                // ??? check that this works for logical and signed values... ?
-                
+                // checl that the bits we shift out will nt be different from the MSB in the original word
+               
                 if ((( shAmt == 1 ) && ( valA & 0x80000000 )) ||
                     (( shAmt == 2 ) && ( valA & 0xC0000000 )) ||
                     (( shAmt == 3 ) && ( valA & 0xE0000000 ))) {
@@ -493,17 +484,13 @@ void ExecuteStage::process( ) {
             
         case OP_LDIL: {
             
-            valR = valA;;  // ??? check ....
+            valR = valB;
             
         } break;
             
         case OP_ADDIL: {
-            
-            // ??? where does the add take place ? -> MA stage
-            // ??? result goes to R0.
-            
-            valR = valA;  // ??? check ....
-            
+          
+            valR = valA + valB;
             core -> gReg[ 0 ].set( valR );
             
         } break;
@@ -553,7 +540,7 @@ void ExecuteStage::process( ) {
             
         case OP_GATE: {
           
-            // ??? this should be tha place to perform the potential promotion...
+            // ??? this should be the place to perform the potential promotion...
             
             valR = getBitField( valA, 31, 30 ) | ( instrOfs & 047777777 ); // ??? check when we set R
             
@@ -596,8 +583,11 @@ void ExecuteStage::process( ) {
             
         case OP_BRK: {
             
-            setupTrapData( BREAK_TRAP, instrSeg, instrOfs, instr );
-            return;
+            if (( valA != 0 ) || ( valB != 0 )) {
+                
+                setupTrapData( BREAK_TRAP, instrSeg, instrOfs, instr );
+                return;
+            }
             
         } break;
             

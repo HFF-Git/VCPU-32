@@ -353,9 +353,10 @@ enum instrFlags : uint32_t {
     CTRL_INSTR          = ( 1U << 4 ),
     OP_MODE_INSTR       = ( 1U << 5 ),
     REG_R_INSTR         = ( 1U << 6 ),
-    PRIV_INSTR          = ( 1U << 7 )
-    
-    // ??? add READ_INSTR and WRITE_INSTR for MA stage ?
+    PRIV_INSTR          = ( 1U << 7 ),
+    READ_INSTR          = ( 1U << 8 ),
+    WRITE_INSTR         = ( 1U << 9 )
+   
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -388,18 +389,18 @@ const struct opCodeInfo {
     /* 0x0E */  { "RSV_0E", OP_RSV_0E,  ( NO_FLAGS ) },
     /* 0x0F */  { "RSV_0F", OP_RSV_0F,  ( NO_FLAGS ) },
     
-    /* 0x10 */  { "ADD",    OP_ADD,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x11 */  { "SUB",    OP_SUB,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x12 */  { "AND",    OP_AND,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x13 */  { "OR",     OP_OR,      ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x14 */  { "XOR",    OP_XOR,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x15 */  { "CMP",    OP_CMP,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
+    /* 0x10 */  { "ADD",    OP_ADD,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x11 */  { "SUB",    OP_SUB,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x12 */  { "AND",    OP_AND,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x13 */  { "OR",     OP_OR,      ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x14 */  { "XOR",    OP_XOR,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x15 */  { "CMP",    OP_CMP,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
     /* 0x16 */  { "RSV_16", OP_RSV_16,  ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x17 */  { "LOD",    OP_LDO,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x18 */  { "LD",     OP_LD,      ( LOAD_INSTR  | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x19 */  { "ST",     OP_ST,      ( STORE_INSTR | OP_MODE_INSTR ) },
-    /* 0x1A */  { "LDWR",   OP_LDWR,    ( LOAD_INSTR  | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x1B */  { "STWC",   OP_STWC,    ( STORE_INSTR | OP_MODE_INSTR ) },
+    /* 0x18 */  { "LD",     OP_LD,      ( LOAD_INSTR  | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x19 */  { "ST",     OP_ST,      ( STORE_INSTR | OP_MODE_INSTR | WRITE_INSTR ) },
+    /* 0x1A */  { "LDWR",   OP_LDWR,    ( LOAD_INSTR  | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x1B */  { "STWC",   OP_STWC,    ( STORE_INSTR | OP_MODE_INSTR | WRITE_INSTR) },
     /* 0x1C */  { "RSV_1C", OP_RSV_1C,  ( NO_FLAGS ) },
     /* 0x1D */  { "RSV_1D", OP_RSV_1D,  ( NO_FLAGS ) },
     /* 0x1E */  { "LDPA",   OP_LDPA,    ( LOAD_INSTR | PRIV_INSTR | REG_R_INSTR ) },
@@ -435,17 +436,17 @@ const struct opCodeInfo {
     /* 0x39 */  { "PTLB",   OP_PTLB,    ( CTRL_INSTR | PRIV_INSTR ) },
     /* 0x3A */  { "PCA",    OP_PCA,     ( CTRL_INSTR ) },
     /* 0x3B */  { "DIAG",   OP_DIAG,    ( CTRL_INSTR ) },
-    /* 0x3C */  { "LDWA",   OP_LDWA,    ( LOAD_INSTR  | PRIV_INSTR | REG_R_INSTR  ) },
-    /* 0x3D */  { "LDWAX",  OP_LDWAX,   ( LOAD_INSTR  | PRIV_INSTR | REG_R_INSTR  ) },
-    /* 0x3E */  { "STWA",   OP_STWA,    ( STORE_INSTR | PRIV_INSTR ) },
+    /* 0x3C */  { "LDWA",   OP_LDWA,    ( LOAD_INSTR  | PRIV_INSTR | READ_INSTR | REG_R_INSTR  ) },
+    /* 0x3D */  { "LDWAX",  OP_LDWAX,   ( LOAD_INSTR  | PRIV_INSTR | READ_INSTR | REG_R_INSTR  ) },
+    /* 0x3E */  { "STWA",   OP_STWA,    ( STORE_INSTR | PRIV_INSTR | WRITE_INSTR ) },
     /* 0x3F */  { "RFI",    OP_RFI,     ( CTRL_INSTR | PRIV_INSTR ) }
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The pipeline logic needs a knd of NOP instruction for stall and flush operations. We will pick an opCode
-// that will do nothing.
+// The pipeline logic needs a kind of NOP instruction for stall and flush operations. We will pick an opCode
+// that will do nothing. Currently, the BRK 0, 0 instruction is used for this purpose. TDB ...
 //
 //------------------------------------------------------------------------------------------------------------
-const uint32_t NOP_INSTR = 0; // ??? settle on one ...
+const uint32_t NOP_INSTR = 0;
  
 #endif

@@ -3217,7 +3217,7 @@ Trap to the debugger subsystem.
 
 #### Description
 
-The BRK instruction raises a debug breakpoint trap and enters the debug trap handler. The "info1" and "info2" field are passed to the debug subsystem.
+The BRK instruction raises a debug breakpoint trap and enters the debug trap handler. The "info1" and "info2" field are passed to the debug subsystem. An execption is the BRK instruction with both info fields being zero. BRK 0, 0 is treated as a NOP instruction.
 
 #### Operation
 
@@ -3231,7 +3231,9 @@ The BRK instruction raises a debug breakpoint trap and enters the debug trap han
 
 #### Notes
 
-The instruction opCode for BRK is the opCode value of zero. A zero instruction word result is a BRK #0 instruction which raises a trap.
+The instruction opCode for BRK is the opCode value of zero. A zero instruction word result is treated as a NOP. 
+
+// ??? while it will help with the NOP needed in the pipeline, is that a good idea to just run through zeroes this way ?
 
 
 <!--------------------------------------------------------------------------------------------------------->

@@ -72,22 +72,12 @@ uint32_t lowSignExtend32( uint32_t arg, int len ) {
     else        return( arg &= tmpM );
 }
 
-uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
+uint32_t immGenLowSign( uint32_t instr, int pos, int len ) {
     
     pos = pos % 32;
     len = len % 32;
     
     return( lowSignExtend32( getBitField( instr, pos, len ), len ));
-}
-
-uint32_t immLeftField( uint32_t instr ) {
-    
-    return( getBitField( instr, 31, 22 ));
-}
-
-uint32_t immRightField( uint32_t instr ) {
-    
-    return( getBitField( instr, 31, 10 ));
 }
 
 uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
@@ -103,6 +93,8 @@ uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
 // are all instructions that do address arithmetic using the B and X pipeline fields, or the A field for some
 // branch instructions.
 //
+//
+// ???? needs to be changed ... OR fixed.... make it a field in the opCode tab ?
 //------------------------------------------------------------------------------------------------------------
 bool maStageConsumesRegValBorX( uint32_t instr ) {
     
@@ -329,6 +321,8 @@ void FetchDecodeStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     // Instruction Address Translation.
     //
+    // ??? idea: we could also architect that "0.ofs" is quivalent to "ofs". When segment is zero, then
+    // address translation is bypassed, as well as page protection checking.
     //--------------------------------------------------------------------------------------------------------
     if ( core -> stReg.get( ) & ST_CODE_TRANSLATION_ENABLE ) {
         
@@ -445,9 +439,9 @@ void FetchDecodeStage::process( ) {
                 return;
             }
             
-            if (( opCode == OP_LDPA ) && ( instrPrivLevel > 0 )) {
+            if (( opMode == 2 ) && ( opCodeTab[ opCode ].flags & STORE_INSTR )) {
                 
-                setupTrapData( PRIV_OPERATION_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
                 return;
             }
             
@@ -455,9 +449,7 @@ void FetchDecodeStage::process( ) {
                     
                 case OP_MODE_IMM: {
                    
-                    regIdForValA    = getBitField( instr, 9, 4 );
-                    valA            = core -> gReg[ regIdForValA ].get( );
-                    valB            = immGenPosLenLowSign( instr, 31, 17 );
+                    valB    = immGenLowSign( instr, 31, 17 );
                     
                 } break;
                     
@@ -483,9 +475,9 @@ void FetchDecodeStage::process( ) {
                         valA            = core -> gReg[ regIdForValA ].get( );
                     }
                     
-                    regIdForValB    = getBitField( instr, 31, 4 );
+                    valA            = core -> gReg[ regIdForValA ].get( );
                     valB            = core -> gReg[ regIdForValB ].get( );
-                    valX            = immGenPosLenLowSign( instr, 31, 12 );
+                    valX            = immGenLowSign( instr, 31, 12 );
                     
                 } break;
                     
@@ -499,7 +491,7 @@ void FetchDecodeStage::process( ) {
                     
                     regIdForValB    = getBitField( instr, 31, 4 );
                     valB            = core -> gReg[ regIdForValB ].get( );
-                    valX            = immGenPosLenLowSign( instr, 29, 11 );
+                    valX            = immGenLowSign( instr, 29, 11 );
                     
                 } break;
             }
@@ -508,9 +500,7 @@ void FetchDecodeStage::process( ) {
         
         case OP_LDIL: {
             
-            // ??? is the best place to pass the immediate value ? consistent ?
-            //
-            valA            = immLeftField( instr ) << 10;
+            valB    = getBitField( instr, 31, 22 ) << 10;
             
         } break;
             
@@ -518,7 +508,7 @@ void FetchDecodeStage::process( ) {
             
             regIdForValA    = getBitField( instr, 9, 4 );
             valA            = core -> gReg[ regIdForValA ].get( );
-            valB            = immLeftField( instr ) << 10;
+            valB            = getBitField( instr, 31, 22 ) << 10;
             
         } break;
             
@@ -531,19 +521,13 @@ void FetchDecodeStage::process( ) {
             
         case OP_DEP: {
             
-            regIdForValA    = getBitField( instr, 9, 4 );
+            if ( ! getBit( instr, 10 )) {
+                
+                regIdForValA    = getBitField( instr, 9, 4 );
+                valA            = core -> gReg[ regIdForValA ].get( );
+            }
+            
             regIdForValB    = getBitField( instr, 31, 4 );
-            valA            = core -> gReg[ regIdForValA ].get( );
-            valB            = core -> gReg[ regIdForValB ].get( );
-            
-        } break;
-            
-        case OP_DSR:
-        case OP_SHLA: {
-            
-            regIdForValA    = getBitField( instr, 27, 4 );
-            regIdForValB    = getBitField( instr, 31, 4 );
-            valA            = core -> gReg[ regIdForValA ].get( );
             valB            = core -> gReg[ regIdForValB ].get( );
             
         } break;
@@ -554,24 +538,27 @@ void FetchDecodeStage::process( ) {
             regIdForValB    = getBitField( instr, 31, 4 );
             valA            = core -> gReg[ regIdForValA ].get( );
             valB            = core -> gReg[ regIdForValB ].get( );
-        
-        } break;
-            
-        case OP_LDWA: {
-            
-            regIdForValB    = getBitField( instr, 31, 4 );
-            valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = immGenPosLenLowSign( instr, 27, 18 );
             
         } break;
             
+        case OP_DSR:
+        case OP_SHLA: 
         case OP_LDWAX: {
             
             regIdForValA    = getBitField( instr, 27, 4 );
             regIdForValB    = getBitField( instr, 31, 4 );
-            valA            = core -> gReg[ regIdForValB ].get( );
+            valA            = core -> gReg[ regIdForValA ].get( );
             valB            = core -> gReg[ regIdForValB ].get( );
-        
+            
+        } break;
+            
+       
+        case OP_LDWA: {
+            
+            regIdForValB    = getBitField( instr, 31, 4 );
+            valB            = core -> gReg[ regIdForValB ].get( );
+            valX            = immGenLowSign( instr, 27, 18 );
+            
         } break;
             
         case OP_STWA: {
@@ -580,7 +567,7 @@ void FetchDecodeStage::process( ) {
             regIdForValB    = getBitField( instr, 31, 4 );
             valA            = core -> gReg[ regIdForValA ].get( );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = immGenPosLenLowSign( instr, 31, 22 );
+            valX            = immGenLowSign( instr, 31, 22 );
             
         } break;
             
@@ -588,7 +575,7 @@ void FetchDecodeStage::process( ) {
         case OP_BL: {
           
             valB = instrOfs;
-            valX = immGenPosLenLowSign( instr, 31, 22 ) << 2;
+            valX = immGenLowSign( instr, 31, 22 ) << 2;
             
         } break;
             
@@ -609,9 +596,7 @@ void FetchDecodeStage::process( ) {
         } break;
             
         case OP_BVR: {
-            
-            // ??? shift 2 bits business ?
-            
+           
             regIdForValB    = getBitField( instr, 31, 4 );
             regIdForValX    = getBitField( instr, 27, 4 );
             valB            = core -> gReg[ regIdForValB ].get( );
@@ -624,18 +609,20 @@ void FetchDecodeStage::process( ) {
             
             regIdForValB    = getBitField( instr, 31, 4 );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = immGenPosLenLowSign( instr, 23, 18 ) << 2;
+            valX            = immGenLowSign( instr, 23, 18 ) << 2;
             
         } break;
             
         case OP_GATE: {
            
             valB            = instrOfs;
-            valX            = immGenPosLenLowSign( instr, 31, 22 ) << 2;
+            valX            = immGenLowSign( instr, 31, 22 ) << 2;
             
             
             // ??? when do we exactly set the execution level in the status reg ? There are two instructions ahead
             // of us which should NOT benefit from the potential priv change....
+            
+            // ??? should we just get the TLB priv level and pass it onto the EX stage ?
             
             
             if ( core -> stReg.get( ) & ST_CODE_TRANSLATION_ENABLE ) {
@@ -658,7 +645,7 @@ void FetchDecodeStage::process( ) {
             regIdForValB    = getBitField( instr, 31, 4 );
             valA            = core -> gReg[ regIdForValA ].get( );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = immGenPosLenLowSign( instr, 23, 15 );
+            valX            = immGenLowSign( instr, 23, 15 );
             
         } break;
             
@@ -666,8 +653,19 @@ void FetchDecodeStage::process( ) {
             
             regIdForValB    = getBitField( instr, 31, 4 );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = immGenPosLenLowSign( instr, 23, 15 );
+            valX            = immGenLowSign( instr, 23, 15 );
             
+        } break;
+            
+        case OP_ITLB:
+        case OP_PTLB:
+        case OP_PCA: {
+            
+            regIdForValA    = getBitField( instr, 9, 4 );
+            regIdForValB    = getBitField( instr, 31, 4 );
+            valA            = core -> gReg[ regIdForValA ].get( );
+            valB            = core -> gReg[ regIdForValB ].get( );
+           
         } break;
             
         case OP_MR: {
@@ -681,12 +679,6 @@ void FetchDecodeStage::process( ) {
         } break;
             
         case OP_MST: {
-            
-            if ( instrPrivLevel > 0 ) {
-                
-                setupTrapData( PRIV_OPERATION_TRAP, instrSeg, instrOfs, core -> stReg.get( ));
-                return;
-            }
             
             switch( getBitField( instr, 11, 2 )) {
                     
@@ -706,23 +698,6 @@ void FetchDecodeStage::process( ) {
                     return;
                 }
             }
-            
-        } break;
-            
-        case OP_ITLB:
-        case OP_PTLB: {
-            
-            regIdForValA    = getBitField( instr, 9, 4 );
-            regIdForValB    = getBitField( instr, 31, 4 );
-            valA            = core -> gReg[ regIdForValA ].get( );
-            valB            = core -> gReg[ regIdForValB ].get( );
-            
-        } break;
-            
-        case OP_PCA: {
-            
-            regIdForValB    = getBitField( instr, 31, 4 );
-            valB            = core -> gReg[ regIdForValB ].get( );
             
         } break;
             
@@ -792,13 +767,13 @@ void FetchDecodeStage::process( ) {
         
         if ( getBit( instr, 23 )) {
             
-            psInstrOfs.set( add32( instrOfs, immGenPosLenLowSign( instr, 31, 22 )));
+            psInstrOfs.set( add32( instrOfs, immGenLowSign( instr, 31, 22 )));
             core -> maStage -> psValX.set( 1 );
         }
         else {
             
             psInstrOfs.set( instrOfs + 4 );
-            core -> maStage -> psValX.set( immGenPosLenLowSign( instr, 31, 22 ));
+            core -> maStage -> psValX.set( immGenLowSign( instr, 31, 22 ));
         }
     }
     else psInstrOfs.set( instrOfs + 4 );

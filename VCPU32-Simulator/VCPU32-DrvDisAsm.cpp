@@ -76,14 +76,6 @@ static inline uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
     return( lowSignExtend32( getBitField( instr, pos, len ), len ));
 }
 
-uint32_t mapOpModeToIndexReg( uint32_t opMode ) {
-    
-    if      (( opMode >= 8 ) && ( opMode <= 15 )) return( opMode );
-    else if (( opMode >= 16 ) && ( opMode <= 23 )) return( opMode - 8 );
-    else if (( opMode >= 24 ) && ( opMode <= 31 )) return( opMode - 16 );
-    else return( 0 );
-}
-
 //------------------------------------------------------------------------------------------------------------
 // "printImmVal" disply an immediate value in the selected radix. Octals and hex numbers are printed unsigned
 // quantities, decimal numbers are interpreted as signed integers. Most often decimal notation is used to
@@ -596,6 +588,12 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
             fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             
+        } break;
+            
+        case OP_BRK: {
+            
+            fprintf( stdout, "%d, %d", getBitField( instr, 9, 4 ), getBitField( instr, 31, 16 ));
+           
         } break;
     }
 }
