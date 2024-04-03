@@ -298,11 +298,8 @@ public:
     uint32_t    tPrivL2( );
     uint32_t    tProtectId( );
     
-    uint32_t    tPhysAdrTag( );
     uint32_t    tPhysPage( );
-    uint32_t    tPhysMemBank( );
-    uint32_t    tCpuId( );
-
+   
     uint32_t    vpnHigh;
     uint32_t    vpnLow;
     uint32_t    pInfo;

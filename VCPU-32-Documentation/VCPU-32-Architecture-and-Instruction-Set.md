@@ -174,7 +174,7 @@ April, 2024
         - [A pipelined CPU](#a-pipelined-cpu)
     - [Notes](#notes)
         - [CHK instruction](#chk-instruction)
-        - [Address translation](#address-translation)
+        - [Address translation - getting rid of C and D bits in the status word](#address-translation---getting-rid-of-c-and-d-bits-in-the-status-word)
 
 <!-- /TOC -->
 
@@ -193,7 +193,7 @@ April, 2024
 >
 > “OK, seriously. Designers of the eighties CPUs almost all used a micro-coded approach with hundreds of instructions. Also, registers were not really generic but often had a special function or meaning. And many instructions were rather complicated and the designers felt they were useful. The compiler writers often used a small subset ignoring these complex instructions because they were so specialized. The nineties shifted to RISC based designs with large sets of registers, fixed word instruction length, and instructions that are in general pipeline friendly. What if these principles had found their way earlier into these designs? What if a large virtual address space, a fixed instruction length and simple pipeline friendly instructions had found their way into these designs ?
 >
-> A 32-bit vintage CPU will give us a good set of design challenges to look into and opportunities to include modern RISC features and learn about instruction sets and pipeline design as any other CPU. Although not a modern design, it will still be a useful CPU. Let's see where this leads us. Most importantly it is an undertaking that one person can truly understand. In todays systems this is became virtually impossible. And come on, it is simply fun to build something like a CPU on your own."
+> A 32-bit vintage CPU will give us a good set of design challenges to look into and opportunities to include modern RISC features as well as learning about instruction sets and pipeline design as any other CPU would do. Although not a modern design, it will still be a useful CPU. Let's see where this leads us. Most importantly it is an undertaking that one person can truly understand. In todays systems this became virtually impossible. And come on, it is simply fun to build something like a CPU on your own."
 >
 > "OK, so what do you have in mind ?"
 
@@ -231,7 +231,7 @@ In contrast to similar historical register-memory designs, there is no operation
 
 ### Memory and IO Address Model
 
-VCPU-32 features a physical memory address range of 32-bits. The picture below depicts the physical memory address layout. The physical address range is divided into a memory data portion and an I/O portion. The entire address range is directly accessible with load and store instructions.
+VCPU-32 features a physical memory address range of 32-bits. The picture below depicts the physical memory address layout. The physical address range is divided into a memory data portion and an I/O portion. The entire address range is directly accessible with the absolute load and store instructions.
 
 ```
     0                                  31
@@ -260,10 +260,6 @@ VCPU-32 features a physical memory address range of 32-bits. The picture below d
    :                                     :                            :                                     :
    :-------------------------------------: 0xFFFFFFFF --------------->:-------------------------------------:
 ```
-
-System implementations can however support a larger physical address range than the 4Gbyte address range. By organizing physical memory into banks of 4 Gbytes, the physical address range can be enlarged. Bank zero is however the only bank with an I/O address range split and the absolute memory load / store instructions can only address bank zero. The operating system can nevertheless map a virtual address to a physical address in another bank during the process of virtual address translation. A CPU needs only implement an address range in bank zero for memory and I/O.
-
-In a multi-processor system, all memory banks 1 to N and the bank zero data address range 0x00000000 to 0xEFFFFFFF are shared among all processors. The IO Space 0xF0000000 to 0xFFFFFFFF is a per processor address range and private to the processor. ( Concept to be further developed... )
 
 ### Data Types
 
@@ -334,7 +330,7 @@ The **status register** holds the processor state information, such as the carry
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : M : C : X : reserved                          :CB: reserved                 :0 :0 :0 :P :D :E :
+   : M : C : X : reserved                          :CB: reserved                          :P :D :E :
    :-----------------------------------------------------------------------------------------------:
 ```
 
@@ -409,9 +405,9 @@ Implementations may not utilize the full 32-bit segment ID space. For example, a
 
 ### Address Translation
 
-VCPU-32 defines three types of addresses. At the programmer's level there is the **logical address**. The logical address is a 32-bit word, which contains a 2-bit segment register selector and a 30-bit offset. During data access with a logical address the segment selector selects from the segment register set SR4 to SR7 and forms together with the remaining 30-bit offset a virtual address. Since the upper two bits are inherently fixed, the address range in the particular segment is one of four possible 30-bit quadrants. For example, when the upper two bits are zero, the first quadrant 0x00000000 to 0x3FFFFFFF is addressable. When the upper two bits are 0x2, the reachable address range is 0x80000000 to 0xBFFFFFF. When the segment registers SR4 to SR7 would point to the same segment, the entire address range is reachable via a logical address. It is however more likely that these registers point to different segments though.
+VCPU-32 defines three types of addresses. At the programmer's level there is the **logical address**. The logical address is a 32-bit word, which contains a 2-bit segment register selector and a 30-bit offset. During data access with a logical address the segment selector selects from the segment register set SR4 to SR7 and forms together with the remaining 30-bit offset a virtual address. Since the upper two bits are inherently fixed, the address range in the particular segment is one of four possible 30-bit quadrants. For example, when the upper two bits are zero, the first quadrant 0x00000000 to 0x3FFFFFFF of a segment is addressable. When the upper two bits are 0x2, the reachable address range is 0x80000000 to 0xBFFFFFF. When the segment registers SR4 to SR7 all would point to the same segment, the entire address range of a segment is reachable via a logical address. It is however more likely that these registers point to different segments though.
 
-The **virtual address** is the concatenation of a segment and an offset. Together they form a maximum address range of 2^32 segments with 2^32 bits each. Once the virtual address is formed, the translation process is the same for both virtual addressing modes. The following figure shows the translation process for a logical address. A virtual address is translated to a **physical address**. A logical address is an address with the upper two bits indicating which segment register to use and the offset an unsigned index into the segment. The resulting virtual address will have in this case the upper two bits set to zero.
+The **virtual address** is the concatenation of a segment and an offset. Together they form a maximum address range of 2^32 segments with 2^32 bits each. Once the virtual address is formed, the translation process is the same for both virtual addressing modes. The following figure shows the translation process for a logical address. A virtual address is translated to a **physical address**. A logical address is an address with the upper two bits indicating which segment register to use and the offset an unsigned index into the segment.
 
 ```
                                                    0    1 2                                 31
@@ -430,18 +426,16 @@ The **virtual address** is the concatenation of a segment and an offset. Togethe
                                                 |
                                                 v
                                           ( translation )
-                                                |
-                             +------------+---------------------------+
-                             |            |                           |
-                             v            v                           v
-                         0       3   0        3    0                           20           31
-                        :---------:  :---------:  :-------------------------------------------:
-                        : CPU_ID  :  : Bank    :  :  physical address                         :    physical
-                        :---------:  :---------:  :-------------------------------------------:
-                               (optional )         \_______ physical page ___/\__ page ofs ___/
+                                                |                     
+                                                v
+                            0                          20           31
+                           :-------------------------------------------:
+                           :  physical address                         :    physical
+                           :-------------------------------------------:
+                           \_______ physical page ___/\__ page ofs ___/
 ```
 
-Address translation can be enabled separately for instruction and data address translation. If virtual address translation for the instruction or data access is disabled, the 32 bit offset portion represents a physical address. A virtual address with a segment portion of zero will directly address physical memory, i.e the virtual address offset is the physical address. In a single CPU implementation, the physical address is the memory address. The maximum memory size is 4 Gbytes, unless memory banks are supported. Within a multi-CPU arrangement, the physical address can be augmented with a CPU Id which allows a set of up to 16 CPUs share their physical memory range. The IO memory portion is always private to a CPU.
+Address translation can be enabled separately for instruction and data address translation. If virtual address translation for the instruction or data access is disabled, the 32 bit offset portion represents a physical address. A virtual address with a segment portion of zero will directly address physical memory, i.e the virtual address offset is the physical address. The maximum memory size is 4 Gbytes.
 
 ### Access Control
 
@@ -459,7 +453,7 @@ When virtual address translation is enabled, VCPU-32 implements a **protection m
    type: 2 - gateway,     read: not allowed,  write : not allowed,   execute: PL2 <= PL <= PL1
 ```
 
-The second dimension of protection is a **protection ID**. A protection ID is a value assigned to the segment at segment creation time. The processor control register section contains four protection ID registers. For each access to a segment that has a non-zero protection ID associated, one of the protection ID registers must match the segment protection ID. If not, a protection violation trap is raised.
+The second dimension of protection is a **protection ID**. A protection ID is a value assigned to the segment address range at object creation time. The processor control register section contains four protection ID registers. For each access to a segment that has a non-zero protection ID associated, one of the protection ID registers must match the segment protection ID. If not, a protection violation trap is raised.
 
 ```
     0                               14  15
@@ -489,7 +483,7 @@ TLB fields (example):
    :-----------------------------------------------------------------------------------------------:
    : VPN - low                                                 : 0                                 :
    :-----------------------------------------------------------------------------------------------:
-   : 0         : CPU-ID    : Bank      : PPN                                                       :
+   : reserved                          : PPN                                                       :
    :-----------------------------------------------------------------------------------------------:
 ```
 
@@ -504,13 +498,9 @@ TLB fields (example):
 | **Access Rights** | The access rights for the page. |
 | **VPN-H** | the upper 32 bits of a virtual page address, which are also the segment ID. |
 | **VPN-L** | the lower 20 bits of a virtual page address, which are the page in the segment. |
-| **PPN** | the physical page number in a memory bank. |
-| **PPN-BANK** | the memory bank number. ( to be defined ) |
-| **CPU-ID** | the CPU ID number. ( to be defined ) |
+| **PPN** | the physical page number. |
 
-When address translation is disabled, the respective TLB is bypassed and the address represents a physical address in bank zero at the local CPU as described before. Also, protection ID checking is disabled. The U, D, T, B only apply to a data TLB. The X bit is only applies to the instruction TLB. When the processor cannot find the address translation in the TLB, a TLB miss trap will invoke a software handler. The handler will walk the page table for an entry that matches the virtual address and update the TLB with the corresponding physical address and access right information, otherwise the virtual page is not in main memory and there will be a page fault to be handled by the operating system. In a sense the TLB is the cache for the address translations found in the page table. The implementation of the TLB is hardware dependent.
-
-To accommodate an even larger physical memory, a memory bank identifier was added. Up to 16 banks are allowed. However, the LDA/STA instructions can only access the first bank, the bank with a zero identifier. All other banks can only be reached with a virtual address. The maximum physical memory is thus 64 Gbytes. The TLB contains a bank and the physical offset for as translation result. In addition, it is envisioned that several CPUs, up to 16 CPUs, can be connected to form a cluster. The CPU-ID the also becomes part of the physical address, referring to an address located on another CPU bank and offset. Right now, this feature is not supported yet.
+When address translation is disabled, the respective TLB is bypassed and the address represents a physical address. Also, protection ID checking is disabled. The U, D, T, B only apply to a data TLB. The X bit is only applies to the instruction TLB. When the processor cannot find the address translation in the TLB, a TLB miss trap will invoke a software handler. The handler will walk the page table for an entry that matches the virtual address and update the TLB with the corresponding physical address and access right information, otherwise the virtual page is not in main memory and there will be a page fault to be handled by the operating system. In a sense the TLB is the cache for the address translations found in the page table. The implementation of the TLB is hardware dependent.
 
 ### Caches
 
@@ -546,7 +536,7 @@ Page Table Entry (Example):                                                     
    :-----------------------------------------------------------------------------------------------:
    : VPN - low                                                 : 0                                 : 
    :-----------------------------------------------------------------------------------------------:
-   : reserved              :  Bank     : PPN                                                       :
+   : reserved                          : PPN                                                       :
    :-----------------------------------------------------------------------------------------------:
    : physical address of next entry in chain                                                       :
    :-----------------------------------------------------------------------------------------------:
@@ -565,9 +555,7 @@ Each page table entry contains at least the virtual page address, the physical p
 | **Access Rights** | The access rights for the page. |
 | **VPN-H** | the upper 32 bits of a virtual address, which are also the segment ID. |
 | **VPN-L** | the lower 20 bits of a virtual address, which are the page in the segment. |
-| **PPN** | the physical page number in a memory bank. |
-|**PPN-BANK** | the memory bank number. ( **note** to be defined ) |
-|**CPU-ID** | the CPU ID number. ( **note** to be defined ) |
+| **PPN** | the physical page number. |
 | **next PTE** | the physical address of the next page table entry, zero if there is none. |
 
 Locating a virtual page in the page table requires to first index into the hash table and then follow the chain of page table entires.  The following code fragment is a possible hash function.
@@ -686,7 +674,7 @@ The **operand mode** field in instructions that use operand modes is used to spe
 
 ```
    <--- operation --> <-  res  -> <-opt -> <------------- operand -------------------------------->
-    0                 6           10       13             18                24          28       31
+    0                 6           10       13                17             24          28       31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : opCode          : r         :        : 0   : val                                              :  immediate
    :-----------------:-----------------------------------------------------------------------------:
@@ -704,11 +692,11 @@ There is one **immediate operand mode**, which supports a signed 17-bit value. T
 
 The **register modes** specify one or two registers for the operation. Operand group mode 1 features two sub modes. Submode 0 sets "a" to zero and passes the other argument in "b". This mode is typically used for operations that use a zero value as one of the arguments. For example, the operation "zero - b" can be used in the  SUB instruction, which will subtract the "b" register from a zero value. This is essentially a negate operation. Operand mode group 1 and sub mode 1 will use "a" and "b" as input to the operation of the instruction.
 
-The machine addresses memory with a byte address. There are indexed and register indexed operand mode groups. Operand group mode 2 is the **register indexed address mode**, which will use a base register "b" and add an offset in "a" to it, forming the final byte address offset. The **seg** field manages the segment register selection. A value of zero will use the upper two bits of the computed offset to select from SR4 to SR7. A value of 1 to 3 will select SR1 to SR3. SR0 is not used in this operand scheme. It is used as a target register for an external branch or a segment scratch register. The **dw**** field specifies the data field width. A value of zero represent a word, 1 a half-word and 2 a byte. The computed address must be aligned with the size of data to fetch. 
+The machine addresses memory with a byte address. There are indexed and register indexed operand mode groups. Operand group mode 2 is the **register indexed address mode**, which will use a base register "b" and add an offset in "a" to it, forming the final byte address offset. The **seg** field manages the segment register selection. A value of zero will use the upper two bits of the computed offset to select from SR4 to SR7. A value of 1 to 3 will select SR1 to SR3. SR0 is not used in this operand scheme. It is used as a target register for an external branch or a segment scratch register. The **dw**** field specifies the data field width. A value of zero represent a word, 1 a half-word and 2 a byte. OpMode 3 is reserved for a double word option, not implemented yet. The computed address must be aligned with the size of data to fetch. 
 
 The final operand mode group is the **indexed address mode** group. The operand address is built by adding an offset to the base register "b". The offset field is a signed 11 bit field. The sign bit is in the rightmost position of the field. Depending on the sign, the remaining value in the field is sign extended or zero extended. The **dw**** field specifies the data field width. An opMode value of zero represent a word, opMode 1 a half-word and opMode 2 a byte. OpMode 3 is reserved for a double word option, not implemented yet. The computed address must be aligned with the size of data item to fetch. 
 
-There are no auto pre/post offset adjustment or indirect modes. Indirect addressing modes are not pipeline friendly, they require an additional memory access. Pre or post offset adjustments have not been implemented so far. Nevertheless, auto pre/post adjustment would be an option for the load/store type instructions.
+There are no auto pre/post offset adjustment of the base.register or indirect addressing modes. Indirect addressing modes are not pipeline friendly, they require an additional memory access. Pre or post offset adjustments have not been implemented so far. Nevertheless, auto pre/post adjustment would be an option for the load/store type instructions.
 
 ### Instruction Operand Notation
 
@@ -2964,7 +2952,7 @@ Depending on the "T" bit, the protection information part or the address part is
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : 0         : CPU-ID    : Bank      : PPN                                                       :      T = 0
+   : 0                                 : PPN                                                       :      T = 0
    :-----------------------------------------------------------------------------------------------:
 
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
@@ -3265,9 +3253,9 @@ The following table shows potential synthetic instructions.
 | **NEG** | NEG GRx | SUB [ .<opt> ] GRx, GRx, opMode 1 | |
 | **COM** | COM GRx | OR.N  GRx, GRx, opMode 1 | |
 | **LDSR** | LDSR SRx, GRy | MR SRx, GRy | |
-| **LDCR** | LDSR CRx, GRy | MR SRx, GRy | |
-| **STSR** | LDSR GRx, SRy | MR SRx, GRy | |
-| **STCR** | LDSR GRx, CRy | MR SRx, GRy | |
+| **LDCR** | LDCR CRx, GRy | MR SRx, GRy | |
+| **STSR** | STSR GRx, SRy | MR SRx, GRy | |
+| **STCR** | STCR GRx, CRy | MR SRx, GRy | |
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3481,7 +3469,7 @@ In addition to the L1 caches, there could be a joint L2 cache to serve both L1 c
       :                                                             :           |                |
       :                      Unified L2 Cache                       :           |                |
       :                                                             :           |                |
-      :                                                             :           |                |      Memory
+      :                                                             :           |                |      Memory Hierarchy
       :-------------------------------------------------------------:           |                |
                                    ^                                            |                |
                                    |                                            |                |
@@ -3919,22 +3907,22 @@ Note that this is perhaps one of many ways to implement a pipeline. The three ma
 - how about a CHK instruction ? 
 - it would compare a register to be within 0 and another register: r = 0 <= a <= b. r is 0 or 1 then.
 
-### Address translation
+### Address translation - getting rid of C and D bits in the status word
 
 Segment zero by definition maps directly to absolute addresses. That is "0.ofs" is actually "ofs". What if that is combined with the design decision to bypass a TLB when the segment address is zero ? 
 
-Addressing absolute memory is straightforward. Just use a "0.ofs" address. Interrupts and traps will jump to handlers in segment zero space and avoid address translation automatically. 
+Addressing absolute memory is then straightforward. Just use a "0.ofs" address. Interrupts and traps will jump to handlers in segment zero space and avoid address translation automatically. 
 
 There are two translation enable bits in the status word. When they are set to zero, address translation is disabled and any address "seg.ofs" maps to "0.ofs" as we ignore the segment part. 
 
+Protection ID check is also only for all segments except segment zero.
+
+The LDWA, STWA instruction could be removed at the expense of a smaller offset. LDWAX could be replaced by opMode 2 with the full range.
+
+Segment should be privileged, which means trat protection ID check is disabled anyway.
+
 So, can we actually with this simple fact take out the translation bits in the status word ?
 
-How would the GATE instruction work ?
+How would the GATE instruction work ? As before. A GATE instruction in a non-zero ID segment will promote or not, a GATE instruction on segment zero will also cause no change of the privilege level.
 
 Segment zero is the space that maps to physical memory and it will contains the interrupt / trap code and low level system data such as the page table and all other items that need to be addressed when we don't translate.
-
-
-
-
-
-

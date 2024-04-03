@@ -262,9 +262,6 @@ void DrvLineDisplay::displayTlbEntry( TlbEntry *entry, TokId fmt ) {
     fprintf( stdout, " Vpn-L: " );
     displayWord( entry -> vpnLow, fmt );
     
-    fprintf( stdout, " Bank: " );
-    displayHalfWord( entry -> tPhysMemBank( ), fmt );
-    
     fprintf( stdout, " PPN: " );
     displayHalfWord( entry -> tPhysPage( ), fmt  );
 }

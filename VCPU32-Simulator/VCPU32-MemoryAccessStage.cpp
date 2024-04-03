@@ -446,9 +446,9 @@ void MemoryAccessStage::process( ) {
             }
             
             if ( ! getBit( instr, 12 ))
-                cPtr -> flushBlockVirt( seg, ofs, tlbEntryPtr -> tPhysAdrTag( ));
+                cPtr -> flushBlockVirt( seg, ofs, ( tlbEntryPtr -> tPhysPage( ) << PAGE_SIZE_BITS ));
             else
-                cPtr -> purgeBlockVirt( seg, ofs, tlbEntryPtr -> tPhysAdrTag( )); 
+                cPtr -> purgeBlockVirt( seg, ofs, ( tlbEntryPtr -> tPhysPage( ) << PAGE_SIZE_BITS ));
             
         } break;
             
@@ -521,9 +521,7 @@ void MemoryAccessStage::process( ) {
                 }
             }
            
-            // revise the TLB data, see ITLB comment in FD stage ...
-            //
-            pAdr = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;
+            pAdr = tlbEntryPtr -> tPhysPage( ) | pOfs;
         }
         else pAdr = valX;
     

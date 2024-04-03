@@ -460,24 +460,7 @@ uint32_t TlbEntry::tProtectId( ) {
     return( getBitField( pInfo, 31, 16 ));
 }
 
-uint32_t TlbEntry::tPhysAdrTag( ) {
-    
-    return( getBitField( aInfo, 32, 28 ));
-}
-
 uint32_t TlbEntry::tPhysPage( ) {
     
     return( getBitField( aInfo, 31, 20 ));
 }
-
-uint32_t TlbEntry::tPhysMemBank( ) {
-    
-    return( getBitField( aInfo, 11, 4 ));
-}
-
-uint32_t TlbEntry::tCpuId( ) {
-    
-    return( getBitField( aInfo, 7, 4 ));
-}
-
-

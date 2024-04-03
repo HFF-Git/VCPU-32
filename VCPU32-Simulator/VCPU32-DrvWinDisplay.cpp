@@ -1577,8 +1577,6 @@ void DrvWinTlb::drawLine( int index ) {
         printTextField((char *) ".", fmtDesc );
         printNumericField( tEntry -> vpnLow, fmtDesc );
         printTextField((char *) " PPN:", fmtDesc );
-        printNumericField( tEntry -> tPhysMemBank( ), fmtDesc | FMT_HALF_WORD );
-        printTextField((char *) ".", fmtDesc );
         printNumericField( tEntry -> tPhysPage( ), fmtDesc );
     }
 }
@@ -2336,6 +2334,7 @@ void DrvWinDisplay::reDraw( bool mustRedraw ) {
 //-----------------------------------------------------------------------------------------------------------
 void DrvWinDisplay::windowsOn( ) {
     
+    // nothing to do here...
 }
 
 void DrvWinDisplay::windowsOff( ) {

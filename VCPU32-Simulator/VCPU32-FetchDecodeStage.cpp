@@ -353,11 +353,8 @@ void FetchDecodeStage::process( ) {
                 return;
             }
         }
-        
-        // ??? rethink this address. The TLB just keeps teh page bit also the bank and CPU id. All this does
-        // fit in one 32-bit word. Bt we csannot also put in the offset.
-        //
-        pAdr = tlbEntryPtr -> tPhysAdrTag( ) | pOfs;
+       
+        pAdr = tlbEntryPtr -> tPhysPage( ) | pOfs;
     }
     
     //--------------------------------------------------------------------------------------------------------
