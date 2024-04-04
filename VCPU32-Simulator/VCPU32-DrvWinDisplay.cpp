@@ -1444,7 +1444,7 @@ void DrvWinCode::drawLine( int itemAdr ) {
     printNumericField( itemAdr, fmtDesc | FMT_ALIGN_LFT, 12 );
     printTextField(( isCurrentIaOfs ? (char *) ">" :  (char *) " " ), fmtDesc, 4 );
     
-    printNumericField( *codePtr, fmtDesc |FMT_ALIGN_LFT, 12 );
+    printNumericField( *codePtr, fmtDesc | FMT_ALIGN_LFT, 12 );
     printTextField((char *) "", fmtDesc, 16 );
     
     int pos = getWinCursorCol( );

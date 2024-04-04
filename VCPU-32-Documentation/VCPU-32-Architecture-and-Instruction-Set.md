@@ -167,6 +167,7 @@ April, 2024
         - [Traps and Interrupt handling](#traps-and-interrupt-handling)
         - [Debug](#debug)
         - [System Startup sequence](#system-startup-sequence)
+    - [Processor Dependent Code](#processor-dependent-code)
     - [VCPU-32 Input/Output system](#vcpu-32-inputoutput-system)
         - [The physical address space](#the-physical-address-space)
         - [Concept of an I/O Module](#concept-of-an-io-module)
@@ -174,7 +175,6 @@ April, 2024
         - [A pipelined CPU](#a-pipelined-cpu)
     - [Notes](#notes)
         - [CHK instruction](#chk-instruction)
-        - [Address translation - getting rid of C and D bits in the status word](#address-translation---getting-rid-of-c-and-d-bits-in-the-status-word)
 
 <!-- /TOC -->
 
@@ -330,7 +330,7 @@ The **status register** holds the processor state information, such as the carry
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : M : C : X : reserved                          :CB: reserved                          :P :D :E :
+   :M :X : reserved                                :CB: reserved                             :P :E :
    :-----------------------------------------------------------------------------------------------:
 ```
 
@@ -339,11 +339,8 @@ Bits 12 .. 17 are reserved for carry bits. A carry bit, bit 12, is generated for
 | Flag | Name | Purpose |
 |:---|:---|:---|
 | **M** | Machine Check | Machine check. When set, checks are disabled.|
-| **C** | Instruction Translation Enable | When set, the instruction translation and access control is enabled. |
 | **X** | Execution level | When set, the CPU runs in user mode, otherwise in privileged mode. |
 | **CB** | Carry/Borrow | The carry bit for ADD and SUB instructions. |
-| **P** | Protection ID Mode | Protection check enable. When set and Code translation is enabled, protection IDs are checked. |
-| **D** | Data Translation Enable | When set, the data translation and access control is enabled. |
 | **E** | External Interrupt Enable | When set, an external interrupt are enabled. |
 
 ### Control Registers
@@ -405,9 +402,9 @@ Implementations may not utilize the full 32-bit segment ID space. For example, a
 
 ### Address Translation
 
-VCPU-32 defines three types of addresses. At the programmer's level there is the **logical address**. The logical address is a 32-bit word, which contains a 2-bit segment register selector and a 30-bit offset. During data access with a logical address the segment selector selects from the segment register set SR4 to SR7 and forms together with the remaining 30-bit offset a virtual address. Since the upper two bits are inherently fixed, the address range in the particular segment is one of four possible 30-bit quadrants. For example, when the upper two bits are zero, the first quadrant 0x00000000 to 0x3FFFFFFF of a segment is addressable. When the upper two bits are 0x2, the reachable address range is 0x80000000 to 0xBFFFFFF. When the segment registers SR4 to SR7 all would point to the same segment, the entire address range of a segment is reachable via a logical address. It is however more likely that these registers point to different segments though.
+VCPU-32 defines three types of addresses. At the highest level is the **logical address**. The logical address is a 32-bit word, which contains a 2-bit segment register selector and a 30-bit offset. During data access with a logical address the segment selector selects from the segment register set SR4 to SR7 and forms together with the remaining 30-bit offset a virtual address. Since the upper two bits are inherently fixed, the address range in the particular segment is one of four possible 30-bit quadrants. For example, when the upper two bits are zero, the first quadrant 0x00000000 to 0x3FFFFFFF of a segment is addressable. When the upper two bits are 0x2, the reachable address range is 0x80000000 to 0xBFFFFFF. When the segment registers SR4 to SR7 all would point to the same segment, the entire address range of a segment is reachable via a logical address. It is however more likely that these registers point to different segments though.
 
-The **virtual address** is the concatenation of a segment and an offset. Together they form a maximum address range of 2^32 segments with 2^32 bits each. Once the virtual address is formed, the translation process is the same for both virtual addressing modes. The following figure shows the translation process for a logical address. A virtual address is translated to a **physical address**. A logical address is an address with the upper two bits indicating which segment register to use and the offset an unsigned index into the segment.
+The **virtual address** is the concatenation of a segment and an offset. Together they form a maximum address range of 2^32 segments with 2^32 bits each. Once the virtual address is formed, the virtual to physical translation process is the same for both logical and virtual addressing mode. The following figure shows the translation process. First a logical address is translated into a virtual address. A virtual address is then translated into a **physical address**. 
 
 ```
                                                    0    1 2                                 31
@@ -435,11 +432,11 @@ The **virtual address** is the concatenation of a segment and an offset. Togethe
                            \_______ physical page ___/\__ page ofs ___/
 ```
 
-Address translation can be enabled separately for instruction and data address translation. If virtual address translation for the instruction or data access is disabled, the 32 bit offset portion represents a physical address. A virtual address with a segment portion of zero will directly address physical memory, i.e the virtual address offset is the physical address. The maximum memory size is 4 Gbytes.
+Address translation is enabled for every non-zero segemetn Id. For segment zero, the 32 bit offset portion represents a the physical address. The maximum memory size is 4 Gbytes.
 
 ### Access Control
 
-When virtual address translation is enabled, VCPU-32 implements a **protection model** along two dimensions. The first dimension is the access control and privilege level check. Each page is associated with a **page type**. There are read-only, read-write, execute and gateway pages. Each memory access is checked to be compatible with the allowed type of access set in the page descriptor. There are two privilege levels, user and supervisor mode. On each instruction execution, the privilege bit in the instruction address is checked against the access type and privilege information field in the access control field, stored in the TLB. Access type and privilege level form the access control information field, which is checked for each memory access. For read access the privilege level us be least as high as the PL1 field, for write access the privilege level must be as least as high as PL2. For execute access the privilege level must be at least as high as PL1 and not higher than PL2. If the instruction privilege level is not within this bounds, a privilege violation trap is raised. If the page type does not match the instruction access type an access violation trap is raised. In both cases the instruction is aborted and a memory protection trap is raised.
+For all segments except the non-zero segment VCPU-32 implements a **protection model** along two dimensions. The first dimension is the access control and privilege level check. Each page is associated with a **page type**. There are read-only, read-write, execute and gateway pages. Each memory access is checked to be compatible with the allowed type of access set in the page descriptor. There are two privilege levels, user and supervisor mode. On each instruction execution, the privilege bit in the instruction address is checked against the access type and privilege information field in the access control field, stored in the TLB. Access type and privilege level form the access control information field, which is checked for each memory access. For read access the privilege level us be least as high as the PL1 field, for write access the privilege level must be as least as high as PL2. For execute access the privilege level must be at least as high as PL1 and not higher than PL2. If the instruction privilege level is not within this bounds, a privilege violation trap is raised. If the page type does not match the instruction access type an access violation trap is raised. In both cases the instruction is aborted and a memory protection trap is raised.
 
 ```
     0           2     3
@@ -463,6 +460,8 @@ The second dimension of protection is a **protection ID**. A protection ID is a 
 ```
 
 Protection IDs are typically used to form a grouping of access. A good example is a stack data segment, which is accessible at user privilege level in read and write access from every thread that has R/W access with user privilege. However, only the corresponding user thread should be allowed to access the stack data segment. If a protection ID is assigned to the user thread, this can easily be accomplished. In addition, the protection ID also features a write disable bit, for allowing a model where many threads can read the protected segment but only few or one can write to it.
+
+If the segment Id is zero, the execution level must be privileged and address translation and protedction checking is disabled.
 
 ### Adress translation and caching
 
@@ -2529,21 +2528,24 @@ Performs a right shift of two concatenated registers for shift amount bits and s
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : DSR    ( 0x06 ) : r         :0 :A : 0               : shamt        :0 : a         : b         :
+   : DSR    ( 0x06 ) : r         :Z :A : 0               : shamt        :0 : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The double shift right instruction concatenates the general registers specified by "b" and "a" and performs a right shift operation of "shamt" bits. register "b" is the left part, register "a" the right part. The lower 32 bits of the result are stored in the general register "r". The "shamt" field range is from 0 to 31 for the shift amount. If the "A" bit is set, the shift amount is taken from the shift amount control register.
+The double shift right instruction concatenates the general registers specified by "b" and "a" and performs a right shift operation of "shamt" bits. register "b" is the left part, register "a" the right part. The lower 32 bits of the result are stored in the general register "r". The "shamt" field range is from 0 to 31 for the shift amount. If the "A" bit is set, the shift amount is taken from the shift amount control register. If the "Z" bit is set, anzero value is used instead of the "a".
 
 #### Operation
 
 ```
-   if ( instr.[A] ) tmpShAmt <- SHAMT.[27..31];
-   else tmpShAmt <- shamt;
+   if ( instr.[A] )  tmpShAmt <- SHAMT.[27..31];
+   else              tmpShAmt <- shamt;
 
-   GR[r] <- rshift( cat( GR[b], GR[a] ), shamt );
+   if ( instr.[Z] )  tmp = 0;
+   else              tmp = GR[a];
+
+   GR[r] <- rshift( cat( GR[b], tmp ), shamt );
 ```
 
 #### Exceptions
@@ -3294,7 +3296,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : DEP     ( 0x05 ): r         :Z :A :I :             : len          : pos           : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : DSR     ( 0x06 ): r         : 0                    : shamt         :0 : a         : b         : 
+   : DSR    ( 0x06 ) : r         :Z :A : 0               : shamt        :0 : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : SHLA    ( 0x07 ): r         :I :L :O : 0                     : sa  :0 : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
@@ -3613,7 +3615,7 @@ During program execution procedures call other procedures. Upon entry, a procedu
       :  : Frame Marker                 :  :
       :  :                              :  :
       :  :------------------------------:  :
-      :------------------------------------: <------- Previous tack Pointer
+      :------------------------------------: <------- Previous tack Pointer ( PSP )
       :  :------------------------------:  :
       :  : Local data area              :  :
       :  :                              :  :
@@ -3630,7 +3632,7 @@ During program execution procedures call other procedures. Upon entry, a procedu
       :  : Frame Marker                 :  :
       :  :                              :  :
       :  :------------------------------:  :
-      :------------------------------------: <------- Stack Pointer                               
+      :------------------------------------: <------- Stack Pointer  ( SP )                             
 ```
 
 A stack frame is the associated data area for a procedure. Its size is computed at compile time and will not change. The frame marker and the argument areas are also at known locations.  Since the overall frame size is fixed, i.e. computed at compile time, the callee can easily locate the incoming arguments by subtracting its own frame size and the position of the particular argument. The data stack pointer will always points to the location where the next frame will be allocated. Addressing the current frame and the frame marker and parameter area of the previous is SP minus an offset. The parameter area contains the formal arguments of the caller when making the call and potential return values when the caller returns.
@@ -3710,7 +3712,7 @@ To the programmer general registers and segment registers are the primary regist
          :-----------------------------:               
 ```
 
-Some VCPU-32 instructions have a registers as an implicit target. For example, the ADDIL instruction uses general register zero as implicit target. The BLE instructions saves the return link implicitly in GR0 and SR0. The caller can rely on that certain register are preserved across the calls. In addition to the callee save registers already mentioned, the SP value, the DP value as well as SR4 to SR 7 are preserved across a call. In addition to the caller save segment registers, the processor status registers as well as any registers set by privileged code is not preserved across a procedure call.
+Some VCPU-32 instructions have a registers as an implicit target. For example, the ADDIL instruction uses general register zero as implicit target. The BLE instructions saves the return link implicitly in GR0 and SR0. The caller can rely on that certain register are preserved across the calls. In addition to the callee save registers already mentioned, the SP value, the RL and the DP value as well as SR4 to SR 7 are preserved across a call. In addition to the caller save segment registers, the processor status registers as well as any registers set by privileged code is not preserved across a procedure call.
 
 ### Parameter passing
 
@@ -3832,9 +3834,15 @@ Assemblers and compilers should not create different calling sequences depending
 
 The diagram shows "FA" in module "A" calling "FB" in module "B". To call "FB", an import stub is added to module "A". All routines in "A" will use this stub when calling "FB" in module "B". After some housekeeping, the import stub makes an external call using the BLE instruction. The target is another stub, the export stub for "B". Every procedure that is export from a module needs to have such an export stub code sequence. The export stub will perform a local branch and link to the target procedure "FB". "FB" will upon return just branch back to the export stub. As a last step, the export stub will perform an external branch to the location after the call instruction in "FA".
 
+// import stub - uses stack frame locations for housekeeping
+
+// export stub - uses stack frame locations for housekeeping
+
+// linkage table - info how to get to the external module and procedure
+
 ### Privilege level changes
 
-// privilege changes are also considered as external calls, although perhaps local calls
+// privilege changes are also considered as external calls, although perhaps local to a module
 // GATE instruction and external calls
 
 ### Traps and Interrupt handling
@@ -3842,11 +3850,30 @@ The diagram shows "FA" in module "A" calling "FB" in module "B". To call "FB", a
 
 ### Debug
 
+// essentially a trap
+
 
 ### System Startup sequence
 
 // what needs to be in place before we can load an operating system, or alike ... IPL / ISL ? 
 
+// role of PDC
+
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
+## Processor Dependent Code
+
+Part of the the I/O memory address range is allocated to procesor dependent code.
+
+// entry and exit conditions
+
+// invocation mechanism
+
+// runs privileged always
+
+// groups of PDC services
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -3866,16 +3893,12 @@ VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory add
 | 0xF0000000 | 0xF0FFFFFF | Processor dependent code |
 | 0xFF000000 | 0xFFFFFFFF | IO memory |
 
-#### Physical memory
-
-#### Processor Dependent Code
-
-#### IO Memory
-
-
-
 
 ### Concept of an I/O Module
+
+// Bus and IO Module 
+
+// hard physical pages
 
 ### External Interrupts
 
@@ -3906,23 +3929,3 @@ Note that this is perhaps one of many ways to implement a pipeline. The three ma
 
 - how about a CHK instruction ? 
 - it would compare a register to be within 0 and another register: r = 0 <= a <= b. r is 0 or 1 then.
-
-### Address translation - getting rid of C and D bits in the status word
-
-Segment zero by definition maps directly to absolute addresses. That is "0.ofs" is actually "ofs". What if that is combined with the design decision to bypass a TLB when the segment address is zero ? 
-
-Addressing absolute memory is then straightforward. Just use a "0.ofs" address. Interrupts and traps will jump to handlers in segment zero space and avoid address translation automatically. 
-
-There are two translation enable bits in the status word. When they are set to zero, address translation is disabled and any address "seg.ofs" maps to "0.ofs" as we ignore the segment part. 
-
-Protection ID check is also only for all segments except segment zero.
-
-The LDWA, STWA instruction could be removed at the expense of a smaller offset. LDWAX could be replaced by opMode 2 with the full range.
-
-Segment should be privileged, which means trat protection ID check is disabled anyway.
-
-So, can we actually with this simple fact take out the translation bits in the status word ?
-
-How would the GATE instruction work ? As before. A GATE instruction in a non-zero ID segment will promote or not, a GATE instruction on segment zero will also cause no change of the privilege level.
-
-Segment zero is the space that maps to physical memory and it will contains the interrupt / trap code and low level system data such as the page table and all other items that need to be addressed when we don't translate.

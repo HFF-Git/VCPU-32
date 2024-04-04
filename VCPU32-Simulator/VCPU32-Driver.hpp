@@ -389,6 +389,8 @@ private:
 // correct interpretation of this address. The "itemsPerLine" is the incrment value for the item adress
 // passed. As an example, showing memory data content, 8 machine words will be shown in one line.
 //
+
+// ??? rename ItemsPerLine to LineIncrement, it matches better what it is ...
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinScrollable : DrvWin {
     

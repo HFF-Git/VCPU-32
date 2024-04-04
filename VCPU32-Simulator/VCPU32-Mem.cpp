@@ -309,7 +309,7 @@ bool CpuMem::readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag
         
         // ??? we need to reflect that wre are passed a byte address...!!!!! FIX
         
-        uint32_t    blockIndex  = (( ofs >> blockBits ) % cDesc.blockEntries );
+        uint32_t    blockIndex  = ((( ofs >> 2 ) >> blockBits ) % cDesc.blockEntries );
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );
         
         if ( matchSet < cDesc.blockSets ) {
@@ -355,7 +355,7 @@ bool CpuMem::writeVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTa
         
         // ??? we need to reflect that wre are passed a byte address...!!!!! FIX
         
-        uint32_t    blockIndex  = (( ofs >> blockBits ) % cDesc.blockEntries );
+        uint32_t    blockIndex  = ((( ofs >> 2 ) >> blockBits ) % cDesc.blockEntries );
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );
         
         if ( matchSet < cDesc.blockSets ) {
