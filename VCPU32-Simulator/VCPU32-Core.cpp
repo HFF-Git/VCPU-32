@@ -196,7 +196,7 @@ void CpuCore::instrStep( uint32_t numOfInstr ) {
     uint32_t    previousIaSeg   = 0;
     uint32_t    previousIaOfs   = 0;
     uint32_t    cycleCount      = 0;
-    uint32_t        totalCycleCount = 0;
+    uint32_t    totalCycleCount = 0;
     
     while ( numOfInstr > 0 ) {
         

@@ -404,8 +404,8 @@ public:
     int             getCurrentItemAdr( );
     void            setLimitItemAdr( int adr );
     int             getLimitItemAdr( );
-    void            setItemsPerLine( int arg );
-    int             getItemsPerLine( );
+    void            setLineIncrement( int arg );
+    int             getLineIncrement( );
     
     virtual void    drawBody( );
     virtual void    drawLine( int index ) = 0;
@@ -420,7 +420,7 @@ private:
     int homeItemAdr         = 0;
     int currentItemAdr      = 0;
     int limitItemAdr        = 0;
-    int itemsPerLine        = 0;
+    int lineIncrement       = 0;
 };
 
 

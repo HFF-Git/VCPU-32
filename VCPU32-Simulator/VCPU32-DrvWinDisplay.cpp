@@ -691,8 +691,8 @@ int  DrvWinScrollable::getCurrentItemAdr( ) { return( currentItemAdr ); }
 void DrvWinScrollable::setLimitItemAdr( int adr ) { limitItemAdr = adr; }
 int  DrvWinScrollable::getLimitItemAdr( ) { return( limitItemAdr ); }
 
-void DrvWinScrollable::setItemsPerLine( int arg ) { itemsPerLine = arg; }
-int  DrvWinScrollable::getItemsPerLine( ) { return( itemsPerLine ); }
+void DrvWinScrollable::setLineIncrement( int arg ) { lineIncrement = arg; }
+int  DrvWinScrollable::getLineIncrement( ) { return( lineIncrement ); }
 
 //------------------------------------------------------------------------------------------------------------
 // The scrollable window inherits from the general window. While the banner part of a window is expected to
@@ -712,7 +712,7 @@ void DrvWinScrollable::drawBody( ) {
     for ( int line = 0; line < numOfItemLines; line++ ) {
         
         setWinCursor( line + 2, 1 );
-        drawLine( currentItemAdr + ( line * itemsPerLine ));
+        drawLine( currentItemAdr + ( line * lineIncrement ));
     }
 }
 
@@ -727,7 +727,7 @@ void DrvWinScrollable::winHome( int pos ) {
     
     if ( pos > 0 ) {
         
-        int itemsPerWindow = ( getRows( ) - 1 ) * itemsPerLine;
+        int itemsPerWindow = ( getRows( ) - 1 ) * lineIncrement;
         
         if ( pos > limitItemAdr - itemsPerWindow ) homeItemAdr = limitItemAdr - itemsPerWindow;
         homeItemAdr       = pos;
@@ -756,26 +756,26 @@ void DrvWinScrollable::winJump( int pos ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvWinScrollable::winForward( int amt ) {
     
-    if ( amt == 0 ) amt = ( getRows( ) - 1 ) * itemsPerLine;
+    if ( amt == 0 ) amt = ( getRows( ) - 1 ) * lineIncrement;
     
     currentItemAdr = currentItemAdr + amt;
     
     if ( currentItemAdr + amt > limitItemAdr ) {
         
-        currentItemAdr = limitItemAdr - (( getRows( ) - 1 ) * itemsPerLine );
+        currentItemAdr = limitItemAdr - (( getRows( ) - 1 ) * lineIncrement );
     }
     else if ( currentItemAdr < 0 ) currentItemAdr = 0;
 }
 
 void DrvWinScrollable::winBackward( int amt ) {
     
-    if ( amt == 0 ) amt = ( getRows( ) - 1 ) * itemsPerLine;
+    if ( amt == 0 ) amt = ( getRows( ) - 1 ) * lineIncrement;
     
     currentItemAdr = currentItemAdr - amt;
     
     if ( currentItemAdr + amt > limitItemAdr ) {
         
-        currentItemAdr = limitItemAdr - (( getRows( ) - 1 ) * itemsPerLine );
+        currentItemAdr = limitItemAdr - (( getRows( ) - 1 ) * lineIncrement );
     }
     else if ( currentItemAdr < 0 ) currentItemAdr = 0;
 }
@@ -1287,7 +1287,7 @@ void DrvWinPhysMem::setDefaults( ) {
     setRows( 5 );
     setHomeItemAdr( 0 );
     setCurrentItemAdr( 0 );
-    setItemsPerLine( 8 );
+    setLineIncrement( 8 );
     setLimitItemAdr( 0 );
 }
 
@@ -1344,7 +1344,7 @@ void DrvWinPhysMem::drawLine( int itemAdr ) {
     printNumericField( itemAdr, fmtDesc );
     printTextField((char *) ": ", fmtDesc );
     
-    for ( int i = 0; i <  getItemsPerLine( ); i++ ) {
+    for ( int i = 0; i <  getLineIncrement( ); i++ ) {
     
         printNumericField( dataPtr[ i ], fmtDesc );
         printTextField((char *) " " );
@@ -1380,7 +1380,7 @@ void DrvWinCode::setDefaults( ) {
 
     setHomeItemAdr( 0 );
     setCurrentItemAdr( 0 );
-    setItemsPerLine( 1 );
+    setLineIncrement( 4 );
     setLimitItemAdr( 0 );
     setWinType( WT_PC_WIN );
     setEnable( false );
@@ -1397,7 +1397,7 @@ void DrvWinCode::drawBanner( ) {
     
     uint32_t    fmtDesc             = FMT_BOLD | FMT_INVERSE;
     int         currentItemAdr      = getCurrentItemAdr( );
-    int         currentItemAdrLimit = currentItemAdr + getRows( ) - 1;
+    int         currentItemAdrLimit = currentItemAdr + ( getRows( ) * getLineIncrement( )) - 1;
     int         currentIaOfs        = (int) glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS  );
     TokId       currentCmd          = glb -> cmds -> getCurrentCmd( );
     bool        isCurrent           = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
@@ -1409,9 +1409,8 @@ void DrvWinCode::drawBanner( ) {
      
     if (( currentCmd == CMD_STEP ) && ( hasIaOfsAdr )) {
         
-        
-        if      ( currentIaOfs >= currentItemAdr + getRows( ) - 1 ) winJump( currentIaOfs );
-        else if ( currentIaOfs < currentItemAdr )                   winJump( currentIaOfs );
+        if      ( currentIaOfs >= currentItemAdr + currentItemAdrLimit ) winJump( currentIaOfs );
+        else if ( currentIaOfs < currentItemAdr )                        winJump( currentIaOfs );
     }
     
     setWinCursor( 1, 1 );
@@ -1492,7 +1491,7 @@ void DrvWinTlb::setDefaults( ) {
     setEnable( false );
     setRows( 5 );
     setCurrentItemAdr( 0 );
-    setItemsPerLine( 1 );
+    setLineIncrement( 1 );
     setLimitItemAdr( 0 );
     
     if      ( winType == WT_ITLB_WIN ) tlb = glb -> cpu -> iTlb;
@@ -1621,7 +1620,7 @@ void DrvWinCache::setDefaults( ) {
     setEnable( false );
     setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
     setCurrentItemAdr( 0 );
-    setItemsPerLine( 1 );
+    setLineIncrement( 1 );
     setLimitItemAdr( 0 );
     winToggleVal = 0;
 }
@@ -1887,7 +1886,7 @@ void DrvWinText::setDefaults( ) {
     setDefColumns( glb -> env -> getEnvValInt( ENV_WIN_TX_WIDTH ));
     setRadix( TOK_DEC );
     setCurrentItemAdr( 0 );
-    setItemsPerLine( 1 );
+    setLineIncrement( 1 );
     setLimitItemAdr( 1 );
 }
 

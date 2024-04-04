@@ -432,7 +432,7 @@ The **virtual address** is the concatenation of a segment and an offset. Togethe
                            \_______ physical page ___/\__ page ofs ___/
 ```
 
-Address translation is enabled for every non-zero segemetn Id. For segment zero, the 32 bit offset portion represents a the physical address. The maximum memory size is 4 Gbytes.
+Address translation is enabled for every non-zero segment Id. For segment zero, the 32 bit offset portion represents a the physical address. The maximum memory size is 4 Gbytes.
 
 ### Access Control
 
@@ -459,9 +459,7 @@ The second dimension of protection is a **protection ID**. A protection ID is a 
    :----------------------------------:---:
 ```
 
-Protection IDs are typically used to form a grouping of access. A good example is a stack data segment, which is accessible at user privilege level in read and write access from every thread that has R/W access with user privilege. However, only the corresponding user thread should be allowed to access the stack data segment. If a protection ID is assigned to the user thread, this can easily be accomplished. In addition, the protection ID also features a write disable bit, for allowing a model where many threads can read the protected segment but only few or one can write to it.
-
-If the segment Id is zero, the execution level must be privileged and address translation and protedction checking is disabled.
+Protection IDs are typically used to form a grouping of access. A good example is a stack data segment, which is accessible at user privilege level in read and write access from every thread that has R/W access with user privilege. However, only the corresponding user thread should be allowed to access the stack data segment. If a protection ID is assigned to the user thread, this can easily be accomplished. In addition, the protection ID also features a write disable bit, for allowing a model where many threads can read the protected segment but only few or one can write to it. If the segment Id is zero, the execution level must be privileged and address translation and protection checking is disabled.
 
 ### Adress translation and caching
 
@@ -720,7 +718,7 @@ The instructions described in the following chapters contain the instruction wor
 | Function | Description |
 |:---|:----|
 | **cat( x, y )** | concatenates the value of x and y. |
-| **lowSignExtend( x, len )** | performs a sign extension of the value "x". The sign bit is stored in the rightmost position and applied to the extracted field of the remainning left side bits. |
+| **lowSignExtend( x, len )** | performs a sign extension of the value "x". The sign bit is stored in the rightmost position and applied to the extracted field of the remaining left side bits. |
 | **signExtend( x, len )** | performs a sign extension of the value "x". The "len" parameter specifies the number of bits in the immediate. The sign bit is the leftmost bit. |
 | **zeroExtend( x, len )** | performs a zero bit extension of the value "x". The "len" parameter specifies the number of bits in the immediate.|
 | **segSelect( x )** | returns the segment register number based on the leftmost two bits of the argument "x". |
@@ -1118,8 +1116,7 @@ The "check the access part" is highly implementation dependent. One option is to
 
 ## Immediate Instructions
 
-Fixed length instruction word size architectures have one issue in that there is not enough room to embed a full word immediate value in the instruction. Typically, a combination of two instructions that concatenate the value from two fields is used. The **LDIL** instruction will place an 22-bit value in the left portion of a register, padded with zeroes to the right. The register content is then paired with an instruction that sets the right most 10-bit value. The **LDO** instruction that computes an offset is an example of such an instruction. 
-The **ADDIL** instructions add the left side of a register argument to a register. In combination, the two instructions LIDL and ADDIL allow to generate a 32-bit offset value. 
+Fixed length instruction word size architectures have one issue in that there is not enough room to embed a full word immediate value in the instruction. Typically, a combination of two instructions that concatenate the value from two fields is used. The **LDIL** instruction will place an 22-bit value in the left portion of a register, padded with zeroes to the right. The register content is then paired with an instruction that sets the right most 10-bit value. The **LDO** instruction that computes an offset is an example of such an instruction. The **ADDIL** instructions add the left side of a register argument to a register. In combination, the two instructions LIDL and ADDIL allow to generate a 32-bit offset value. 
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1195,7 +1192,7 @@ Adds an immediate value left aligned into the target register.
 
 #### Description
 
-The add immediate left instruction loads a 22-bit immediate value padded with zeroes on the right left aligned to the general register "r" and place the result in general reister zero. Any potential overflows are ignored.
+The add immediate left instruction loads a 22-bit immediate value padded with zeroes on the right left aligned to the general register "r" and place the result in general register zero. Any potential overflows are ignored.
 
 #### Operation
 
@@ -1209,7 +1206,7 @@ None.
 
 #### Notes
 
-The ADDIL instruction is typically used to produce a 32bit address offset in combination with the load and store instruction. The following example will use a 32-bit offset for loading a value into general register one. GR11 holds a logical address. The ADDIL instruction will add the left 22-bit portion padded with zeroes to the right to GR11 and store the result in teh scratch register R0. The instruction sequence
+The ADDIL instruction is typically used to produce a 32bit address offset in combination with the load and store instruction. The following example will use a 32-bit offset for loading a value into general register one. GR11 holds a logical address. The ADDIL instruction will add the left 22-bit portion padded with zeroes to the right to GR11 and store the result in the scratch register R0. The instruction sequence
 
 ```
    ADDIL  R11, L%ofs
@@ -1257,7 +1254,7 @@ The LDO instruction loads an offset into general register "r". For operand mode 
 
 #### Notes
 
-The LDO instruction calculates the offset portion. Although the format of the instruction uses the operand encoding, the segemnt part is ignored, but can be specified. The assembler should by convention emit a seg field of zero. Also, it does not matter whether the word, half-word or byte related operand mode is used for the address offset computation. In the assembler notation the "W", "H" and "B" option is therefore omitted.
+The LDO instruction calculates the offset portion. Although the format of the instruction uses the operand encoding, the segment part is ignored, but can be specified. The assembler should by convention emit a "seg" field value of zero. Also, it does not matter whether the word, half-word or byte related operand mode is used for the address offset computation. In the assembler notation the "W", "H" and "B" option is therefore omitted.
 
 The assembler uses the LDO instruction in opMode zero for a "LDI r, val" synthetic instruction to load an immediate value into a general register.
 
@@ -2725,7 +2722,7 @@ The move register instruction MR copies data from a segment or control register 
 
 #### Notes
 
-None.
+Although there are option bits for direction and register type, the assembler will simplify the instruction syntax. By deducing the the type of register, the "D" and "M" bits are set by the assembler.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3223,8 +3220,6 @@ The BRK instruction raises a debug breakpoint trap and enters the debug trap han
 
 The instruction opCode for BRK is the opCode value of zero. A zero instruction word result is treated as a NOP. 
 
-// ??? while it will help with the NOP needed in the pipeline, is that a good idea to just run through zeroes this way ?
-
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -3254,10 +3249,10 @@ The following table shows potential synthetic instructions.
 | **DEC** | DEC [ .< opt > ] GRx, val | SUB [ .< opt > ] GR x, val | |
 | **NEG** | NEG GRx | SUB [ .<opt> ] GRx, GRx, opMode 1 | |
 | **COM** | COM GRx | OR.N  GRx, GRx, opMode 1 | |
-| **LDSR** | LDSR SRx, GRy | MR SRx, GRy | |
-| **LDCR** | LDCR CRx, GRy | MR SRx, GRy | |
-| **STSR** | STSR GRx, SRy | MR SRx, GRy | |
-| **STCR** | STCR GRx, CRy | MR SRx, GRy | |
+| **LDSR** | LDSR SRx, GRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
+| **LDCR** | LDCR CRx, GRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
+| **STSR** | STSR GRx, SRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
+| **STCR** | STCR GRx, CRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3503,7 +3498,7 @@ Another implementation could combine both TLB units. Both types of translation a
 
 ### Instructions to manage TLBs
 
-TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for insertion and deletion of TLB entries. The insert into TLB instructions perform the insertion in two parts. The first instruction puts the address related information into a TLB entry but marks the entry not valid yet. The second insert into TLB instruction will enter access right related information and marks teh entry valid.
+TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for insertion and deletion of TLB entries. The insert into TLB instructions perform the insertion in two parts. The first instruction puts the address related information into a TLB entry but marks the entry not valid yet. The second insert into TLB instruction will enter access right related information and marks the entry valid.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3647,9 +3642,9 @@ The frame marker is a fixed structure of 8 locations which will contains the dat
       :            . . . .                 :
       :  :                              :  :
       :  :------------------------------:  :                   |
-      :  :                              :  : SP - 40           |
+      :  : ARG1                         :  : SP - 40           |
       :  :------------------------------:  :                   |
-      :  :                              :  : SP - 36           |
+      :  : ARG0                         :  : SP - 36           |
       :--:------------------------------:--:                  <
       :  :                              :  : SP - 32           |
       :  :------------------------------:  :                   |
@@ -3749,9 +3744,9 @@ The following assembly code snippets shows examples of the calling sequences. Th
 ```
       Source code:
 
-      func1( 500, 300 );                           int func2( int a, b ) {
-                                                      return( a + b );
-                                                   }
+      void "func1" {                               int func2( int a, b ) {
+         func( 500, 300 );                            return( a + b );
+      }                                             }
 
       Assembly:
 
@@ -3768,10 +3763,9 @@ The called function will just use the two incoming arguments, adds them and stor
 ```
       Source code:
 
-      func1( 500, 300 );                     int func2( int a, b ) {                 int func3( ) { } 
-                                                int local1, local2; 
-                                                func3( a, b );
-                                             }
+      void "func1" {                         int func2( int a, b ) {                 int func3( ) { } 
+         func2( 500, 300 );                     int local1, local2; 
+      }                                       }                                          func3( a, b );
 
       Assembly:
 
@@ -3795,13 +3789,13 @@ The called function will just use the two incoming arguments, adds them and stor
 
 The caller "func1" will produce its arguments and stores them in ARG0 and ARG1, as in the example before. If there were more than four arguments, they would have been stored with a ST instruction in their stack frame location. The callee "func2" is this time a procedure that calls another procedure and this needs a stack frame. First, the return link is saved to the frame marker of "Func1". RL will be overwritten by the call to "func3" and hence needs to be saved. Next the stack frame for "Func2" is allocated. The size is 32bytes for the frame marker, 16 bytes for the 4 arguments ARG0 to ARG1. Note that even when there are fewer than 4 arguments, the space is allocated. Finally there are two local variables. In sum the frame is 56 bytes. The LDO instruction will move the stack accordingly. 
 
-The "func2" procedure will its business and make a call to "func3". The parameters are prepared and a BL instruction branches to "func3". "func3" is a leaf procedure and there is no need for saving RL. If "func3" has local variables, then a frame will be allocated. Also, if "func3" would use a callee save register, there needs to be a spill area to seve them before usage. The spill area is a pat of the local data area too. "func3" returns with the BV instruction as before.
+The "func2" procedure will its business and make a call to "func3". The parameters are prepared and a BL instruction branches to "func3". "func3" is a leaf procedure and there is no need for saving RL. If "func3" has local variables, then a frame will be allocated. Also, if "func3" would use a callee save register, there needs to be a spill area to save them before usage. The spill area is a pat of the local data area too. "func3" returns with the BV instruction as before.
 
 When "func2" returns, it will deallocate the stack frame by moving SP back to the previous frame, load the saved return link into RL and a BV instructions branches back to the aller "func1". Phew.
 
 ### External Calls
 
-Assemblers and compilers should not create different calling sequences depending on whether particular call is local to a module or referringto a procedure in another module. Procedure calls are thus always local calls. Likewise a called function will return via a local branch. When a call is crossing a module boundary, small peieces of code need to be added which perform the additional work. These code sequences are called **stubs**. There are import stubs that are added for a procedure that makes an external call and export stubs for procedure that are a target for an external call. 
+Assemblers and compilers should not create different calling sequences depending on whether particular call is local to a module or referring to a procedure in another module. Procedure calls are thus always local calls. Likewise a called function will return via a local branch. When a call is crossing a module boundary, small pieces of code need to be added which perform the additional work. These code sequences are called **stubs**. There are import stubs that are added for a procedure that makes an external call and export stubs for procedure that are a target for an external call. 
 
 ```
        Calling module "A"                                       Called module "B"
@@ -3812,7 +3806,7 @@ Assemblers and compilers should not create different calling sequences depending
       :                        :                               :                        :  
       :------------------------:                               :------------------------:  
       :  ...      func "FA"    :                               :           func "FB"    : <----: 
-      :  BL                    : ----:                         :                        :      :
+      :  BL  "FB"              : ----:                         :                        :      :
       :  ...                   : <--------------------:        :                        :      :
       :                        :     :                :        : BV                     : ------------:
       :------------------------:     :                :        :------------------------:      :      :
@@ -3821,7 +3815,7 @@ Assemblers and compilers should not create different calling sequences depending
       :                        :     :                :        :                        :      :      :
       :------------------------:     :                :        :------------------------:      :      :
       :                        : <---:      :----------------> : BL                     : -----:      :
-      :     Import Stub                     :         :        :                        :             :
+      :     Import Stub        :            :         :        :                        :             :
       :                        :            :         :        :                        :             :
       : BLE                    : -----------:         :        :    Export Stub         :             :
       :------------------------:                      :        :                        : <-----------:
@@ -3843,6 +3837,7 @@ The diagram shows "FA" in module "A" calling "FB" in module "B". To call "FB", a
 ### Privilege level changes
 
 // privilege changes are also considered as external calls, although perhaps local to a module
+
 // GATE instruction and external calls
 
 ### Traps and Interrupt handling
@@ -3865,7 +3860,7 @@ The diagram shows "FA" in module "A" calling "FB" in module "B". To call "FB", a
 
 ## Processor Dependent Code
 
-Part of the the I/O memory address range is allocated to procesor dependent code.
+Part of the I/O memory address range is allocated to processor dependent code.
 
 // entry and exit conditions
 
