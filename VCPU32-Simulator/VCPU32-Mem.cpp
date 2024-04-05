@@ -16,26 +16,25 @@
 // address, this is segement and offset. These two values are used to compute the index into the tag and
 // data array of the L1 layer. The tag parameter is the tag obtained from the translation unit. The tag must
 // match the tag stored in the memory tag array for the indexed block. The memory layers can have different
-// block sizes. However, only going from smaller to larger sizes is supported. For example, a 4-word block
-// L1 cache can map to a 16-word L2 cache, but not vice versa.
+// block sizes. However, only going from smaller to larger sizes is supported. For example, a 16 byte block
+// L1 cache can map to a 64 byte block L2 cache, but not vice versa.
 //
-// Memory objects think in words, that is block size is specified in words, sizes are numberof words and so
-// on. Exechange between the layers is done in blocks. The L1 caches however export to the CPU in interface
-// to access a word, a half-word and a byte.
+// Memory objects think in byte addresses and bytes. Exchange between the layers is done in blocks. The L1
+// caches however export to the CPU in interface to access a word, a half-word and a byte. Also, the data
+// in a memory layer is stored in an array of words.
 //
-// The intended hardware will perform a lookup of TLB and caches in paralell. As a consequence the number of
+// The intended hardware will perform a lookup of TLB and caches in parallel. As a consequence the number of
 // bits needed to respresent the block entries cannot be greater than the number of bits necessary to
 // represent the page size minus the number of bits it takes to represent the block size. For example, of the
-// block size is four words, it will take two bits to index into the
-// block. If the page bit size is 12 bits then we have 10 bits left for indexing the cache, i.e. 1024
-// entries.
+// block size is 16 bytes, it will take four bits to index into the block. If the page bit size is 12 bits
+// then we have 8 bits left for indexing the cache, i.e. 256 entries.
 //
 // The key parameters for a memory layer are type, access type, number of entries and block size. The
-// total size in words is blockEntries * blockSize. All parameters can be found in the memory descriptor.
+// total size in bytes is blockEntries * blockSize. All parameters can be found in the memory descriptor.
 //
-// It seems a bit odd to have caches and memory modelled into one object class. However, this way several
-// combinations with unified, split and several cache layers can easily be configured. Layers that do not
-// support a particular access method, will just ignore the request.
+// It seems a bit odd to have all caches and physical memory modelled into one object class. However, this
+// way several combinations with unified, split and several cache layers can easily be configured. Layers
+// that do not support a particular access method, will just ignore the request.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -96,7 +95,7 @@ enum MemOpState : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 // Helper functions. We want to make sure that the size values for blocks and lines are a power of two. The
 // other helper functions compute the bit mask and teh nmber of bits in it for the cache lines. Note that for
-// block size only 4, 8 and 16 is allowed.
+// block size only 16, 32 and 64 bytes is allowed.
 //
 //------------------------------------------------------------------------------------------------------------
 uint32_t roundUp( uint32_t size, uint32_t limit ) {
@@ -109,18 +108,18 @@ uint32_t roundUp( uint32_t size, uint32_t limit ) {
 
 uint16_t getBlockBits( uint16_t blockSize ) {
     
-    if      ( blockSize == 4  ) return( 2 );
-    else if ( blockSize == 8  ) return( 3 );
-    else if ( blockSize == 16 ) return( 4 );
+    if      ( blockSize == 16 ) return( 4 );
+    else if ( blockSize == 32 ) return( 5 );
+    else if ( blockSize == 64 ) return( 6 );
     else return ( 4 );
 }
 
 uint32_t getBlockBitMask( uint16_t blockSize ) {
     
-    if      ( blockSize == 4  ) return( 0x03 );
-    else if ( blockSize == 8  ) return( 0x07 );
-    else if ( blockSize == 16 ) return( 0x0F );
-    else                        return( 0x03 );
+    if      ( blockSize == 16 ) return( 0x0F );
+    else if ( blockSize == 32 ) return( 0x1F );
+    else if ( blockSize == 64 ) return( 0x3F );
+    else                        return( 0x0F );
 }
 
 }; // namespace
@@ -137,9 +136,9 @@ CpuMem::CpuMem( CpuPhysMemDesc *cfg, CpuMem *mem ) {
     
     memcpy( &cDesc, cfg, sizeof( CpuPhysMemDesc ));
     
-    uint32_t limit = (( cDesc.type == MEM_T_PHYS_MEM ) ? MAX_MEM_BLOCK_ENTRIES : MAX_CACHE_BLOCK_ENTRIES );
+    uint32_t maxBlocks = (( cDesc.type == MEM_T_PHYS_MEM ) ? MAX_MEM_BLOCK_ENTRIES : MAX_CACHE_BLOCK_ENTRIES );
     
-    cDesc.blockEntries  = roundUp( cDesc.blockEntries, limit );
+    cDesc.blockEntries  = roundUp( cDesc.blockEntries, maxBlocks );
     cDesc.blockSize     = roundUp( cDesc.blockSize, MAX_BLOCK_SIZE );
     cDesc.blockSets     = roundUp( cDesc.blockSets, MAX_BLOCK_SETS );
     blockBits           = getBlockBits( cDesc.blockSize );
@@ -156,7 +155,7 @@ CpuMem::CpuMem( CpuPhysMemDesc *cfg, CpuMem *mem ) {
     }
     
     for ( uint32_t i = 0; i < cDesc.blockSets; i++ )
-        dataArray[ i ] = (uint32_t *) calloc( cDesc.blockEntries, cDesc.blockSize * sizeof( uint32_t ));
+        dataArray[ i ] = (uint32_t *) calloc( cDesc.blockEntries, cDesc.blockSize );
     
     switch ( cDesc.type ) {
             
@@ -185,7 +184,7 @@ CpuMem::CpuMem( CpuPhysMemDesc *cfg, CpuMem *mem ) {
 //------------------------------------------------------------------------------------------------------------
 void CpuMem::reset( ) {
     
-    uint32_t dSize = cDesc.blockEntries * cDesc.blockSize;
+    uint32_t setSize = ( cDesc.blockEntries * cDesc.blockSize ) / sizeof( uint32_t );
     
     for ( uint32_t i = 0; i < cDesc.blockSets; i++ ) {
         
@@ -199,7 +198,7 @@ void CpuMem::reset( ) {
             }
         }
         
-        for ( uint32_t j = 0; j < dSize; j++ ) dataArray[ i ] [ j ] = 0;
+        for ( uint32_t j = 0; j < setSize; j++ ) dataArray[ i ] [ j ] = 0;
     }
     
     opState.load( MO_IDLE );
@@ -265,7 +264,8 @@ void CpuMem::abortMemOp( ) {
 //------------------------------------------------------------------------------------------------------------
 // N-way-associative memories use the "matchTag" function to check for a matching tag in the set. We will
 // iterate through the tag arrays at the block index, check for a valid entry and matching tag. If no matching
-// entry is found and the entry is valid, the maximum block entries constant is returned.
+// entry is found and the entry is valid, the maximum block entries constant is returned. The tag passed is
+// physical address. We maks off the block size bits and compare the rest.
 //
 //------------------------------------------------------------------------------------------------------------
 uint16_t CpuMem::matchTag( uint32_t index, uint32_t tag ) {
@@ -307,7 +307,7 @@ bool CpuMem::readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag
     
     if ( opState.get( ) == MO_IDLE ) {
         
-        // ??? we need to reflect that wre are passed a byte address...!!!!! FIX
+        // ??? we need to reflect that we are passed a byte address and length ...!!!!! FIX
         
         uint32_t    blockIndex  = ((( ofs >> 2 ) >> blockBits ) % cDesc.blockEntries );
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );

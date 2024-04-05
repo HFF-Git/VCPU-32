@@ -377,6 +377,7 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
 // environmental variable setting.
 //
 // ??? factor in PDC and IO Space...
+// ??? we think in byte adresses !!!!!!  ofs and len are bytes!!!
 //------------------------------------------------------------------------------------------------------------
 void  DrvLineDisplay::displayPmemContent( uint32_t ofs, uint32_t len, TokId fmtId ) {
     

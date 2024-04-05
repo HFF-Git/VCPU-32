@@ -78,8 +78,10 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.memDesc.blockSets           = 1;
     cpuDesc.memDesc.latency             = 2;
     
-    // ??? add paramaters for PDC and IO space
+    cpuDesc.pdcDesc.type                = MEM_T_PDC_MEM;
     
+    cpuDesc.ioDesc.type                 = MEM_T_IO_MEM;
+ 
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
     
     glbDesc.env                         = new DrvEnv( &glbDesc );

@@ -94,7 +94,8 @@ uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
 // branch instructions.
 //
 //
-// ???? needs to be changed ... OR fixed.... make it a field in the opCode tab ?
+// Explain ... better .... Has to do with MA stage consuimng B and X and we need to wait for the correct
+// B and X tgo arrive if needed...
 //------------------------------------------------------------------------------------------------------------
 bool maStageConsumesRegValBorX( uint32_t instr ) {
     
@@ -324,7 +325,7 @@ void FetchDecodeStage::process( ) {
     // ??? idea: we could also architect that "0.ofs" is quivalent to "ofs". When segment is zero, then
     // address translation is bypassed, as well as page protection checking.
     //--------------------------------------------------------------------------------------------------------
-    if ( core -> stReg.get( ) & ST_CODE_TRANSLATION_ENABLE ) {
+    if ( instrSeg != 0 ) {
         
         tlbEntryPtr = core -> iTlb -> lookupTlbEntry( instrSeg, instrOfs );
         if ( tlbEntryPtr == nullptr ) {

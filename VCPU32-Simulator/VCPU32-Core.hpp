@@ -151,7 +151,9 @@ enum CpuMemType : uint32_t {
     MEM_T_L1_INSTR    = 1,
     MEM_T_L1_DATA     = 2,
     MEM_T_L2_UNIFIED  = 3,
-    MEM_T_PHYS_MEM    = 4
+    MEM_T_PHYS_MEM    = 4,
+    MEM_T_PDC_MEM     = 5,
+    MEM_T_IO_MEM      = 6
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -178,9 +180,9 @@ struct CpuPhysMemDesc {
     CpuMemType          type            = MEM_T_NIL;
     CpuMemAccessType    accessType      = MEM_AT_NIL;
     uint32_t            blockEntries    = 0;
-    uint16_t            blockSize       = 0;
-    uint16_t            blockSets       = 0;
-    uint16_t            latency         = 0;
+    uint32_t            blockSize       = 0;
+    uint32_t            blockSets       = 0;
+    uint32_t            latency         = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -190,7 +192,10 @@ struct CpuPhysMemDesc {
 //------------------------------------------------------------------------------------------------------------
 struct CpuPdcMemDesc {
     
-    
+    CpuMemType          type            = MEM_T_NIL;
+    uint32_t            startAdr        = 0;
+    uint32_t            endAdr          = 0;
+    uint32_t            memSize         = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -200,7 +205,10 @@ struct CpuPdcMemDesc {
 //------------------------------------------------------------------------------------------------------------
 struct CpuIoMemDesc {
     
-    
+    CpuMemType          type            = MEM_T_NIL;
+    uint32_t            startAdr        = 0;
+    uint32_t            endAdr          = 0;
+    uint32_t            memSize         = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -225,7 +233,7 @@ struct CpuCoreDesc {
     TlbDesc             iTlbDesc;
     TlbDesc             dTlbDesc;
 
-    CpuPdcMemDesc       pdcDecs;
+    CpuPdcMemDesc       pdcDesc;
     CpuIoMemDesc        ioDesc;
     
 };
@@ -271,12 +279,12 @@ private:
 //
 //   0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
 //  :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-//  : 0         : CPU-ID    : Bank      : PPN                                                       :  ainfo
+//  : 0                                 : PPN                                                       :  ainfo
 //  :-----------------------------------------------------------------------------------------------:
 //
 //   0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
 //  :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-//  :U :T :D :B : PT  :P1:P2: 0                     : Protect-Id                                    :  pInfo
+//  :T :D :B :  : PT  :P1:P2: 0                     : Protect-Id                                    :  pInfo
 //  :-----------------------------------------------------------------------------------------------:
 //
 //------------------------------------------------------------------------------------------------------------
@@ -287,7 +295,6 @@ public:
     bool        tValid( );
     void        setValid( bool arg );
     
-    bool        tUncachable( );
     bool        tTrapPage( );
     bool        tDirty( );
     bool        tTrapDataPage( );
@@ -398,6 +405,9 @@ struct MemTagEntry {
 // different block sizes. However, only going from smaller to larger sizes are supported. For example, a
 // 4-word block L1 cache can map to a 16-word L2 cache, but not vice versa. The block function have a length
 // paramater to indicate how large the receiving layer block size actually is.
+//
+// All address offsets are byte adresses. All sizes are measured in bytes, rounded up to a word size when
+// necessary. The data array in a cache or memory layers is however an array of words. 
 //
 //------------------------------------------------------------------------------------------------------------
 struct CpuMem {

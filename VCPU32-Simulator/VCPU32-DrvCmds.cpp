@@ -169,7 +169,7 @@ struct {
     { "R10",                "",         GR_SET,             GR_10                   },
     { "R11",                "",         GR_SET,             GR_11                   },
     { "R12",                "",         GR_SET,             GR_12                   },
-    { "R13",                "",         GR_SET,             GR_13                   },
+    { "R13",                "DP",       GR_SET,             GR_13                   },
     { "R14",                "RL",       GR_SET,             GR_14                   },
     { "R15",                "SP",       GR_SET,             GR_15                   },
 
@@ -1363,7 +1363,7 @@ void DrvCmds::displayRegCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Modify register command. Thsi command modifies a register within a register set.
+// Modify register command. This command modifies a register within a register set.
 //
 // MR <reg> <val>
 //------------------------------------------------------------------------------------------------------------
@@ -1656,9 +1656,10 @@ void  DrvCmds::purgeCacheCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Display physical memory command.
+// Display physical memory command. The memory address is a byte adress. The offset address is a byte address,
+// the length is measured in bytes, rounded up to the a word size.
 //
-// DA <ofs> [ <cnt> [ <fmt> ]]
+// DA <ofs> [ <len> [ <fmt> ]]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::displayPhysMemCmd( char *cmdBuf ) {
     
@@ -1679,7 +1680,11 @@ void DrvCmds::displayPhysMemCmd( char *cmdBuf ) {
         return;
     }
     
-    // ??? work in PDC andc IO space...
+    ofs &= 0xFFFFFFFC;
+    
+    len = ( len + 3 ) << 2;
+  
+    // ??? work on PDC andc IO space address
     
     if (( ofs > memSize ) || ( ofs + len > memSize )) {
         
@@ -1711,6 +1716,7 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     
     char        cmdStr[ TOK_NAME_SIZE + 1 ] = "";
     uint32_t    ofs                         = 0;
+    uint32_t    len                         = 0;
     uint32_t    val1                        = 0;
     uint32_t    val2                        = 0;
     uint32_t    val3                        = 0;
@@ -1731,7 +1737,10 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     
     int         numOfVal    = args - 2;
     
-    if ( ofs + numOfVal > memSize ) {
+    ofs &= 0xFFFFFFFC;
+    len =  numOfVal * 4;
+    
+    if ( ofs + len > memSize ) {
         
         fprintf( stdout, "Offset plus number of values to write exceeds memory size\n" );
         return;
@@ -1744,7 +1753,7 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     }
     
     
-    // ??? work in PDC andc IO space...
+    // ??? work in PDC and IO space...
     
     
     if ( numOfVal >= 1 ) {
@@ -1840,6 +1849,9 @@ void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
         fprintf( stdout, "Expected dump file path\n" );
         return;
     }
+    
+    
+    // ??? byte adresses !!!!!!!
     
     if ( len == 0 ) len = memSize;
     

@@ -178,8 +178,6 @@ enum TokId : uint16_t {
     CR_27                   = 4327, CR_28                   = 4328, CR_29                   = 4329,
     CR_30                   = 4330, CR_31                   = 4331,
     
-    // ??? add tokens for runtime lablels of registers... e.g Rx -> SP and so on...
-    
     PS_IA_SEG               = 4400, PS_IA_OFS               = 4401, PS_STATUS               = 4402,
     
     FD_IA_SEG               = 4500, FD_IA_OFS               = 4501, FD_INSTR                = 4502,
