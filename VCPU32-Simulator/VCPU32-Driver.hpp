@@ -117,8 +117,6 @@ enum TokId : uint16_t {
     //--------------------------------------------------------------------------------------------------------
     CMD_COMMENT             = 1000,   CMD_ENV               = 1001, CMD_EXIT              = 1002,
     CMD_HELP                = 1003,   CMD_WHELP             = 1004,
-    CMD_TREQ                = 1005,   CMD_TRNE              = 1006,
-    CMD_TMEQ                = 1007,   CMD_TMNE              = 1008,
     
     CMD_RESET               = 1010,   CMD_RUN               = 1011, CMD_STEP              = 1012,
     CMD_XF                  = 1013,   CMD_DIS_ASM           = 1014,
@@ -812,8 +810,6 @@ private:
     void            setBreakPointCmd( char *cmdBuf );
     void            deleteBreakPointCmd( char *cmdBuf );
     void            listBreakPointsCmd( char *cmdBuf );
-    void            testRegCmd( char *cmdBuf );
-    void            testMemCmd( char *cmdBuf );
     void            disAssembleCmd( char *cmdBuf );
     void            displayRegCmd( char *cmdBuf );
     void            modifyRegCmd( char *cmdBuf );

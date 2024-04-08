@@ -53,34 +53,42 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.iCacheDescL1.type           = MEM_T_L1_INSTR;
     cpuDesc.iCacheDescL1.accessType     = MEM_AT_DIRECT_MAPPED;
     cpuDesc.iCacheDescL1.blockEntries   = 1024;
-    cpuDesc.iCacheDescL1.blockSize      = 4;
+    cpuDesc.iCacheDescL1.blockSize      = 16;
     cpuDesc.iCacheDescL1.blockSets      = 2;
     cpuDesc.iCacheDescL1.latency        = 0;
     
     cpuDesc.dCacheDescL1.type           = MEM_T_L1_DATA;
     cpuDesc.dCacheDescL1.accessType     = MEM_AT_DIRECT_MAPPED;
     cpuDesc.dCacheDescL1.blockEntries   = 1024;
-    cpuDesc.dCacheDescL1.blockSize      = 8;
+    cpuDesc.dCacheDescL1.blockSize      = 32;
     cpuDesc.dCacheDescL1.blockSets      = 4;
     cpuDesc.dCacheDescL1.latency        = 0;
         
     cpuDesc.uCacheDescL2.type           = MEM_T_L2_UNIFIED;
     cpuDesc.uCacheDescL2.accessType     = MEM_AT_DIRECT_MAPPED;
     cpuDesc.uCacheDescL2.blockEntries   = 2048;
-    cpuDesc.uCacheDescL2.blockSize      = 8;
+    cpuDesc.uCacheDescL2.blockSize      = 32;
     cpuDesc.uCacheDescL2.blockSets      = 2;
     cpuDesc.uCacheDescL2.latency        = 2;
    
     cpuDesc.memDesc.type                = MEM_T_PHYS_MEM;
     cpuDesc.memDesc.accessType          = MEM_AT_DIRECT_INDEXED;
-    cpuDesc.memDesc.blockEntries        = 16*1024*1024 / 16;
-    cpuDesc.memDesc.blockSize           = 8;
+    cpuDesc.memDesc.blockEntries        = 1024 * 1024; // for just a million blocks.
+    cpuDesc.memDesc.blockSize           = 16;
     cpuDesc.memDesc.blockSets           = 1;
     cpuDesc.memDesc.latency             = 2;
     
     cpuDesc.pdcDesc.type                = MEM_T_PDC_MEM;
+    cpuDesc.pdcDesc.accessType          = MEM_AT_DIRECT_INDEXED;
+    cpuDesc.pdcDesc.startAdr            = 0xF0000000;
+    cpuDesc.pdcDesc.endAdr              = 0xF0FFFFFF;
+    cpuDesc.pdcDesc.latency             = 2;
     
     cpuDesc.ioDesc.type                 = MEM_T_IO_MEM;
+    cpuDesc.ioDesc.accessType           = MEM_AT_DIRECT_INDEXED;
+    cpuDesc.ioDesc.startAdr             = 0xFFFF0000;
+    cpuDesc.ioDesc.endAdr               = 0xFFFFFFFF;
+    cpuDesc.ioDesc.latency              = 2;
  
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
     

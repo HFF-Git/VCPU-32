@@ -378,7 +378,7 @@ void FetchDecodeStage::process( ) {
         
     } else {
        
-        if ( ! core -> mem -> readPhys( pAdr, 4, &instr )) {
+        if ( ! core -> physMem -> readPhys( pAdr, 4, &instr )) {
             
             stallPipeLine( );
             return;

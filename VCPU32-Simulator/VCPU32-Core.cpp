@@ -43,28 +43,28 @@ CpuCore::CpuCore( CpuCoreDesc *cfg ) {
     
     if ( cfg -> tlbOptions == VMEM_T_SPLIT_TLB ) {
         
-        iTlb = new CpuTlb( &cfg -> iTlbDesc );
-        dTlb = new CpuTlb( &cfg -> dTlbDesc );
+        iTlb = new CpuTlb( &cpuDesc.iTlbDesc );
+        dTlb = new CpuTlb( &cpuDesc.dTlbDesc );
     }
     else if ( cfg -> tlbOptions == VMEM_T_UNIFIED_TLB ) {
         
         // ??? what is the proper way to model a joint TLB ?
-        iTlb = new CpuTlb( &cfg -> iTlbDesc );
-        dTlb = new CpuTlb( &cfg -> dTlbDesc );
+        iTlb = new CpuTlb( &cpuDesc.iTlbDesc );
+        dTlb = new CpuTlb( &cpuDesc.dTlbDesc );
     }
     
-    mem = new CpuMem( &cfg -> memDesc );
+    physMem = new CpuMem( &cpuDesc.memDesc );
     
     if ( cfg -> cacheL2Options == VMEM_T_L2_UNIFIED_CACHE ) {
         
-        uCacheL2 = new CpuMem( &cfg -> uCacheDescL2, mem );
-        iCacheL1 = new CpuMem( &cfg -> iCacheDescL1, uCacheL2 );
-        dCacheL1 = new CpuMem( &cfg -> dCacheDescL1, uCacheL2 );
+        uCacheL2 = new CpuMem( &cpuDesc.uCacheDescL2, physMem );
+        iCacheL1 = new CpuMem( &cpuDesc.iCacheDescL1, uCacheL2 );
+        dCacheL1 = new CpuMem( &cpuDesc.dCacheDescL1, uCacheL2 );
     }
     else {
         
-        iCacheL1 = new CpuMem( &cfg -> iCacheDescL1, mem );
-        dCacheL1 = new CpuMem( &cfg -> dCacheDescL1, mem );
+        iCacheL1 = new CpuMem( &cpuDesc.iCacheDescL1, physMem );
+        dCacheL1 = new CpuMem( &cpuDesc.dCacheDescL1, physMem );
     }
    
     fdStage = new FetchDecodeStage( this );
@@ -86,7 +86,7 @@ void  CpuCore::clearStats( ) {
     iCacheL1 -> clearStats( );
     dCacheL1 -> clearStats( );
     if ( uCacheL2 != nullptr ) uCacheL2 -> clearStats( );
-    mem -> clearStats( );
+    physMem -> clearStats( );
     
     stats.clockCntr                = 0;
     stats.instrCntr                = 0;
@@ -148,7 +148,7 @@ void CpuCore::clockStep( uint32_t numOfSteps) {
         iCacheL1    -> process( );
         dCacheL1    -> process( );
         if ( uCacheL2 != nullptr ) uCacheL2 -> process( );
-        mem         -> process( );
+        physMem         -> process( );
         
         fdStage     -> process( );
         maStage     -> process( );
@@ -169,7 +169,9 @@ void CpuCore::clockStep( uint32_t numOfSteps) {
         iCacheL1    -> tick( );
         dCacheL1    -> tick( );
         if ( uCacheL2 != nullptr ) uCacheL2 -> tick( );
-        mem         -> tick( );
+        if ( pdcMem   != nullptr ) pdcMem -> tick( );
+        if ( ioMem    != nullptr ) ioMem -> tick( );
+        physMem         -> tick( );
     
         stats.clockCntr++;
         

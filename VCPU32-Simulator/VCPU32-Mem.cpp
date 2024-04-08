@@ -34,7 +34,8 @@
 //
 // It seems a bit odd to have all caches and physical memory modelled into one object class. However, this
 // way several combinations with unified, split and several cache layers can easily be configured. Layers
-// that do not support a particular access method, will just ignore the request.
+// that do not support a particular access method, will just ignore the request. As soon as the overall
+// design is a more fixed, a base class - inherited class is also a good way to structure this code.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -122,6 +123,45 @@ uint32_t getBlockBitMask( uint16_t blockSize ) {
     else                        return( 0x0F );
 }
 
+uint32_t maxBlocks( CpuMemType memType, uint32_t blockSize ) {
+    
+    switch ( memType ) {
+            
+        case MEM_T_L1_DATA:      return( MAX_CACHE_BLOCK_ENTRIES );
+        case MEM_T_L1_INSTR:     return( MAX_CACHE_BLOCK_ENTRIES );
+        case MEM_T_L2_UNIFIED:   return( MAX_CACHE_BLOCK_ENTRIES );
+        case MEM_T_PHYS_MEM:     return( MAX_PHYS_MEM_SIZE / blockSize );
+        case MEM_T_PDC_MEM:      return( MAX_PDC_MEM_SIZE / blockSize );
+        case MEM_T_IO_MEM:       return( MAX_IO_MEM_SIZE / blockSize );
+            
+        default: return( 1 );
+    }
+}
+
+uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    uint32_t tmpA = arg >> ( 31 - pos );
+    
+    if ( sign ) return( tmpA | ( ~ tmpM ));
+    else        return( tmpA & tmpM );
+}
+
+void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    
+    val = ( val & tmpM ) << ( 31 - pos );
+    
+    *arg = ( *arg & ( ~tmpM )) | val;
+}
+
 }; // namespace
 
 
@@ -136,11 +176,9 @@ CpuMem::CpuMem( CpuPhysMemDesc *cfg, CpuMem *mem ) {
     
     memcpy( &cDesc, cfg, sizeof( CpuPhysMemDesc ));
     
-    uint32_t maxBlocks = (( cDesc.type == MEM_T_PHYS_MEM ) ? MAX_MEM_BLOCK_ENTRIES : MAX_CACHE_BLOCK_ENTRIES );
-    
-    cDesc.blockEntries  = roundUp( cDesc.blockEntries, maxBlocks );
     cDesc.blockSize     = roundUp( cDesc.blockSize, MAX_BLOCK_SIZE );
     cDesc.blockSets     = roundUp( cDesc.blockSets, MAX_BLOCK_SETS );
+    cDesc.blockEntries  = roundUp( cDesc.blockEntries, maxBlocks( cDesc.type, cDesc.blockSize ));
     blockBits           = getBlockBits( cDesc.blockSize );
     blockBitMask        = getBlockBitMask( cDesc.blockSize );
     opState             = MO_IDLE;
@@ -154,15 +192,19 @@ CpuMem::CpuMem( CpuPhysMemDesc *cfg, CpuMem *mem ) {
             tagArray[ i ] = (MemTagEntry *) calloc( cDesc.blockEntries, sizeof( MemTagEntry));
     }
     
-    for ( uint32_t i = 0; i < cDesc.blockSets; i++ )
-        dataArray[ i ] = (uint32_t *) calloc( cDesc.blockEntries, cDesc.blockSize );
+    for ( uint32_t i = 0; i < cDesc.blockSets; i++ ) {
+        
+        dataArray[ i ] = (uint8_t *) calloc( cDesc.blockEntries, cDesc.blockSize );
+    }
     
     switch ( cDesc.type ) {
             
         case MEM_T_L1_INSTR:
         case MEM_T_L1_DATA:     stateMachine = &CpuMem::processL1CacheRequest;    break;
         case MEM_T_L2_UNIFIED:  stateMachine = &CpuMem::processL2CacheRequest;    break;
-        case MEM_T_PHYS_MEM:    stateMachine = &CpuMem::processMemRequest;        break;
+        case MEM_T_PHYS_MEM:    stateMachine = &CpuMem::processPhysMemRequest;    break;
+        case MEM_T_PDC_MEM:     stateMachine = &CpuMem::processPdcMemRequest;     break;
+        case MEM_T_IO_MEM:      stateMachine = &CpuMem::processIoMemRequest;      break;
         default: ;
     }
     
@@ -179,13 +221,11 @@ CpuMem::CpuMem( CpuPhysMemDesc *cfg, CpuMem *mem ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Reset the memory object. We clear the data strcutuires and set the requst state machine to idle.
+// Reset the memory object. We clear the data structures and set the request state machine to idle.
 //
 //------------------------------------------------------------------------------------------------------------
 void CpuMem::reset( ) {
-    
-    uint32_t setSize = ( cDesc.blockEntries * cDesc.blockSize ) / sizeof( uint32_t );
-    
+  
     for ( uint32_t i = 0; i < cDesc.blockSets; i++ ) {
         
         if ( tagArray[ i ] != nullptr ) {
@@ -198,7 +238,8 @@ void CpuMem::reset( ) {
             }
         }
         
-        for ( uint32_t j = 0; j < setSize; j++ ) dataArray[ i ] [ j ] = 0;
+        uint32_t tmpSize = cDesc.blockEntries * cDesc.blockSize;
+        for ( uint32_t j = 0; j < tmpSize; j++ ) dataArray[ i ] [ j ] = 0;
     }
     
     opState.load( MO_IDLE );
@@ -263,9 +304,10 @@ void CpuMem::abortMemOp( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // N-way-associative memories use the "matchTag" function to check for a matching tag in the set. We will
-// iterate through the tag arrays at the block index, check for a valid entry and matching tag. If no matching
-// entry is found and the entry is valid, the maximum block entries constant is returned. The tag passed is
-// physical address. We maks off the block size bits and compare the rest.
+// iterate through the tag arrays at the block index, check for a valid entry and matching tag. A tag is the
+// physical address with the blockBits set to zero. If no matching entry is found and the entry is valid, the
+// maximum block entries constant is returned. The tag passed is physical address. We maks off the block size
+// bits and compare the rest.
 //
 //------------------------------------------------------------------------------------------------------------
 uint16_t CpuMem::matchTag( uint32_t index, uint32_t tag ) {
@@ -283,44 +325,33 @@ uint16_t CpuMem::matchTag( uint32_t index, uint32_t tag ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "readVirt" is called from the CPU pipeline data access stage to read data from the L1 cache. The virtual
+// "readVirt" is called from the CPU pipeline data access stage to read data from the L1 caches. The virtual
 // adress is "seg.ofs". The "len" paramater specifies the number of bytes to read. Only 1, 2 and 4 bytes are
 // allowed, which correspond to byte, half-word and word. The "adrTag" parameter is the physical address used
-// for tag comparison for the TLB. If the L1 cache is IDLE, we directly check to see if we have a valid block
-// containing the data. If so, the data is returned right away and we have no cycle penalty. Depending on the
-// requested data size, the byte or half-word is returned with leading zeros filled on the right side.
-// Otherwise, we first need to ALLOCATE a slot and read in the block. The next cycle will start processing
-// the request. Note that the CPU core layer will call this routine every clock cycle as long as the operation
-// is not completed, i.e. it is back to IDLE.
-//
-
-// ??? general for all request type interfaces... what if the request paramater changed ? This could be the
-// case when for example the pipeline gets a new instruction target while serving a cache mis for the current
-// instruction target. The brnach type instructions store their target at the IA input, but it essentially
-// gets ignored... since the cache is busy and thus the new target gets lost. :-(
-//
-
-// ??? the name is perhaps a bit confusing, as we also read absolute addresses this way...
+// for tag comparison from the TLB. The tag address is the full address, the memory object will mask out the
+// block bit maks. If the L1 cache is IDLE, we directly check to see if we have a valid block containing the
+// data. If so, the data is returned right away and we have no cycle penalty. Depending on the requested data
+// size, the byte or half-word is returned with leading zeros extended. Otherwise, we first need to ALLOCATE
+// a slot in the cache and read in the block. The next cycle will start processing the request. Note that the
+// CPU core layer will call this routine every clock cycle as long as the operation is not completed, i.e. it
+// is back to IDLE.
 //
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t *word ) {
     
     if ( opState.get( ) == MO_IDLE ) {
-        
-        // ??? we need to reflect that we are passed a byte address and length ...!!!!! FIX
-        
-        uint32_t    blockIndex  = ((( ofs >> 2 ) >> blockBits ) % cDesc.blockEntries );
+       
+        uint32_t    blockIndex  = ofs % cDesc.blockEntries;
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );
         
         if ( matchSet < cDesc.blockSets ) {
             
-            uint32_t *dataPtr = &dataArray[ matchSet ] [ blockIndex * cDesc.blockSize ];
-            uint32_t *wordPtr = &dataPtr[ ofs & blockBitMask ];
+            uint8_t  *blockPtr = &dataArray[ matchSet ] [ blockIndex * cDesc.blockSize ];
+            uint8_t  *dataPtr  =  &blockPtr[ ofs & blockBitMask ];
             
-            if      ( len == 1 )    *word = ( *wordPtr >> (( 3 - ( ofs & 0x03 )))) & 0xFF;
-            else if ( len == 2 )    *word = ( *wordPtr >> (( 1 - (( ofs >> 1 ) & 0x01 )))) & 0xFFFF;
-            else                    *word = *wordPtr;
-            
+            if      ( reqLen == 1 ) *word = *dataPtr;
+            else if ( reqLen == 2 ) *word = *((uint16_t *) dataPtr );
+            else                    *word = *((uint32_t *) dataPtr );
             return( true );
         }
         else {
@@ -343,41 +374,30 @@ bool CpuMem::readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag
 
 //------------------------------------------------------------------------------------------------------------
 // "writeVirt" is called from the CPU pipeline data access stage to write data to the L1 cache. The virtual
-// adress is "seg.ofs". The "adrTag" parameter is the physical address tag stored in the TLB. If the L1 cache
-// is IDLE, we directly check to see if we have a valid block containing the word. If so, the data is stored
-// right away and we have no cycle penalty. Othwerwise, we follow the same logic as described for the read
-// virtual data operation.
+// adress is "seg.ofs". The "adrTag" parameter is the physical address tag stored in the TLB. It is the full
+// physical address, the memory object will mask out the bit mask size with zeroes. If the L1 cache is IDLE,
+// we directly check to see if we have a valid block containing the word. If so, the data is stored right
+// away and we have no cycle penalty. Depending on the request data size, the byte or half-word is stored
+// at the byte address in the cache. Othwerwise, we follow the same logic as described for the read virtual
+// data operation.
 //
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::writeVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t word ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
-        // ??? we need to reflect that wre are passed a byte address...!!!!! FIX
-        
-        uint32_t    blockIndex  = ((( ofs >> 2 ) >> blockBits ) % cDesc.blockEntries );
+        uint32_t    blockIndex  = (( ofs >> blockBits ) % cDesc.blockEntries );
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );
-        
+       
         if ( matchSet < cDesc.blockSets ) {
             
-            uint32_t *dataPtr = &dataArray[ matchSet ] [ blockIndex * cDesc.blockSize ];
-            uint32_t *wordPtr = &dataPtr[ ofs & blockBitMask ];
+            uint8_t *blockPtr = &dataArray[ matchSet ] [ blockIndex * cDesc.blockSize ];
+            uint8_t *dataPtr  = &blockPtr[ ofs & blockBitMask ];
             
             
-            if ( len == 1 )    {
-                
-                uint32_t bitMask = 0xFF << (( ofs & 0x3 ) * 8 );
-                *wordPtr = *wordPtr & ( ~ bitMask );
-                *wordPtr = *wordPtr | ( word << ( ofs & 0x3 ));
-                
-            } else if ( len == 2 ) {
-                
-                uint32_t bitMask = 0xFFFF << ((( ofs >> 1 ) & 0x01 ) * 16 );
-                *wordPtr = *wordPtr & ( ~ bitMask );
-                *wordPtr = *wordPtr | ( word << ( ofs & 0x3 ));
-                
-            } else *wordPtr = word;
-            
+            if      ( reqLen == 1 ) *dataPtr                 = (uint8_t) word;
+            else if ( reqLen == 2 ) *((uint16_t *) dataPtr ) = (uint16_t) word;
+            else                    *((uint32_t *) dataPtr ) = word;
             return( true );
         }
         else {
@@ -400,7 +420,7 @@ bool CpuMem::writeVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTa
 
 //------------------------------------------------------------------------------------------------------------
 // "flushBlockVirt" is the method for writing a dirty block back to the lower layer. If there is a match and
-// the block is dirty it will be written back to the lower layer. The next state will be WRITE_BACK_BLOCK.
+// the block is dirty it will be written back to the lower layer. The next state will be FLUSH_BLOCK_VIRT.
 // Otherwise the request is ignored.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -408,7 +428,7 @@ bool CpuMem::flushBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
-        uint32_t    blockIndex  = (( ofs >> blockBits ) % cDesc.blockEntries );
+        uint32_t    blockIndex  = ofs % cDesc.blockEntries;
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );
         
         if ( matchSet < cDesc.blockSets ) {
@@ -422,8 +442,8 @@ bool CpuMem::flushBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
                 reqOfs              = ofs;
                 reqPri              = memObjPriority;
                 reqTag              = tagPtr -> tag;
-                reqPtr              = &dataArray[ matchSet ] [ blockIndex * cDesc.blockSize ];
-                reqLen              = cDesc.blockSize;
+                reqPtr              = nullptr;
+                reqLen              = 0;
                 reqLatency          = cDesc.latency;
                 reqTargetSet        = matchSet;
                 reqTargetBlockIndex = blockIndex;
@@ -444,7 +464,7 @@ bool CpuMem::purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
-        uint32_t    blockIndex  = (( ofs >> blockBits ) % cDesc.blockEntries );
+        uint32_t    blockIndex  = ofs % cDesc.blockEntries;
         uint16_t    matchSet    = ( matchTag( blockIndex, adrTag ) < cDesc.blockSets );
         
         if ( matchSet < cDesc.blockSets ) {
@@ -456,7 +476,7 @@ bool CpuMem::purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
             reqTag              = 0;
             reqPtr              = nullptr;
             reqLen              = 0;
-            reqLatency          = 0;
+            reqLatency          = cDesc.latency;
             reqTargetSet        = matchSet;
             reqTargetBlockIndex = blockIndex;
         }
@@ -466,27 +486,23 @@ bool CpuMem::purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "readWordPhys" is used by the CPU core to addresssphysical memory. Physical memory can be main memory and
-// IO memory space. Both do not need to be fully populatd. A memory read operation fills in the request block
-// when the memory layer is IDLE. Only word size transfers are allowed. The address is passed in the "adrTag"
-// parameter.
+// "readWordPhys" is used by the CPU core to address physical memory bypassing the cache hierarchy. Physical
+// memory is the main memory space and IO memory space. Both memory regions do not need to be fully populatd.
+// If the memory layer is IDLE, the memory request data is filled in and starts a access cycle. The "reqOfs"
+// field contains the physical address.
 //
-// ??? how would we deal not existing memory ?
-// ??? how would we do IO space ?
-//
+// ??? how would we deal not existing memory ? a high priority machine check ?
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::readPhys( uint32_t adr, uint32_t len, uint32_t *word, uint16_t pri ) {
     
-    // ??? if adress <= memory boundary.... else unimplemented or IO-space ?
-    
-    if ( opState.get( ) == MO_IDLE ) {
+    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
         opState.set( MO_READ_WORD_PHYS );
         reqSeg      = 0;
-        reqOfs      = 0;
+        reqOfs      = adr;
         reqPri      = pri;
-        reqTag      = adr;
-        reqPtr      = word;
+        reqTag      = 0;
+        reqPtr      = (uint8_t *) word;
         reqLen      = len;
         reqLatency  = cDesc.latency;
         return( false );
@@ -495,25 +511,23 @@ bool CpuMem::readPhys( uint32_t adr, uint32_t len, uint32_t *word, uint16_t pri 
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "writePhys" is used by the CPU core to address the physical memory. Physical memory can be main memory and
-// IO memory space. Both do not need to be fully populatd. A memory write operation fills in the request block
-// when the memory layer is IDLE. Only word size transfers are allowed. The address is passed in the "adrTag"
-// parameter.
+// "writePhys" is used by the CPU core to address the physical memory. Physical memory can be main memory
+// spcae and the IO memory space. Both memory regions do not need to be fully populatd. If the memory layer 
+// is IDLE, the memory request data is filled in and starts a access cycle. The "reqOfs" field contains the
+// physical address.
 //
 // ??? how would we deal not existing memory ?
-// ??? how would we do IO space ?
-//
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::writePhys( uint32_t adr, uint32_t len, uint32_t word, uint16_t pri ) {
     
-    if ( opState.get( ) == MO_IDLE ) {
+    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
         opState.set( MO_WRITE_WORD_PHYS );
         reqSeg      = 0;
-        reqOfs      = 0;
+        reqOfs      = adr;
         reqPri      = pri;
-        reqTag      = adr;
-        reqPtr      = &word;
+        reqTag      = 0;
+        reqPtr      = (uint8_t *) &word;
         reqLen      = len;
         reqLatency  = cDesc.latency;
         return( false );
@@ -522,32 +536,32 @@ bool CpuMem::writePhys( uint32_t adr, uint32_t len, uint32_t word, uint16_t pri 
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "readBlockPhys" is called by an upper layer to read a block of data. This method is implemented in the L2
-// cache as well as  the physical memory object. The "adr" parameter is the physical address of the block.
-// The block sizes of the upper and lower layer do not necessarily have to match. For example, we could have
-// a 8-word L2 cache and a 4-word L1 cache. However, the upper layer must always be configured smaller than
-// the lower layer. If the memory object is IDLE, we fill in the request parameters and the next cycle will
-// start processing the request. Note that the upper layer will call this routine every clock cycle as long
-// as the lower layer operation is not completed. The completion is signaled by the latency count being zero.
-// Note also that the "IDLE" state will be set with the next clock cycle, hence we need the latency count to
-// know that we are done with the current request.
+// "readBlockPhys" is called by an upper memory layer to read a block of data. This method is implemented
+// in the L2 cache as well as  the physical memory object. The "adr" parameter is the physical address of
+// the block. The block sizes of the upper and lower layer do not necessarily have to match. For example, we
+// could have a 32 byte block L2 cache and a 16 byte block L1 cache. However, the upper layer must always be
+// configured smaller than the lower layer. If the memory object is IDLE, we fill in the request parameters
+// and the next cycle will start processing the request. Note that the upper layer will call this routine
+// every clock cycle as long as the lower layer operation is not completed. The completion is signaled by the
+// latency count being zero. Note also that the "IDLE" state will be set with the next clock cycle, hence we
+// need the latency count to know that we are done with the current request.
 //
 // We need to simulate an arbiter for the physical memory layers. For example, when the two L1 caches are
-// connected to the memory, the instruction cache has priority. This situation only arises when MEM is IDLE
-// and both caches have a miss. Each cache has a request priority. Before setting the request paramaters,
-// the priority value of the request field is checked. If there is a lower priority number, this method call
-// simply overwrites the data. Once the requst is served, the reqPri field is cleared.
+// connected to the memory, the instruction cache has priority. This situation only arises when the lower
+// layer is IDLE and both upper layer caches have a miss. Each cache has a request priority. Before setting
+// the request paramaters, the priority value of the request field is checked. If there is a lower priority
+// number, this method call simply overwrites the data. Once the requst is served, the reqPri field is cleared.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::readBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri ) {
+bool CpuMem::readBlockPhys( uint32_t adr, uint8_t *buf, uint32_t len, uint16_t pri ) {
     
     if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
         opState.set( MO_READ_BLOCK_PHYS );
         reqSeg      = 0;
-        reqOfs      = 0;
+        reqOfs      = adr;
         reqPri      = pri;
-        reqTag      = adr;
+        reqTag      = 0;
         reqPtr      = buf;
         reqLen      = len;
         reqLatency  = cDesc.latency;
@@ -557,26 +571,26 @@ bool CpuMem::readBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t 
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "writeBlockPhys" will transfer multiple words to the lower layer. This method is implemented in the L2
+// "writeBlockPhys" will transfer multiple bytes to the lower layer. This method is implemented in the L2
 // cache and the physical memory object. The "adr" parameter is the physical address of the block. The block
-// sizes of the upper and lower layer do not necessarily have to match. For example, we could have a 8-word
-// L2 cache and a 4-word L1 cache. However, the upper layer must always be configured smaller than the lower
-// layer. If the memory object is IDLE, we fill in the request parameters and the next cycle will start
-// processing the request. Note that the upper layer will call this routine every clock cycle as long as the
-// lower layer operation is not completed. The completion is signaled by the latency count being zero. Note
-// also that the "IDLE" state will be set with the next clock cycle, hence we need the latency count to know
-// that we are done with the current request.
+// sizes of the upper and lower layer do not necessarily have to match. For example, we could have a 32-byte
+// block L2 cache and a 16-byte block L1 cache. However, the upper layer must always be configured smaller
+// than the lower layer. If the memory object is IDLE, we fill in the request parameters and the next cycle
+// will start processing the request. Note that the upper layer will call this routine every clock cycle as
+// long as the lower layer operation is not completed. The completion is signaled by the latency count being
+// zero. Note also that the "IDLE" state will be set with the next clock cycle, hence we need the latency
+// count to know that we are done with the current request.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::writeBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri ) {
+bool CpuMem::writeBlockPhys( uint32_t adr, uint8_t *buf, uint32_t len, uint16_t pri ) {
     
     if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
         opState.set( MO_WRITE_BLOCK_PHYS );
         reqSeg      = 0;
-        reqOfs      = 0;
+        reqOfs      = adr;
         reqPri      = pri;
-        reqTag      = adr;
+        reqTag      = 0;
         reqPtr      = buf;
         reqLen      = len;
         reqLatency  = cDesc.latency;
@@ -587,8 +601,8 @@ bool CpuMem::writeBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t
 
 //------------------------------------------------------------------------------------------------------------
 // "flushBlockPhys" will write the content of the block at adress "adr" to the lower layer. This method only
-// applies to L2 caches, there is no concept of flushing physical memory. The block is marked "clean" after
-// the operation.
+// applies to the L2 cache layer, there is no concept of flushing physical memory. The block is marked "clean"
+// after the operation.
 //
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::flushBlockPhys( uint32_t adr, uint16_t pri ) {
@@ -597,9 +611,9 @@ bool CpuMem::flushBlockPhys( uint32_t adr, uint16_t pri ) {
         
         opState.set( MO_WRITE_BLOCK_PHYS );
         reqSeg      = 0;
-        reqOfs      = 0;
+        reqOfs      = adr;
         reqPri      = pri;
-        reqTag      = adr;
+        reqTag      = 0;
         reqPtr      = nullptr;
         reqLen      = 0;
         reqLatency  = cDesc.latency;
@@ -609,9 +623,9 @@ bool CpuMem::flushBlockPhys( uint32_t adr, uint16_t pri ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "purgeBlockPhys" will invalidate the block at adress "adr" to the lower layer. This method only applies to
-// L2 caches, there is no concept of purging physical meemory. The block is marked "invalid" after the
-// operation.
+// "purgeBlockPhys" will invalidate the block at physical adress "adr" to the lower layer. This method only
+// applies to the L2 cache, there is no concept of purging physical meemory. The block is marked "invalid"
+// after the operation.
 //
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::purgeBlockPhys(  uint32_t adr, uint16_t pri ) {
@@ -620,9 +634,9 @@ bool CpuMem::purgeBlockPhys(  uint32_t adr, uint16_t pri ) {
         
         opState.set( MO_PURGE_BLOCK_PHYS );
         reqSeg      = 0;
-        reqOfs      = 0;
+        reqOfs      = adr;
         reqPri      = pri;
-        reqTag      = adr;
+        reqTag      = 0;
         reqPtr      = nullptr;
         reqLen      = 0;
         reqLatency  = cDesc.latency;
@@ -633,26 +647,36 @@ bool CpuMem::purgeBlockPhys(  uint32_t adr, uint16_t pri ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "processL1CacheRequest" is the state machine for the L1 cache family. An L1 cache directly serves the
-// CPU core. A cache hit will have no cycle penalty, a miss will result in the data being fetched from the
-// lower layer, which depends on the configured CPU to have a L2 cache or the physical memory as lower
-// layer. Since a read or write hit is directly handled by the read and write methods, the state machine is
-// only invoked when we deal with a miss, a flush or purge operation. The state machine has several states:
+// CPU core. The unit of data transfer is 1, 2 or 4 bytes. A cache hit will have no cycle penalty, a miss will
+// result in the data being fetched from the lower layer, which depends on the configured CPU to have a L2
+// cache or the physical memory as lower layer. Since a read or write hit is directly handled by the read and
+// write methods, the state machine is only invoked when we deal with a miss, a flush or purge operation. The
+// state machine has several states:
 //
-// MO_ALLOCATE_BLOCK_VIRT: on a cache miss, we start here. The first task is to locate the block we will
-// use for the cache miss. If there is an invalid block in the sets, this is the one to use and the next state
-// is MO_READ_BLOCK_VIRT, wehere we will read the block that contains the requested data. Otherwise, we will
+// MO_ALLOCATE_BLOCK_VIRT: on a cache miss, we start here. The first task is to locate the block to use for
+// the cache miss. If there is an invalid block in the sets, this is the one to use and the next state is
+// MO_READ_BLOCK_VIRT, where we will read the block that contains the requested data. Otherwise, we will
 // randomly select a block from the sets to be the canditate for serving the cache miss. If the selected
 // block is dirty it will be written back first and the next state MO_WRITE_BACK_BLOCK_VIRT.
 //
-// MO_READ_BLOCK_VIRT: coming from the ALLOCATE state, this state will read the blick from the lower layer.
-// The target block has already been identified and we will stay in this state until the lower memory request
-// is served. The next state will then just be MO_IDLE, so that the next CPU request will hit the valid block
-// and now serve the original request.
+// MO_READ_BLOCK_VIRT: coming from the MO_ALLOCATE_BLOCK_VIRT state, this state will read the block from the
+// lower layer. The target block has already been identified and we will stay in this state until the lower
+// memory request is served. The next state will then just be MO_IDLE, so that the next CPU request will hit
+// the valid block and now serve the original request.
 //
 // MO_WRITE_BACK_BLOCK_VIRT: coming from the MO_READ_BLOCK_VIRT, the task is to write back a dirty block. The
 // target block has already been identified and we will stay in this state until the lower memory request is
-// served. Once the block is written the next state is to MO_ALLOCATE_BLOCK_VIRT the originally requested
+// served. Once the block is written the next state is MO_ALLOCATE_BLOCK_VIRT to get the originally requested
 // block.
+//
+// MO_FLUSH_BLOCK_VIRT: this is state entered when we need to explicitly flush a block. After operation, the
+// next state is MO_IDLE.
+//
+// The cache block to read, write back or flush is stored in the two request block fields "reqTargetSet"
+// and "reqTargetBlockIndex". The block index is computed from the request offset value. The target set is
+// determined through finding a replacement candidate. The values are set during the ALLOCATE state and
+// passed ro the follow up state. The two fields are also set for flushing a block, however in this case
+// the target set is a valid set.
 //
 //------------------------------------------------------------------------------------------------------------
 void CpuMem::processL1CacheRequest( ) {
@@ -660,8 +684,8 @@ void CpuMem::processL1CacheRequest( ) {
     switch( opState.get( )) {
             
         case MO_ALLOCATE_BLOCK_VIRT: {
-            
-            for ( uint16_t i = 0; i < cDesc.blockSets; i++ ) {
+           
+            for ( int i = 0; i < cDesc.blockSets; i++ ) {
                 
                 MemTagEntry *tagPtr = &tagArray[ i ] [ reqTargetBlockIndex ];
                 if ( ! tagPtr -> valid ) {
@@ -683,13 +707,13 @@ void CpuMem::processL1CacheRequest( ) {
         case MO_READ_BLOCK_VIRT: {
             
             MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
-            uint32_t     *dataPtr   = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
-            
-            if ( lowerMem -> readBlockPhys( reqTag, dataPtr, cDesc.blockSize, memObjPriority )) {
+            uint8_t     *blockPtr  = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
+         
+            if ( lowerMem -> readBlockPhys( reqTag & ( ~ blockBitMask ), blockPtr, cDesc.blockSize, memObjPriority )) {
                 
                 tagPtr -> valid = true;
                 tagPtr -> dirty = false;
-                tagPtr -> tag   = ( reqTag | ( reqOfs & ( ~ blockBitMask )));
+                tagPtr -> tag   = reqOfs & ( ~ blockBitMask );
                 opState.set( MO_IDLE );
             }
             else waitCyclesCnt ++;
@@ -699,9 +723,9 @@ void CpuMem::processL1CacheRequest( ) {
         case MO_WRITE_BACK_BLOCK_VIRT: {
             
             MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
-            uint32_t     *dataPtr   = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
+            uint8_t     *blockPtr  = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
             
-            if ( lowerMem -> writeBlockPhys( reqTag, dataPtr, cDesc.blockSize, memObjPriority )) {
+            if ( lowerMem -> writeBlockPhys( reqTag & ( ~ blockBitMask ), blockPtr, cDesc.blockSize, memObjPriority )) {
                 
                 tagPtr -> valid = false;
                 tagPtr -> dirty = false;
@@ -716,9 +740,9 @@ void CpuMem::processL1CacheRequest( ) {
             if ( reqTargetSet < cDesc.blockSets ) {
                 
                 MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
-                uint32_t     *dataPtr   = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
+                uint8_t     *blockPtr  = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
                 
-                if ( lowerMem -> writeBlockPhys( reqTag, dataPtr, cDesc.blockSize, memObjPriority )) {
+                if ( lowerMem -> writeBlockPhys( reqTag & ( ~ blockBitMask ), blockPtr, cDesc.blockSize, memObjPriority )) {
                     
                     tagPtr -> valid = false;
                     tagPtr -> dirty = false;
@@ -749,16 +773,16 @@ void CpuMem::processL1CacheRequest( ) {
 //------------------------------------------------------------------------------------------------------------
 void CpuMem::processL2CacheRequest( ) {
     
-    uint32_t        blockIndex  = ( reqTag & 0x0FFFFFFF ) >> blockBits;
-    uint16_t        blockSet    = matchTag( blockIndex, (( reqSeg < 24 ) | ( reqOfs & 0xFFFFFFFF ))); // ???
+    uint32_t        blockIndex  = reqOfs % cDesc.blockSize;
+    uint16_t        blockSet    = matchTag( blockIndex, 0 ); // ??? FIX ...
     MemTagEntry     *tagPtr     = nullptr;
-    uint32_t        *dataPtr    = nullptr;
+    uint8_t         *blockPtr   = nullptr;
     bool            tagMatch    = blockSet < MAX_BLOCK_SETS;
     
     if ( tagMatch ) {
         
         tagPtr      =   &tagArray[ blockSet ] [ blockIndex ];
-        dataPtr     =   &dataArray[ blockSet ] [ blockIndex ];
+        blockPtr    =   &dataArray[ blockSet ] [ blockIndex * cDesc.blockSize ];
     }
     else {
         
@@ -825,43 +849,41 @@ void CpuMem::processL2CacheRequest( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "processMemRequest" is the state machine for our physical memory object. The physical memory object is the
-// final layer in our memory hierarchy. It does not support any kind of tags, multiple sets, flushing and
+// "processPhysMemRequest" is the state machine for our physical memory object. The physical memory object is
+// the final layer in our memory hierarchy. It does not support any kind of tags, multiple sets, flushing and
 // purging of blocks. The only indexing method is the direct indexing method. Upon an incoming request and an
-// IDLE state, the request data was stored by the external interface methods and the state machine starts
-// working on the request. The state machine has only two states, MO_READ_BLOCK_PHYS and MO_WRITE_BLOCK_PHYS.
+// IDLE state, the request data stored by the external interface methods and the state machine starts working
+// on the request. The state machine has only two states, MO_READ_BLOCK_PHYS and MO_WRITE_BLOCK_PHYS.
 //
 // It will use the latency counter to simulate the cycles it takes to serve the request. Each time the CPU
 // clock ( "tick" ) advances, the latency counter is decremented. When zero is reachd the requested operation
 // is executed and the state machine advances to the next state.
 //
 // In general, we will return the data when the latency counter decrements to zero. The indexing method
-// gives us the block in our memory, which is always dataArray[ 0 ]. For a data read or write the blockBits
-// portion of the request offset is the index into the selected block. The requestor block size can be
-// smaller up to equal our block size. We will compute the correct offset in our block and transfer the
-// data. Any other request to the state machine is treated as a NOP.
+// gives us the block in memory in the dataArray[ 0 ] set. For a data read or write the blockBits portion of
+// the request offset is the index into the selected block. The requestor block size can be smaller up to
+// equal our block size. We will compute the correct offset in our block and transfer the data. Any other
+// request to the state machine is treated as a NOP.
 //
-// One more thing. We need to simulate an arbiter. When the two L1 caxches are connected to the memory, the
+// One more thing. We need to simulate an arbiter. When the two L1 caches are connected to the memory, the
 // instruction cache has priority. This situation only arises when MEM is IDLE and both caches have a miss.
-// Each cache has a request priority. This priroity is used to decoded which entry data is stored in the
+// Each cache has a request priority. This priority is used to decode which entry data is stored in the
 // memory object calling methods.
 //
 //------------------------------------------------------------------------------------------------------------
-void CpuMem::processMemRequest( ) {
-    
-    reqTargetBlockIndex = ( reqTag & 0x0FFFFFFF ) >> blockBits;
-    
+void CpuMem::processPhysMemRequest( ) {
+   
     switch( opState.get( )) {
             
         case MO_READ_WORD_PHYS: {
             
             if ( reqLatency == 0 ) {
                 
-                uint32_t *wordPtr = &dataArray[ 0 ] [ ( reqTag >> 2 ) ];
-            
-                if      ( reqLen == 1 ) *reqPtr = ( *wordPtr >> (( 3 - ( reqTag & 0x03 )))) & 0xFF;
-                else if ( reqLen == 2 ) *reqPtr = ( *wordPtr >> (( 1 - (( reqTag >> 1 ) & 0x01 )))) & 0xFFFF;
-                else                    *reqPtr = *wordPtr;
+                uint8_t *dataPtr = &dataArray[ 0 ] [ reqOfs ];
+                
+                if      ( reqLen == 1 ) reqPtr[ 3 ] = *dataPtr;
+                else if ( reqLen == 2 ) memcpy( &reqPtr[ 2 ], dataPtr, 2 );
+                else if ( reqLen == 4 ) memcpy( &reqPtr, dataPtr, 4 );
             }
             else reqLatency--;
             
@@ -871,23 +893,13 @@ void CpuMem::processMemRequest( ) {
             
             if ( reqLatency == 0 ) {
                 
-                uint32_t *wordPtr = &dataArray[ 0 ] [ ( reqTag >> 2 ) ];
+                uint8_t *dataPtr = &dataArray[ 0 ] [ reqOfs ];
                 
-                if ( reqLen == 1 )    {
-                    
-                    uint32_t bitMask = 0xFF << (( reqTag & 0x3 ) * 8 );
-                    *wordPtr = *wordPtr & ( ~ bitMask );
-                    *wordPtr = *wordPtr | ( *reqPtr << ( reqTag & 0x3 ));
-                    
-                } else if ( reqLen == 2 ) {
-                    
-                    uint32_t bitMask = 0xFFFF << ((( reqTag >> 1 ) & 0x01 ) * 16 );
-                    *wordPtr = *wordPtr & ( ~ bitMask );
-                    *wordPtr = *wordPtr | ( *reqPtr << ( reqTag & 0x3 ));
-                    
-                } else *wordPtr = *reqPtr;
-            }
-            else reqLatency--;
+                if      ( reqLen == 1 ) *dataPtr = reqPtr[ 3 ];
+                else if ( reqLen == 2 ) memcpy( dataPtr, &reqPtr[ 2 ], 2 );
+                else if ( reqLen == 4 ) memcpy( dataPtr, &reqPtr, 4 );
+                
+            } else reqLatency--;
             
         } break;
             
@@ -895,11 +907,8 @@ void CpuMem::processMemRequest( ) {
             
             if ( reqLatency == 0 ) {
                 
-                // ??? simplify ??? could it just be the reqTag >> 2 ?
-                
-                memcpy( reqPtr,
-                       &dataArray[ 0 ] [ reqTargetBlockIndex * cDesc.blockSize + ( reqTag & blockBitMask ) ],
-                       reqLen * sizeof( uint32_t ));
+                uint8_t *dataPtr = &dataArray[ 0 ] [ reqOfs ];
+                memcpy( reqPtr, dataPtr, reqLen );
                 
                 accessCnt++;
                 reqPri = 0;
@@ -913,11 +922,8 @@ void CpuMem::processMemRequest( ) {
             
             if ( reqLatency == 0 ) {
                 
-                // ??? simplify ??? could it just be the reqTag >> 2 ?
-                
-                memcpy( &dataArray[ 0 ] [ reqTargetBlockIndex * cDesc.blockSize + ( reqTag & blockBitMask ) ],
-                       reqPtr,
-                       reqLen * sizeof( uint32_t ));
+                uint8_t *dataPtr = &dataArray[ 0 ] [ reqOfs ];
+                memcpy( dataPtr, reqPtr, reqLen );
                 
                 accessCnt++;
                 reqPri = 0;
@@ -926,6 +932,67 @@ void CpuMem::processMemRequest( ) {
             else reqLatency--;
             
         } break;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "processPdcMemRequest" is the state machine for the PDC memory object. It is very similar to the physical
+// memory object, except that there is only a reasd operation. The PDC content is loaded from the simulator
+// during the processor reset.
+//
+// ??? loading TBD.
+//------------------------------------------------------------------------------------------------------------
+void CpuMem::processPdcMemRequest( ) {
+    
+    switch( opState.get( )) {
+            
+        case MO_READ_WORD_PHYS: {
+            
+            if ( reqLatency == 0 ) {
+                
+                uint8_t *dataPtr = &dataArray[ 0 ] [ reqOfs ];
+                
+                if      ( reqLen == 1 ) *dataPtr = reqPtr[ 3 ];
+                else if ( reqLen == 2 ) memcpy( dataPtr, &reqPtr[ 2 ], 2 );
+                else if ( reqLen == 4 ) memcpy( dataPtr, &reqPtr, 4 );
+                
+            } else reqLatency--;
+            
+        }  break;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "processIoMemRequest" implements the state machine for the IO modules. VCPU-32 implements a memory mapped
+// IO model. However, we have no idea what to expect and how to handle a memory mapped IO request. There
+// are two main operations, which are to load or store data to the IO memroy range.
+//
+// ??? idea of a handler to invoke that actually knows what to do ...
+//
+//------------------------------------------------------------------------------------------------------------
+void CpuMem::processIoMemRequest( ) {
+    
+    switch( opState.get( )) {
+            
+        case MO_READ_WORD_PHYS: {
+            
+            if ( reqLatency == 0 ) {
+                
+               
+            }
+            else reqLatency--;
+            
+        }  break;
+            
+        case MO_WRITE_WORD_PHYS: {
+            
+            if ( reqLatency == 0 ) {
+                
+               
+            }
+            else reqLatency--;
+            
+        }  break;
     }
 }
 
@@ -1012,13 +1079,41 @@ MemTagEntry  *CpuMem::getMemTagEntry( uint32_t index, uint8_t set ) {
 // If the memory access type is n-way associative the block in "set" is returned.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t *CpuMem::getMemBlockEntry( uint32_t index, uint8_t set ) {
+uint8_t *CpuMem::getMemBlockEntry( uint32_t index, uint8_t set ) {
     
     if ( index >= cDesc.blockEntries )  return( nullptr );
     if ( set >= cDesc.blockSets )       return( nullptr );
     
-    uint32_t *data = dataArray[ set ];
-    return( &data[ index * cDesc.blockSize ] );
+    return( &dataArray[ set ] [ index * cDesc.blockSize ] );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "getMemWord" and "putMemWord" are the routines called by the simulaor display functions. They get or set
+// a word in the data array of the data set. The ofset is rounded down to a 4-byte boundary.
+//
+//------------------------------------------------------------------------------------------------------------
+uint32_t CpuMem::getMemWord( uint32_t ofs, uint8_t set ) {
+    
+    if ( ofs >= cDesc.blockEntries * cDesc.blockSize ) return( 0 );
+    if ( set >= cDesc.blockSets ) return( 0 );
+    
+    ofs &= 0xFFFFFFFC;
+    
+    uint32_t tmp = 0;
+    memcpy( &tmp, &dataArray[ set ] [ ofs ], sizeof( uint32_t ));
+    
+    return( tmp );
+}
+
+void CpuMem::putMemWord( uint32_t ofs, uint32_t val, uint8_t set ) {
+    
+    if ( ofs >= cDesc.blockEntries * cDesc.blockSize ) return;
+    if ( set >= cDesc.blockSets ) return;
+    
+    ofs &= 0xFFFFFFFC;
+    
+    uint32_t tmp = val;
+    memcpy( &dataArray[ set ] [ ofs ], &tmp, sizeof( uint32_t ));
 }
 
 //------------------------------------------------------------------------------------------------------------

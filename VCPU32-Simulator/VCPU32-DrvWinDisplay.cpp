@@ -1311,8 +1311,8 @@ void DrvWinPhysMem::drawBanner( ) {
     
     uint32_t    fmtDesc         = FMT_BOLD | FMT_INVERSE;
     bool        isCurrent       = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
-    uint32_t    blockEntries    = glb -> cpu -> mem -> getBlockEntries( );
-    uint32_t    blockSize       = glb -> cpu -> mem -> getBlockSize( );
+    uint32_t    blockEntries    = glb -> cpu -> physMem -> getBlockEntries( );
+    uint32_t    blockSize       = glb -> cpu -> physMem -> getBlockSize( );
     
     setWinCursor( 1, 1 );
     
@@ -1336,17 +1336,20 @@ void DrvWinPhysMem::drawBanner( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvWinPhysMem::drawLine( int itemAdr ) {
     
-    CpuMem      *mem            = glb -> cpu -> mem;
+    CpuMem      *mem            = glb -> cpu -> physMem;
     uint32_t    blockSize       = mem -> getBlockSize( );
-    uint32_t    *dataPtr        = mem -> getMemBlockEntry( itemAdr / blockSize ) + (( itemAdr ) % blockSize );
+    uint8_t     *dataPtr        = mem -> getMemBlockEntry( itemAdr / blockSize ) + (( itemAdr ) % blockSize );
     uint32_t    fmtDesc         = FMT_DEF_ATTR;
     
     printNumericField( itemAdr, fmtDesc );
     printTextField((char *) ": ", fmtDesc );
     
     for ( int i = 0; i <  getLineIncrement( ); i++ ) {
+        
+        uint32_t tmp;
+        memcpy((uint8_t *)  &tmp, &dataPtr[ i ], 4 );
     
-        printNumericField( dataPtr[ i ], fmtDesc );
+        printNumericField( tmp, fmtDesc );
         printTextField((char *) " " );
     }
 }
@@ -1402,8 +1405,8 @@ void DrvWinCode::drawBanner( ) {
     TokId       currentCmd          = glb -> cmds -> getCurrentCmd( );
     bool        isCurrent           = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
     bool        hasIaOfsAdr         = (( currentIaOfs >= currentItemAdr ) && ( currentIaOfs <= currentItemAdrLimit ));
-    uint32_t    blockEntries        = glb -> cpu -> mem -> getBlockEntries( );
-    uint32_t    blockSize           = glb -> cpu -> mem -> getBlockSize( );
+    uint32_t    blockEntries        = glb -> cpu -> physMem -> getBlockEntries( );
+    uint32_t    blockSize           = glb -> cpu -> physMem -> getBlockSize( );
     
     setLimitItemAdr( blockEntries * blockSize );
      
@@ -1433,9 +1436,9 @@ void DrvWinCode::drawBanner( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvWinCode::drawLine( int itemAdr ) {
     
-    CpuMem      *mem            = glb -> cpu -> mem;
+    CpuMem      *mem            = glb -> cpu -> physMem;
     uint32_t    blockSize       = mem -> getBlockSize( );
-    uint32_t    *codePtr        = mem -> getMemBlockEntry( itemAdr / blockSize ) + (( itemAdr ) % blockSize );
+    uint8_t     *codePtr        = mem -> getMemBlockEntry( itemAdr / blockSize ) + (( itemAdr ) % blockSize );
     uint32_t    fmtDesc         = FMT_DEF_ATTR;
     uint32_t    currentIaOfs    = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS  );
     bool        isCurrentIaOfs  = ( itemAdr == currentIaOfs );
@@ -1443,7 +1446,10 @@ void DrvWinCode::drawLine( int itemAdr ) {
     printNumericField( itemAdr, fmtDesc | FMT_ALIGN_LFT, 12 );
     printTextField(( isCurrentIaOfs ? (char *) ">" :  (char *) " " ), fmtDesc, 4 );
     
-    printNumericField( *codePtr, fmtDesc | FMT_ALIGN_LFT, 12 );
+    uint32_t tmp;
+    memcpy((uint8_t *)  &tmp, &codePtr, 4 );
+    
+    printNumericField( tmp, fmtDesc | FMT_ALIGN_LFT, 12 );
     printTextField((char *) "", fmtDesc, 16 );
     
     int pos = getWinCursorCol( );
@@ -1695,7 +1701,7 @@ void DrvWinCache::drawLine( int index ) {
     else {
         
         MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( index, winToggleVal );
-        uint32_t    *dataPtr    = cPtr -> getMemBlockEntry( index, winToggleVal );
+        uint8_t     *dataPtr    = cPtr -> getMemBlockEntry( index, winToggleVal );
         uint32_t    blockSize   = cPtr -> getBlockSize( );
         
         printNumericField( index, fmtDesc );
@@ -1708,7 +1714,10 @@ void DrvWinCache::drawLine( int index ) {
         
         for ( uint32_t i = 0; i < blockSize; i++ ) {
             
-            printNumericField( dataPtr[ i ], fmtDesc );
+            uint32_t tmp;
+            memcpy((uint8_t *)  &tmp, &dataPtr[ i ], 4 );
+            
+            printNumericField( tmp, fmtDesc );
             printTextField((char *) " " );
         }
     }
@@ -1740,7 +1749,7 @@ void DrvWinMemController::setDefaults( ) {
     if      ( winType == WT_ICACHE_S_WIN )  cPtr = glb -> cpu -> iCacheL1;
     else if ( winType == WT_DCACHE_S_WIN )  cPtr = glb -> cpu -> dCacheL1;
     else if ( winType == WT_UCACHE_S_WIN )  cPtr = glb -> cpu -> uCacheL2;
-    else if ( winType == WT_MEM_S_WIN    )  cPtr = glb -> cpu -> mem;
+    else if ( winType == WT_MEM_S_WIN    )  cPtr = glb -> cpu -> physMem;
     
     setWinType( winType );
     setEnable( false );

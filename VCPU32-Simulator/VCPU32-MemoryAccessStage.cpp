@@ -539,9 +539,9 @@ void MemoryAccessStage::process( ) {
             // ??? in IO space...
             
             if ( opCodeTab[ opCode ].flags & READ_INSTR )
-                rStat = core -> mem -> readPhys( pAdr, dLen, &valB );
+                rStat = core -> physMem -> readPhys( pAdr, dLen, &valB );
             else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
-                rStat = core -> mem -> writePhys( pAdr, dLen, valA );
+                rStat = core -> physMem -> writePhys( pAdr, dLen, valA );
         }
     
         if ( ! rStat ) {

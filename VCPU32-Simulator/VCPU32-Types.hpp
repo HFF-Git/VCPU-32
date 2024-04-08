@@ -30,7 +30,11 @@
 #include <iostream>
 
 //------------------------------------------------------------------------------------------------------------
-// Fundamental Constantse.
+// Basic constants for TLB, caches and memory. The intended hardware will perform a lookup of TLB and caches
+// in paralell. As a consequence the number of bits needed to respresent the block entries cannot be greater
+// than the number of bits necessary to represent the page size minus the number of bits it takes to represent
+// the block size. For example, of the block size is four words, it will take two bits to index into the
+// block. If the page bit size is 12 bits then we have 10 bits left for indexing the cache, i.e. 1024 entries.
 //
 //------------------------------------------------------------------------------------------------------------
 const uint32_t  WORD_SIZE               = 32U;
@@ -49,11 +53,18 @@ const uint32_t  MAX_BANKS               = 16U;
 const uint32_t  MAX_CPU_IDS             = 16U;
 
 const uint32_t  MAX_MEMORY_SIZE         = UINT32_MAX;
-const uint32_t  MAX_PHYS_MEM_SIZE       = UINT32_MAX - ( UINT32_MAX / 16 );
 const uint32_t  MAX_IO_MEM_SIZE         = UINT32_MAX / 16;
+const uint32_t  MAX_PHYS_MEM_SIZE       = UINT32_MAX - MAX_IO_MEM_SIZE;
+const uint32_t  MAX_PDC_MEM_SIZE        = MAX_IO_MEM_SIZE / 16;
+
+const uint32_t  MAX_CACHE_BLOCK_ENTRIES = 1024;
+const uint16_t  MAX_BLOCK_SIZE          = 64;
+const uint16_t  MAX_BLOCK_SETS          = 4;
 
 const uint8_t   MAX_TRAP_ID             = 32;
 const uint8_t   TRAP_CODE_BLOCK_SIZE    = 32;
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // Status register fields. The status word is a machine word contains various bits and field recording the

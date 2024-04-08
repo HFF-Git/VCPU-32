@@ -43,19 +43,6 @@ enum VmemOptions : uint32_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Basic constants for TLB, caches and memory. The intended hardware will perform a lookup of TLB and caches
-// in paralell. As a consequence the number of bits needed to respresent the block entries cannot be greater
-// than the number of bits necessary to represent the page size minus the number of bits it takes to represent
-// the block size. For example, of the block size is four words, it will take two bits to index into the
-// block. If the page bit size is 12 bits then we have 10 bits left for indexing the cache, i.e. 1024 entries.
-//
-//------------------------------------------------------------------------------------------------------------
-const uint32_t  MAX_MEM_BLOCK_ENTRIES   = 16 * 1024 * 1024;    // ??? check ...
-const uint32_t  MAX_CACHE_BLOCK_ENTRIES = 1024;
-const uint16_t  MAX_BLOCK_SIZE          = 64;
-const uint16_t  MAX_BLOCK_SETS          = 4;
-
-//------------------------------------------------------------------------------------------------------------
 // A register belongs to a class or registers.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -193,9 +180,10 @@ struct CpuPhysMemDesc {
 struct CpuPdcMemDesc {
     
     CpuMemType          type            = MEM_T_NIL;
+    CpuMemAccessType    accessType      = MEM_AT_NIL;
     uint32_t            startAdr        = 0;
     uint32_t            endAdr          = 0;
-    uint32_t            memSize         = 0;
+    uint32_t            latency         = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -206,9 +194,10 @@ struct CpuPdcMemDesc {
 struct CpuIoMemDesc {
     
     CpuMemType          type            = MEM_T_NIL;
+    CpuMemAccessType    accessType      = MEM_AT_NIL;
     uint32_t            startAdr        = 0;
     uint32_t            endAdr          = 0;
-    uint32_t            memSize         = 0;
+    uint32_t            latency         = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -390,13 +379,13 @@ struct MemTagEntry {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// VCPU-32 memory object. All caches and the physical memory are build using this generic class. The CPU
-// simulator implements a layered memory model. On top are always the level 1 caches on the bottom is
-// always the memory layer. Optionally, there can be a level 2 cache. A memory layer has two main structures,
-// a tag aray and a data array. Caches need a cache tag array, physical memory does not. In this case the
-// tag array is not allocated. There is also a zero passed as segment and segment offset, as it is not
-// required in this case. At the core of the object is a state machine that handles the request. If the
-// memory layer is not busy, it is IDLE and can accept a new request.
+// VCPU-32 memory object. All caches, the physical memory and the memory mapped IO asystem are build using
+// this generic class. The CPU simulator implements a layered memory model. On top are always the level 1
+// caches on the bottom is always the memory layer. Optionally, there can be a level 2 cache. A memory layer
+// has two main structures, a tag aray and a data array. Caches need a cache tag array, physical memory does
+// not. In this case the tag array is not allocated. There is also a zero passed as segment and segment
+// offset, as it is not required in this case. At the core of each memory object is a state machine that
+// handles the request. If the memory layer is not busy, it is IDLE and can accept a new request.
 //
 // The memory access functions always use a segment:offset pair as the address. In the case of a virtual
 // address, this is segement and offset. These two values are used to compute the index into the tag and
@@ -406,8 +395,20 @@ struct MemTagEntry {
 // 4-word block L1 cache can map to a 16-word L2 cache, but not vice versa. The block function have a length
 // paramater to indicate how large the receiving layer block size actually is.
 //
+// Besides caches and physical memory there is the IO memory space, which splits into the processor dependent
+// code (PDC) and the IO address range. The PDC is a section of physical memory, typically a ROM, to contain
+// low level routines, isolating the specific processor. It starts at 0xF0000000 and is up to 16Mbytes in
+// size.
+//
+// The remaining IO space is allocated to IO modules with teh memory range from 0xF1000000 to 0xFFFFFFFF.
+// IO space is a bot dirrerent from the other memory spaces in that there is no memory allocated. In the
+// real hardeware there would be a bus hierarchy and IO modules that react to a data access in the
+// address range.
+//
 // All address offsets are byte adresses. All sizes are measured in bytes, rounded up to a word size when
-// necessary. The data array in a cache or memory layers is however an array of words. 
+// necessary. The data array in a cache or memory layers is also an array of bytes, which allows a greater
+// flexibilty in configuring different meemory block sizes without a ton of address arithmtic. Some
+// interfaces to the memory objects do however pass as data as a word parameter.
 //
 //------------------------------------------------------------------------------------------------------------
 struct CpuMem {
@@ -418,26 +419,28 @@ struct CpuMem {
     void            tick( );
     void            process( );
     void            clearStats( );
-    
     void            abortMemOp( );
     
-    bool            readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t *word );
-    bool            writeVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t word );
-    
+    bool            readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t *data );
+    bool            writeVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t data );
+
     bool            flushBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag );
     bool            purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag );
     
     bool            readPhys( uint32_t adr, uint32_t len, uint32_t *word, uint16_t pri = 0 );
     bool            writePhys( uint32_t adr, uint32_t len, uint32_t word, uint16_t pri = 0 );
 
-    bool            readBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri = 0 );
-    bool            writeBlockPhys( uint32_t adr, uint32_t *buf, uint32_t len, uint16_t pri = 0 );
+    bool            readBlockPhys( uint32_t adr, uint8_t *buf, uint32_t len, uint16_t pri = 0 );
+    bool            writeBlockPhys( uint32_t adr, uint8_t *buf, uint32_t len, uint16_t pri = 0 );
     bool            flushBlockPhys(  uint32_t adr, uint16_t pri = 0 );
     bool            purgeBlockPhys(  uint32_t adr, uint16_t pri = 0 );
     
     int             mapAdr( uint32_t seg, uint32_t ofs );
     MemTagEntry     *getMemTagEntry( uint32_t index, uint8_t set = 0 );
-    uint32_t        *getMemBlockEntry( uint32_t index, uint8_t set = 0 );
+    uint8_t         *getMemBlockEntry( uint32_t index, uint8_t set = 0 );
+    
+    uint32_t        getMemWord( uint32_t ofs, uint8_t set = 0 );
+    void            putMemWord( uint32_t ofs, uint32_t val, uint8_t set = 0 );
     
     uint32_t        getBlockEntries( );
     uint16_t        getBlockSize( );
@@ -458,14 +461,16 @@ private:
     uint16_t        matchTag( uint32_t index, uint32_t tag );
     void            processL1CacheRequest( );
     void            processL2CacheRequest( );
-    void            processMemRequest( );
+    void            processPhysMemRequest( );
+    void            processPdcMemRequest( );
+    void            processIoMemRequest( );
     
     CpuReg          opState             = 0;
     uint16_t        reqPri              = 0;
     uint32_t        reqSeg              = 0;
     uint32_t        reqOfs              = 0;
     uint32_t        reqTag              = 0;
-    uint32_t        *reqPtr             = 0;
+    uint8_t         *reqPtr             = nullptr;
     uint32_t        reqLen              = 0;
     uint32_t        reqLatency          = 0;
     uint16_t        reqTargetSet        = 0;
@@ -481,10 +486,14 @@ private:
     uint32_t        waitCyclesCnt       = 0;
     
     MemTagEntry     *tagArray[ MAX_BLOCK_SETS ]     = { nullptr };
-    uint32_t        *dataArray[ MAX_BLOCK_SETS ]    = { nullptr };
+    uint8_t         *dataArray[ MAX_BLOCK_SETS ]    = { nullptr };
     CpuMem          *lowerMem                       = nullptr;
     void            ( CpuMem::*stateMachine )( )    = nullptr;
+    
+    // ??? callback for IO modules ?
 };
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // IO memory space is the address range 0xF0FFFFFF to 0xFFFFFFFF. This is an area of 240 Mbytes that is
@@ -608,10 +617,9 @@ public:
     CpuMem        *iCacheL1   = nullptr;
     CpuMem        *dCacheL1   = nullptr;
     CpuMem        *uCacheL2   = nullptr;
-    CpuMem        *mem        = nullptr;
-    
-    // ??? ioMwm
-    // ??? pdcMem
+    CpuMem        *physMem    = nullptr;
+    CpuMem        *pdcMem     = nullptr;
+    CpuMem        *ioMem      = nullptr;
     
     CpuStatistics stats;
     

@@ -64,10 +64,6 @@ struct {
     { "B",                  "",         CMD_SET,            CMD_B                   },
     { "BD",                 "",         CMD_SET,            CMD_BD                  },
     { "BL",                 "",         CMD_SET,            CMD_BL                  },
-    { "TEST-R-EQ",          "TREQ",     CMD_SET,            CMD_TREQ                },
-    { "TEST-R-NE",          "TRNE",     CMD_SET,            CMD_TRNE                },
-    { "TEST-M-EQ",          "TMEQ",     CMD_SET,            CMD_TMEQ                },
-    { "TEST-M-NE",          "TMNE",     CMD_SET,            CMD_TMNE                },
     { "EXEC-F",             "XF",       CMD_SET,            CMD_XF                  },
     
     { "D-REG",              "DR",       CMD_SET,            CMD_DR                  },
@@ -677,10 +673,6 @@ void DrvCmds::helpCmd( char *cmdBuf ) {
     fprintf( stdout, FMT_STR, "B <seg> <ofs>", "sets a break breakpoint at virtual address seg.ofs" );
     fprintf( stdout, FMT_STR, "BD <seg> <ofs>", "deletes a break breakpoint" );
     fprintf( stdout, FMT_STR, "BL", "displays the breakpoint table" );
-    fprintf( stdout, FMT_STR, "test-r-eq (treq) <reg> <val> <pass> <fail>", "Test register for equal content" );
-    fprintf( stdout, FMT_STR, "test-r-ne (trne) <reg> <val> <pass> <fail>", "Test register for equal content" );
-    fprintf( stdout, FMT_STR, "test-m-eq (tmeq) <pAdr> <val> <pass> <fail>", "Test memory for equal content" );
-    fprintf( stdout, FMT_STR, "test-m-ne (tmne) <pAdr> <val> <pass> <fail>", "Test memory for equal content" );
     fprintf( stdout, FMT_STR, "dr [<regSet>|<reg>] <fmt>]", "display registers" );
     fprintf( stdout, FMT_STR, "mr <reg> <val>", "modify registers" );
     fprintf( stdout, FMT_STR, "da <ofs> [ <len> [ fmt ]]", "display memory" );
@@ -938,7 +930,7 @@ void DrvCmds::resetCmd( char *cmdBuf ) {
             
         case TOK_MEM: {
             
-            glb -> cpu -> mem -> reset( );
+            glb -> cpu -> physMem -> reset( );
             
         } break;
             
@@ -951,7 +943,7 @@ void DrvCmds::resetCmd( char *cmdBuf ) {
         case TOK_ALL: {
             
             glb -> cpu -> reset( );
-            glb -> cpu -> mem -> reset( );
+            glb -> cpu -> physMem -> reset( );
             
             // ??? reset statistics....
             
@@ -1040,151 +1032,6 @@ void DrvCmds::deleteBreakPointCmd( char *cmdBuf ){
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::listBreakPointsCmd( char *cmdBuf ) {
     
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Test register content command. We compare the register content with a value and print out the comparison
-// result. In addition, the environment variables for pass and fails are incremented.
-//
-// TREQ <reg> <val> <fail-str> [ <pass-str>  ]
-// TRNE <reg> <val> <fail-str> [ <pass-str>  ]
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::testRegCmd( char *cmdBuf ) {
-    
-    char    cmdStr[ TOK_NAME_SIZE ]         = "";
-    char    arg1Str[ TOK_NAME_SIZE ]        = "";
-    char    arg2Str[ TOK_NAME_SIZE ]        = "";
-    char    arg3Str[ TOK_LARGE_STR_SIZE ]   = "";
-    char    arg4Str[ TOK_LARGE_STR_SIZE ]   = "";
-    int     args     = sscanf( cmdBuf, FMT_STR_3S_2LS, cmdStr, arg1Str, arg2Str, arg3Str, arg4Str );
-    
-    if ( args < 1 ) return;
-    
-    TokId       cmdId   = lookupTokId( cmdStr );
-    TokId       regId   = TOK_NIL;
-    uint32_t    valA    = 0;
-    uint32_t    valB    = 0;
-    
-    if (( cmdId != CMD_TREQ) && ( cmdId != CMD_TRNE )) {
-        
-        fprintf( stdout, "Internal Err, TREQ/TRNE command\n" );
-        return;
-    }
-    
-    if ( strlen( arg1Str ) > 1 ) {
-        
-        TokId argId = matchReg( arg1Str );
-        if ( argId == TOK_NIL ) {
-            
-            fprintf( stdout, "Invalid register\n" );
-            return;
-        }
-        else regId = argId;
-    }
-    
-    if ( strlen( arg2Str ) > 0 ) {
-        
-        int tmp = sscanf( arg2Str, "%i", &valA );
-        if ( tmp == 0 ) {
-            
-            fprintf( stdout, "Expected a value\n" );
-            return;
-        }
-    }
-    
-    switch( lookupTokGrpId( regId )) {
-            
-        case GR_SET:    valB = glb -> cpu -> getReg( RC_GEN_REG_SET, ( regId - GR_0 ));     break;
-        case SR_SET:    valB = glb -> cpu -> getReg( RC_SEG_REG_SET, ( regId - SR_0 ));     break;
-        case CR_SET:    valB = glb -> cpu -> getReg( RC_CTRL_REG_SET, ( regId - CR_0 ));    break;
-        case PS_SET:    valB = glb -> cpu -> getReg( RC_PROG_STATE, ( regId - PS_IA_SEG )); break;
-        case FD_SET:    valB = glb -> cpu -> getReg( RC_FD_PSTAGE, ( regId - FD_IA_SEG ));  break;
-        case MA_SET:    valB = glb -> cpu -> getReg( RC_MA_PSTAGE, ( regId - FD_IA_SEG ));  break;
-            
-        default: fprintf( stdout, "Invalid register\n" );;
-    }
-    
-    if ((( valA == valB ) && ( cmdId == CMD_TREQ )) || (( valA != valB ) && ( cmdId == CMD_TRNE ))) {
-        
-        if ( strlen( arg4Str ) > 0 )    fprintf( stdout, "%s\n", arg4Str );
-        else                            fprintf( stdout, "PASS\n" );
-        
-        glb -> env -> setEnvVal( ENV_PASS_CNT, glb -> env -> getEnvValInt( ENV_PASS_CNT ) + 1 );
-    }
-    else {
-        
-        if ( strlen( arg3Str ) > 0 )    fprintf( stdout, "%s\n", arg3Str );
-        else                            fprintf( stdout, "FAIL\n" );
-        
-        glb -> env -> setEnvVal( ENV_FAIL_CNT, glb -> env -> getEnvValInt( ENV_FAIL_CNT ) + 1 );
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Test memory content command. We compare the memory content with a value and print out the comparison
-// result. In addition, the environment varibales for pass and fails are incremented.
-//
-// TMEQ <ofs> <val> <fail-str> [ <pass-str>  ]
-// TMNE <ofs> <val> <fail-str> [ <pass-str>  ]
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::testMemCmd( char *cmdBuf ) {
-    
-    char    cmdStr[ TOK_NAME_SIZE ]         = "";
-    char    arg1Str[ TOK_NAME_SIZE ]        = "";
-    char    arg2Str[ TOK_NAME_SIZE ]        = "";
-    char    arg3Str[ TOK_LARGE_STR_SIZE ]   = "";
-    char    arg4Str[ TOK_LARGE_STR_SIZE ]   = "";
-    int     args     = sscanf( cmdBuf, FMT_STR_3S_2LS, cmdStr, arg1Str, arg2Str, arg3Str, arg4Str );
-    
-    if ( args < 1 ) return;
-    
-    TokId       cmdId   = lookupTokId( cmdStr );
-    uint32_t    ofs     = 0;
-    uint32_t    valA    = 0;
-    uint32_t    valB    = 0;
-    
-    if (( cmdId != CMD_TMEQ) && ( cmdId != CMD_TMNE )) {
-        
-        fprintf( stdout, "Internal Err, TMEQ/TMNE command\n" );
-        return;
-    }
-    
-    if ( strlen( arg1Str ) > 1 ) {
-        
-        int tmp = sscanf( arg1Str, "%i", &ofs );
-        if ( tmp == 0 ) {
-            
-            fprintf( stdout, "Expected a memory address\n" );
-            return;
-        }
-    }
-    
-    if ( strlen( arg2Str ) > 0 ) {
-        
-        int tmp = sscanf( arg2Str, "%i", &valA );
-        if ( tmp == 0 ) {
-            
-            fprintf( stdout, "Expected a value\n" );
-            return;
-        }
-    }
-    
-    glb -> cpu -> mem -> readPhys( ofs, 4, &valB );
-    
-    if ((( valA == valB ) && ( cmdId == CMD_TMEQ )) || (( valA != valB ) && ( cmdId == CMD_TMNE ))) {
-        
-        if ( strlen( arg4Str ) > 0 )    fprintf( stdout, "%s\n", arg4Str );
-        else                            fprintf( stdout, "PASS\n" );
-        
-        glb -> env -> setEnvVal( ENV_PASS_CNT, glb -> env -> getEnvValInt( ENV_PASS_CNT ) + 1 );
-    }
-    else {
-        
-        if ( strlen( arg3Str ) > 0 )    fprintf( stdout, "%s\n", arg3Str );
-        else                            fprintf( stdout, "FAIL\n" );
-        
-        glb -> env -> setEnvVal( ENV_FAIL_CNT, glb -> env -> getEnvValInt( ENV_FAIL_CNT ) + 1 );
-    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1473,6 +1320,7 @@ void DrvCmds::displayTLBCmd( char *cmdBuf ) {
     if (( ofs > tlbSize ) || ( ofs + len > tlbSize )) {
         
         fprintf( stdout, "Index / Len exceed TLB size\n" );
+        return;
     }
     
     if (( ofs == 0 ) && ( len == 0 )) len = tlbSize;
@@ -1667,8 +1515,8 @@ void DrvCmds::displayPhysMemCmd( char *cmdBuf ) {
     char        fmtStr[ TOK_NAME_SIZE + 1 ] = "";
     uint32_t    ofs                         = 0;
     uint32_t    len                         = 1;
-    uint32_t    blockEntries                = glb -> cpu -> mem -> getBlockEntries( );
-    uint32_t    blockSize                   = glb -> cpu -> mem -> getBlockSize( );
+    uint32_t    blockEntries                = glb -> cpu -> physMem -> getBlockEntries( );
+    uint32_t    blockSize                   = glb -> cpu -> physMem -> getBlockSize( );
     uint32_t    memSize                     = blockEntries * blockSize;
     
     int         args    = sscanf( cmdBuf, "%32s %i %i %32s", cmdStr, &ofs, &len, fmtStr );
@@ -1679,13 +1527,7 @@ void DrvCmds::displayPhysMemCmd( char *cmdBuf ) {
         fprintf( stdout, "Expected physical memory offset\n" );
         return;
     }
-    
-    ofs &= 0xFFFFFFFC;
-    
-    len = ( len + 3 ) << 2;
   
-    // ??? work on PDC andc IO space address
-    
     if (( ofs > memSize ) || ( ofs + len > memSize )) {
         
         fprintf( stdout, "Offset / Len exceeds physical memory size\n" );
@@ -1726,10 +1568,10 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     uint32_t    val7                        = 0;
     uint32_t    val8                        = 0;
     
-    uint32_t    blockEntries                = glb -> cpu -> mem -> getBlockEntries( );
-    uint32_t    blockSize                   = glb -> cpu -> mem -> getBlockSize( );
+    uint32_t    blockEntries                = glb -> cpu -> physMem -> getBlockEntries( );
+    uint32_t    blockSize                   = glb -> cpu -> physMem -> getBlockSize( );
     uint32_t    memSize                     = blockEntries * blockSize;
-    CpuMem      *mem                        = glb -> cpu -> mem;
+    CpuMem      *mem                        = glb -> cpu -> physMem;
     uint32_t    *dataPtr                    = nullptr;
     
     int         args        = sscanf( cmdBuf, "%32s %i %i %i %i %i %i %i %i %i", cmdStr, &ofs,
@@ -1737,10 +1579,7 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     
     int         numOfVal    = args - 2;
     
-    ofs &= 0xFFFFFFFC;
-    len =  numOfVal * 4;
-    
-    if ( ofs + len > memSize ) {
+    if ( ofs + numOfVal * 4 > memSize ) {
         
         fprintf( stdout, "Offset plus number of values to write exceeds memory size\n" );
         return;
@@ -1751,58 +1590,15 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
         fprintf( stdout, "Expected offset / val \n" );
         return;
     }
-    
-    
-    // ??? work in PDC and IO space...
-    
-    
-    if ( numOfVal >= 1 ) {
-        
-        dataPtr     = mem -> getMemBlockEntry( ofs / blockSize ) + ( ofs % blockSize );
-        *dataPtr    = val1;
-    }
-    
-    if ( numOfVal >= 2 ) {
-        
-        dataPtr     = mem -> getMemBlockEntry( ofs + 1 / blockSize ) + (( ofs + 1 ) % blockSize );
-        *dataPtr    = val2;
-    }
-    
-    if ( numOfVal >= 3 ) {
-        
-        dataPtr     = mem -> getMemBlockEntry( ofs + 2 / blockSize ) + (( ofs + 2 ) % blockSize );
-        *dataPtr    = val3;
-    }
-    
-    if ( numOfVal >= 4 ) {
-        
-        dataPtr     = mem -> getMemBlockEntry( ofs + 3 / blockSize ) + (( ofs + 3 ) % blockSize );
-        *dataPtr    = val4;
-    }
-    
-    if ( numOfVal >= 5 ) {
-        
-        dataPtr     = mem -> getMemBlockEntry( ofs + 4 / blockSize ) + (( ofs + 4 ) % blockSize );
-        *dataPtr    = val5;
-    }
-    
-    if ( numOfVal >= 6 ) {
-        
-        dataPtr     = mem -> getMemBlockEntry( ofs + 5 / blockSize ) + (( ofs + 5 ) % blockSize );
-        *dataPtr    = val6;
-    }
-    
-    if ( numOfVal >= 7 ) {
-        
-        dataPtr     = mem -> getMemBlockEntry( ofs + 6 / blockSize ) + (( ofs + 6 ) % blockSize );
-        *dataPtr    = val7;
-    }
-    
-    if ( numOfVal >= 8 ) {
-        
-        dataPtr     = mem -> getMemBlockEntry( ofs + 7 / blockSize ) + (( ofs + 7 ) % blockSize );
-        *dataPtr    = val8;
-    }
+  
+    if ( numOfVal >= 1 ) mem -> putMemWord( ofs, val1 );
+    if ( numOfVal >= 2 ) mem -> putMemWord( ofs, val2 );
+    if ( numOfVal >= 3 ) mem -> putMemWord( ofs, val3 );
+    if ( numOfVal >= 4 ) mem -> putMemWord( ofs, val4 );
+    if ( numOfVal >= 5 ) mem -> putMemWord( ofs, val5 );
+    if ( numOfVal >= 6 ) mem -> putMemWord( ofs, val6 );
+    if ( numOfVal >= 7 ) mem -> putMemWord( ofs, val7 );
+    if ( numOfVal >= 8 ) mem -> putMemWord( ofs, val8 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1826,6 +1622,7 @@ void DrvCmds::loadPhysMemCmd( char *cmdBuf ) {
 // SMF <path> [ <ofs> <len> ]
 //
 // ?? do we save anything from PDC and IO space ? perhaps not ...
+// CHECK.... the adress arithmetic...
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
     
@@ -1836,9 +1633,9 @@ void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
     uint32_t    wordsPerLine                    = 8;
     TokId       fmtId                           = glb -> env -> getEnvValTok( ENV_FMT_DEF );
     
-    CpuMem      *mem                            = glb -> cpu -> mem;
-    uint32_t    blockEntries                    = mem -> getBlockEntries( );
-    uint32_t    blockSize                       = mem -> getBlockSize( );
+    CpuMem      *physMem                        = glb -> cpu -> physMem;
+    uint32_t    blockEntries                    = physMem -> getBlockEntries( );
+    uint32_t    blockSize                       = physMem -> getBlockSize( );
     uint32_t    memSize                         = blockEntries * blockSize;
     uint32_t    *dataPtr                        = nullptr;
     
@@ -1849,9 +1646,6 @@ void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
         fprintf( stdout, "Expected dump file path\n" );
         return;
     }
-    
-    
-    // ??? byte adresses !!!!!!!
     
     if ( len == 0 ) len = memSize;
     
@@ -1883,7 +1677,7 @@ void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
         uint32_t tmp;
         int      index;
         
-        dataPtr = mem -> getMemBlockEntry( ofs / blockSize ) + ( ofs % blockSize );
+        dataPtr = (uint32_t *) physMem -> getMemBlockEntry( ofs / blockSize ) + ( ofs % blockSize );
         
         for ( index = 0; index < wordsPerLine; index++ ) {
             
@@ -2301,8 +2095,8 @@ void DrvCmds::winNewWinCmd( char *cmdBuf ) {
         return;
     }
     
-    if ((( winType == TOK_PM ) && ( glb -> cpu -> mem == nullptr )) ||
-        (( winType == TOK_PC ) && ( glb -> cpu -> mem == nullptr )) ||
+    if ((( winType == TOK_PM ) && ( glb -> cpu -> physMem == nullptr )) ||
+        (( winType == TOK_PC ) && ( glb -> cpu -> physMem == nullptr )) ||
         (( winType == TOK_IT ) && ( glb -> cpu -> iTlb == nullptr )) ||
         (( winType == TOK_DT ) && ( glb -> cpu -> dTlb == nullptr )) ||
         (( winType == TOK_IC ) && ( glb -> cpu -> iCacheL1 == nullptr )) ||
@@ -2451,10 +2245,6 @@ void DrvCmds::dispatchCmd( char *cmdBuf ) {
                 case CMD_B:             setBreakPointCmd( cmdBuf );     break;
                 case CMD_BD:            deleteBreakPointCmd( cmdBuf );  break;
                 case CMD_BL:            listBreakPointsCmd( cmdBuf );   break;
-                case CMD_TREQ:          testRegCmd( cmdBuf);            break;
-                case CMD_TRNE:          testRegCmd( cmdBuf);            break;
-                case CMD_TMEQ:          testMemCmd( cmdBuf);            break;
-                case CMD_TMNE:          testMemCmd( cmdBuf);            break;
                 case CMD_DIS_ASM:       disAssembleCmd( cmdBuf );       break;
                 case CMD_DR:            displayRegCmd( cmdBuf);         break;
                 case CMD_MR:            modifyRegCmd( cmdBuf);          break;

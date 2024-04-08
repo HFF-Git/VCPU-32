@@ -20,5 +20,69 @@
             landmarkType = "0">
          </BreakpointContent>
       </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "12C1DA72-C5DC-428D-8A92-3D6663F385D8"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "VCPU32-Simulator/VCPU32-Core.cpp"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "34"
+            endingLineNumber = "34"
+            landmarkName = "CpuCore::CpuCore(cfg)"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "12C1DA72-C5DC-428D-8A92-3D6663F385D8 - 2cbcc93753b8eab4"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "CpuCore::CpuCore(CpuCoreDesc*)"
+                  moduleName = "VCPU32-Simulator"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/helmutfieres/GitHub/VCPU-32/VCPU32-Simulator/VCPU32-Core.hpp"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "606"
+                  endingLineNumber = "606"
+                  offsetFromSymbolStart = "40">
+               </Location>
+               <Location
+                  uuid = "12C1DA72-C5DC-428D-8A92-3D6663F385D8 - 2cbcc8898f8be9b5"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "CpuCore::CpuCore(CpuCoreDesc*)"
+                  moduleName = "VCPU32-Simulator"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/helmutfieres/GitHub/VCPU-32/VCPU32-Simulator/VCPU32-Core.cpp"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "34"
+                  endingLineNumber = "34"
+                  offsetFromSymbolStart = "28">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "160C07F6-1364-4AE8-BF1A-B8D70A5624BC"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "VCPU32-Simulator/VCPU32-DrvLineDisplay.cpp"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "384"
+            endingLineNumber = "384"
+            landmarkName = "DrvLineDisplay::displayPmemContent(ofs, len, fmtId)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
    </Breakpoints>
 </Bucket>

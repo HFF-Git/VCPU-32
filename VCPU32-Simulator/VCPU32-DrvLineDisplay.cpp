@@ -312,9 +312,9 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
             
             if ( blockSets >= 1 ) {
                 
-                tagPtr  = cPtr -> getMemTagEntry( index, 0 );
-                dataPtr = cPtr -> getMemBlockEntry( index, 0 );
-     
+                tagPtr = cPtr -> getMemTagEntry( index, 0 );
+                dataPtr = (uint32_t *) cPtr -> getMemBlockEntry( index, 0 );
+                
                 fprintf( stdout, "(0)[" );
                 if ( tagPtr -> valid )  fprintf( stdout, "V" ); else fprintf( stdout, "v" );
                 if ( tagPtr -> dirty )  fprintf( stdout, "D" ); else fprintf( stdout, "d" );
@@ -328,7 +328,7 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
                     
                    fprintf( stdout, "           (" );
                     for ( uint32_t i = 0; i < 4; i++ ) {
-                        
+                    
                         displayWord( dataPtr[ i ], fmt );
                         if ( i < 3 ) fprintf( stdout, " " );
                     }
@@ -342,8 +342,8 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
             if ( blockSets >= 2 ) {
                 
                 tagPtr  = cPtr -> getMemTagEntry( index, 1 );
-                dataPtr = cPtr -> getMemBlockEntry( index, 1 );
-     
+                dataPtr = (uint32_t *) cPtr -> getMemBlockEntry( index, 1 );
+                
                 fprintf( stdout, "           (1)[" );
                 if ( tagPtr -> valid )  fprintf( stdout, "V" ); else fprintf( stdout, "v" );
                 if ( tagPtr -> dirty )  fprintf( stdout, "D" ); else fprintf( stdout, "d" );
@@ -357,7 +357,7 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
                     
                    fprintf( stdout, "           (" );
                     for ( uint32_t i = 0; i < 4; i++ ) {
-                        
+                       
                         displayWord( dataPtr[ i ], fmt );
                         if ( i < 3 ) fprintf( stdout, " " );
                     }
@@ -374,43 +374,40 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
 
 //------------------------------------------------------------------------------------------------------------
 // Display physical memory content. We will show the memory starting with offset. The words per line is an
-// environmental variable setting.
+// environmental variable setting. The offset is rounded down to the next 4-byte boundary, the limit is
+// rounded up to the next 4-byte boundary. We display the data in words.
 //
 // ??? factor in PDC and IO Space...
 // ??? we think in byte adresses !!!!!!  ofs and len are bytes!!!
+//
 //------------------------------------------------------------------------------------------------------------
 void  DrvLineDisplay::displayPmemContent( uint32_t ofs, uint32_t len, TokId fmtId ) {
     
-    uint32_t    index           = ofs;
-    uint32_t    limit           = ofs + len;
-    int         wordsPerLine    = glb -> env -> getEnvValInt( ENV_WORDS_PER_LINE );
-    uint32_t    blockEntries    = glb -> cpu -> mem -> getBlockEntries( );
-    uint32_t    blockSize       = glb -> cpu -> mem -> getBlockSize( );
-    uint32_t    memSize         = blockEntries * blockSize;
-    CpuMem      *mem            = glb -> cpu -> mem;
-    uint32_t    *dataPtr        = nullptr;
+    uint32_t    index           = ( ofs / 4 ) * 4;
+    uint32_t    limit           = ((( index + len ) + 3 ) / 4 ) * 4;
     
-    if ( limit >= memSize ) return;
+    int         wordsPerLine    = glb -> env -> getEnvValInt( ENV_WORDS_PER_LINE );
+    uint32_t    blockEntries    = glb -> cpu -> physMem -> getBlockEntries( );
+    uint32_t    blockSize       = glb -> cpu -> physMem -> getBlockSize( );
+    
+    CpuMem      *mem            = glb -> cpu -> physMem;
+   
+    if ( limit >= blockEntries * blockSize ) return;
     
     while ( index < limit ) {
         
         glb -> lineDisplay -> displayWord( index, fmtId );
         fprintf( stdout, ": " );
         
-        dataPtr = mem -> getMemBlockEntry( index / blockSize ) + ( index % blockSize );
-        
-        if ( dataPtr != nullptr ) {
+        for ( uint32_t i = 0; i < wordsPerLine; i++ ) {
             
-            for ( uint32_t i = 0; i < wordsPerLine; i++ ) {
-                
-                if ( index < limit ) glb -> lineDisplay -> displayWord( * ( dataPtr + i ), fmtId );
-                fprintf( stdout, " " );
-            }
-            
-            fprintf( stdout, "\n" );
+            if ( index < limit ) glb -> lineDisplay -> displayWord( mem -> getMemWord( index ), fmtId );
+            fprintf( stdout, " " );
         }
         
-        index = index + wordsPerLine;
+        fprintf( stdout, "\n" );
+        
+        index += wordsPerLine * 4;
     }
     
     fprintf( stdout, "\n" );
