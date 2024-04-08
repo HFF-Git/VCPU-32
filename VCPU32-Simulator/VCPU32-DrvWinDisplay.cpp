@@ -1267,7 +1267,7 @@ void DrvWinStatistics::drawBody( ) {
 DrvWinPhysMem::DrvWinPhysMem( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
-// The default values are the intial settings when windows is brought up the first time, or for the WDEF
+// The default values are the initial settings when windows is brought up the first time, or for the WDEF
 // command. The memory window is a window where the number of lines to display can be set. However, the
 // minimum is the default number of lines.
 //
@@ -1287,7 +1287,7 @@ void DrvWinPhysMem::setDefaults( ) {
     setRows( 5 );
     setHomeItemAdr( 0 );
     setCurrentItemAdr( 0 );
-    setLineIncrement( 8 );
+    setLineIncrement( 8 * 4 );
     setLimitItemAdr( 0 );
 }
 
@@ -1330,26 +1330,22 @@ void DrvWinPhysMem::drawBanner( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // A scrollable window needs to implement a routine for displaying a row. We are passed the item adress and
-// need to map this to the actual meaning of the particular window. For the physical memory window, the
-// memory address is computed by multiplying the item adress with the memory words, i.e. items, per line.
+// need to map this to the actual meaning of the particular window. The "itemAdr" value is the byte offset
+// into physical memory, the line incrment is 8 * 4 = 32 bytes. We show eight words.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvWinPhysMem::drawLine( int itemAdr ) {
     
-    CpuMem      *mem            = glb -> cpu -> physMem;
-    uint32_t    blockSize       = mem -> getBlockSize( );
-    uint8_t     *dataPtr        = mem -> getMemBlockEntry( itemAdr / blockSize ) + (( itemAdr ) % blockSize );
-    uint32_t    fmtDesc         = FMT_DEF_ATTR;
+    CpuMem      *mem        = glb -> cpu -> physMem;
+    uint32_t    fmtDesc     = FMT_DEF_ATTR;
+    uint32_t    limit       = getLineIncrement( ) - 1;
     
     printNumericField( itemAdr, fmtDesc );
     printTextField((char *) ": ", fmtDesc );
     
-    for ( int i = 0; i <  getLineIncrement( ); i++ ) {
+    for ( int i = 0; i < limit; i = i + 4 ) {
         
-        uint32_t tmp;
-        memcpy((uint8_t *)  &tmp, &dataPtr[ i ], 4 );
-    
-        printNumericField( tmp, fmtDesc );
+        printNumericField( mem -> getMemWord( itemAdr + i ), fmtDesc );
         printTextField((char *) " " );
     }
 }
@@ -1404,11 +1400,13 @@ void DrvWinCode::drawBanner( ) {
     int         currentIaOfs        = (int) glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS  );
     TokId       currentCmd          = glb -> cmds -> getCurrentCmd( );
     bool        isCurrent           = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
-    bool        hasIaOfsAdr         = (( currentIaOfs >= currentItemAdr ) && ( currentIaOfs <= currentItemAdrLimit ));
     uint32_t    blockEntries        = glb -> cpu -> physMem -> getBlockEntries( );
     uint32_t    blockSize           = glb -> cpu -> physMem -> getBlockSize( );
+    bool        hasIaOfsAdr         = (( currentIaOfs >= currentItemAdr ) && ( currentIaOfs <= currentItemAdrLimit ));
     
-    setLimitItemAdr( blockEntries * blockSize );
+    setLimitItemAdr(( blockEntries * blockSize ) - 1 );
+    
+    // ??? check ... does not follow screen...
      
     if (( currentCmd == CMD_STEP ) && ( hasIaOfsAdr )) {
         
@@ -1436,9 +1434,7 @@ void DrvWinCode::drawBanner( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvWinCode::drawLine( int itemAdr ) {
     
-    CpuMem      *mem            = glb -> cpu -> physMem;
-    uint32_t    blockSize       = mem -> getBlockSize( );
-    uint8_t     *codePtr        = mem -> getMemBlockEntry( itemAdr / blockSize ) + (( itemAdr ) % blockSize );
+    uint32_t    instr           = glb -> cpu -> physMem -> getMemWord( itemAdr );
     uint32_t    fmtDesc         = FMT_DEF_ATTR;
     uint32_t    currentIaOfs    = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS  );
     bool        isCurrentIaOfs  = ( itemAdr == currentIaOfs );
@@ -1446,18 +1442,15 @@ void DrvWinCode::drawLine( int itemAdr ) {
     printNumericField( itemAdr, fmtDesc | FMT_ALIGN_LFT, 12 );
     printTextField(( isCurrentIaOfs ? (char *) ">" :  (char *) " " ), fmtDesc, 4 );
     
-    uint32_t tmp;
-    memcpy((uint8_t *)  &tmp, &codePtr, 4 );
-    
-    printNumericField( tmp, fmtDesc | FMT_ALIGN_LFT, 12 );
+    printNumericField( instr, fmtDesc | FMT_ALIGN_LFT, 12 );
     printTextField((char *) "", fmtDesc, 16 );
     
     int pos = getWinCursorCol( );
     padLine( );
     setWinCursor( 0, pos );
-    glb -> disAsm -> displayOpCodeAndOptions( *codePtr );
+    glb -> disAsm -> displayOpCodeAndOptions( instr );
     setWinCursor( 0, pos + 8 );
-    glb -> disAsm -> displayTargetAndOperands( *codePtr, getRadix( ));
+    glb -> disAsm -> displayTargetAndOperands( instr, getRadix( ));
     padLine( );
 }
 
@@ -1615,10 +1608,12 @@ void DrvWinCache::setDefaults( ) {
     else if ( winType == WT_DCACHE_WIN )    cPtr = glb -> cpu -> dCacheL1;
     else if ( winType == WT_UCACHE_WIN )    cPtr = glb -> cpu -> uCacheL2;
     
+    uint32_t wordsPerBlock = cPtr -> getBlockSize( ) / 4;
+    
     setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
-    setDefColumns( 36 + ( cPtr -> getBlockSize( ) * 11 ), TOK_HEX );
-    setDefColumns( 36 + ( cPtr -> getBlockSize( ) * 13 ), TOK_OCT );
-    setDefColumns( 36 + ( cPtr -> getBlockSize( ) * 11 ), TOK_DEC );
+    setDefColumns( 36 + ( wordsPerBlock * 11 ), TOK_HEX );
+    setDefColumns( 36 + ( wordsPerBlock * 13 ), TOK_OCT );
+    setDefColumns( 36 + ( wordsPerBlock * 11 ), TOK_DEC );
     setColumns( getDefColumns( getRadix( )));
     setRows( 6 );
     
@@ -1700,10 +1695,10 @@ void DrvWinCache::drawLine( int index ) {
     }
     else {
         
-        MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( index, winToggleVal );
-        uint8_t     *dataPtr    = cPtr -> getMemBlockEntry( index, winToggleVal );
-        uint32_t    blockSize   = cPtr -> getBlockSize( );
-        
+        MemTagEntry *tagPtr         = cPtr -> getMemTagEntry( index, winToggleVal );
+        uint32_t    *dataPtr        = (uint32_t *) cPtr -> getMemBlockEntry( index, winToggleVal );
+        uint32_t    wordsPerBlock   = cPtr -> getBlockSize( ) / 4;
+      
         printNumericField( index, fmtDesc );
         printTextField((char *) ":[", fmtDesc );
         printTextField((( tagPtr -> valid ) ? (char *) "V" : (char *) "v" ), fmtDesc );
@@ -1712,12 +1707,9 @@ void DrvWinCache::drawLine( int index ) {
         printNumericField( tagPtr -> tag, fmtDesc );
         printTextField((char *) ") ", fmtDesc );
         
-        for ( uint32_t i = 0; i < blockSize; i++ ) {
-            
-            uint32_t tmp;
-            memcpy((uint8_t *)  &tmp, &dataPtr[ i ], 4 );
-            
-            printNumericField( tmp, fmtDesc );
+        for ( uint32_t i = 0; i < wordsPerBlock; i++ ) {
+          
+            printNumericField( dataPtr[ i ], fmtDesc );
             printTextField((char *) " " );
         }
     }

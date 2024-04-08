@@ -308,7 +308,6 @@ const char  FMT_STR_2S_2U_1S[ ] = "%32s %32s %i %i %32s";
 const char  FMT_STR_2S_2D[ ]    = "%32s %32s %i %i";
 const char  FMT_STR_2S_4D[ ]    = "%32s %32s %i %i %i %i";
 const char  FMT_STR_2S_LS[ ]    = "%32s %32s %256s";
-const char  FMT_STR_3S_2LS[ ]   = "%32s %32s %32s %256s %256s";
 const char  FMT_STR_CMD_LINE[ ] = "%256s";
 
 //------------------------------------------------------------------------------------------------------------
@@ -319,7 +318,7 @@ const char  FMT_STR_CMD_LINE[ ] = "%256s";
 const int   CMD_LINE_BUF_SIZE  = 256;
 
 //------------------------------------------------------------------------------------------------------------
-// A little helper to roound up a number to the next power of two.
+// A little helper to round up a number to the next power of two.
 //
 //------------------------------------------------------------------------------------------------------------
 uint32_t roundUp( uint32_t size ) {
@@ -1558,7 +1557,6 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     
     char        cmdStr[ TOK_NAME_SIZE + 1 ] = "";
     uint32_t    ofs                         = 0;
-    uint32_t    len                         = 0;
     uint32_t    val1                        = 0;
     uint32_t    val2                        = 0;
     uint32_t    val3                        = 0;
@@ -1572,7 +1570,6 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     uint32_t    blockSize                   = glb -> cpu -> physMem -> getBlockSize( );
     uint32_t    memSize                     = blockEntries * blockSize;
     CpuMem      *mem                        = glb -> cpu -> physMem;
-    uint32_t    *dataPtr                    = nullptr;
     
     int         args        = sscanf( cmdBuf, "%32s %i %i %i %i %i %i %i %i %i", cmdStr, &ofs,
                                          &val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8 );
@@ -1592,13 +1589,13 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     }
   
     if ( numOfVal >= 1 ) mem -> putMemWord( ofs, val1 );
-    if ( numOfVal >= 2 ) mem -> putMemWord( ofs, val2 );
-    if ( numOfVal >= 3 ) mem -> putMemWord( ofs, val3 );
-    if ( numOfVal >= 4 ) mem -> putMemWord( ofs, val4 );
-    if ( numOfVal >= 5 ) mem -> putMemWord( ofs, val5 );
-    if ( numOfVal >= 6 ) mem -> putMemWord( ofs, val6 );
-    if ( numOfVal >= 7 ) mem -> putMemWord( ofs, val7 );
-    if ( numOfVal >= 8 ) mem -> putMemWord( ofs, val8 );
+    if ( numOfVal >= 2 ) mem -> putMemWord( ofs + 4, val2 );
+    if ( numOfVal >= 3 ) mem -> putMemWord( ofs + 8, val3 );
+    if ( numOfVal >= 4 ) mem -> putMemWord( ofs + 12, val4 );
+    if ( numOfVal >= 5 ) mem -> putMemWord( ofs + 16, val5 );
+    if ( numOfVal >= 6 ) mem -> putMemWord( ofs + 20, val6 );
+    if ( numOfVal >= 7 ) mem -> putMemWord( ofs + 24, val7 );
+    if ( numOfVal >= 8 ) mem -> putMemWord( ofs + 28, val8 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1621,8 +1618,6 @@ void DrvCmds::loadPhysMemCmd( char *cmdBuf ) {
 //
 // SMF <path> [ <ofs> <len> ]
 //
-// ?? do we save anything from PDC and IO space ? perhaps not ...
-// CHECK.... the adress arithmetic...
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
     
@@ -1631,13 +1626,16 @@ void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
     uint32_t    ofs                             = 0;
     uint32_t    len                             = 0;
     uint32_t    wordsPerLine                    = 8;
-    TokId       fmtId                           = glb -> env -> getEnvValTok( ENV_FMT_DEF );
-    
+   
     CpuMem      *physMem                        = glb -> cpu -> physMem;
     uint32_t    blockEntries                    = physMem -> getBlockEntries( );
     uint32_t    blockSize                       = physMem -> getBlockSize( );
-    uint32_t    memSize                         = blockEntries * blockSize;
-    uint32_t    *dataPtr                        = nullptr;
+    uint32_t    *dataPtr                        = (uint32_t *) physMem -> getMemBlockEntry( 0 );
+    
+    uint32_t    wordsInMem                      = blockEntries * blockSize / 4;
+    uint32_t    wordIndex                       = 0;
+    uint32_t    wordLimit                       = 0;
+   
     
     int         args = sscanf( cmdBuf, "%32s %256s %i %i", cmdStr, pathStr, &ofs, &len );
     
@@ -1646,13 +1644,11 @@ void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
         fprintf( stdout, "Expected dump file path\n" );
         return;
     }
-    
-    if ( len == 0 ) len = memSize;
-    
-    len = roundUp( len );
-    ofs = ( ofs / wordsPerLine ) * wordsPerLine;
-    
-    if ( ofs + len > memSize ) {
+ 
+    wordIndex = ofs & 0xFFFFFFFC;
+    wordLimit = wordIndex + ( (( len + 3 ) / 4 ) * 4 );
+
+    if ( wordLimit > wordsInMem ) {
         
         fprintf( stdout, "Offset plus number of values to write exceeds memory size\n" );
         return;
@@ -1672,47 +1668,28 @@ void DrvCmds::savePhysMemCmd( char *cmdBuf ) {
         return;
     }
     
-    while ( ofs < len ) {
+    for ( uint32_t index = wordIndex; index < wordLimit; index = index + wordsPerLine ) {
         
-        uint32_t tmp;
-        int      index;
-        
-        dataPtr = (uint32_t *) physMem -> getMemBlockEntry( ofs / blockSize ) + ( ofs % blockSize );
-        
-        for ( index = 0; index < wordsPerLine; index++ ) {
-            
-            if ( dataPtr[ index ] != 0 ) break;
-        }
-        
-        if ( index < wordsPerLine ) {
+        if (( dataPtr[ index + 0 ] != 0 ) || ( dataPtr[ index + 1 ] != 0 ) ||
+            ( dataPtr[ index + 2 ] != 0 ) || ( dataPtr[ index + 3 ] != 0 ) ||
+            ( dataPtr[ index + 4 ] != 0 ) || ( dataPtr[ index + 5 ] != 0 ) ||
+            ( dataPtr[ index + 6 ] != 0 ) || ( dataPtr[ index + 7 ] != 0 )) {
             
             fprintf( dFile, "MA " );
-            
-            if      ( fmtId == TOK_DEC )  fprintf( dFile, "%8d ", ofs );
-            else if ( fmtId == TOK_OCT )  fprintf( dFile, "%#09o ", ofs );
-            else {
                 
-                if ( ofs == 0 ) fprintf( dFile, "0x000000 " );
-                else fprintf( dFile, "%#08x ", ofs );
-            }
+            if ( index == 0 ) fprintf( dFile, "0x00000000 " );
+            else fprintf( dFile, "%#010x ", index * 4 );
             
             for ( int i = 0; i < wordsPerLine; i++ ) {
                 
-                tmp = dataPtr[ i ];
+                uint32_t tmp = dataPtr[ index + i ];
                 
-                if      ( fmtId == TOK_DEC )  fprintf( dFile, "%8d ", tmp );
-                else if ( fmtId == TOK_OCT )  fprintf( dFile, "%#09o ", tmp );
-                else   {
-                    
-                    if ( tmp == 0 ) fprintf( dFile, "0x000000 " );
-                    else fprintf( dFile, "%#08x ", tmp );
-                }
+                if ( tmp == 0 ) fprintf( dFile, "0x00000000 " );
+                else fprintf( dFile, "%#010x ", tmp );
             }
             
             fprintf( dFile, "\n" );
         }
-        
-        ofs += wordsPerLine;
     }
     
     if ( fclose( dFile ) != 0 ) {

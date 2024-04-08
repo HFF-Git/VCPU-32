@@ -292,93 +292,83 @@ void DrvLineDisplay::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t le
 // "displayCacheEntries" displays a list of cache line entries. Since we have a coupe of block sizes and
 // perhaps one or more sets, the display is rather complex.
 //
-// ??? what to simplify, refine ?
-// ??? what can be factored out to display a cache line ?
 //------------------------------------------------------------------------------------------------------------
 void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t len, TokId fmt ) {
     
-    uint32_t        blockEntries    = cPtr -> getBlockEntries( );
-    uint32_t        blockSize       = cPtr -> getBlockSize( );
-    uint16_t        blockSets       = cPtr -> getBlockSets( );
-    MemTagEntry     *tagPtr         = nullptr;
-    uint32_t        *dataPtr        = nullptr;
+    uint32_t    blockSets       = cPtr -> getBlockSets( );
+    uint32_t    wordsPerBlock   = cPtr -> getBlockSize( ) / 4;
+    uint32_t    wordsPerLine    = 4;
+    uint32_t    linesPerBlock   = wordsPerBlock / wordsPerLine;
    
-    if ( index + len <=  blockEntries ) {
+    if ( index + len >=  cPtr -> getBlockEntries( )) {
         
-        for ( uint32_t i = index; i < index + len; i++  ) {
+        fprintf( stdout, " cache index + len out of range\n" );
+        return;
+    }
+    
+    for ( uint32_t lineIndex = index; lineIndex < index + len; lineIndex++  ) {
+        
+        displayWord( lineIndex, fmt  );
+        fprintf( stdout, ": " );
+        
+        if ( blockSets >= 1 ) {
             
-            displayWord( i, fmt  );
-            fprintf( stdout, ": " );
+            MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( lineIndex, 0 );
+            uint32_t    *dataPtr    = (uint32_t *) cPtr -> getMemBlockEntry( lineIndex, 0 );
             
-            if ( blockSets >= 1 ) {
+            fprintf( stdout, "(0)[" );
+            if ( tagPtr -> valid )  fprintf( stdout, "V" ); else fprintf( stdout, "v" );
+            if ( tagPtr -> dirty )  fprintf( stdout, "D" ); else fprintf( stdout, "d" );
+            fprintf( stdout, "] (" );
+            displayWord( tagPtr -> tag, fmt );
+            fprintf( stdout, ") \n" );
+            
+            for ( int i = 0; i < linesPerBlock; i++  ) {
                 
-                tagPtr = cPtr -> getMemTagEntry( index, 0 );
-                dataPtr = (uint32_t *) cPtr -> getMemBlockEntry( index, 0 );
+                fprintf( stdout, "            (" );
                 
-                fprintf( stdout, "(0)[" );
-                if ( tagPtr -> valid )  fprintf( stdout, "V" ); else fprintf( stdout, "v" );
-                if ( tagPtr -> dirty )  fprintf( stdout, "D" ); else fprintf( stdout, "d" );
-                fprintf( stdout, "] (" );
-                displayWord( tagPtr -> tag, fmt );
-                fprintf( stdout, ")\n" );
-                
-                uint32_t subLineIndex = 0;
-                
-                while ( subLineIndex < blockSize ) {
+                for ( int j = 0; j < wordsPerLine; j++ ) {
                     
-                   fprintf( stdout, "           (" );
-                    for ( uint32_t i = 0; i < 4; i++ ) {
-                    
-                        displayWord( dataPtr[ i ], fmt );
-                        if ( i < 3 ) fprintf( stdout, " " );
-                    }
-                    
-                   fprintf( stdout, ") \n" );
-                    
-                    subLineIndex += 4;
+                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], fmt );
+                    if ( i < 3 ) fprintf( stdout, " " );
                 }
+                
+                fprintf( stdout, ") \n" );
             }
+        }
+        
+        if ( blockSets >= 2 ) {
             
-            if ( blockSets >= 2 ) {
+            MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( lineIndex, 0 );
+            uint32_t    *dataPtr    = (uint32_t *) cPtr -> getMemBlockEntry( lineIndex, 1 );
+            
+            fprintf( stdout, "            (1)[" );
+            if ( tagPtr -> valid )  fprintf( stdout, "V" ); else fprintf( stdout, "v" );
+            if ( tagPtr -> dirty )  fprintf( stdout, "D" ); else fprintf( stdout, "d" );
+            fprintf( stdout, "] (" );
+            displayWord( tagPtr -> tag, fmt );
+            fprintf( stdout, ")\n" );
+            
+            for ( int i = 0; i < linesPerBlock; i++  ) {
                 
-                tagPtr  = cPtr -> getMemTagEntry( index, 1 );
-                dataPtr = (uint32_t *) cPtr -> getMemBlockEntry( index, 1 );
+                fprintf( stdout, "            (" );
                 
-                fprintf( stdout, "           (1)[" );
-                if ( tagPtr -> valid )  fprintf( stdout, "V" ); else fprintf( stdout, "v" );
-                if ( tagPtr -> dirty )  fprintf( stdout, "D" ); else fprintf( stdout, "d" );
-                fprintf( stdout, "] (" );
-                displayWord( tagPtr -> tag, fmt );
-                fprintf( stdout, ")\n" );
-                
-                uint32_t subLineIndex = 0;
-                
-                while ( subLineIndex < blockSize ) {
+                for ( int j = 0; j < wordsPerLine; j++ ) {
                     
-                   fprintf( stdout, "           (" );
-                    for ( uint32_t i = 0; i < 4; i++ ) {
-                       
-                        displayWord( dataPtr[ i ], fmt );
-                        if ( i < 3 ) fprintf( stdout, " " );
-                    }
-                    
-                   fprintf( stdout, ") \n" );
-                    
-                    subLineIndex += 4;
+                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], fmt );
+                    if ( i < 3 ) fprintf( stdout, " " );
                 }
+                
+                fprintf( stdout, ") \n" );
             }
         }
     }
-    else fprintf( stdout, " cache index + len out of range\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Display physical memory content. We will show the memory starting with offset. The words per line is an
 // environmental variable setting. The offset is rounded down to the next 4-byte boundary, the limit is
 // rounded up to the next 4-byte boundary. We display the data in words.
-//
-// ??? factor in PDC and IO Space...
-// ??? we think in byte adresses !!!!!!  ofs and len are bytes!!!
 //
 //------------------------------------------------------------------------------------------------------------
 void  DrvLineDisplay::displayPmemContent( uint32_t ofs, uint32_t len, TokId fmtId ) {
@@ -403,11 +393,11 @@ void  DrvLineDisplay::displayPmemContent( uint32_t ofs, uint32_t len, TokId fmtI
             
             if ( index < limit ) glb -> lineDisplay -> displayWord( mem -> getMemWord( index ), fmtId );
             fprintf( stdout, " " );
+            
+            index += 4;
         }
         
         fprintf( stdout, "\n" );
-        
-        index += wordsPerLine * 4;
     }
     
     fprintf( stdout, "\n" );
