@@ -1396,7 +1396,7 @@ void DrvWinCode::drawBanner( ) {
     
     uint32_t    fmtDesc             = FMT_BOLD | FMT_INVERSE;
     int         currentItemAdr      = getCurrentItemAdr( );
-    int         currentItemAdrLimit = currentItemAdr + ( getRows( ) * getLineIncrement( )) - 1;
+    int         currentItemAdrLimit = currentItemAdr + (( getRows( ) - 1 ) * getLineIncrement( ));
     int         currentIaOfs        = (int) glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS  );
     TokId       currentCmd          = glb -> cmds -> getCurrentCmd( );
     bool        isCurrent           = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
@@ -1405,13 +1405,11 @@ void DrvWinCode::drawBanner( ) {
     bool        hasIaOfsAdr         = (( currentIaOfs >= currentItemAdr ) && ( currentIaOfs <= currentItemAdrLimit ));
     
     setLimitItemAdr(( blockEntries * blockSize ) - 1 );
-    
-    // ??? check ... does not follow screen...
-     
+   
     if (( currentCmd == CMD_STEP ) && ( hasIaOfsAdr )) {
         
-        if      ( currentIaOfs >= currentItemAdr + currentItemAdrLimit ) winJump( currentIaOfs );
-        else if ( currentIaOfs < currentItemAdr )                        winJump( currentIaOfs );
+        if      ( currentIaOfs >= currentItemAdrLimit ) winJump( currentIaOfs );
+        else if ( currentIaOfs < currentItemAdr )       winJump( currentIaOfs );
     }
     
     setWinCursor( 1, 1 );
