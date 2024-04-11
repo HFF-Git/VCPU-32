@@ -163,6 +163,7 @@ enum fmtDescOptions : uint32_t {
     
     FMT_LAST_FIELD      = 0x00002000,
     FMT_HALF_WORD       = 0x00004000,
+    FMT_INVALID_NUM     = 0x00008000,
     
     FMT_DEF_ATTR        = 0x10000000
 };
@@ -307,36 +308,77 @@ int strlenForNum( TokId rdx, bool halfWord ) {
 // out the data using the radix passed. ( HEX: 0xdddddddd, OCT: 0ddddddddddd, DEC: dddddddddd );
 //
 //------------------------------------------------------------------------------------------------------------
-int printWord( uint32_t val, TokId radix = TOK_HEX, bool half = false ) {
+int printWord( uint32_t val, TokId radix = TOK_HEX, uint32_t fmtDesc = FMT_DEF_ATTR ) {
     
     int len;
     
-    if ( radix == TOK_DEC ) {
-        
-        if ( half ) len = winPrintf( stdout, "%5d", val );
-        else        len = winPrintf( stdout, "%10d", val );
-    }
-    else if ( radix == TOK_OCT ) {
-        
-        if ( half ) len = winPrintf( stdout, "%07o", val );
-        else        len = winPrintf( stdout, "%#012o", val );
-    }
-    else if ( radix == TOK_HEX ) {
-        
-        if ( val == 0 ) {
+    bool half   = fmtDesc & FMT_HALF_WORD;
+    bool noNum  = fmtDesc & FMT_INVALID_NUM;
+    
+        if ( radix == TOK_DEC ) {
             
-            if ( half ) len = winPrintf( stdout, "0x0000" );
-            else        len = winPrintf( stdout, "0x00000000" );
-            
-        } else {
-            
-            if ( half ) len = winPrintf( stdout, "%#06x", val );
-            else        len = winPrintf( stdout, "%#010x", val );
+            if ( noNum ) {
+                
+                if ( half ) len = winPrintf( stdout, "*****" );
+                else        len = winPrintf( stdout, "**********" );
+            }
+            else {
+                
+                if ( half ) len = winPrintf( stdout, "%5d", val );
+                else        len = winPrintf( stdout, "%10d", val );
+            }
         }
-    }
-    else len = winPrintf( stdout, "**num***" );
+        else if ( radix == TOK_OCT ) {
+            
+            if ( noNum ) {
+                
+                if ( half ) len = winPrintf( stdout, "*******" );
+                else        len = winPrintf( stdout, "************" );
+            }
+            else {
+                
+                if ( half ) len = winPrintf( stdout, "%07o", val );
+                else        len = winPrintf( stdout, "%#012o", val );
+            }
+        }
+        else if ( radix == TOK_HEX ) {
+            
+            if ( noNum ) {
+                
+                if ( half ) len = winPrintf( stdout, "******" );
+                else        len = winPrintf( stdout, "**********" );
+            }
+            else {
+                
+                if ( val == 0 ) {
+                    
+                    if ( half ) len = winPrintf( stdout, "0x0000" );
+                    else        len = winPrintf( stdout, "0x00000000" );
+                    
+                } else {
+                    
+                    if ( half ) len = winPrintf( stdout, "%#06x", val );
+                    else        len = winPrintf( stdout, "%#010x", val );
+                }
+            }
+        }
+        else len = winPrintf( stdout, "***num***" );
+    
     
     return( len );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "displayInvalidWord" shows a set of "*" when we cannot get a value for word. We make the length of the
+// "*" string accoriding to the current radix.
+//
+//------------------------------------------------------------------------------------------------------------
+void printInvalidWord( TokId fmtType ) {
+    
+    if      ( fmtType == TOK_DEC )  winPrintf( stdout, "**********" );
+    else if ( fmtType == TOK_OCT )  winPrintf( stdout, "************" );
+    else if ( fmtType == TOK_HEX )  winPrintf( stdout, "**********" );
+    else                            winPrintf( stdout, "**num**" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -508,7 +550,7 @@ void DrvWin::printNumericField( uint32_t val, uint32_t fmtDesc, int fLen, int ro
     if ( fmtDesc & FMT_LAST_FIELD )     col     = winColumns - fLen;
     
     int maxLen = strlenForNum( getRadix( ), ( fmtDesc & FMT_HALF_WORD ));
-    
+   
     if ( fLen == 0 ) fLen = maxLen;
     
     setFieldAtributes( fmtDesc );
@@ -518,16 +560,16 @@ void DrvWin::printNumericField( uint32_t val, uint32_t fmtDesc, int fLen, int ro
         
         if ( fmtDesc & FMT_ALIGN_LFT ) {
             
-           printWord( val, winRadix, ( fmtDesc & FMT_HALF_WORD ));
+            printWord( val, winRadix, fmtDesc );
             padField( maxLen, fLen );
         }
         else {
             
             padField( maxLen, fLen );
-           printWord( val, winRadix, ( fmtDesc & FMT_HALF_WORD ));
+            printWord( val, winRadix, fmtDesc );
         }
     }
-    else printWord( val, winRadix, ( fmtDesc & FMT_HALF_WORD ));
+    else printWord( val, winRadix, fmtDesc );
     
     lastRowPos  = row;
     lastColPos  = col + fLen;
@@ -682,17 +724,17 @@ DrvWinScrollable::DrvWinScrollable( VCPU32Globals *glb ) : DrvWin( glb ) { }
 // Getter/Setter methods for scrollable window attributes.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinScrollable::setHomeItemAdr( int adr ) { homeItemAdr = adr; }
-int  DrvWinScrollable::getHomeItemAdr( ) { return( homeItemAdr ); }
+void      DrvWinScrollable::setHomeItemAdr( uint32_t adr ) { homeItemAdr = adr; }
+uint32_t  DrvWinScrollable::getHomeItemAdr( ) { return( homeItemAdr ); }
 
-void DrvWinScrollable::setCurrentItemAdr( int adr ) { currentItemAdr = adr; }
-int  DrvWinScrollable::getCurrentItemAdr( ) { return( currentItemAdr ); }
+void      DrvWinScrollable::setCurrentItemAdr( uint32_t adr ) { currentItemAdr = adr; }
+uint32_t  DrvWinScrollable::getCurrentItemAdr( ) { return( currentItemAdr ); }
 
-void DrvWinScrollable::setLimitItemAdr( int adr ) { limitItemAdr = adr; }
-int  DrvWinScrollable::getLimitItemAdr( ) { return( limitItemAdr ); }
+void      DrvWinScrollable::setLimitItemAdr( uint32_t adr ) { limitItemAdr = adr; }
+uint32_t  DrvWinScrollable::getLimitItemAdr( ) { return( limitItemAdr ); }
 
-void DrvWinScrollable::setLineIncrement( int arg ) { lineIncrement = arg; }
-int  DrvWinScrollable::getLineIncrement( ) { return( lineIncrement ); }
+void      DrvWinScrollable::setLineIncrement( uint32_t arg ) { lineIncrement = arg; }
+uint32_t  DrvWinScrollable::getLineIncrement( ) { return( lineIncrement ); }
 
 //------------------------------------------------------------------------------------------------------------
 // The scrollable window inherits from the general window. While the banner part of a window is expected to
@@ -722,8 +764,9 @@ void DrvWinScrollable::drawBody( ) {
 // to the current home address. If the address is larger than the limit address of the window, the position
 // will be the limit address minus the number of lines times the number of items on the line.
 //
+// ??? unsigned adresses ?
 //------------------------------------------------------------------------------------------------------------
-void DrvWinScrollable::winHome( int pos ) {
+void DrvWinScrollable::winHome( uint32_t pos ) {
     
     if ( pos > 0 ) {
         
@@ -738,46 +781,42 @@ void DrvWinScrollable::winHome( int pos ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The "winJump" method moves the starting item adress of a window within the boundaries zero and the limit
-// address. A position argument of zero will set the window back to the current home item adress.
+// address.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinScrollable::winJump( int pos ) {
+void DrvWinScrollable::winJump( uint32_t pos ) {
     
-    if ( pos > 0 )  currentItemAdr = pos;
-    else            currentItemAdr = homeItemAdr;
+   currentItemAdr = pos;
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Window move implements the forward / backward moves of a window. The amount is added to the current window
 // body position, also making sure that we stay inside the boundaries of the address range for the window.
-// A computed line below zero will become zero, a line computed beyound the next window plus the window lines
-// will be corrected with the last computed line being the last line on the screen.
+// If the new position would point beyound the limit address, we set the new item adress to limit minus the
+// window lines times the line increment. Likewise of the new item address would be less than zero, we
+// just set it to zero.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinScrollable::winForward( int amt ) {
+void DrvWinScrollable::winForward( uint32_t amt ) {
     
     if ( amt == 0 ) amt = ( getRows( ) - 1 ) * lineIncrement;
     
-    currentItemAdr = currentItemAdr + amt;
-    
-    if ( currentItemAdr + amt > limitItemAdr ) {
+    if (((uint64_t) currentItemAdr + amt ) > (uint64_t) limitItemAdr ) {
         
         currentItemAdr = limitItemAdr - (( getRows( ) - 1 ) * lineIncrement );
     }
-    else if ( currentItemAdr < 0 ) currentItemAdr = 0;
+    else currentItemAdr = currentItemAdr + amt;
 }
 
-void DrvWinScrollable::winBackward( int amt ) {
+void DrvWinScrollable::winBackward( uint32_t amt ) {
     
     if ( amt == 0 ) amt = ( getRows( ) - 1 ) * lineIncrement;
     
-    currentItemAdr = currentItemAdr - amt;
-    
-    if ( currentItemAdr + amt > limitItemAdr ) {
+    if ( amt <= currentItemAdr ) {
         
-        currentItemAdr = limitItemAdr - (( getRows( ) - 1 ) * lineIncrement );
+        currentItemAdr = currentItemAdr - amt;
     }
-    else if ( currentItemAdr < 0 ) currentItemAdr = 0;
+    else currentItemAdr = 0;
 }
 
 //***********************************************************************************************************
@@ -1264,7 +1303,7 @@ void DrvWinStatistics::drawBody( ) {
 // Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvWinPhysMem::DrvWinPhysMem( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
+DrvWinAbsMem::DrvWinAbsMem( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // The default values are the initial settings when windows is brought up the first time, or for the WDEF
@@ -1272,8 +1311,7 @@ DrvWinPhysMem::DrvWinPhysMem( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
 // minimum is the default number of lines.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinPhysMem::setDefaults( ) {
-    
+void DrvWinAbsMem::setDefaults( ) {
     
     setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
     
@@ -1295,29 +1333,45 @@ void DrvWinPhysMem::setDefaults( ) {
 // The window overrides the setRadix method to set the column width according to the radix choosen.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinPhysMem::setRadix( TokId rdx ) {
+void DrvWinAbsMem::setRadix( TokId rdx ) {
     
     DrvWin::setRadix( rdx );
     setColumns( getDefColumns( getRadix( )));
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The banner line shows the item adress, which is the current physical memory adress where the window body
-// will start tp display. We also need to set the item adress limit. As this can change with some commands
-// outside the windows system, better set it every time.
+// The banner line shows the item adress, which is the current absolute physical memory adress where the
+// window body will start tp display. We also need to set the item adress limit. This is however always the
+// maximum value UINT_MAX, as absolute memory is up to 4Gbytes. The drawLine method will actually check that
+// the offset passed is valid and invoke the correct absolute memory portion handler.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinPhysMem::drawBanner( ) {
+void DrvWinAbsMem::drawBanner( ) {
     
-    uint32_t    fmtDesc         = FMT_BOLD | FMT_INVERSE;
-    bool        isCurrent       = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
-    uint32_t    blockEntries    = glb -> cpu -> physMem -> getBlockEntries( );
-    uint32_t    blockSize       = glb -> cpu -> physMem -> getBlockSize( );
-    
+    uint32_t    fmtDesc     = FMT_BOLD | FMT_INVERSE;
+    uint32_t    currentAdr  = getCurrentItemAdr( );
+    CpuMem      *physMem    = glb -> cpu -> physMem;
+    CpuMem      *pdcMem     = glb -> cpu -> pdcMem;
+    CpuMem      *ioMem      = glb -> cpu -> ioMem;
+    bool        isCurrent   = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
+  
     setWinCursor( 1, 1 );
-    
     printWindowIdField( getWinStack( ), getWinIndex( ), isCurrent, fmtDesc );
-    printTextField((char *) "Real Memory ", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
+    
+    if (( physMem != nullptr ) && ( physMem -> validAdr( currentAdr ))) {
+        
+        printTextField((char *) "Main Memory ", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
+    }
+    else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( currentAdr ))) {
+        
+        printTextField((char *) "PDC Memory ", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
+    }
+    else if (( ioMem != nullptr ) && ( ioMem -> validAdr( currentAdr ))) {
+        
+        printTextField((char *) "IO Memory ", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
+    }
+    else printTextField((char *) "**** Memory ", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
+    
     printTextField((char *) "Current " );
     printNumericField( getCurrentItemAdr( ));
     printTextField((char *) "  Home: " );
@@ -1325,7 +1379,7 @@ void DrvWinPhysMem::drawBanner( ) {
     padLine( fmtDesc );
     printRadixField( fmtDesc | FMT_LAST_FIELD );
     
-    setLimitItemAdr( blockEntries * blockSize );
+    setLimitItemAdr( UINT_MAX );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1334,18 +1388,35 @@ void DrvWinPhysMem::drawBanner( ) {
 // into physical memory, the line incrment is 8 * 4 = 32 bytes. We show eight words.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinPhysMem::drawLine( int itemAdr ) {
+void DrvWinAbsMem::drawLine( uint32_t itemAdr ) {
     
-    CpuMem      *mem        = glb -> cpu -> physMem;
     uint32_t    fmtDesc     = FMT_DEF_ATTR;
     uint32_t    limit       = getLineIncrement( ) - 1;
+    CpuMem      *physMem    = glb -> cpu -> physMem;
+    CpuMem      *pdcMem     = glb -> cpu -> pdcMem;
+    CpuMem      *ioMem      = glb -> cpu -> ioMem;
     
     printNumericField( itemAdr, fmtDesc );
     printTextField((char *) ": ", fmtDesc );
     
     for ( int i = 0; i < limit; i = i + 4 ) {
         
-        printNumericField( mem -> getMemWord( itemAdr + i ), fmtDesc );
+        uint32_t ofs = itemAdr + i;
+        
+        if (( physMem != nullptr ) && ( physMem -> validAdr( ofs ))) {
+            
+            printNumericField( physMem -> getMemWord( ofs ), fmtDesc );
+        }
+        else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( ofs ))) {
+            
+            printNumericField( pdcMem -> getMemWord( ofs ), fmtDesc );
+        }
+        else if (( ioMem != nullptr ) && ( ioMem -> validAdr( ofs ))) {
+            
+            printNumericField( ioMem -> getMemWord( ofs ), fmtDesc );
+        }
+        else printNumericField( 0, fmtDesc | FMT_INVALID_NUM );
+        
         printTextField((char *) " " );
     }
 }
@@ -1430,7 +1501,7 @@ void DrvWinCode::drawBanner( ) {
 // sure that both parts are nicely aligned.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinCode::drawLine( int itemAdr ) {
+void DrvWinCode::drawLine( uint32_t itemAdr ) {
     
     uint32_t    instr           = glb -> cpu -> physMem -> getMemWord( itemAdr );
     uint32_t    fmtDesc         = FMT_DEF_ATTR;
@@ -1538,7 +1609,7 @@ void DrvWinTlb::drawBanner( ) {
 // number of lines can vary. A line represents an entry in the respective TLB.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinTlb::drawLine( int index ) {
+void DrvWinTlb::drawLine( uint32_t index ) {
     
     uint32_t  fmtDesc = FMT_DEF_ATTR;
     
@@ -1679,7 +1750,7 @@ void DrvWinCache::drawBanner( ) {
 // are up to two sets of cache data.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinCache::drawLine( int index ) {
+void DrvWinCache::drawLine( uint32_t index ) {
     
     uint32_t  fmtDesc   = FMT_DEF_ATTR;
  
@@ -1921,7 +1992,7 @@ void DrvWinText::drawBanner( ) {
 // of the window object.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinText::drawLine( int index ) {
+void DrvWinText::drawLine( uint32_t index ) {
     
     uint32_t    fmtDesc = FMT_DEF_ATTR;
     char        lineBuf[ MAX_TEXT_LINE_SIZE ];
@@ -2632,7 +2703,7 @@ void DrvWinDisplay::windowNew( TokId winCmd, TokId winType, char *argStr ) {
         
         switch ( winType ) {
                 
-            case TOK_PM: windowList[ i ] = ( DrvWin * ) new DrvWinPhysMem( glb ); break;
+            case TOK_PM: windowList[ i ] = ( DrvWin * ) new DrvWinAbsMem( glb ); break;
             case TOK_PC: windowList[ i ] = ( DrvWin * ) new DrvWinCode( glb ); break;
             case TOK_IT: windowList[ i ] = ( DrvWin * ) new DrvWinTlb( glb, WT_ITLB_WIN ); break;
             case TOK_DT: windowList[ i ] = ( DrvWin * ) new DrvWinTlb( glb, WT_DTLB_WIN ); break;

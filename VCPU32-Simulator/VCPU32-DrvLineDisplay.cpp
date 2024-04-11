@@ -25,6 +25,27 @@
 #include "VCPU32-Driver.hpp"
 
 //------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+namespace {
+
+//------------------------------------------------------------------------------------------------------------
+// "displayInvalidWord" shows a set of "*" when we cannot get a value for word. We make the length of the
+// "*" string accoriding to the current radix.
+//
+//------------------------------------------------------------------------------------------------------------
+void displayInvalidWord( TokId fmtType ) {
+    
+    if      ( fmtType == TOK_DEC )  fprintf( stdout, "**********" );
+    else if ( fmtType == TOK_OCT )  fprintf( stdout, "************" );
+    else if ( fmtType == TOK_HEX )  fprintf( stdout, "**********" );
+    else fprintf( stdout, "**num**" );
+}
+
+}; // namespace
+
+//------------------------------------------------------------------------------------------------------------
 // The object constructor. We just remember the globals pointer.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -34,7 +55,7 @@ DrvLineDisplay::DrvLineDisplay( VCPU32Globals *glb ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "displayWord" lists out a 24-bit machine word in the specified number base. If the format parameter is
+// "displayWord" lists out a 32-bit machine word in the specified number base. If the format parameter is
 // omitted or set to "default", the environment variable for the base number is used.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -366,24 +387,22 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Display physical memory content. We will show the memory starting with offset. The words per line is an
+// Display absolute memory content. We will show the memory starting with offset. The words per line is an
 // environmental variable setting. The offset is rounded down to the next 4-byte boundary, the limit is
-// rounded up to the next 4-byte boundary. We display the data in words.
+// rounded up to the next 4-byte boundary. We display the data in words. The absolute memory address range
+// currently consist of three memory objects. There is main physical memory, PDC memory and IO memory. This
+// routine will make the appropriate call.
 //
 //------------------------------------------------------------------------------------------------------------
-void  DrvLineDisplay::displayPmemContent( uint32_t ofs, uint32_t len, TokId fmtId ) {
+void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, TokId fmtId ) {
     
     uint32_t    index           = ( ofs / 4 ) * 4;
     uint32_t    limit           = ((( index + len ) + 3 ) / 4 ) * 4;
-    
     int         wordsPerLine    = glb -> env -> getEnvValInt( ENV_WORDS_PER_LINE );
-    uint32_t    blockEntries    = glb -> cpu -> physMem -> getBlockEntries( );
-    uint32_t    blockSize       = glb -> cpu -> physMem -> getBlockSize( );
-    
-    CpuMem      *mem            = glb -> cpu -> physMem;
-   
-    if ( limit >= blockEntries * blockSize ) return;
-    
+    CpuMem      *physMem        = glb -> cpu -> physMem;
+    CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
+    CpuMem      *ioMem          = glb -> cpu -> ioMem;
+  
     while ( index < limit ) {
         
         glb -> lineDisplay -> displayWord( index, fmtId );
@@ -391,7 +410,23 @@ void  DrvLineDisplay::displayPmemContent( uint32_t ofs, uint32_t len, TokId fmtI
         
         for ( uint32_t i = 0; i < wordsPerLine; i++ ) {
             
-            if ( index < limit ) glb -> lineDisplay -> displayWord( mem -> getMemWord( index ), fmtId );
+            if ( index < limit ) {
+                
+                if ((physMem != nullptr ) && ( physMem -> validAdr( index ))) {
+                    
+                    glb -> lineDisplay -> displayWord( physMem -> getMemWord( index ), fmtId );
+                }
+                else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
+                    
+                    glb -> lineDisplay -> displayWord( pdcMem -> getMemWord( index ), fmtId );
+                }
+                else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
+                    
+                    glb -> lineDisplay -> displayWord( ioMem -> getMemWord( index ), fmtId );
+                }
+                else displayInvalidWord( fmtId );
+            }
+                
             fprintf( stdout, " " );
             
             index += 4;

@@ -455,15 +455,28 @@ void MemoryAccessStage::process( ) {
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Data load or store. This is the second half for instructions that read or write to memory. Access to
-    // the IO memory space is never cached.
+    // Data load or store. This is the second half for instructions that read or write to memory. There are
+    // a couple of cases. If the segment is zero, we must be privileged. The address is "0.ofs". Otherwise
+    // we look up teh physical address via the TLB and perform the access right checks. If the physical
+    // address is in the physical memory range, we will access the cache data. The PDC memory range can only
+    // be read. A write attempt is a trap. The IO range is passed to IO handler.
     //
-    // ??? if "0.ofs" and "ofs" map to the same physical address, perhaps no need for a D Bit in ST.
     //--------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ opCode ].flags & ( READ_INSTR | WRITE_INSTR )) {
         
-        if ( core -> stReg.get( ) & ST_DATA_TRANSLATION_ENABLE ) {
+        if ( valS == 0 ) {
             
+            if ( core -> stReg.get( ) & ST_EXECUTION_LEVEL ) {
+                
+                setupTrapData( DATA_MEM_PROTECT_TRAP, instrSeg, instrOfs, core -> stReg.get( ));
+                stallPipeLine( );
+                return;
+            }
+            
+            pAdr = valX;
+        }
+        else {
+        
             TlbEntry   *tlbEntryPtr = core -> dTlb -> lookupTlbEntry( valS, valX );
             if ( tlbEntryPtr == nullptr ) {
                 
@@ -523,27 +536,34 @@ void MemoryAccessStage::process( ) {
            
             pAdr = tlbEntryPtr -> tPhysPage( ) | pOfs;
         }
-        else pAdr = valX;
     
+        
         bool rStat = false;
         
-        if ( pAdr <= MAX_PHYS_MEM_SIZE ) {
+        if ( pAdr <= core -> cpuDesc.memDesc.endAdr ) {
             
             if ( opCodeTab[ opCode ].flags & READ_INSTR )
                 rStat = core -> dCacheL1 -> readVirt( valS, valX, pAdr, dLen, &valB );
             else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
                 rStat = core -> dCacheL1 -> writeVirt( valS, valX, pAdr, dLen, valA );
-            
-        } else {
-            
-            // ??? in IO space...
+        }
+        else if (( pAdr >= core -> cpuDesc.pdcDesc.startAdr ) && ( pAdr <= core -> cpuDesc.pdcDesc.endAdr )) {
             
             if ( opCodeTab[ opCode ].flags & READ_INSTR )
-                rStat = core -> physMem -> readPhys( pAdr, dLen, &valB );
-            else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
-                rStat = core -> physMem -> writePhys( pAdr, dLen, valA );
+                rStat = core -> pdcMem -> readPhys( pAdr, dLen, &valB );
+            else {
+                
+                // ??? cannot write to PDC, raise a trap
+            }
         }
-    
+        else if (( pAdr >= core -> cpuDesc.ioDesc.startAdr ) && ( pAdr <= core -> cpuDesc.ioDesc.endAdr )) {
+            
+            if ( opCodeTab[ opCode ].flags & READ_INSTR )
+                rStat = core -> ioMem -> readPhys( pAdr, dLen, &valB );
+            else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
+                rStat = core -> dCacheL1 -> writePhys( pAdr, dLen, valA );
+        }
+        
         if ( ! rStat ) {
             
             stallPipeLine( );

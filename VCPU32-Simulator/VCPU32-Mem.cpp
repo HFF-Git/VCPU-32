@@ -138,30 +138,6 @@ uint32_t maxBlocks( CpuMemType memType, uint32_t blockSize ) {
     }
 }
 
-uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
-    
-    pos = pos % 32;
-    len = len % 32;
-    
-    uint32_t tmpM = ( 1U << len ) - 1;
-    uint32_t tmpA = arg >> ( 31 - pos );
-    
-    if ( sign ) return( tmpA | ( ~ tmpM ));
-    else        return( tmpA & tmpM );
-}
-
-void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
-    
-    pos = pos % 32;
-    len = len % 32;
-    
-    uint32_t tmpM = ( 1U << len ) - 1;
-    
-    val = ( val & tmpM ) << ( 31 - pos );
-    
-    *arg = ( *arg & ( ~tmpM )) | val;
-}
-
 }; // namespace
 
 
@@ -172,13 +148,14 @@ void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
 // memory layer, if applicable.
 //
 //------------------------------------------------------------------------------------------------------------
-CpuMem::CpuMem( CpuPhysMemDesc *cfg, CpuMem *mem ) {
+CpuMem::CpuMem( CpuMemDesc *cfg, CpuMem *mem ) {
     
-    memcpy( &cDesc, cfg, sizeof( CpuPhysMemDesc ));
+    memcpy( &cDesc, cfg, sizeof( CpuMemDesc ));
     
     cDesc.blockSize     = roundUp( cDesc.blockSize, MAX_BLOCK_SIZE );
     cDesc.blockSets     = roundUp( cDesc.blockSets, MAX_BLOCK_SETS );
     cDesc.blockEntries  = roundUp( cDesc.blockEntries, maxBlocks( cDesc.type, cDesc.blockSize ));
+    cDesc.endAdr        = cDesc.startAdr + cDesc.blockEntries * cDesc.blockSize - 1;
     blockBits           = getBlockBits( cDesc.blockSize );
     blockBitMask        = getBlockBitMask( cDesc.blockSize );
     opState             = MO_IDLE;
@@ -491,7 +468,7 @@ bool CpuMem::purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
 // If the memory layer is IDLE, the memory request data is filled in and starts a access cycle. The "reqOfs"
 // field contains the physical address.
 //
-// ??? how would we deal not existing memory ? a high priority machine check ?
+// ??? how would we deal with not existing memory ? a high priority machine check ?
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::readPhys( uint32_t adr, uint32_t len, uint32_t *word, uint16_t pri ) {
     
@@ -516,7 +493,7 @@ bool CpuMem::readPhys( uint32_t adr, uint32_t len, uint32_t *word, uint16_t pri 
 // is IDLE, the memory request data is filled in and starts a access cycle. The "reqOfs" field contains the
 // physical address.
 //
-// ??? how would we deal not existing memory ?
+// ??? how would we deal with not existing memory ?
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::writePhys( uint32_t adr, uint32_t len, uint32_t word, uint16_t pri ) {
     
@@ -940,7 +917,8 @@ void CpuMem::processPhysMemRequest( ) {
 // memory object, except that there is only a reasd operation. The PDC content is loaded from the simulator
 // during the processor reset.
 //
-// ??? loading TBD.
+// ??? the input is the PDC address range, which we need to map to the allocated memory.
+// ??? loading TBB
 //------------------------------------------------------------------------------------------------------------
 void CpuMem::processPdcMemRequest( ) {
     
@@ -949,6 +927,8 @@ void CpuMem::processPdcMemRequest( ) {
         case MO_READ_WORD_PHYS: {
             
             if ( reqLatency == 0 ) {
+                
+                // ??? index is reqOfs - startAdr
                 
                 uint8_t *dataPtr = &dataArray[ 0 ] [ reqOfs ];
                 
@@ -978,6 +958,9 @@ void CpuMem::processIoMemRequest( ) {
             
             if ( reqLatency == 0 ) {
                 
+                // ??? index is reqOfs - startAdr
+                // ??? invoke the handler routine...
+                
                
             }
             else reqLatency--;
@@ -988,7 +971,9 @@ void CpuMem::processIoMemRequest( ) {
             
             if ( reqLatency == 0 ) {
                 
-               
+                // ??? index is reqOfs - startAdr
+                // ??? invoke the handler routine...
+                
             }
             else reqLatency--;
             
@@ -1088,38 +1073,48 @@ uint8_t *CpuMem::getMemBlockEntry( uint32_t index, uint8_t set ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "getMemWord" and "putMemWord" are the routines called by the simulaor display functions. They get or set
+// "getMemWord" and "putMemWord" are the routines called by the simulator display functions. They get or set
 // a word in the data array of the data set. The ofset is rounded down to a 4-byte boundary.
 //
 //------------------------------------------------------------------------------------------------------------
 uint32_t CpuMem::getMemWord( uint32_t ofs, uint8_t set ) {
     
-    if ( ofs >= cDesc.blockEntries * cDesc.blockSize ) return( 0 );
+    if ( ofs >= cDesc.startAdr + cDesc.blockEntries * cDesc.blockSize ) return( 0 );
     if ( set >= cDesc.blockSets ) return( 0 );
     
     ofs &= 0xFFFFFFFC;
     
     uint32_t tmp = 0;
-    memcpy( &tmp, &dataArray[ set ] [ ofs ], sizeof( uint32_t ));
+    memcpy( &tmp, &dataArray[ set ] [ ofs - cDesc.startAdr ], sizeof( uint32_t ));
     
     return( tmp );
 }
 
 void CpuMem::putMemWord( uint32_t ofs, uint32_t val, uint8_t set ) {
     
-    if ( ofs >= cDesc.blockEntries * cDesc.blockSize ) return;
+    if ( ofs >= cDesc.startAdr + cDesc.blockEntries * cDesc.blockSize ) return;
     if ( set >= cDesc.blockSets ) return;
     
     ofs &= 0xFFFFFFFC;
     
     uint32_t tmp = val;
-    memcpy( &dataArray[ set ] [ ofs ], &tmp, sizeof( uint32_t ));
+    memcpy( &dataArray[ set ] [ ofs - cDesc.startAdr ], &tmp, sizeof( uint32_t ));
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Simple Getters.
 //
 //------------------------------------------------------------------------------------------------------------
+uint32_t CpuMem::getMemSize( ) {
+    
+    return( cDesc.blockEntries * cDesc.blockSize );
+}
+
+uint32_t CpuMem::getStartAdr( ) {
+    
+    return( cDesc.startAdr );
+}
+
 uint32_t CpuMem::getBlockEntries( ) {
     
     return( cDesc.blockEntries );
@@ -1153,4 +1148,9 @@ uint32_t CpuMem::getAccessCnt( )  {
 uint32_t CpuMem::getWaitCycleCnt( )  {
     
     return( waitCyclesCnt );
+}
+
+bool CpuMem::validAdr( uint32_t ofs ) {
+    
+    return(( ofs >= cDesc.startAdr ) && ( ofs <= cDesc.endAdr ));
 }

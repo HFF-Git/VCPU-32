@@ -159,42 +159,18 @@ enum CpuMemAccessType : uint32_t {
 // A cache or memory object is described through a descriptor. There are the type and access types. Size
 // information the number of entries in an array, the line size describes the number of words in a block.
 // the block sets value described the number of sets for n-way associative caches. The latency will specify
-// how many clock cycles it will take to perform the respective operation.
+// how many clock cycles it will take to perform the respective operation. For main memry, the PDC and the
+// IO memory there is a start and ending address, since these memory will not cover all of the possible
+// memory range.
 //
 //------------------------------------------------------------------------------------------------------------
-struct CpuPhysMemDesc {
+struct CpuMemDesc {
     
     CpuMemType          type            = MEM_T_NIL;
     CpuMemAccessType    accessType      = MEM_AT_NIL;
     uint32_t            blockEntries    = 0;
     uint32_t            blockSize       = 0;
     uint32_t            blockSets       = 0;
-    uint32_t            latency         = 0;
-};
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//
-//------------------------------------------------------------------------------------------------------------
-struct CpuPdcMemDesc {
-    
-    CpuMemType          type            = MEM_T_NIL;
-    CpuMemAccessType    accessType      = MEM_AT_NIL;
-    uint32_t            startAdr        = 0;
-    uint32_t            endAdr          = 0;
-    uint32_t            latency         = 0;
-};
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//
-//------------------------------------------------------------------------------------------------------------
-struct CpuIoMemDesc {
-    
-    CpuMemType          type            = MEM_T_NIL;
-    CpuMemAccessType    accessType      = MEM_AT_NIL;
     uint32_t            startAdr        = 0;
     uint32_t            endAdr          = 0;
     uint32_t            latency         = 0;
@@ -214,17 +190,15 @@ struct CpuCoreDesc {
     VmemOptions         cacheL1Options  = VMEM_T_NIL;
     VmemOptions         cacheL2Options  = VMEM_T_NIL;
     
-    CpuPhysMemDesc      iCacheDescL1;
-    CpuPhysMemDesc      dCacheDescL1;
-    CpuPhysMemDesc      uCacheDescL2;
-    CpuPhysMemDesc      memDesc;
+    CpuMemDesc          iCacheDescL1;
+    CpuMemDesc          dCacheDescL1;
+    CpuMemDesc          uCacheDescL2;
+    CpuMemDesc          memDesc;
+    CpuMemDesc          pdcDesc;
+    CpuMemDesc          ioDesc;
     
     TlbDesc             iTlbDesc;
     TlbDesc             dTlbDesc;
-
-    CpuPdcMemDesc       pdcDesc;
-    CpuIoMemDesc        ioDesc;
-    
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -413,7 +387,7 @@ struct MemTagEntry {
 //------------------------------------------------------------------------------------------------------------
 struct CpuMem {
     
-    CpuMem( CpuPhysMemDesc *mDesc, CpuMem *lowerMem = nullptr );
+    CpuMem( CpuMemDesc *mDesc, CpuMem *lowerMem = nullptr );
     
     void            reset( );
     void            tick( );
@@ -442,6 +416,8 @@ struct CpuMem {
     uint32_t        getMemWord( uint32_t ofs, uint8_t set = 0 );
     void            putMemWord( uint32_t ofs, uint32_t val, uint8_t set = 0 );
     
+    uint32_t        getMemSize( );
+    uint32_t        getStartAdr( );
     uint32_t        getBlockEntries( );
     uint16_t        getBlockSize( );
     uint16_t        getBlockSets( );
@@ -453,10 +429,11 @@ struct CpuMem {
     uint32_t        getMemCtrlReg( uint8_t mReg );
     void            setMemCtrlReg( uint8_t mReg, uint32_t val );
     char            *getMemOpStr( uint32_t opArg );
+    bool            validAdr( uint32_t ofs );
     
 private:
     
-    CpuPhysMemDesc  cDesc;
+    CpuMemDesc      cDesc;
     
     uint16_t        matchTag( uint32_t index, uint32_t tag );
     void            processL1CacheRequest( );
@@ -493,78 +470,6 @@ private:
     // ??? callback for IO modules ?
 };
 
-
-
-//------------------------------------------------------------------------------------------------------------
-// IO memory space is the address range 0xF0FFFFFF to 0xFFFFFFFF. This is an area of 240 Mbytes that is
-// available for our IO subsystem. Typcially one would find IO modules wth registers that are then accessed
-// using simple read and write instructions. Since this area does not model physical memory, we will use a
-// concept of address ranges with associated callbacks functions. 
-//
-// Whatever the IO Module represents and how it is actually is instiated needs to be designed. Neverheless,
-// the mechanism is very similar to the physical memeory access. The pipeline stages detect that the memory
-// reference is a refeence in this space and will just call the methods in here.
-//
-//------------------------------------------------------------------------------------------------------------
-struct CpuIoMem {
-    
-    CpuIoMem( CpuIoMemDesc *ioMemDesc );
-    
-    void            reset( );
-    void            tick( );
-    void            process( );
-    void            clearStats( );
-    
-    void            abortMemOp( );
-    
-    bool            readPhys( uint32_t adr, uint32_t len, uint32_t *word, uint16_t pri = 0 );
-    bool            writePhys( uint32_t adr, uint32_t len, uint32_t word, uint16_t pri = 0 );
-    
-    uint32_t        getAccessCnt( );
-    uint32_t        getWaitCycleCnt( );
-    
-private:
-    
-    CpuIoMemDesc    ioDesc;
-    
-
-    // ??? under construction ...
-};
-
-//------------------------------------------------------------------------------------------------------------
-// ??? PDC memory space...
-//
-// ??? implements the PDC ROM
-// ??? also a possible data page in this area ?
-// ??? have a read/write phys methods, also tick, process, etc.
-// ??? OR we could model it as IO memory that does not allocate actual memory... it is IO.
-// ??? how to actually do PDC registers ? Callbacks ?
-//
-//------------------------------------------------------------------------------------------------------------
-struct CpuPdcMem {
-    
-    CpuPdcMem( CpuPdcMemDesc *pdcMemDesc );
-    
-    void            reset( );
-    void            tick( );
-    void            process( );
-    void            clearStats( );
-    
-    void            abortMemOp( );
-    
-    bool            readPhys( uint32_t adr, uint32_t len, uint32_t *word, uint16_t pri = 0 );
-    bool            writePhys( uint32_t adr, uint32_t len, uint32_t word, uint16_t pri = 0 );
-   
-    uint32_t        getAccessCnt( );
-    uint32_t        getWaitCycleCnt( );
-    
-private:
-    
-    CpuPdcMemDesc   pdcDesc;
-    
-
-    // ??? under construction ...
-};
 
 //------------------------------------------------------------------------------------------------------------
 // CPU24 statistical data. Each major component maintains ts own statistics. The CPU itself also maintains

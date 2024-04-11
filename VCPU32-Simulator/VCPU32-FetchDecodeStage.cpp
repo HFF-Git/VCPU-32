@@ -320,12 +320,20 @@ void FetchDecodeStage::process( ) {
     setStalled( false );
     
     //--------------------------------------------------------------------------------------------------------
-    // Instruction Address Translation.
+    // Instruction Address Translation. If the instruction segment is zero, translation and protection chekcs
+    // are bypassed. The offset is the physical memory address. We also must be privileged.
     //
-    // ??? idea: we could also architect that "0.ofs" is quivalent to "ofs". When segment is zero, then
-    // address translation is bypassed, as well as page protection checking.
     //--------------------------------------------------------------------------------------------------------
-    if ( instrSeg != 0 ) {
+    if ( instrSeg == 0 ) {
+        
+        if ( core -> stReg.get( ) & ST_EXECUTION_LEVEL ) {
+            
+            setupTrapData( INSTR_MEM_PROTECT_TRAP, instrSeg, instrOfs, core -> stReg.get( ));
+            stallPipeLine( );
+            return;
+        }
+    }
+    else {
         
         tlbEntryPtr = core -> iTlb -> lookupTlbEntry( instrSeg, instrOfs );
         if ( tlbEntryPtr == nullptr ) {
@@ -359,16 +367,15 @@ void FetchDecodeStage::process( ) {
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Instruction word fetch. If address translation was turned on, we have the segment and offset. If it was
-    // turned off or the access is an absolute address, the segment part is zero. Note that the architecture
-    // maps a "0.ofs" virtual address to "ofs" physical address. In both cases we will performa a virtual
-    // read, addfessig the cache. If the address is in physical memory, the data is cached, otherwise the
-    // address refers to I/O memory space and is never cached. We pass the request on to the IO memory
-    // handler.
+    // Instruction word fetch. If the address is in between the physical memory range, we pass the "seg.ofs"
+    // and the "pAdr" to the routine. Note that we cover both the virtual address and the "0.ofs" case with
+    // the routine to the instruction cache. The caches will use the "seg.ofs" to locate the cache lines,
+    // the "pAdr" passed is the tag from the TLB which will be compared by the cache controller for a match.
+    // If the address range is in the PDC address range, we invoke the PDC handler. The PDC is kind of a
+    // ROM with processor dependent code. We cannot fetch data fro IO memory space.
     //
-    // ??? the name "readVirt" is perhaps a bit confusing ...
     //--------------------------------------------------------------------------------------------------------
-    if ( pAdr <= MAX_PHYS_MEM_SIZE ) {
+    if ( pAdr <= core -> cpuDesc.memDesc.endAdr ) {
         
         if ( ! core -> iCacheL1 -> readVirt( instrSeg, instrOfs, 4, pAdr, &instr )) {
             
@@ -376,13 +383,18 @@ void FetchDecodeStage::process( ) {
             return;
         }
         
-    } else {
+    } 
+    else if (( pAdr >= core -> cpuDesc.pdcDesc.startAdr ) && ( pAdr <= core -> cpuDesc.pdcDesc.endAdr )) {
        
-        if ( ! core -> physMem -> readPhys( pAdr, 4, &instr )) {
+        if ( ! core -> pdcMem -> readPhys( pAdr, 4, &instr )) {
             
             stallPipeLine( );
             return;
         }
+    }
+    else {
+        
+        // ??? invalid address. Should we raise a HPMC ?
     }
     
     //--------------------------------------------------------------------------------------------------------

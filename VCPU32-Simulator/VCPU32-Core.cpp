@@ -54,6 +54,7 @@ CpuCore::CpuCore( CpuCoreDesc *cfg ) {
     }
     
     physMem = new CpuMem( &cpuDesc.memDesc );
+    pdcMem  = new CpuMem( &cpuDesc.pdcDesc );
     
     if ( cfg -> cacheL2Options == VMEM_T_L2_UNIFIED_CACHE ) {
         

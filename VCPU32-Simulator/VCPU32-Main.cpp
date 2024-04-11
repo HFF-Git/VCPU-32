@@ -76,18 +76,23 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.memDesc.blockEntries        = 1024 * 1024; // for just a million blocks.
     cpuDesc.memDesc.blockSize           = 16;
     cpuDesc.memDesc.blockSets           = 1;
+    cpuDesc.memDesc.startAdr            = 0;
     cpuDesc.memDesc.latency             = 2;
     
     cpuDesc.pdcDesc.type                = MEM_T_PDC_MEM;
     cpuDesc.pdcDesc.accessType          = MEM_AT_DIRECT_INDEXED;
+    cpuDesc.pdcDesc.blockEntries        = 1024; // for just a thousand blocks.
+    cpuDesc.pdcDesc.blockSize           = 16;
+    cpuDesc.pdcDesc.blockSets           = 1;
     cpuDesc.pdcDesc.startAdr            = 0xF0000000;
-    cpuDesc.pdcDesc.endAdr              = 0xF0FFFFFF;
     cpuDesc.pdcDesc.latency             = 2;
     
     cpuDesc.ioDesc.type                 = MEM_T_IO_MEM;
     cpuDesc.ioDesc.accessType           = MEM_AT_DIRECT_INDEXED;
+    cpuDesc.ioDesc.blockEntries         = 1024; // for just a thousand blocks.
+    cpuDesc.ioDesc.blockSize            = 16;
+    cpuDesc.ioDesc.blockSets            = 1;
     cpuDesc.ioDesc.startAdr             = 0xFFFF0000;
-    cpuDesc.ioDesc.endAdr               = 0xFFFFFFFF;
     cpuDesc.ioDesc.latency              = 2;
  
     glbDesc.cpu                         = new CpuCore( &cpuDesc );

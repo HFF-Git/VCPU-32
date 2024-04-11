@@ -382,11 +382,8 @@ private:
 // the address is a memory address or an index into a TLB or Cache array is determined by the inheriting
 // class. The scrollable window will show a number of lines, the "drawLine" method needs to be implmented
 // by the inheriting class. The routine is passed the item address for the line and is responsible for the
-// correct interpretation of this address. The "itemsPerLine" is the incrment value for the item adress
-// passed. As an example, showing memory data content, 8 machine words will be shown in one line.
-//
-
-// ??? rename ItemsPerLine to LineIncrement, it matches better what it is ...
+// correct interpretation of this address. The "lineIncrement" is the increment value for the item adress
+// passed. Item addresses are unsigned 32-bit quatities.
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinScrollable : DrvWin {
     
@@ -394,29 +391,29 @@ public:
     
     DrvWinScrollable( VCPU32Globals *glb );
     
-    void            setHomeItemAdr( int adr );
-    int             getHomeItemAdr( );
-    void            setCurrentItemAdr( int adr );
-    int             getCurrentItemAdr( );
-    void            setLimitItemAdr( int adr );
-    int             getLimitItemAdr( );
-    void            setLineIncrement( int arg );
-    int             getLineIncrement( );
+    void            setHomeItemAdr( uint32_t adr );
+    uint32_t        getHomeItemAdr( );
+    void            setCurrentItemAdr( uint32_t adr );
+    uint32_t        getCurrentItemAdr( );
+    void            setLimitItemAdr( uint32_t adr );
+    uint32_t        getLimitItemAdr( );
+    void            setLineIncrement( uint32_t arg );
+    uint32_t        getLineIncrement( );
     
     virtual void    drawBody( );
-    virtual void    drawLine( int index ) = 0;
+    virtual void    drawLine( uint32_t index ) = 0;
     
-    void            winHome( int pos = 0 );
-    void            winForward( int amt );
-    void            winBackward( int amt );
-    void            winJump( int pos );
+    void            winHome( uint32_t pos = 0 );
+    void            winForward( uint32_t amt );
+    void            winBackward( uint32_t amt );
+    void            winJump( uint32_t pos );
     
 private:
     
-    int homeItemAdr         = 0;
-    int currentItemAdr      = 0;
-    int limitItemAdr        = 0;
-    int lineIncrement       = 0;
+    uint32_t        homeItemAdr         = 0;
+    uint32_t        currentItemAdr      = 0;
+    uint32_t        limitItemAdr        = 0;
+    uint32_t        lineIncrement       = 0;
 };
 
 
@@ -485,21 +482,21 @@ public:
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// Physical Memory Window. A memory window will show the memory content starting with the current address
-// followed by a number of data words. The number of words shown is the number of lines of the window times
-// the number of items, ie.e words, on a line.
+// Absolute Memory Window. A memory window will show the absolute memory content starting with the current
+// address followed by a number of data words. The number of words shown is the number of lines of the
+// window times the number of items, ie.e words, on a line.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinPhysMem : DrvWinScrollable {
+struct DrvWinAbsMem : DrvWinScrollable {
     
 public:
     
-    DrvWinPhysMem( VCPU32Globals *glb );
+    DrvWinAbsMem( VCPU32Globals *glb );
     
     void setDefaults( );
     void setRadix( TokId rdx );
     void drawBanner( );
-    void drawLine( int index );
+    void drawLine( uint32_t index );
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -515,7 +512,7 @@ public:
     
     void setDefaults( );
     void drawBanner( );
-    void drawLine( int index );
+    void drawLine( uint32_t index );
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -531,7 +528,7 @@ public:
     void setDefaults( );
     void setRadix( TokId rdx );
     void drawBanner( );
-    void drawLine( int index );
+    void drawLine( uint32_t index );
     
 private:
     
@@ -554,7 +551,7 @@ public:
     void setRadix( TokId rdx );
     void toggleWin( );
     void drawBanner( );
-    void drawLine( int index );
+    void drawLine( uint32_t index );
     
 private:
     
@@ -619,7 +616,7 @@ public:
     
     void    setDefaults( );
     void    drawBanner( );
-    void    drawLine( int index );
+    void    drawLine( uint32_t index );
     
 private:
 
@@ -721,7 +718,7 @@ public:
     
     void        displayWord( uint32_t val, TokId = TOK_DEF );
     void        displayHalfWord( uint32_t val, TokId = TOK_DEF );
-    void        displayPmemContent( uint32_t ofs, uint32_t len, TokId = TOK_DEF );
+    void        displayAbsMemContent( uint32_t ofs, uint32_t len, TokId = TOK_DEF );
     
     void        displayGeneralRegSet( TokId fmt = TOK_DEF );
     void        displaySegmentRegSet( TokId fmt = TOK_DEF );
@@ -820,7 +817,7 @@ private:
     void            insertTLBCmd( char *cmdBuf );
     void            displayCacheCmd( char *cmdBuf );
     void            purgeCacheCmd( char *cmdBuf );
-    void            displayPhysMemCmd( char *cmdBuf );
+    void            displayAbsMemCmd( char *cmdBuf );
     void            modifyPhysMemCmd( char *cmdBuf );
     void            loadPhysMemCmd( char *cmdBuf );
     void            savePhysMemCmd( char *cmdBuf );

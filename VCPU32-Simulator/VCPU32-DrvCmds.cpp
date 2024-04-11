@@ -318,18 +318,6 @@ const char  FMT_STR_CMD_LINE[ ] = "%256s";
 const int   CMD_LINE_BUF_SIZE  = 256;
 
 //------------------------------------------------------------------------------------------------------------
-// A little helper to round up a number to the next power of two.
-//
-//------------------------------------------------------------------------------------------------------------
-uint32_t roundUp( uint32_t size ) {
-    
-    int power = 1;
-    while(( power < size ) && ( power < UINT_MAX )) power *= 2;
-    
-    return( power );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // A little helper function to upshift a string in place.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -1503,33 +1491,32 @@ void  DrvCmds::purgeCacheCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Display physical memory command. The memory address is a byte adress. The offset address is a byte address,
-// the length is measured in bytes, rounded up to the a word size.
+// Display absolute memory command. The memory address is a byte adress. The offset address is a byte address,
+// the length is measured in bytes, rounded up to the a word size. We accept any address and length and only
+// check that the offset plus length does not execeed the address space. The display routines, who will call
+// the actual memory obbject will take care of gaps in the memory address range.
 //
 // DA <ofs> [ <len> [ <fmt> ]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::displayPhysMemCmd( char *cmdBuf ) {
+void DrvCmds::displayAbsMemCmd( char *cmdBuf ) {
     
     char        cmdStr[ TOK_NAME_SIZE + 1 ] = "";
     char        fmtStr[ TOK_NAME_SIZE + 1 ] = "";
     uint32_t    ofs                         = 0;
     uint32_t    len                         = 1;
-    uint32_t    blockEntries                = glb -> cpu -> physMem -> getBlockEntries( );
-    uint32_t    blockSize                   = glb -> cpu -> physMem -> getBlockSize( );
-    uint32_t    memSize                     = blockEntries * blockSize;
-    
+   
     int         args    = sscanf( cmdBuf, "%32s %i %i %32s", cmdStr, &ofs, &len, fmtStr );
     TokId       fmtId   = glb -> env -> getEnvValTok( ENV_FMT_DEF );
-    
+ 
     if ( args < 2 ) {
         
-        fprintf( stdout, "Expected physical memory offset\n" );
+        fprintf( stdout, "Expected physical address offset\n" );
         return;
     }
   
-    if (( ofs > memSize ) || ( ofs + len > memSize )) {
+    if (((uint64_t) ofs + len ) > UINT32_MAX ) {
         
-        fprintf( stdout, "Offset / Len exceeds physical memory size\n" );
+        fprintf( stdout, "Offset / Len exceeds physical address range\n" );
         return;
     }
     
@@ -1544,7 +1531,7 @@ void DrvCmds::displayPhysMemCmd( char *cmdBuf ) {
         else fmtId = argId;
     }
     
-    glb -> lineDisplay -> displayPmemContent( ofs, len, fmtId );
+    glb -> lineDisplay -> displayAbsMemContent( ofs, len, fmtId );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1569,33 +1556,44 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     uint32_t    blockEntries                = glb -> cpu -> physMem -> getBlockEntries( );
     uint32_t    blockSize                   = glb -> cpu -> physMem -> getBlockSize( );
     uint32_t    memSize                     = blockEntries * blockSize;
-    CpuMem      *mem                        = glb -> cpu -> physMem;
+    
+    CpuMem      *physMem                    = glb -> cpu -> physMem;
+    CpuMem      *pdcMem                     = glb -> cpu -> pdcMem;
+    CpuMem      *ioMem                      = glb -> cpu -> ioMem;
+    CpuMem      *mem                        = nullptr;
     
     int         args        = sscanf( cmdBuf, "%32s %i %i %i %i %i %i %i %i %i", cmdStr, &ofs,
                                          &val1, &val2, &val3, &val4, &val5, &val6, &val7, &val8 );
     
     int         numOfVal    = args - 2;
     
-    if ( ofs + numOfVal * 4 > memSize ) {
+    if (((uint64_t) ofs + numOfVal * 4 ) > UINT32_MAX ) {
         
-        fprintf( stdout, "Offset plus number of values to write exceeds memory size\n" );
+        fprintf( stdout, "Offset / Len exceeds physical address range\n" );
         return;
     }
-    
+   
     if ( args < 3 ) {
         
         fprintf( stdout, "Expected offset / val \n" );
         return;
     }
-  
-    if ( numOfVal >= 1 ) mem -> putMemWord( ofs, val1 );
-    if ( numOfVal >= 2 ) mem -> putMemWord( ofs + 4, val2 );
-    if ( numOfVal >= 3 ) mem -> putMemWord( ofs + 8, val3 );
-    if ( numOfVal >= 4 ) mem -> putMemWord( ofs + 12, val4 );
-    if ( numOfVal >= 5 ) mem -> putMemWord( ofs + 16, val5 );
-    if ( numOfVal >= 6 ) mem -> putMemWord( ofs + 20, val6 );
-    if ( numOfVal >= 7 ) mem -> putMemWord( ofs + 24, val7 );
-    if ( numOfVal >= 8 ) mem -> putMemWord( ofs + 28, val8 );
+    
+    if      (( physMem != nullptr ) && ( physMem -> validAdr( ofs ))) mem = physMem;
+    else if (( pdcMem  != nullptr ) && ( pdcMem  -> validAdr( ofs ))) mem = pdcMem;
+    else if (( ioMem   != nullptr ) && ( ioMem   -> validAdr( ofs ))) mem = ioMem;
+    
+    if ( mem != nullptr ) {
+        
+        if ( numOfVal >= 1 ) mem -> putMemWord( ofs, val1 );
+        if ( numOfVal >= 2 ) mem -> putMemWord( ofs + 4, val2 );
+        if ( numOfVal >= 3 ) mem -> putMemWord( ofs + 8, val3 );
+        if ( numOfVal >= 4 ) mem -> putMemWord( ofs + 12, val4 );
+        if ( numOfVal >= 5 ) mem -> putMemWord( ofs + 16, val5 );
+        if ( numOfVal >= 6 ) mem -> putMemWord( ofs + 20, val6 );
+        if ( numOfVal >= 7 ) mem -> putMemWord( ofs + 24, val7 );
+        if ( numOfVal >= 8 ) mem -> putMemWord( ofs + 28, val8 );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2231,7 +2229,7 @@ void DrvCmds::dispatchCmd( char *cmdBuf ) {
                 case CMD_P_TLB:         purgeTLBCmd( cmdBuf );          break;
                 case CMD_D_CACHE:       displayCacheCmd( cmdBuf );      break;
                 case CMD_P_CACHE:       purgeCacheCmd( cmdBuf );        break;
-                case CMD_DA:            displayPhysMemCmd( cmdBuf );    break;
+                case CMD_DA:            displayAbsMemCmd( cmdBuf );    break;
                 case CMD_MA:            modifyPhysMemCmd( cmdBuf);      break;
                 case CMD_LMF:           loadPhysMemCmd( cmdBuf);        break;
                 case CMD_SMF:           savePhysMemCmd( cmdBuf);        break;
