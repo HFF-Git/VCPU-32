@@ -53,19 +53,19 @@ CpuCore::CpuCore( CpuCoreDesc *cfg ) {
         dTlb = new CpuTlb( &cpuDesc.dTlbDesc );
     }
     
-    physMem = new CpuMem( &cpuDesc.memDesc );
-    pdcMem  = new CpuMem( &cpuDesc.pdcDesc );
+    physMem = new PhysMem( &cpuDesc.memDesc );
+    pdcMem  = new PdcMem( &cpuDesc.pdcDesc );
     
     if ( cfg -> cacheL2Options == VMEM_T_L2_UNIFIED_CACHE ) {
         
-        uCacheL2 = new CpuMem( &cpuDesc.uCacheDescL2, physMem );
-        iCacheL1 = new CpuMem( &cpuDesc.iCacheDescL1, uCacheL2 );
-        dCacheL1 = new CpuMem( &cpuDesc.dCacheDescL1, uCacheL2 );
+        uCacheL2 = new L2CacheMem( &cpuDesc.uCacheDescL2, physMem );
+        iCacheL1 = new L1CacheMem( &cpuDesc.iCacheDescL1, uCacheL2 );
+        dCacheL1 = new L1CacheMem( &cpuDesc.dCacheDescL1, uCacheL2 );
     }
     else {
         
-        iCacheL1 = new CpuMem( &cpuDesc.iCacheDescL1, physMem );
-        dCacheL1 = new CpuMem( &cpuDesc.dCacheDescL1, physMem );
+        iCacheL1 = new L1CacheMem( &cpuDesc.iCacheDescL1, physMem );
+        dCacheL1 = new L1CacheMem( &cpuDesc.dCacheDescL1, physMem );
     }
    
     fdStage = new FetchDecodeStage( this );

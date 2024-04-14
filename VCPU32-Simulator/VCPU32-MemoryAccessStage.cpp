@@ -170,7 +170,7 @@ void MemoryAccessStage::flushPipeLine( ) {
     if ( core -> fdStage -> isStalled( )) {
         
         core -> fdStage -> setStalled( false );
-        core -> iCacheL1 -> abortMemOp( );
+        core -> iCacheL1 -> abortOp( );
         core -> iTlb -> abortTlbOp( );
     }
 }
@@ -429,7 +429,7 @@ void MemoryAccessStage::process( ) {
         case OP_PCA: {
             
             CpuTlb      *tlbPtr = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
-            CpuMem      *cPtr   = ( getBit( instr, 11 )) ?  core -> dCacheL1 : core -> iCacheL1;
+            L1CacheMem  *cPtr   = ( getBit( instr, 11 )) ?  core -> dCacheL1 : core -> iCacheL1;
             
             uint32_t    seg     = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
             uint32_t    ofs     = valB;
@@ -446,9 +446,9 @@ void MemoryAccessStage::process( ) {
             }
             
             if ( ! getBit( instr, 12 ))
-                cPtr -> flushBlockVirt( seg, ofs, ( tlbEntryPtr -> tPhysPage( ) << PAGE_SIZE_BITS ));
+                cPtr -> flushBlock( seg, ofs, ( tlbEntryPtr -> tPhysPage( ) << PAGE_SIZE_BITS ));
             else
-                cPtr -> purgeBlockVirt( seg, ofs, ( tlbEntryPtr -> tPhysPage( ) << PAGE_SIZE_BITS ));
+                cPtr -> purgeBlock( seg, ofs, ( tlbEntryPtr -> tPhysPage( ) << PAGE_SIZE_BITS ));
             
         } break;
             
@@ -543,14 +543,14 @@ void MemoryAccessStage::process( ) {
         if ( pAdr <= core -> cpuDesc.memDesc.endAdr ) {
             
             if ( opCodeTab[ opCode ].flags & READ_INSTR )
-                rStat = core -> dCacheL1 -> readVirt( valS, valX, pAdr, dLen, &valB );
+                rStat = core -> dCacheL1 -> readWord( valS, valX, pAdr, dLen, &valB );
             else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
-                rStat = core -> dCacheL1 -> writeVirt( valS, valX, pAdr, dLen, valA );
+                rStat = core -> dCacheL1 -> writeWord( valS, valX, pAdr, dLen, valA );
         }
         else if (( pAdr >= core -> cpuDesc.pdcDesc.startAdr ) && ( pAdr <= core -> cpuDesc.pdcDesc.endAdr )) {
             
             if ( opCodeTab[ opCode ].flags & READ_INSTR )
-                rStat = core -> pdcMem -> readPhys( pAdr, dLen, &valB );
+                rStat = core -> pdcMem -> readWord( 0, pAdr, 0, dLen, &valB );
             else {
                 
                 // ??? cannot write to PDC, raise a trap
@@ -559,9 +559,9 @@ void MemoryAccessStage::process( ) {
         else if (( pAdr >= core -> cpuDesc.ioDesc.startAdr ) && ( pAdr <= core -> cpuDesc.ioDesc.endAdr )) {
             
             if ( opCodeTab[ opCode ].flags & READ_INSTR )
-                rStat = core -> ioMem -> readPhys( pAdr, dLen, &valB );
+                rStat = core -> ioMem -> readWord( 0, pAdr, 0, dLen, &valB );
             else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
-                rStat = core -> dCacheL1 -> writePhys( pAdr, dLen, valA );
+                rStat = core -> dCacheL1 -> writeWord( 0, pAdr, 0, dLen, valA );
         }
         
         if ( ! rStat ) {

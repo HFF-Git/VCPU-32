@@ -1405,15 +1405,15 @@ void DrvWinAbsMem::drawLine( uint32_t itemAdr ) {
         
         if (( physMem != nullptr ) && ( physMem -> validAdr( ofs ))) {
             
-            printNumericField( physMem -> getMemWord( ofs ), fmtDesc );
+            printNumericField( physMem -> getMemDataWord( ofs ), fmtDesc );
         }
         else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( ofs ))) {
             
-            printNumericField( pdcMem -> getMemWord( ofs ), fmtDesc );
+            printNumericField( pdcMem -> getMemDataWord( ofs ), fmtDesc );
         }
         else if (( ioMem != nullptr ) && ( ioMem -> validAdr( ofs ))) {
             
-            printNumericField( ioMem -> getMemWord( ofs ), fmtDesc );
+            printNumericField( ioMem -> getMemDataWord( ofs ), fmtDesc );
         }
         else printNumericField( 0, fmtDesc | FMT_INVALID_NUM );
         
@@ -1503,7 +1503,7 @@ void DrvWinCode::drawBanner( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvWinCode::drawLine( uint32_t itemAdr ) {
     
-    uint32_t    instr           = glb -> cpu -> physMem -> getMemWord( itemAdr );
+    uint32_t    instr           = glb -> cpu -> physMem -> getMemDataWord( itemAdr );
     uint32_t    fmtDesc         = FMT_DEF_ATTR;
     uint32_t    currentIaOfs    = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS  );
     bool        isCurrentIaOfs  = ( itemAdr == currentIaOfs );

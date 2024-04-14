@@ -30,6 +30,8 @@
 // be used to create a descriptor with the data coming from these variables. Also, we should have an option to
 // set the environmnt variables from a file, specified as an input argument to the program.
 //
+// ??? do we keep all descriptors in one structure ? What if the CPU has two cores ?
+// ??? is the IO subsystem part of the CPU structure ? Still, we would need a memory range to configure...
 //------------------------------------------------------------------------------------------------------------
 int main( int argc, const char* argv[ ] ) {
     
@@ -56,6 +58,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.iCacheDescL1.blockSize      = 16;
     cpuDesc.iCacheDescL1.blockSets      = 2;
     cpuDesc.iCacheDescL1.latency        = 0;
+    cpuDesc.iCacheDescL1.priority       = 0;
     
     cpuDesc.dCacheDescL1.type           = MEM_T_L1_DATA;
     cpuDesc.dCacheDescL1.accessType     = MEM_AT_DIRECT_MAPPED;
@@ -63,6 +66,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.dCacheDescL1.blockSize      = 32;
     cpuDesc.dCacheDescL1.blockSets      = 4;
     cpuDesc.dCacheDescL1.latency        = 0;
+    cpuDesc.dCacheDescL1.priority       = 0;
         
     cpuDesc.uCacheDescL2.type           = MEM_T_L2_UNIFIED;
     cpuDesc.uCacheDescL2.accessType     = MEM_AT_DIRECT_MAPPED;

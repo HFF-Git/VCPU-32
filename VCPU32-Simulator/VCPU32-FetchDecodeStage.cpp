@@ -377,7 +377,7 @@ void FetchDecodeStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     if ( pAdr <= core -> cpuDesc.memDesc.endAdr ) {
         
-        if ( ! core -> iCacheL1 -> readVirt( instrSeg, instrOfs, 4, pAdr, &instr )) {
+        if ( ! core -> iCacheL1 -> readWord( instrSeg, instrOfs, 4, pAdr, &instr )) {
             
             stallPipeLine( );
             return;
@@ -386,7 +386,7 @@ void FetchDecodeStage::process( ) {
     } 
     else if (( pAdr >= core -> cpuDesc.pdcDesc.startAdr ) && ( pAdr <= core -> cpuDesc.pdcDesc.endAdr )) {
        
-        if ( ! core -> pdcMem -> readPhys( pAdr, 4, &instr )) {
+        if ( ! core -> pdcMem -> readWord( 0, pAdr, 0, 4, &instr )) {
             
             stallPipeLine( );
             return;

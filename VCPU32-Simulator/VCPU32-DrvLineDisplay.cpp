@@ -414,15 +414,15 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, TokId fm
                 
                 if ((physMem != nullptr ) && ( physMem -> validAdr( index ))) {
                     
-                    glb -> lineDisplay -> displayWord( physMem -> getMemWord( index ), fmtId );
+                    glb -> lineDisplay -> displayWord( physMem -> getMemDataWord( index ), fmtId );
                 }
                 else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
                     
-                    glb -> lineDisplay -> displayWord( pdcMem -> getMemWord( index ), fmtId );
+                    glb -> lineDisplay -> displayWord( pdcMem -> getMemDataWord( index ), fmtId );
                 }
                 else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
                     
-                    glb -> lineDisplay -> displayWord( ioMem -> getMemWord( index ), fmtId );
+                    glb -> lineDisplay -> displayWord( ioMem -> getMemDataWord( index ), fmtId );
                 }
                 else displayInvalidWord( fmtId );
             }

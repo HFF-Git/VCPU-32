@@ -174,6 +174,7 @@ struct CpuMemDesc {
     uint32_t            startAdr        = 0;
     uint32_t            endAdr          = 0;
     uint32_t            latency         = 0;
+    uint32_t            priority        = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -353,13 +354,12 @@ struct MemTagEntry {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// VCPU-32 memory object. All caches, the physical memory and the memory mapped IO asystem are build using
-// this generic class. The CPU simulator implements a layered memory model. On top are always the level 1
-// caches on the bottom is always the memory layer. Optionally, there can be a level 2 cache. A memory layer
-// has two main structures, a tag aray and a data array. Caches need a cache tag array, physical memory does
-// not. In this case the tag array is not allocated. There is also a zero passed as segment and segment
-// offset, as it is not required in this case. At the core of each memory object is a state machine that
-// handles the request. If the memory layer is not busy, it is IDLE and can accept a new request.
+// VCPU-32 memory objects. All caches, the physical memory and the memory mapped IO asystem are build using
+// the CPUMem class as the base object. When it comes to caches and main memory, VCPU-32 implements a
+// layered model. On top are always the L1 caches. There is an optional L2 cache. Below is the physical
+// memory layer. Next is the PDC memory, which is an uncached memory region. Finally, there is the IO memory
+// address range. At the core of each memory object is a state machine that handles the request. If the memory
+// object is not busy, it is IDLE and can accept a new request.
 //
 // The memory access functions always use a segment:offset pair as the address. In the case of a virtual
 // address, this is segement and offset. These two values are used to compute the index into the tag and
@@ -369,20 +369,16 @@ struct MemTagEntry {
 // 4-word block L1 cache can map to a 16-word L2 cache, but not vice versa. The block function have a length
 // paramater to indicate how large the receiving layer block size actually is.
 //
-// Besides caches and physical memory there is the IO memory space, which splits into the processor dependent
-// code (PDC) and the IO address range. The PDC is a section of physical memory, typically a ROM, to contain
-// low level routines, isolating the specific processor. It starts at 0xF0000000 and is up to 16Mbytes in
-// size.
-//
-// The remaining IO space is allocated to IO modules with teh memory range from 0xF1000000 to 0xFFFFFFFF.
-// IO space is a bot dirrerent from the other memory spaces in that there is no memory allocated. In the
-// real hardeware there would be a bus hierarchy and IO modules that react to a data access in the
-// address range.
-//
 // All address offsets are byte adresses. All sizes are measured in bytes, rounded up to a word size when
 // necessary. The data array in a cache or memory layers is also an array of bytes, which allows a greater
 // flexibilty in configuring different meemory block sizes without a ton of address arithmtic. Some
 // interfaces to the memory objects do however pass as data as a word parameter.
+//
+// All memory objects have the same basic structure. At the core is a memory object specific state machine
+// that accepts a request and proceses it. The "process" methods is the abstract method that each inheriting
+// class must implement. The "tick" is the systen clock that advances that state machine. The CPU and the
+// memory obejcts themselves call each other with the defined methods. To simulate a latency, the method call
+// is repeated every clock cycle until the latency count is reached and the request is resolved.
 //
 //------------------------------------------------------------------------------------------------------------
 struct CpuMem {
@@ -391,30 +387,23 @@ struct CpuMem {
     
     void            reset( );
     void            tick( );
-    void            process( );
+    virtual void    process( ) = 0;
     void            clearStats( );
-    void            abortMemOp( );
-    
-    bool            readVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t *data );
-    bool            writeVirt( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t data );
+    void            abortOp( );
+   
+    virtual bool    readWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, uint32_t *word );
+    virtual bool    writeWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, uint32_t word );
 
-    bool            flushBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag );
-    bool            purgeBlockVirt( uint32_t seg, uint32_t ofs, uint32_t adrTag );
-    
-    bool            readPhys( uint32_t adr, uint32_t len, uint32_t *word, uint16_t pri = 0 );
-    bool            writePhys( uint32_t adr, uint32_t len, uint32_t word, uint16_t pri = 0 );
-
-    bool            readBlockPhys( uint32_t adr, uint8_t *buf, uint32_t len, uint16_t pri = 0 );
-    bool            writeBlockPhys( uint32_t adr, uint8_t *buf, uint32_t len, uint16_t pri = 0 );
-    bool            flushBlockPhys(  uint32_t adr, uint16_t pri = 0 );
-    bool            purgeBlockPhys(  uint32_t adr, uint16_t pri = 0 );
+    virtual bool    readBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len );
+    virtual bool    writeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len );
+    virtual bool    flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag );
+    virtual bool    purgeBlock( uint32_t seg, uint32_t ofs, uint32_t tag );
     
     int             mapAdr( uint32_t seg, uint32_t ofs );
     MemTagEntry     *getMemTagEntry( uint32_t index, uint8_t set = 0 );
     uint8_t         *getMemBlockEntry( uint32_t index, uint8_t set = 0 );
-    
-    uint32_t        getMemWord( uint32_t ofs, uint8_t set = 0 );
-    void            putMemWord( uint32_t ofs, uint32_t val, uint8_t set = 0 );
+    uint32_t        getMemDataWord( uint32_t ofs, uint8_t set = 0 );
+    void            putMemDataWord( uint32_t ofs, uint32_t val, uint8_t set = 0 );
     
     uint32_t        getMemSize( );
     uint32_t        getStartAdr( );
@@ -431,16 +420,11 @@ struct CpuMem {
     char            *getMemOpStr( uint32_t opArg );
     bool            validAdr( uint32_t ofs );
     
-private:
+protected:
     
     CpuMemDesc      cDesc;
     
     uint16_t        matchTag( uint32_t index, uint32_t tag );
-    void            processL1CacheRequest( );
-    void            processL2CacheRequest( );
-    void            processPhysMemRequest( );
-    void            processPdcMemRequest( );
-    void            processIoMemRequest( );
     
     CpuReg          opState             = 0;
     uint16_t        reqPri              = 0;
@@ -450,6 +434,7 @@ private:
     uint8_t         *reqPtr             = nullptr;
     uint32_t        reqLen              = 0;
     uint32_t        reqLatency          = 0;
+    
     uint16_t        reqTargetSet        = 0;
     uint32_t        reqTargetBlockIndex = 0;
     
@@ -465,11 +450,79 @@ private:
     MemTagEntry     *tagArray[ MAX_BLOCK_SETS ]     = { nullptr };
     uint8_t         *dataArray[ MAX_BLOCK_SETS ]    = { nullptr };
     CpuMem          *lowerMem                       = nullptr;
-    void            ( CpuMem::*stateMachine )( )    = nullptr;
-    
-    // ??? callback for IO modules ?
 };
 
+
+//------------------------------------------------------------------------------------------------------------
+// "L1CacheMem" is the memory object representing the L1 caches. It overrides the word and block access
+// routines of a basic memory object, since it has a data and tag array structure. Also, a read or write
+// word access is severed directly in case of a cache hit.
+//
+//------------------------------------------------------------------------------------------------------------
+struct L1CacheMem : CpuMem {
+    
+    L1CacheMem( CpuMemDesc *mDesc, CpuMem *lowerMem );
+    
+    bool    readWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t *data );
+    bool    writeWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t data );
+    
+    bool    flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag );
+    bool    purgeBlock( uint32_t seg, uint32_t ofs, uint32_t tag );
+
+    void    process( );    
+    
+private:
+    
+    
+};
+
+//------------------------------------------------------------------------------------------------------------
+// "L2CacheMem" is an optional layer between main memory and the L1 caches. It has a data and a tag array.
+// Since it is physically indexed and tagged, there is no need to overwrite the basic block access methods
+// of the base class. The L2 cache state machine will do the tag match handling.
+//
+//
+//------------------------------------------------------------------------------------------------------------
+struct L2CacheMem : CpuMem {
+    
+    L2CacheMem( CpuMemDesc *mDesc, CpuMem *lowerMem );
+   
+    void    process( );
+};
+
+//------------------------------------------------------------------------------------------------------------
+// "PhysMem" represents the actual main memory.
+//
+//------------------------------------------------------------------------------------------------------------
+struct PhysMem : CpuMem {
+    
+    PhysMem( CpuMemDesc *mDesc );
+    
+    void    process( );
+};
+
+//------------------------------------------------------------------------------------------------------------
+// "PdcMem" represents the processor dependent code memory range.
+//
+//------------------------------------------------------------------------------------------------------------
+struct PdcMem : CpuMem {
+    
+    PdcMem( CpuMemDesc *mDesc );
+
+    void    process( );
+};
+
+//------------------------------------------------------------------------------------------------------------
+// "IoMem" frepresents the IO subsystem adress range.
+//
+// ??? to do ...
+//------------------------------------------------------------------------------------------------------------
+struct IoMem : CpuMem {
+    
+    IoMem( CpuMemDesc *mDesc );
+    
+    void process( );
+};
 
 //------------------------------------------------------------------------------------------------------------
 // CPU24 statistical data. Each major component maintains ts own statistics. The CPU itself also maintains
@@ -519,12 +572,12 @@ public:
     //--------------------------------------------------------------------------------------------------------
     CpuTlb        *iTlb       = nullptr;
     CpuTlb        *dTlb       = nullptr;
-    CpuMem        *iCacheL1   = nullptr;
-    CpuMem        *dCacheL1   = nullptr;
-    CpuMem        *uCacheL2   = nullptr;
-    CpuMem        *physMem    = nullptr;
-    CpuMem        *pdcMem     = nullptr;
-    CpuMem        *ioMem      = nullptr;
+    L1CacheMem    *iCacheL1   = nullptr;
+    L1CacheMem    *dCacheL1   = nullptr;
+    L2CacheMem    *uCacheL2   = nullptr;
+    PhysMem       *physMem    = nullptr;
+    PdcMem        *pdcMem     = nullptr;
+    IoMem         *ioMem      = nullptr;
     
     CpuStatistics stats;
     

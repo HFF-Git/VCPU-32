@@ -1553,10 +1553,6 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     uint32_t    val7                        = 0;
     uint32_t    val8                        = 0;
     
-    uint32_t    blockEntries                = glb -> cpu -> physMem -> getBlockEntries( );
-    uint32_t    blockSize                   = glb -> cpu -> physMem -> getBlockSize( );
-    uint32_t    memSize                     = blockEntries * blockSize;
-    
     CpuMem      *physMem                    = glb -> cpu -> physMem;
     CpuMem      *pdcMem                     = glb -> cpu -> pdcMem;
     CpuMem      *ioMem                      = glb -> cpu -> ioMem;
@@ -1585,14 +1581,14 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
     
     if ( mem != nullptr ) {
         
-        if ( numOfVal >= 1 ) mem -> putMemWord( ofs, val1 );
-        if ( numOfVal >= 2 ) mem -> putMemWord( ofs + 4, val2 );
-        if ( numOfVal >= 3 ) mem -> putMemWord( ofs + 8, val3 );
-        if ( numOfVal >= 4 ) mem -> putMemWord( ofs + 12, val4 );
-        if ( numOfVal >= 5 ) mem -> putMemWord( ofs + 16, val5 );
-        if ( numOfVal >= 6 ) mem -> putMemWord( ofs + 20, val6 );
-        if ( numOfVal >= 7 ) mem -> putMemWord( ofs + 24, val7 );
-        if ( numOfVal >= 8 ) mem -> putMemWord( ofs + 28, val8 );
+        if ( numOfVal >= 1 ) mem -> putMemDataWord( ofs, val1 );
+        if ( numOfVal >= 2 ) mem -> putMemDataWord( ofs + 4, val2 );
+        if ( numOfVal >= 3 ) mem -> putMemDataWord( ofs + 8, val3 );
+        if ( numOfVal >= 4 ) mem -> putMemDataWord( ofs + 12, val4 );
+        if ( numOfVal >= 5 ) mem -> putMemDataWord( ofs + 16, val5 );
+        if ( numOfVal >= 6 ) mem -> putMemDataWord( ofs + 20, val6 );
+        if ( numOfVal >= 7 ) mem -> putMemDataWord( ofs + 24, val7 );
+        if ( numOfVal >= 8 ) mem -> putMemDataWord( ofs + 28, val8 );
     }
 }
 
