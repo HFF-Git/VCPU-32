@@ -375,18 +375,18 @@ void FetchDecodeStage::process( ) {
     // ROM with processor dependent code. We cannot fetch data fro IO memory space.
     //
     //--------------------------------------------------------------------------------------------------------
-    if ( pAdr <= core -> cpuDesc.memDesc.endAdr ) {
+    if ( pAdr <= core -> physMem -> getEndAdr( ) - 4 ) {
         
-        if ( ! core -> iCacheL1 -> readWord( instrSeg, instrOfs, 4, pAdr, &instr )) {
+        if ( ! core -> iCacheL1 -> readWord( instrSeg, instrOfs, pAdr, 4, &instr )) {
             
             stallPipeLine( );
             return;
         }
         
     } 
-    else if (( pAdr >= core -> cpuDesc.pdcDesc.startAdr ) && ( pAdr <= core -> cpuDesc.pdcDesc.endAdr )) {
+    else if (( pAdr >= core -> pdcMem -> getStartAdr( )) && ( pAdr <= core -> pdcMem -> getEndAdr( ))) {
        
-        if ( ! core -> pdcMem -> readWord( 0, pAdr, 0, 4, &instr )) {
+        if ( ! core -> pdcMem -> readWord( 0, pAdr, pAdr, 4, &instr )) {
             
             stallPipeLine( );
             return;
@@ -395,6 +395,7 @@ void FetchDecodeStage::process( ) {
     else {
         
         // ??? invalid address. Should we raise a HPMC ?
+        fprintf( stdout, "Invalid physical address in I-Fetch adr: %x \n", pAdr );
     }
     
     //--------------------------------------------------------------------------------------------------------

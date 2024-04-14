@@ -32,10 +32,10 @@
 // The key parameters for a memory layer are type, access type, number of entries and block size. The
 // total size in bytes is blockEntries * blockSize. All parameters can be found in the memory descriptor.
 //
-// It seems a bit odd to have all caches and physical memory modelled into one object class. However, this
-// way several combinations with unified, split and several cache layers can easily be configured. Layers
-// that do not support a particular access method, will just ignore the request. As soon as the overall
-// design is a more fixed, a base class - inherited class is also a good way to structure this code.
+// There is also an arbitration scheme. The two L1 caches my compete for the L2 cache or the physical memory
+// layer when that layer is IDLE and both caches have a request. In this case the request with the highest
+// priority, i.e. the lowest numeric value, will win. Right now, the PDC and IO memory address space are
+// seprate and thus there is no arbitation like there would on a real system bus. To look into one day.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -191,13 +191,14 @@ void CpuMem::reset( ) {
     }
     
     opState.load( MO_IDLE );
-    reqSeg  = 0;
-    reqOfs  = 0;
-    reqPri  = 0;
-    reqTag  = 0;
-    reqLen  = 0;
-    reqPtr  = nullptr;
-    
+    reqSeg      = 0;
+    reqOfs      = 0;
+    reqPri      = 0;
+    reqTag      = 0;
+    reqLen      = 0;
+    reqPtr      = nullptr;
+    reqLatency  = cDesc.latency;
+   
     clearStats( );
 }
 
@@ -277,9 +278,9 @@ uint16_t CpuMem::matchTag( uint32_t index, uint32_t tag ) {
 // done with the current request.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::readWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, uint32_t *word ) {
+bool CpuMem::readWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, uint32_t *word, uint32_t pri ) {
     
-    if (( opState.get( ) == MO_IDLE ) && ( cDesc.priority > reqPri )) {
+    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
         opState.set( MO_READ_WORD_PHYS );
         reqSeg      = seg;
@@ -287,8 +288,8 @@ bool CpuMem::readWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, u
         reqTag      = tag;
         reqPtr      = (uint8_t *) word;
         reqLen      = len;
+        reqPri      = (( pri == 0 ) ? cDesc.priority : pri );
         reqLatency  = cDesc.latency;
-        reqPri      = cDesc.priority;
         return( false );
     }
     else return ( reqLatency == 0 );
@@ -304,9 +305,9 @@ bool CpuMem::readWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, u
 // done with the current request.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, uint32_t word ) {
+bool CpuMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, uint32_t word, uint32_t pri ) {
     
-    if (( opState.get( ) == MO_IDLE ) && ( cDesc.priority > reqPri )) {
+    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
         opState.set( MO_WRITE_BLOCK_PHYS );
         reqSeg      = seg;
@@ -314,8 +315,9 @@ bool CpuMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, 
         reqTag      = tag;
         reqPtr      = (uint8_t *) &word;
         reqLen      = len;
+        reqPri      = (( pri == 0 ) ? cDesc.priority : pri );
         reqLatency  = cDesc.latency;
-        reqPri      = cDesc.priority;
+        
         return( false );
     }
     else return ( reqLatency == 0 );
@@ -332,9 +334,9 @@ bool CpuMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, 
 // the current request.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::readBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len ) {
+bool CpuMem::readBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len, uint32_t pri ) {
     
-    if (( opState.get( ) == MO_IDLE ) && ( cDesc.priority > reqPri )) {
+    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
         opState.set( MO_READ_BLOCK_PHYS );
         reqSeg      = seg;
@@ -342,8 +344,8 @@ bool CpuMem::readBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, 
         reqTag      = tag;
         reqPtr      = buf;
         reqLen      = len;
+        reqPri      = (( pri == 0 ) ? cDesc.priority : pri );
         reqLatency  = cDesc.latency;
-        reqPri      = cDesc.priority;
         return( false );
     }
     else return ( reqLatency == 0 );
@@ -359,9 +361,9 @@ bool CpuMem::readBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, 
 // done with the current request.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::writeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len ) {
+bool CpuMem::writeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len, uint32_t pri ) {
     
-    if (( opState.get( ) == MO_IDLE ) && ( cDesc.priority > reqPri )) {
+    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
         opState.set( MO_WRITE_BLOCK_PHYS );
         reqSeg      = seg;
@@ -369,8 +371,8 @@ bool CpuMem::writeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf,
         reqTag      = tag;
         reqPtr      = buf;
         reqLen      = len;
+        reqPri      = (( pri == 0 ) ? cDesc.priority : pri );
         reqLatency  = cDesc.latency;
-        reqPri      = cDesc.priority;
         return( false );
     }
     else return ( reqLatency == 0 );
@@ -383,9 +385,9 @@ bool CpuMem::writeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf,
 // this request.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag ) {
+bool CpuMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t pri ) {
     
-    if (( opState.get( ) == MO_IDLE ) && ( cDesc.priority > reqPri )) {
+    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
         opState.set( MO_WRITE_BLOCK_PHYS );
         reqSeg      = seg;
@@ -393,8 +395,8 @@ bool CpuMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag ) {
         reqTag      = tag;
         reqPtr      = nullptr;
         reqLen      = 0;
+        reqPri      = (( pri == 0 ) ? cDesc.priority : pri );
         reqLatency  = cDesc.latency;
-        reqPri      = cDesc.priority;
         return( false );
     }
     else return ( reqLatency == 0 );
@@ -407,9 +409,9 @@ bool CpuMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag ) {
 // this request.
 //
 //------------------------------------------------------------------------------------------------------------
-bool CpuMem::purgeBlock( uint32_t seg, uint32_t ofs, uint32_t tag ) {
+bool CpuMem::purgeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t pri ) {
     
-    if (( opState.get( ) == MO_IDLE ) && ( cDesc.priority > reqPri )) {
+    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
         opState.set( MO_PURGE_BLOCK_PHYS );
         reqSeg      = seg;
@@ -417,8 +419,8 @@ bool CpuMem::purgeBlock( uint32_t seg, uint32_t ofs, uint32_t tag ) {
         reqTag      = tag;
         reqPtr      = nullptr;
         reqLen      = 0;
+        reqPri      = (( pri == 0 ) ? cDesc.priority : pri );
         reqLatency  = cDesc.latency;
-        reqPri      = cDesc.priority;
         return( false );
     }
     else return ( reqLatency == 0 );
@@ -559,6 +561,11 @@ uint32_t CpuMem::getStartAdr( ) {
     return( cDesc.startAdr );
 }
 
+uint32_t CpuMem::getEndAdr( ) {
+    
+    return( cDesc.endAdr );
+}
+
 uint32_t CpuMem::getBlockEntries( ) {
     
     return( cDesc.blockEntries );
@@ -638,21 +645,22 @@ L1CacheMem::L1CacheMem( CpuMemDesc *mDesc, CpuMem *lowerMem ) : CpuMem( mDesc, l
 // the operation is not completed, i.e. it is back to IDLE.
 //
 //------------------------------------------------------------------------------------------------------------
-bool L1CacheMem::readWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t *word ) {
+bool L1CacheMem::readWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t len, uint32_t *word ) {
     
     if ( opState.get( ) == MO_IDLE ) {
        
-        uint32_t    blockIndex  = ofs % cDesc.blockEntries;
+        uint32_t    blockIndex  = ofs / cDesc.blockSize;
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );
         
         if ( matchSet < cDesc.blockSets ) {
             
             uint8_t  *blockPtr = &dataArray[ matchSet ] [ blockIndex * cDesc.blockSize ];
-            uint8_t  *dataPtr  =  &blockPtr[ ofs & blockBitMask ];
+            uint8_t *dataPtr  = &blockPtr[ ofs & blockBitMask ];
+           
+            if      ( len == 1 ) *word = *((uint8_t *)  dataPtr );
+            else if ( len == 2 ) *word = *((uint16_t *) dataPtr );
+            else                 *word = *((uint32_t *) dataPtr );
             
-            if      ( reqLen == 1 ) *word = *dataPtr;
-            else if ( reqLen == 2 ) *word = *((uint16_t *) dataPtr );
-            else                    *word = *((uint32_t *) dataPtr );
             return( true );
         }
         else {
@@ -663,8 +671,8 @@ bool L1CacheMem::readWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t ad
             reqTag              = adrTag;
             reqPtr              = nullptr;
             reqLen              = 0;
-            reqLatency          = cDesc.latency;
             reqPri              = cDesc.priority;
+            reqLatency          = cDesc.latency;
             
             reqTargetSet        = matchSet;
             reqTargetBlockIndex = blockIndex;
@@ -684,11 +692,11 @@ bool L1CacheMem::readWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t ad
 // described for the read virtual data operation.
 //
 //------------------------------------------------------------------------------------------------------------
-bool L1CacheMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t word ) {
+bool L1CacheMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t len, uint32_t word ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
-        uint32_t    blockIndex  = (( ofs >> blockBits ) % cDesc.blockEntries );
+        uint32_t    blockIndex  = ofs / cDesc.blockSize;
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );
        
         if ( matchSet < cDesc.blockSets ) {
@@ -696,10 +704,10 @@ bool L1CacheMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t a
             uint8_t *blockPtr = &dataArray[ matchSet ] [ blockIndex * cDesc.blockSize ];
             uint8_t *dataPtr  = &blockPtr[ ofs & blockBitMask ];
             
-            
             if      ( reqLen == 1 ) *dataPtr                 = (uint8_t) word;
             else if ( reqLen == 2 ) *((uint16_t *) dataPtr ) = (uint16_t) word;
             else                    *((uint32_t *) dataPtr ) = word;
+            
             return( true );
         }
         else {
@@ -710,8 +718,8 @@ bool L1CacheMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t a
             reqTag              = adrTag;
             reqPtr              = nullptr;
             reqLen              = 0;
-            reqLatency          = cDesc.latency;
             reqPri              = cDesc.priority;
+            reqLatency          = cDesc.latency;
             
             reqTargetSet        = matchSet;
             reqTargetBlockIndex = blockIndex;
@@ -731,7 +739,7 @@ bool L1CacheMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
-        uint32_t    blockIndex  = ofs % cDesc.blockEntries;
+        uint32_t    blockIndex  = ofs % cDesc.blockSize;
         uint16_t    matchSet    = matchTag( blockIndex, adrTag );
         
         if ( matchSet < cDesc.blockSets ) {
@@ -743,10 +751,10 @@ bool L1CacheMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
                 opState.set( MO_FLUSH_BLOCK_VIRT );
                 reqSeg              = seg;
                 reqOfs              = ofs;
-                reqPri              = memObjPriority;
                 reqTag              = tagPtr -> tag;
                 reqPtr              = nullptr;
                 reqLen              = 0;
+                reqPri              = cDesc.priority;
                 reqLatency          = cDesc.latency;
                 
                 reqTargetSet        = matchSet;
@@ -767,7 +775,7 @@ bool L1CacheMem::purgeBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
-        uint32_t    blockIndex  = ofs % cDesc.blockEntries;
+        uint32_t    blockIndex  = ofs % cDesc.blockSize;
         uint16_t    matchSet    = ( matchTag( blockIndex, adrTag ) < cDesc.blockSets );
         
         if ( matchSet < cDesc.blockSets ) {
@@ -778,8 +786,8 @@ bool L1CacheMem::purgeBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
             reqTag              = 0;
             reqPtr              = nullptr;
             reqLen              = 0;
-            reqLatency          = cDesc.latency;
             reqPri              = cDesc.priority;
+            reqLatency          = cDesc.latency;
             
             reqTargetSet        = matchSet;
             reqTargetBlockIndex = blockIndex;
@@ -853,7 +861,7 @@ void L1CacheMem::process( ) {
             MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
             uint8_t     *blockPtr  = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
          
-            if ( lowerMem -> readBlock( 0, reqTag & ( ~ blockBitMask ), 0, blockPtr, cDesc.blockSize )) {
+            if ( lowerMem -> readBlock( 0, reqTag & ( ~ blockBitMask ), 0, blockPtr, cDesc.blockSize, reqPri )) {
                 
                 tagPtr -> valid = true;
                 tagPtr -> dirty = false;
@@ -869,7 +877,7 @@ void L1CacheMem::process( ) {
             MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
             uint8_t     *blockPtr  = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
             
-            if ( lowerMem -> writeBlock( 0, reqTag & ( ~ blockBitMask ), 0, blockPtr, cDesc.blockSize )) {
+            if ( lowerMem -> writeBlock( 0, reqTag & ( ~ blockBitMask ), 0, blockPtr, cDesc.blockSize, reqPri )) {
                 
                 tagPtr -> valid = false;
                 tagPtr -> dirty = false;
@@ -886,7 +894,7 @@ void L1CacheMem::process( ) {
                 MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
                 uint8_t     *blockPtr  = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
                 
-                if ( lowerMem -> writeBlock( 0, reqTag & ( ~ blockBitMask ), 0, blockPtr, cDesc.blockSize )) {
+                if ( lowerMem -> writeBlock( 0, reqTag & ( ~ blockBitMask ), 0, blockPtr, cDesc.blockSize, reqPri )) {
                     
                     tagPtr -> valid = false;
                     tagPtr -> dirty = false;
@@ -1149,9 +1157,9 @@ PdcMem::PdcMem( CpuMemDesc *mDesc ) : CpuMem( mDesc, nullptr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "processPdcMemRequest" is the state machine for the PDC memory object. It is very similar to the physical
-// memory object, except that there is only a read operation. The PDC content is loaded from the simulator
-// during the processor reset.
+// "process" is the state machine for the PDC memory object. It is very similar to the physical memory object,
+// except that there is only a read operation. The PDC content is loaded from the simulator during the
+// processor reset.
 //
 // ??? the input is the PDC address range, which we need to map to the allocated memory. Do we better check
 // a correct start address ?

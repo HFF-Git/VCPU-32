@@ -58,7 +58,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.iCacheDescL1.blockSize      = 16;
     cpuDesc.iCacheDescL1.blockSets      = 2;
     cpuDesc.iCacheDescL1.latency        = 0;
-    cpuDesc.iCacheDescL1.priority       = 0;
+    cpuDesc.iCacheDescL1.priority       = 1;
     
     cpuDesc.dCacheDescL1.type           = MEM_T_L1_DATA;
     cpuDesc.dCacheDescL1.accessType     = MEM_AT_DIRECT_MAPPED;
@@ -66,7 +66,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.dCacheDescL1.blockSize      = 32;
     cpuDesc.dCacheDescL1.blockSets      = 4;
     cpuDesc.dCacheDescL1.latency        = 0;
-    cpuDesc.dCacheDescL1.priority       = 0;
+    cpuDesc.dCacheDescL1.priority       = 2;
         
     cpuDesc.uCacheDescL2.type           = MEM_T_L2_UNIFIED;
     cpuDesc.uCacheDescL2.accessType     = MEM_AT_DIRECT_MAPPED;
@@ -74,6 +74,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.uCacheDescL2.blockSize      = 32;
     cpuDesc.uCacheDescL2.blockSets      = 2;
     cpuDesc.uCacheDescL2.latency        = 2;
+    cpuDesc.uCacheDescL2.priority       = 3;
    
     cpuDesc.memDesc.type                = MEM_T_PHYS_MEM;
     cpuDesc.memDesc.accessType          = MEM_AT_DIRECT_INDEXED;
@@ -82,6 +83,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.memDesc.blockSets           = 1;
     cpuDesc.memDesc.startAdr            = 0;
     cpuDesc.memDesc.latency             = 2;
+    cpuDesc.memDesc.priority            = 3;
     
     cpuDesc.pdcDesc.type                = MEM_T_PDC_MEM;
     cpuDesc.pdcDesc.accessType          = MEM_AT_DIRECT_INDEXED;
@@ -90,6 +92,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.pdcDesc.blockSets           = 1;
     cpuDesc.pdcDesc.startAdr            = 0xF0000000;
     cpuDesc.pdcDesc.latency             = 2;
+    cpuDesc.pdcDesc.priority            = 3;
     
     cpuDesc.ioDesc.type                 = MEM_T_IO_MEM;
     cpuDesc.ioDesc.accessType           = MEM_AT_DIRECT_INDEXED;
@@ -98,6 +101,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.ioDesc.blockSets            = 1;
     cpuDesc.ioDesc.startAdr             = 0xFFFF0000;
     cpuDesc.ioDesc.latency              = 2;
+    cpuDesc.ioDesc.priority             = 3;
  
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
     

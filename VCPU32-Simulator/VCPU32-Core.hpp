@@ -380,6 +380,10 @@ struct MemTagEntry {
 // memory obejcts themselves call each other with the defined methods. To simulate a latency, the method call
 // is repeated every clock cycle until the latency count is reached and the request is resolved.
 //
+// To simulate an arbitration a request with higher priority will overwrite a request entered but the current
+// opState registers is still in the "IDLE" state. The logic is that a request is queued and the opState
+// register will be loaded with the "work" state in to become visible in opState register in the next cycle.
+//
 //------------------------------------------------------------------------------------------------------------
 struct CpuMem {
     
@@ -391,13 +395,13 @@ struct CpuMem {
     void            clearStats( );
     void            abortOp( );
    
-    virtual bool    readWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, uint32_t *word );
-    virtual bool    writeWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, uint32_t word );
+    virtual bool    readWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, uint32_t *word, uint32_t pri = 0 );
+    virtual bool    writeWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, uint32_t word, uint32_t pri = 0 );
 
-    virtual bool    readBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len );
-    virtual bool    writeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len );
-    virtual bool    flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag );
-    virtual bool    purgeBlock( uint32_t seg, uint32_t ofs, uint32_t tag );
+    virtual bool    readBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len, uint32_t pri = 0 );
+    virtual bool    writeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len, uint32_t pri = 0 );
+    virtual bool    flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t pri = 0 );
+    virtual bool    purgeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t pri = 0 );
     
     int             mapAdr( uint32_t seg, uint32_t ofs );
     MemTagEntry     *getMemTagEntry( uint32_t index, uint8_t set = 0 );
@@ -407,6 +411,7 @@ struct CpuMem {
     
     uint32_t        getMemSize( );
     uint32_t        getStartAdr( );
+    uint32_t        getEndAdr( );
     uint32_t        getBlockEntries( );
     uint16_t        getBlockSize( );
     uint16_t        getBlockSets( );
@@ -463,7 +468,7 @@ struct L1CacheMem : CpuMem {
     
     L1CacheMem( CpuMemDesc *mDesc, CpuMem *lowerMem );
     
-    bool    readWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t *data );
+    bool    readWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t len, uint32_t *data );
     bool    writeWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t data );
     
     bool    flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag );

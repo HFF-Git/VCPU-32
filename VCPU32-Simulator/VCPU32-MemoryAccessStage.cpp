@@ -540,14 +540,14 @@ void MemoryAccessStage::process( ) {
         
         bool rStat = false;
         
-        if ( pAdr <= core -> cpuDesc.memDesc.endAdr ) {
+        if ( pAdr <= core -> physMem -> getEndAdr(  )) {
             
             if ( opCodeTab[ opCode ].flags & READ_INSTR )
                 rStat = core -> dCacheL1 -> readWord( valS, valX, pAdr, dLen, &valB );
             else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
                 rStat = core -> dCacheL1 -> writeWord( valS, valX, pAdr, dLen, valA );
         }
-        else if (( pAdr >= core -> cpuDesc.pdcDesc.startAdr ) && ( pAdr <= core -> cpuDesc.pdcDesc.endAdr )) {
+        else if (( pAdr >= core -> pdcMem -> getStartAdr( )) && ( pAdr <= core -> pdcMem -> getEndAdr( ))) {
             
             if ( opCodeTab[ opCode ].flags & READ_INSTR )
                 rStat = core -> pdcMem -> readWord( 0, pAdr, 0, dLen, &valB );
@@ -556,12 +556,17 @@ void MemoryAccessStage::process( ) {
                 // ??? cannot write to PDC, raise a trap
             }
         }
-        else if (( pAdr >= core -> cpuDesc.ioDesc.startAdr ) && ( pAdr <= core -> cpuDesc.ioDesc.endAdr )) {
+        else if (( pAdr >= core -> ioMem -> getStartAdr( )) && ( pAdr <= core -> ioMem -> getEndAdr( ))) {
             
             if ( opCodeTab[ opCode ].flags & READ_INSTR )
                 rStat = core -> ioMem -> readWord( 0, pAdr, 0, dLen, &valB );
             else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
                 rStat = core -> dCacheL1 -> writeWord( 0, pAdr, 0, dLen, valA );
+        }
+        else {
+            
+            // ??? invalid address. Should we raise a HPMC ?
+            fprintf( stdout, "Invalid physical address in D-Access adr: %x \n", pAdr );
         }
         
         if ( ! rStat ) {
