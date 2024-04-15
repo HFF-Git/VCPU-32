@@ -78,7 +78,7 @@ int main( int argc, const char* argv[ ] ) {
    
     cpuDesc.memDesc.type                = MEM_T_PHYS_MEM;
     cpuDesc.memDesc.accessType          = MEM_AT_DIRECT_INDEXED;
-    cpuDesc.memDesc.blockEntries        = 1024 * 1024; // for just a million blocks.
+    cpuDesc.memDesc.blockEntries        = 1024 * 1024;  // for just a million blocks.
     cpuDesc.memDesc.blockSize           = 16;
     cpuDesc.memDesc.blockSets           = 1;
     cpuDesc.memDesc.startAdr            = 0;
@@ -87,7 +87,7 @@ int main( int argc, const char* argv[ ] ) {
     
     cpuDesc.pdcDesc.type                = MEM_T_PDC_MEM;
     cpuDesc.pdcDesc.accessType          = MEM_AT_DIRECT_INDEXED;
-    cpuDesc.pdcDesc.blockEntries        = 1024; // for just a thousand blocks.
+    cpuDesc.pdcDesc.blockEntries        = 1024;         // for just a thousand blocks.
     cpuDesc.pdcDesc.blockSize           = 16;
     cpuDesc.pdcDesc.blockSets           = 1;
     cpuDesc.pdcDesc.startAdr            = 0xF0000000;
@@ -96,7 +96,7 @@ int main( int argc, const char* argv[ ] ) {
     
     cpuDesc.ioDesc.type                 = MEM_T_IO_MEM;
     cpuDesc.ioDesc.accessType           = MEM_AT_DIRECT_INDEXED;
-    cpuDesc.ioDesc.blockEntries         = 1024; // for just a thousand blocks.
+    cpuDesc.ioDesc.blockEntries         = 1024;         // for just a thousand blocks.
     cpuDesc.ioDesc.blockSize            = 16;
     cpuDesc.ioDesc.blockSets            = 1;
     cpuDesc.ioDesc.startAdr             = 0xFFFF0000;

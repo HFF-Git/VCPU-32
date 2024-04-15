@@ -68,6 +68,7 @@ enum TokId : uint16_t {
     
     TOK_ICR                 = 28,   TOK_DCR                 = 29,   TOK_UCR                 = 30,
     TOK_ITR                 = 31,   TOK_DTR                 = 32,   TOK_MCR                 = 33,
+    TOK_PCR                 = 34,   TOK_IOR                 = 35,
     
     TOK_EQ                  = 40,   TOK_NE                  = 41,   TOK_LT                  = 42,
     TOK_GT                  = 43,   TOK_LE                  = 44,   TOK_GE                  = 45,

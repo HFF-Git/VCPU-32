@@ -446,6 +446,8 @@ uint32_t CpuMem::getMemCtrlReg( uint8_t mReg ) {
         case MC_REG_REQ_BLOCK_INDEX:    return( reqTargetBlockIndex );
         case MC_REG_REQ_BLOCK_SET:      return( reqTargetSet );
             
+        case MC_REG_START_ADR:          return( cDesc.startAdr );
+        case MC_REG_END_ADR:            return( cDesc.endAdr );
         case MC_REG_BLOCK_ENTRIES:      return( cDesc.blockEntries );
         case MC_REG_BLOCK_SIZE:         return( cDesc.blockSize );
         case MC_REG_SETS:               return( cDesc.blockSets );

@@ -150,13 +150,15 @@ struct {
     { "MCR",                "",         SET_NIL,            TOK_MCR                 },
     { "ITR",                "",         SET_NIL,            TOK_ITR                 },
     { "DTR",                "",         SET_NIL,            TOK_DTR                 },
+    { "PCR",                "",         SET_NIL,            TOK_PCR                 },
+    { "IOR",                "",         SET_NIL,            TOK_IOR                 },
     { "TX",                 "",         SET_NIL,            TOK_TX                  },
     
     { "R0",                 "TMP",      GR_SET,             GR_0                    },
-    { "R1",                 "",         GR_SET,             GR_1                    },
-    { "R2",                 "",         GR_SET,             GR_2                    },
-    { "R3",                 "",         GR_SET,             GR_3                    },
-    { "R4",                 "",         GR_SET,             GR_4                    },
+    { "R1",                 "T1",       GR_SET,             GR_1                    },
+    { "R2",                 "T2",       GR_SET,             GR_2                    },
+    { "R3",                 "T3",       GR_SET,             GR_3                    },
+    { "R4",                 "T4",       GR_SET,             GR_4                    },
     { "R5",                 "",         GR_SET,             GR_5                    },
     { "R6",                 "",         GR_SET,             GR_6                    },
     { "R7",                 "",         GR_SET,             GR_7                    },
@@ -710,6 +712,8 @@ void DrvCmds::winHelpCmd( char *cmdBuf ) {
     fprintf( stdout, FMT_STR, "MCR", "Physical Memory controller registers" );
     fprintf( stdout, FMT_STR, "ITR", "CPU Instruction TLB controller registers" );
     fprintf( stdout, FMT_STR, "DTR", "CPU Data TLB controller registers" );
+    fprintf( stdout, FMT_STR, "PCR", "PDC Memory controller registers" );
+    fprintf( stdout, FMT_STR, "IOR", "IO Memory controller registers" );
     fprintf( stdout, FMT_STR, "TX", "Text Window" );
     fprintf( stdout, FMT_STR, "CW", "Command Line window" );
     fprintf( stdout, FMT_STR, "W",  "User defined window" );
@@ -2066,12 +2070,12 @@ void DrvCmds::winNewWinCmd( char *cmdBuf ) {
         return;
     }
     
-    if ((( winType == TOK_PM ) && ( glb -> cpu -> physMem == nullptr )) ||
-        (( winType == TOK_PC ) && ( glb -> cpu -> physMem == nullptr )) ||
-        (( winType == TOK_IT ) && ( glb -> cpu -> iTlb == nullptr )) ||
-        (( winType == TOK_DT ) && ( glb -> cpu -> dTlb == nullptr )) ||
-        (( winType == TOK_IC ) && ( glb -> cpu -> iCacheL1 == nullptr )) ||
-        (( winType == TOK_DC ) && ( glb -> cpu -> dCacheL1 == nullptr )) ||
+    if ((( winType == TOK_PM ) && ( glb -> cpu -> physMem == nullptr ))     ||
+        (( winType == TOK_PC ) && ( glb -> cpu -> physMem == nullptr ))     ||
+        (( winType == TOK_IT ) && ( glb -> cpu -> iTlb == nullptr ))        ||
+        (( winType == TOK_DT ) && ( glb -> cpu -> dTlb == nullptr ))        ||
+        (( winType == TOK_IC ) && ( glb -> cpu -> iCacheL1 == nullptr ))    ||
+        (( winType == TOK_DC ) && ( glb -> cpu -> dCacheL1 == nullptr ))    ||
         (( winType == TOK_UC ) && ( glb -> cpu -> uCacheL2 == nullptr ))) {
         
         fprintf( stdout, "Object for window is not configured \n" );

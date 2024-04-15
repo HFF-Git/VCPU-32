@@ -81,10 +81,12 @@ enum MemoryObjRegId : uint32_t {
     MC_REG_REQ_BLOCK_SET    = 8,
     MC_REG_REQ_LATENCY      = 9,
     
-    MC_REG_LATENCY          = 10,
-    MC_REG_BLOCK_ENTRIES    = 11,
-    MC_REG_BLOCK_SIZE       = 12,
-    MC_REG_SETS             = 13
+    MC_REG_START_ADR        = 10,
+    MC_REG_END_ADR          = 11,
+    MC_REG_LATENCY          = 12,
+    MC_REG_BLOCK_ENTRIES    = 13,
+    MC_REG_BLOCK_SIZE       = 14,
+    MC_REG_SETS             = 15
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -602,9 +604,7 @@ private:
     //--------------------------------------------------------------------------------------------------------
     // Utility routines.
     //
-    // ??? put priv reg check local to each file ?
     //--------------------------------------------------------------------------------------------------------
-    bool            isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessModes mode );
     void            handleTraps( );
     
     //--------------------------------------------------------------------------------------------------------

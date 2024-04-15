@@ -113,9 +113,11 @@ enum winType : int {
     WT_DCACHE_S_WIN = 14,
     WT_UCACHE_S_WIN = 15,
     WT_MEM_S_WIN    = 16,
-    WT_ITLB_S_WIN   = 17,
-    WT_DTLB_S_WIN   = 18,
-    WT_TEXT_WIN     = 19
+    WT_PDC_S_WIN    = 17,
+    WT_IO_S_WIN     = 18,
+    WT_ITLB_S_WIN   = 19,
+    WT_DTLB_S_WIN   = 20,
+    WT_TEXT_WIN     = 21
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1270,7 +1272,9 @@ void DrvWinStatistics::drawBanner( ) {
     uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE;
     
     setWinCursor( 1, 1 );
-    printTextField((char *) "Statistics", ( fmtDesc | FMT_ALIGN_LFT ), 16);
+    printTextField((char *) "Statistics", ( fmtDesc | FMT_ALIGN_LFT ), 16) ;
+    printTextField((char *) "ClockSteps: ", fmtDesc );
+    printNumericField( glb -> cpu -> stats.clockCntr, fmtDesc );
     padLine( fmtDesc );
     printRadixField( fmtDesc | FMT_LAST_FIELD );
 }
@@ -1286,8 +1290,7 @@ void DrvWinStatistics::drawBody( ) {
     
     setWinCursor( 2, 1 );
     
-    printTextField((char *) "ClockSteps: ", fmtDesc | FMT_ALIGN_LFT, 32 );
-    printNumericField( glb -> cpu -> stats.clockCntr, fmtDesc );
+    printTextField((char *) "... ", fmtDesc | FMT_ALIGN_LFT, 32 );
     padLine( fmtDesc );
 }
 
@@ -1812,12 +1815,16 @@ void DrvWinMemController::setDefaults( ) {
     else if ( winType == WT_UCACHE_S_WIN )  cPtr = glb -> cpu -> uCacheL2;
     else if ( winType == WT_MEM_S_WIN    )  cPtr = glb -> cpu -> physMem;
     
+    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+    setDefColumns( 84, TOK_HEX );
+    setDefColumns( 108, TOK_OCT );
+    setDefColumns( 84, TOK_DEC );
+    setColumns( getDefColumns( getRadix( )));
+    
     setWinType( winType );
     setEnable( false );
     setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
     setRows(( winType == WT_MEM_S_WIN ) ? 3 : 4 );
-    setDefColumns( 84 );
-    setColumns( 84 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1838,25 +1845,31 @@ void DrvWinMemController::drawBanner( ) {
         printTextField((char *) "D-Cache (L1)", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
     else if ( winType == WT_UCACHE_S_WIN )
         printTextField((char *) "U-Cache (L2)", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
-    else if ( winType == WT_MEM_S_WIN    )
+    else if ( winType == WT_MEM_S_WIN )
         printTextField((char *) "MEM Reg Set", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
+    else if ( winType == WT_PDC_S_WIN )
+        printTextField((char *) "PdcMEM Reg Set", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
+    else if ( winType == WT_IO_S_WIN )
+        printTextField((char *) "IoMEM Reg Set", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
     else
         printTextField((char *) "******* ", ( fmtDesc | FMT_ALIGN_LFT ), 16 );
     
-    printTextField((char *) "Entries: " );
+    printTextField((char *) "Range: " );
+    printNumericField( cPtr -> getMemCtrlReg( MC_REG_START_ADR ), fmtDesc );
+    printTextField((char *) ":" );
+    printNumericField( cPtr -> getMemCtrlReg( MC_REG_END_ADR ), fmtDesc );
+    
+    printTextField((char *) ", Blocks: " );
     printNumericField( cPtr -> getMemCtrlReg( MC_REG_BLOCK_ENTRIES ), fmtDesc );
-    printTextField((char *) ", Size: ", fmtDesc );
+    printTextField((char *) ":", fmtDesc );
     printNumericField( cPtr -> getMemCtrlReg( MC_REG_BLOCK_SIZE ), ( fmtDesc | FMT_HALF_WORD ));
     
-    if ( winType != WT_MEM_S_WIN ) {
+    if (( winType != WT_MEM_S_WIN ) && ( winType != WT_PDC_S_WIN ) && ( winType != WT_IO_S_WIN )) {
         
         printTextField((char *) ", Sets: " );
         printNumericField( cPtr -> getMemCtrlReg( MC_REG_SETS ), ( fmtDesc | FMT_HALF_WORD ));
     }
     
-    printTextField((char *) ", Lat: ", fmtDesc );
-    printNumericField( cPtr -> getMemCtrlReg( MC_REG_LATENCY ), ( fmtDesc | FMT_HALF_WORD ));
-
     padLine( fmtDesc );
     printRadixField( fmtDesc | FMT_LAST_FIELD );
 }
@@ -1878,12 +1891,10 @@ void DrvWinMemController::drawBody( ) {
     setWinCursor( 3, 1 );
     printTextField((char *) "Request:", ( fmtDesc | FMT_ALIGN_LFT ));
    
-    if ( winType == WT_MEM_S_WIN ) {
+    if (( winType == WT_MEM_S_WIN ) || ( winType == WT_PDC_S_WIN ) || ( winType == WT_IO_S_WIN )) {
         
         setWinCursor( 3, 11 );
-        printTextField((char *) "Bank:ofs:", ( fmtDesc | FMT_ALIGN_LFT ));
-        printNumericField( cPtr -> getMemCtrlReg( MC_REG_REQ_SEG ), ( fmtDesc | FMT_HALF_WORD ));
-        printTextField((char *) ":", fmtDesc );
+        printTextField((char *) "Adr:", ( fmtDesc | FMT_ALIGN_LFT ));
         printNumericField( cPtr -> getMemCtrlReg( MC_REG_REQ_OFS ));
         printTextField((char *) "  Len: ", fmtDesc );
         printNumericField( cPtr -> getMemCtrlReg( MC_REG_REQ_LEN ), ( fmtDesc | FMT_HALF_WORD ));

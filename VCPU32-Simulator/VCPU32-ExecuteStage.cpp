@@ -261,6 +261,26 @@ void ExecuteStage::setPipeLineReg( uint32_t pReg, uint32_t val ) {
     }
 }
 
+#if 0
+//------------------------------------------------------------------------------------------------------------
+// Some registers are subject to the privilege mode check of the execution thread. Any register can be read
+// at any priviledge level. Beyond that, there are checks for write access.
+//
+// put into the instrucution execution that makes these chccks....
+//------------------------------------------------------------------------------------------------------------
+bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessModes mode ) {
+    
+    switch ( regClass ) {
+            
+        case RC_GEN_REG_SET:    return( gReg[ regId % 8 ].isPrivReg( ));
+        case RC_SEG_REG_SET:    return( sReg[ regId % 8 ].isPrivReg( ) && mode == ACC_READ_WRITE );
+        case RC_CTRL_REG_SET:   return( cReg[ regId % 32 ].isPrivReg( ) && mode == ACC_READ_WRITE );
+        
+        default: return( true );
+    }
+}
+#endif
+
 //------------------------------------------------------------------------------------------------------------
 // Execute Stage processing. This stage will primarily do the computational work using the A and B output from
 // the MA stage. The computational result will be written back to the registers on the next "tick". For branch
@@ -312,8 +332,7 @@ void ExecuteStage::process( ) {
     valB            = psValB.get( );
     valX            = psValX.get( );
     valR            = 0;
-    
-    // RegIdForValR.set( MAX_GREGS ); // ??? what is this ?
+    regIdForValR    = MAX_GREGS;
     
     uint8_t opCode  = getBitField( psInstr.get( ), 5, 6 );
     

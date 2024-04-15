@@ -131,32 +131,45 @@ void CpuCore::reset( ) {
 // decoding results to the FD/MA pipeline registers.
 //
 // On the next "tick" all latched inputs in the registers then become the regioster output and thus the input
-// for the next round of cpomponent "process". In our example, the FD/MA pipelne registers are the input to
+// for the next round of component "process". In our example, the FD/MA pipelne registers are the input to
 // the MA pipeline stage.
 //
-// Note: we could have done also first the "ticks" and then the "process". It is just a matter of what the
-// step will mean. Since the simulator does show the ouput of any register in the display commands, it is
-// better to define a step as "take the ouputs of the previous stage register for processing, do the processing
-// and store any result in the latch input of the registers and then do the tick to make the results visible".
+// Note: we could have done also first the "ticks" group and then the "process" group. It is just a matter of
+// what the step will mean. Since the simulator does show the ouput of any register in the display commands,
+// it is better to define a step as "take the ouputs of the previous stage register for processing, do the
+// processing and store any result in the latch input of the registers and then do the tick to make the
+// results visible".
 //
+// Finally there is the order processing. Although it should not matter, it infortunately does for the
+// simulator. We cannot easily model selection and arbritation. For example, if the two L1 caches make a
+// request to the IDLE L2 cache, there needs to be an order. The L1 caches have a priority number which
+// decides which request will be passed the L2 cache. If the L2 cache however is "processed" before the
+// L1 caches, the request will only be recognized in the next clock cycle. This is not what we want to
+// model with respect to latency. So, the order mshould be: pipeline, L1, L2, MEM types. The "tick" order
+// does not matter. It will just update all registers in teh components, just as intended.
+//
+// ??? not sure if the "handle traps" should come right after the pripelines ?
 //------------------------------------------------------------------------------------------------------------
-void CpuCore::clockStep( uint32_t numOfSteps) {
+void CpuCore::clockStep( uint32_t numOfSteps ) {
  
     while ( numOfSteps > 0 ) {
-      
-        iTlb        -> process( );
-        dTlb        -> process( );
-        iCacheL1    -> process( );
-        dCacheL1    -> process( );
-        if ( uCacheL2 != nullptr ) uCacheL2 -> process( );
-        physMem         -> process( );
-        
+       
         fdStage     -> process( );
         maStage     -> process( );
         exStage     -> process( );
         
         handleTraps( );
-    
+      
+        iTlb        -> process( );
+        dTlb        -> process( );
+        iCacheL1    -> process( );
+        dCacheL1    -> process( );
+        physMem     -> process( );
+        
+        if ( uCacheL2 != nullptr )  uCacheL2    -> process( );
+        if ( pdcMem != nullptr )    pdcMem      -> process( );
+        if ( ioMem != nullptr )     ioMem       -> process( );
+        
         stReg.tick( );
         for ( uint8_t i = 0; i < 8; i++  ) gReg[ i ].tick( );
         for ( uint8_t i = 0; i < 8; i++  ) sReg[ i ].tick( );
@@ -169,10 +182,11 @@ void CpuCore::clockStep( uint32_t numOfSteps) {
         dTlb        -> tick( );
         iCacheL1    -> tick( );
         dCacheL1    -> tick( );
+        physMem     -> tick( );
+        
         if ( uCacheL2 != nullptr ) uCacheL2 -> tick( );
         if ( pdcMem   != nullptr ) pdcMem -> tick( );
         if ( ioMem    != nullptr ) ioMem -> tick( );
-        physMem         -> tick( );
     
         stats.clockCntr++;
         
@@ -288,24 +302,6 @@ void CpuCore::setReg( RegClass regClass, uint8_t regNum, uint32_t val ) {
         } break;
         
         default: ;
-    }
-}
-
-// ??? put into the files that use it ... ?
-//------------------------------------------------------------------------------------------------------------
-// Some registers are subject to the privilege mode check of the execution thread. Any register can be read
-// at any priviledge level. Beyond that, there are checks for write access.
-//
-//------------------------------------------------------------------------------------------------------------
-bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessModes mode ) {
-    
-    switch ( regClass ) {
-            
-        case RC_GEN_REG_SET:    return( gReg[ regId % 8 ].isPrivReg( ));
-        case RC_SEG_REG_SET:    return( sReg[ regId % 8 ].isPrivReg( ) && mode == ACC_READ_WRITE );
-        case RC_CTRL_REG_SET:   return( cReg[ regId % 32 ].isPrivReg( ) && mode == ACC_READ_WRITE );
-        
-        default: return( true );
     }
 }
 
