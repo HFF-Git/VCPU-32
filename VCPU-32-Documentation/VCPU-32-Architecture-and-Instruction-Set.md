@@ -787,7 +787,7 @@ With the exception of the load reserved and store conditional instruction, memor
 
 <div style="page-break-before: always;"></div>
 
-### LDw, LDwX
+### LDw, LDw.X
 
 <hr>
 
@@ -797,7 +797,7 @@ Loads a memory value into a general register using a logical address.
 
 ```
    LDw [.M] r, ofs(b)          w = B|H|W|D
-   LDXw [.M] r, a(b)           w = B|H|W|D
+   LDw.X [.M] r, a(b)           w = B|H|W|D
 ```
 
 ```
@@ -805,7 +805,7 @@ Loads a memory value into a general register using a logical address.
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : LDw     ( 0x30 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDwX    ( 0x30 ): r         :1 :M : seg : dw  : 0                      : a        : b         :
+   : LDw.X   ( 0x30 ): r         :1 :M : seg : dw  : 0                      : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -859,7 +859,7 @@ Stores a general register value into memory using a logical address.
 #### Format
 
 ```
-   STx [.M] operand, r         w = B|H|W|D
+   STw [.M] operand, r         w = B|H|W|D
 ```
 
 ```
@@ -910,7 +910,7 @@ The LDw, LDXw, STw and STwX instructions use a logical address to access a quadr
 
 <div style="page-break-before: always;"></div>
 
-### LDWA, LDWAX
+### LDA, LDA.X
 
 <hr>
 
@@ -919,8 +919,8 @@ Loads the memory content into a general register using an absolute address.
 #### Format
 
 ```
-   LDWA [.M] r, ofs(b)
-   LDWAX [.M]r, a(b)
+   LDA [.M] r, ofs(b)
+   LDA.X [.M]r, a(b)
 ```
 
 ```
@@ -928,7 +928,7 @@ Loads the memory content into a general register using an absolute address.
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : LDA    ( 0x36 ) : r         :0 :M : 0         : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDAX   ( 0x36 ) : r         :1 :M : 0                                  : a        : b         :
+   : LDA.X   ( 0x36 ) : r         :1 :M : 0                                  : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -966,7 +966,7 @@ None.
 
 <div style="page-break-before: always;"></div>
 
-### STWA
+### STA
 
 <hr>
 
@@ -975,7 +975,7 @@ Stores a general register value into memory using an absolute physical address.
 #### Format
 
 ```
-   STWA [.M] ofs (a, b), r
+   STA [.M] ofs (a, b), r
 ```
 
 ```
@@ -1019,7 +1019,7 @@ None.
 
 <div style="page-break-before: always;"></div>
 
-### LDWR
+### LDR
 
 <hr>
 
@@ -1028,16 +1028,16 @@ Loads the operand into the target register from the address and marks that addre
 #### Format
 
 ```
-   LDWR r, ofs(b)
-   LDWRX r, a(b)
+   LDR r, ofs(b)
+   LDR.X r, a(b)
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDWR    ( 0x32 ): r         : 0   : seg : 0   : ofs                               : b         :
+   : LDR     ( 0x32 ): r         : 0   : seg : 0   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDWRX   ( 0x32 ): r         :1 :0 : seg : 0                            : a        : b         :
+   : LDR.X   ( 0x32 ): r         :1 :0 : seg : 0                            : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1078,7 +1078,7 @@ The "remember the access part" is highly implementation dependent. One option is
 
 <div style="page-break-before: always;"></div>
 
-### STWC
+### STC
 
 <hr>
 
@@ -1087,7 +1087,7 @@ Conditionally store a value to memory.
 #### Format
 
 ```
-   STWC operand r
+   STC operand r
 ```
 
 ```
@@ -3123,11 +3123,11 @@ This appendix lists all instructions by instruction group.
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : ADD     ( 0x10 ): r         :C :L : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
-   : ADDC    ( 0x11 ): r         :C :L : operand                                                   :
+   : ADC     ( 0x11 ): r         :C :L : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
    : SUB     ( 0x12 ): r         :C :L : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
-   : SUB     ( 0x13 ): r         :C :L : operand                                                   :
+   : SBC     ( 0x13 ): r         :C :L : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
    : AND     ( 0x14 ): r         :N :C : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
@@ -3177,15 +3177,15 @@ This appendix lists all instructions by instruction group.
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : LDw     ( 0x30 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDwX    ( 0x30 ): r         :1 :M : seg : dw  : 0                      : a        : b         :
+   : LDw.X   ( 0x30 ): r         :1 :M : seg : dw  : 0                      : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : STw     ( 0x31 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDWR    ( 0x32 ): r         : 0   : seg : 0   : ofs                               : b         :
+   : LDR     ( 0x32 ): r         : 0   : seg : 0   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDWRX   ( 0x32 ): r         :1 :0 : seg : 0                            : a        : b         :
+   : LDR.X   ( 0x32 ): r         :1 :0 : seg : 0                            : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : STWC    ( 0x33 ): r         : 0   : seg : 0   : ofs                               : b         :
+   : STC     ( 0x33 ): r         : 0   : seg : 0   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3194,11 +3194,11 @@ This appendix lists all instructions by instruction group.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDWA    ( 0x36 ): r         :0 :M : 0         : ofs                               : b         : 
+   : LDA     ( 0x36 ): r         :0 :M : 0         : ofs                               : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-   : LDWAX   ( 0x36 ): r         :1 :M : 0                                 : a         : b         : 
+   : LDA.X   ( 0x36 ): r         :1 :M : 0                                 : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-   : STWA    ( 0x37 ): r         :0 :M : ofs                                           : b         :
+   : STA     ( 0x37 ): r         :0 :M : ofs                                           : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
