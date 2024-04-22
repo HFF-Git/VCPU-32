@@ -91,14 +91,12 @@ April, 2024
         - [Instruction Operation Notation](#instruction-operation-notation)
         - [Instruction groups](#instruction-groups)
     - [Memory Reference Instructions](#memory-reference-instructions)
-        - [LD, LDX](#ld-ldx)
-        - [ST](#st)
-        - [LDE, LDEX](#lde-ldex)
-        - [STEW, STEH, STEB](#stew-steh-steb)
+        - [LDw, LDwX](#ldw-ldwx)
+        - [STw](#stw)
         - [LDWA, LDWAX](#ldwa-ldwax)
         - [STWA](#stwa)
-        - [LDR](#ldr)
-        - [STC](#stc)
+        - [LDWR](#ldwr)
+        - [STWC](#stwc)
     - [Immediate Instructions](#immediate-instructions)
         - [LDIL](#ldil)
         - [ADDIL](#addil)
@@ -142,7 +140,6 @@ April, 2024
         - [Computational Instructions](#computational-instructions)
         - [Immediate Instructions](#immediate-instructions)
         - [Memory Reference Instruction](#memory-reference-instruction)
-        - [Extended Memory Reference Instructions](#extended-memory-reference-instructions)
         - [Absolute Memory Reference Instructions](#absolute-memory-reference-instructions)
         - [Control Flow Instructions](#control-flow-instructions)
         - [System Control Instructions](#system-control-instructions)
@@ -206,7 +203,7 @@ Welcome to VCPU-32. VCPU-32 is a simple 32-bit CPU with a register-memory model 
 
 The original design goal that started this work was to truly understand the design process and implementation tradeoff for a simple pipelined CPU. While it is not a design goal to build a modern, competitive CPU, the CPU should nevertheless be useful and largely follow established common practices. For example, instructions should not be invented because they seem to be useful, but rather designed with the assembler and compilers in mind. Instruction set design is also CPU design. Register memory architectures in the 80s were typically micro-coded complex instruction machine. In contrast, VCPU-32 instructions will be hard coded and should be in general "pipeline friendly" and avoid data and control hazards and stalls where possible.
 
-The instruction set design guidelines center around the following principles. First, in the interest of a simple and efficient instruction decoding step, instructions are of fixed length. A machine word is the instruction word length. As a consequence, address offsets are rather short and addressing modes are required for reaching the entire address range. Instead of a multitude of addressing modes, typically found in the CPUs of the 80s and 90s, VCPU-32 offers very few addressing modes with a simple base address - offset calculation model. No indirection or any addressing mode that would require to read a memory item for address calculation is part of the architecture.
+The instruction set design guidelines center around the following principles. First, in the interest of a simple and efficient instruction decoding step, instructions are of fixed length. A machine word is the instruction word length. As a consequence, some address offsets are rather short and addressing modes are required for reaching the entire address range. Instead of a multitude of addressing modes, typically found in the CPUs of the 80s and 90s, VCPU-32 offers very few addressing modes with a simple base address - offset calculation model. No indirection or any addressing mode that would require to read a memory item for address calculation is part of the architecture.
 
 There will be few instructions in total, however, depending on the instruction several options for the instruction execution are encoded to make an instruction more versatile. For example, a boolean instruction will offer options to negate the result thus offering and "AND" and a "NAND" with one instruction. Wherever possible, useful options such as the one outlined before are added to an instruction, such that it covers a range of instructions typically found on the CPUs looked into. Great emphasis is placed in that such options do not overly complicated the pipeline and increase the overall data path length slightly.
 
@@ -777,13 +774,11 @@ The next chapters present the instruction set. The set itself is divided into se
 
 Memory reference instruction operate on memory and a general register with a unit of transfer of a word, a half-word or a byte. In that sense the architecture is a typical load/store architecture. However, in contrast to a load/store architecture VCPU-32 load / store instructions are not the only instructions that access memory. Being a register/memory architecture, all instructions with an operand field encoding, will access memory as well. There are however no instructions that will access data memory access for reading and writing back an operand in the same instruction. Due to the operand instruction format and the requirement to offer a fixed length instruction word, the offset for an address operation is limited but still covers a large address range. 
 
-The **LDx** and **STx** instruction are load and store using the operand encoding format to specify the actual address. The final virtual address is built using the upper two bits of the computed address offset to select among the segment registers SR4..SR7. The **LDEx** and **STEx** implement access to virtual memory using segment register SR1..SR3 and and offset. These instruction can form a virtual address to access the entire address range. The instructions use a **W** for word, a **H** for half-word and a **B** for byte operand size. 
-
-The **LDAW**, **LDWAX**  and **STAW** instruction implement word access to the physical memory computing a physical address to access. 
+The **LDw**, **LDwX**, **STw** and **LDwX** instructions access virtual memory. The segment selector field allows to use a logical address with implicit selection of segment register SR4..SR7, or an explicit virtual address using segment register SR1..SR3. The instructions use a **W** for word, a **H** for half-word and a **B** for byte operand size. The **LDAW**, **LDWAX**  and **STAW** instruction implement word access to the physical memory computing a physical address to access. 
 
 The **LDWR** and **STWC** instructions support atomic operations. The **LDWR** instruction loads a value form memory and remember this access. The **STWC** instruction will store a value to the same location that the LR instructions used and return a failure if the value was modified since the last LR access. This CPU pipeline friendly pair of instructions allow to build higher level atomic operations on top.
 
-Memory reference instructions can be issued when data translation is on and off. When address translation is turned off, the memory reference instructions will ignore the segment part and replace it with a zero value. It is an architectural requirement that a virtual address with a segment Id of zero maps to an absolute address with the same offset. The absolute address mode instruction also works with translation turned on and off. The extended address mode instructions will raise a trap.
+Memory reference instructions can be issued when data translation is on and off. When address translation is turned off, the memory reference instructions will ignore the segment part and replace it with a zero value. The address is the physical address. It is an architectural requirement that a virtual address with a segment Id of zero maps to an absolute address with the same offset. The absolute address mode instruction also works with translation turned on and off. 
 
 With the exception of the load reserved and store conditional instruction, memory reference instructions support a base register modification. When the option is set, the base register for an address computation will be adjusted before or after the offset computation. A negative offset will be added before the address computation, a positive offset after the address computation.
 
@@ -792,7 +787,7 @@ With the exception of the load reserved and store conditional instruction, memor
 
 <div style="page-break-before: always;"></div>
 
-### LD, LDX
+### LDw, LDwX
 
 <hr>
 
@@ -801,22 +796,22 @@ Loads a memory value into a general register using a logical address.
 #### Format
 
 ```
-   LD [.M] r, ofs(b)
-   LDX [.M] r, a(b)
+   LDw [.M] r, ofs(b)          w = B|H|W|D
+   LDXw [.M] r, a(b)           w = B|H|W|D
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LD      ( 0x30 ): r         :0 :M : dw  : ofs                                     : b         :
+   : LDw     ( 0x30 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDX     ( 0x30 ): r         :1 :M : dw  : 0                            : a        : b         :
+   : LDwX    ( 0x30 ): r         :1 :M : seg : dw  : 0                      : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The load instruction will load the operand into the general register "r". See the section on operand encoding for the defined operand modes. The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. The offset must match the alignment size of the data to fetch.
+The load instruction will load the operand into the general register "r". The offset is computed by adding the sign extended offset to "b". The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. The "dw" field specifies the data length. From 0 to 3 the data length is byte, half word, word and double. The double option is reserved for future use. The computed offset must match the alignment size of the data to fetch. The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. 
 
 #### Operation
 
@@ -828,8 +823,10 @@ The load instruction will load the operand into the general register "r". See th
    }
 
    len = dataLen( instr.[12..13] );
-   seg = segSelect( offset );
 
+   if ( instr.[12..13] == 0 ) seg = segSelect( offset );
+   else                       seg = instr.[12..13];
+   
    GR[b] = GR[b] + lowSignExtend( ofs, 14 );
    
    GR[r] <- zeroExtend( memLoad( seg, GR[b] + lowSignExtend( ofs, 14 ), len ), len );
@@ -846,14 +843,14 @@ The load instruction will load the operand into the general register "r". See th
 
 #### Notes
 
-The LD and ST instructions uses a logical address and can access a quadrant defined by the upper two bits of the computed address offset to select among SR4..SR7. This is the most common usage of the load/store instruction and the implicit segment register selection allows for larger offset in the instruction. For accessing a data item anywhere in the virtual address range, the extended load and store instructions are available.
+The LDw, LDXw, STw and STwX instructions use a logical address to access a quadrant defined by the upper two bits of the computed address offset, selecting among SR4..SR7. This is the most common usage of the load/store instruction. For accessing a data item anywhere in the virtual address range, segment registers SR1..SR3 are used.
 
 
 <!--------------------------------------------------------------------------------------------------------->
 
 <div style="page-break-before: always;"></div>
 
-### ST
+### STw
 
 <hr>
 
@@ -862,19 +859,19 @@ Stores a general register value into memory using a logical address.
 #### Format
 
 ```
-   STx [.M] operand, r
+   STx [.M] operand, r         w = B|H|W|D
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : ST      ( 0x31 ): r         :0 :M : dw  : ofs                                     : b         :
+   : STw     ( 0x31 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The load instruction will store the data in general register "r" to memory. See the section on operand encoding for the defined operand modes. The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. Note that there is no register indexed mode for the STx instruction. 
+The load instruction will store the data in general register "r" to memory. The offset is computed by adding the sign extended offset to "b". The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. The "dw" field specifies the data length. From 0 to 3 the data length is byte, half word, word and double. The double option is reserved for future use. The computed offset must match the alignment size of the data to fetch. The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. 
 
 #### Operation
 
@@ -886,7 +883,9 @@ The load instruction will store the data in general register "r" to memory. See 
    }
 
    len = dataLen( instr.[12..13] );
-   seg = segSelect( offset );
+
+   if ( instr.[12..13] == 0 ) seg = segSelect( offset );
+   else                       seg = instr.[12..13];
 
    GR[b] = GR[b] + lowSignExtend( ofs, 14 );
    
@@ -904,124 +903,7 @@ The load instruction will store the data in general register "r" to memory. See 
 
 #### Notes
 
-The LD and ST instructions uses a logical address and can access a quadrant defined by the upper two bits of the computed address offset to select among SR4..SR7. This is the most common usage of the load/store instruction and the implicit segment register selection allows for larger offset in the instruction. For accessing a data item anywhere in the virtual address range, the extended load and store instructions are available. In contrast to the LDx instruction, the STx instruction would need to access three registers ( the value to store, the base and index register ), which would require a greater hardware effort.
-
-
-<!--------------------------------------------------------------------------------------------------------->
-
-<div style="page-break-before: always;"></div>
-
-### LDE, LDEX
-
-<hr>
-
-Loads a memory value into a general register using a virtual address.
-
-#### Format
-
-```
-   LDE [.M] r, ofs(b)
-   LDEX [.M] r, a(b)
-```
-
-```
-    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDE    ( 0x34 ) : r         :0 :M : seg : dw  : ofs                               : b         :
-   :-----------------:-----------------------------------------------------------------------------:
-   : LDEX   ( 0x34 ) : r         :1 :M : seg : dw  : 0                      : a        : b         :
-   :-----------------:-----------------------------------------------------------------------------:
-```
-
-#### Description
-
-The load extended instruction will load the operand into the general register "r". The "seg" field selects among the segment registers. A value of zero will use the upper two bits of the computed offset to select among SR4..SR7. All other values select among SR1..SR3. The "dw" field defines the data width to load. The "dw" field specifies the data width. The offset is computed by adding the offset or the content of "a" to "b". The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. The offset must match the alignment size of the data to fetch.
-
-#### Operation
-
-```
-   if ( instr.[M] ) {
-
-      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
-      else                                offset = GR[b];
-   }
-   
-   len <- instr.[14..15];
-   seg   <- segSelect( instr[12..13] );
-   GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
-
-   GR[r] <- zeroExtend( memLoad( seg, GR[b] + lowSignExtend( ofs, 12 ), len ), len );
-```
-
-#### Exceptions
-
-- Illegal instruction trap
-- DTLB miss/data page fault
-- Data memory access rights trap
-- Data memory protection Id trap
-- Page reference trap
-- Alignment trap
-
-#### Notes
-
-The load and store extended instruction family allow data access across the entire virtual address range using segment registers SR1..SR3. The address offset can reach any data byte in the segment address range. 
-
-
-<!--------------------------------------------------------------------------------------------------------->
-
-<div style="page-break-before: always;"></div>
-
-### STEW, STEH, STEB
-
-<hr>
-
-Stores a general register value into memory using a virtual address.
-
-#### Format
-
-```
-   STE [.M] ofs(b), r
-```
-
-```
-    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : STE    ( 0x35 ) : r         :0 :M : seg : dw  : ofs                               : b         :
-   :-----------------:-----------------------------------------------------------------------------:
-```
-
-#### Description
-
-The store extended instruction will store general register "r" to the virtual address. The "seg" field selects among the segment registers. A value of zero will use the upper two bits of the computed offset to select among SR4..SR7. All other values select among SR1..SR3. The "dw" field defines the data width to load. The "dw" field specifies the data width. The offset is computed by adding the offset to "b". The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. The offset must match the alignment size of the data to fetch.
-
-#### Operation
-
-```
-   if ( instr.[M] ) {
-
-      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
-      else                                offset = GR[b];
-   }
-
-   len <- instr.[14..15];
-   seg   <- segSelect( instr[12..13] );
-   GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
-
-   GR[r] <- memStore( seg, GR[b] + lowSignExtend( ofs, 12 ), GR[r], len );
-```
-
-#### Exceptions
-
-- Illegal instruction trap
-- DTLB miss/data page fault
-- Data memory access rights trap
-- Data memory protection Id trap
-- Page reference trap
-- Alignment trap
-
-#### Notes
-
-The load and stored extended instructions allow data access across the entire virtual address range using segment registers SR1..SR3. The address offset can reach any data byte in the segment address range. The store instruction does not support an indexed mode. In contrast to the LDEXx instruction, the STEx instruction would need to access three registers ( the value to store, the base and index register ), which would require a greater hardware effort.
+The LDw, LDXw, STw and STwX instructions use a logical address to access a quadrant defined by the upper two bits of the computed address offset, selecting among SR4..SR7. This is the most common usage of the load/store instruction. For accessing a data item anywhere in the virtual address range, segment registers SR1..SR3 are used.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1037,14 +919,14 @@ Loads the memory content into a general register using an absolute address.
 #### Format
 
 ```
-   LDA [.M] r, ofs (b)
-   LDAX [.M]r, a(b)
+   LDWA [.M] r, ofs(b)
+   LDWAX [.M]r, a(b)
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDA    ( 0x36 ) : r         :0 :M : ofs                                           : b         :
+   : LDA    ( 0x36 ) : r         :0 :M : 0         : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : LDAX   ( 0x36 ) : r         :1 :M : 0                                  : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
@@ -1137,7 +1019,7 @@ None.
 
 <div style="page-break-before: always;"></div>
 
-### LDR
+### LDWR
 
 <hr>
 
@@ -1146,22 +1028,22 @@ Loads the operand into the target register from the address and marks that addre
 #### Format
 
 ```
-   LDR r, ofs(b)
-   LDRX r, a(b)
+   LDWR r, ofs(b)
+   LDWRX r, a(b)
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDR     ( 0x32 ): r         : 0         : ofs                                     : b         :
+   : LDWR    ( 0x32 ): r         : 0   : seg : 0   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDRX    ( 0x32 ): r         :1 : 0      :                              : a        : b         :
+   : LDWRX   ( 0x32 ): r         :1 :0 : seg : 0                            : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The LDWR instruction is used for implementing semaphore type operations. See the section on operand encoding for the defined operand mode encoding. The first part of the instruction behaves exactly like the LDW instruction. A logical memory address is computed. Next, the memory content is loaded into general register "r". The second part remembers the address and will detect any modifying reference to it. The LDWR instruction supports only word addressing.
+The LDWR instruction is used for implementing semaphore type operations. The first part of the instruction behaves exactly like the LDW instruction where a virtual address is computed. Next, the memory content is loaded into general register "r". The second part remembers the address and will detect any modifying reference to it. The LDWR instruction supports only word addressing.
 
 #### Operation
 
@@ -1169,7 +1051,8 @@ The LDWR instruction is used for implementing semaphore type operations. See the
    if ( instr.[10] ) offset = GR[b] + GR[a];
    else              offset = GR[b] + lowSignExtend( ofs, 14 );
 
-   seg = segSelect( GR[b] );
+   if ( instr.[12..13] == 0 ) seg = segSelect( offset );
+   else                       seg = instr.[12..13];
   
    GR[r] <- memLoad( seg, offset, 32 );
       
@@ -1195,7 +1078,7 @@ The "remember the access part" is highly implementation dependent. One option is
 
 <div style="page-break-before: always;"></div>
 
-### STC
+### STWC
 
 <hr>
 
@@ -1204,28 +1087,30 @@ Conditionally store a value to memory.
 #### Format
 
 ```
-   STC operand r
+   STWC operand r
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : STC     ( 0x33 ): r         : 0         : ofs                                     : b         :
+   : STC     ( 0x33 ): r         : 0   : seg : 0   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The STWC conditional instruction will store a value in "r" to the memory location specified by the operand address. The store is however only performed when the data location has not been written to since the last load reference instruction execution for that address. If the operation is successful a value of zero is returned otherwise a value of one. See the section on operand encoding for the defined operand mode encoding. Only OpMode 3 with word data length is allowed.
+The STWC conditional instruction will store a value in "r" to the memory location specified by the operand address. The first part of the instruction behaves exactly like the STW instruction where a virtual address is computed. The store is however only performed when the data location has not been written to since the last load reference instruction execution for that address. If the operation is successful a value of zero is returned otherwise a value of one. See the section on operand encoding for the defined operand mode encoding. Only OpMode 3 with word data length is allowed.
 
 #### Operation
 
 ```
    if (( lrValid ) && ( lrVal == GR[r])) {
 
-      seg = segSelect( GR[b] );
       ofs = GR[b] + lowSignExtend( ofs, 14 );
 
+      if ( instr.[12..13] == 0 ) seg = segSelect( offset );
+      else                       seg = instr.[12..13];
+      
       memStore( seg, ofs, GR[r], 32 );
       GR[r] <- 0;
 
@@ -2810,7 +2695,7 @@ Probe data access to a virtual address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : PRB    ( 0x3A ) : r         :M :P :I :0 :seg  : 0                     : a         : b         :
+   : PRB    ( 0x3A ) : r         :M :P : seg :I : 0                        : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3290,30 +3175,17 @@ This appendix lists all instructions by instruction group.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LD      ( 0x30 ): r         :0 :M : dw  : ofs                                     : b         :
+   : LDw     ( 0x30 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDX     ( 0x30 ): r         :1 :M : dw  : 0                            : a        : b         :
+   : LDwX    ( 0x30 ): r         :1 :M : seg : dw  : 0                      : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : ST      ( 0x31 ): r         :0 :M : dw  : ofs                                     : b         :
+   : STw     ( 0x31 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDR     ( 0x32 ): r         : 0         : ofs                                     : b         :
+   : LDWR    ( 0x32 ): r         : 0   : seg : 0   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDRX    ( 0x32 ): r         :1 : 0      :                              : a        : b         :
+   : LDWRX   ( 0x32 ): r         :1 :0 : seg : 0                            : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : STC     ( 0x33 ): r         : 0         : ofs                                     : b         :
-   :-----------------:-----------------------------------------------------------------------------:
-```
-
-### Extended Memory Reference Instructions
-
-```
-    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDE     ( 0x34 ): r         :0 :M : seg : dw  : ofs                               : b         : 
-   :-----------------:-----------------------------------------------------------------------------:
-   : LDEX    ( 0x34 ): r         :1 :M : seg : dw  : 0                     : a         : b         : 
-   :-----------------:-----------------------------------------------------------------------------:
-   : STE     ( 0x35 ): r         :0 :M : seg : dw  : ofs                               : b         : 
+   : STWC    ( 0x33 ): r         : 0   : seg : 0   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3322,7 +3194,7 @@ This appendix lists all instructions by instruction group.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDWA    ( 0x36 ): r         :0 :M : ofs                                           : b         : 
+   : LDWA    ( 0x36 ): r         :0 :M : 0         : ofs                               : b         : 
    :-----------------:-----------------------------------------------------------------------------:
    : LDWAX   ( 0x36 ): r         :1 :M : 0                                 : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
@@ -3362,9 +3234,9 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : MST     ( 0x0B ): r         :mode : 0                                       : s               :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDPA    ( 0x37 ): r         : 0         : seg :                       : a         : b         :       
+   : LDPA    ( 0x37 ): r         : 0   : seg : 0                           : a         : b         :       
    :-----------------:-----------------------------------------------------------------------------:
-   : PRB     ( 0x3A ): r         :M :P :I :0 : seg : 0                     : a         : b         :   
+   : PRB     ( 0x3A ): r         :M :P : seg :I : 0                        : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
    : ITLB    ( 0x3B ): r         :T :M : 0                                 : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
