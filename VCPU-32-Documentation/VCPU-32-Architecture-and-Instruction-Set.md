@@ -172,12 +172,12 @@ April, 2024
         - [The physical address space](#the-physical-address-space)
         - [Concept of an I/O Module](#concept-of-an-io-module)
         - [External Interrupts](#external-interrupts)
-        - [The VCPU-32 instruction set and runtime architecture has been designed to take in consideration the effects of stalling and flushing a CPU pipeline. In general, such operations are in terms of performance costly and should be avoided. Also, access data memory twice or any indirection level of data access will also affect the pipeline performance i a negative way. This chapter presents a simple pipeline reference model for a VCPU-32 implementation.](#the-vcpu-32-instruction-set-and-runtime-architecture-has-been-designed-to-take-in-consideration-the-effects-of-stalling-and-flushing-a-cpu-pipeline-in-general-such-operations-are-in-terms-of-performance-costly-and-should-be-avoided-also-access-data-memory-twice-or-any-indirection-level-of-data-access-will-also-affect-the-pipeline-performance-i-a-negative-way-this-chapter-presents-a-simple-pipeline-reference-model-for-a-vcpu-32-implementation)
-    - [None so far.](#none-so-far)
-    - [None so far.](#none-so-far)
+    - [A pipelined CPU](#a-pipelined-cpu)
+    - [Notes](#notes)
+    - [References](#references)
 
 <!-- /TOC -->
-<!-- /TOC -->
+
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
@@ -3814,7 +3814,7 @@ VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory add
 
 <div style="page-break-before: always;"></div>
 
-### A pipelined CPU
+## A pipelined CPU
 
 The VCPU-32 instruction set and runtime architecture has been designed to take in consideration the effects of stalling and flushing a CPU pipeline. In general, such operations are in terms of performance costly and should be avoided. Also, access data memory twice or any indirection level of data access will also affect the pipeline performance i a negative way. This chapter presents a simple pipeline reference model for a VCPU-32 implementation.
 
