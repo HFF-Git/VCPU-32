@@ -260,12 +260,14 @@ VCPU-32 features a physical memory address range of 32-bits. The picture below d
    :                                     :          |                 :                                     :
    :                                     :          |   0xF1000000 -> :-------------------------------------:
    :                                     :          |                 :                                     :
+   :                                     :          |                 :              . . .                  :
    :                                     :          |                 :                                     :
    :                                     :          |                 :-------------------------------------:
-   :-------------------------------------: ---------+                 :            . . .                    :
+   :-------------------------------------: ---------+                 :          Io Module                  :
    :                                     :                            :                                     : 
    :            IO                       :                            :-------------------------------------:
    :                                     :                            :                                     :
+   :                                     :                            :              . . .                  :
    :                                     :                            :                                     :
    :-------------------------------------: 0xFFFFFFFF --------------->:-------------------------------------:
 ```
@@ -387,9 +389,9 @@ The VCPU-32 memory model features a **segmented memory model**. The address spac
    :------------------------------------------:   :-------------------------------------------:
    :  segment Id                              :   :   page number            : page offset    :
    :------------------------------------------:   :-------------------------------------------:
-                       |                                                |
-                       |                                                |
-                       v                                                |
+                             |                                          |
+                             |                                          |
+                             v                                          |
                     :-------------------------------------------:       |
                     :                                           :       |
              :-------------------------------------------:      :       |
@@ -714,11 +716,10 @@ The final operand mode is the **indexed address mode**. The operand address is b
 
 Each instruction is also presented in an assembler style format. The field names found in the instruction format map to the names used in the assembler notation. The names used in the format, such as "r", "a" or "val" directly map to the fields in the instruction layout. An exception are the opMode format instructions where the names "opMode" and "opArg" are used. The following table shows these formats.
 
-| Operand Format | opMode Group | Assembler Notation Example | Comment
+| Operand Format | opMode Group | Assembler Notation Example | Comment |
 |:---|:---|:---|:---|
 | Immediate | 0 | ADD r1, 500 | add 500 to the general register r1 |
-| One register | 1 | --- | SubMode 0. A zero value and one register as operand operation. This opMode combination is typically used for implementing pseudo instructions |
-| Two register | 1 | OR r2, r6, r7 | SubMode 1. A two register operation. "r2" in "r", "r6" in "a" and "r7" in "b" |
+| Two register | 1 | OR r2, r6, r7 | A two register operation. "r2" in "r", "r6" in "a" and "r7" in "b" |
 | Register indexed | 2 | LD r6, r4(r10) | Add r4 to r10 and use the upper two bits of the result to select among segment registers 4 to 7.  "seg" field is 0, "dw" field is 0, r4 in "a", r10 in "b" and r6 in "r" |
 | Register indexed | 2 | LDH r6, r4(sr1, r10) | Add r4 to r10 and use segment s1 as the segment register. "seg" field is 1, "dw" field is 1, r4 in "a", r10 in "b" and r6 in "r" |
 | Indexed | 3 | ST 100(r12), r4 | Store r4 to the virtual memory address formed by adding 100 to r12 and selecting based on the upper two bits the segment register. "seg" field is 0, "dw" field is 0, "ofs" field is 100, r12 in "b" | 
@@ -740,7 +741,7 @@ The instructions described in the following chapters contain the instruction wor
 | **segSelect( x )** | returns the segment register number based on the leftmost two bits of the argument "x". |
 | **ofsSelect( x )** | returns the 30-bit offset portion of the argument "x". |
 | **operandAdrSeg( instr )** | computes the segment Id from the instruction offset computed. ( See the operand encoding diagram for modes 2 and 3 ) |
-| **operandAdrOfs( instr )** | computes the offset portion from the instruction and mode information. ( See the operand encoding diagram for modes 2 and 3 ). For load and store instructions, the base register is optionally adjusted.  |
+| **operandAdrOfs( instr )** | computes the offset portion from the instruction and mode information. ( See the operand encoding diagram for modes 2 and 3 ). For load and store instructions, the base register is optionally adjusted with the offset value. |
 | **operandBitLen( instr )** | computes the operand bit length from the instruction and mode information. ( See the operand encoding diagram for modes ) |
 | **rshift( x, amount )** | logical right shift of the bits in x by "amount" bits. |
 | **memLoad( seg, ofs, bitLen )** | loads data from virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. The bitLen is the number of bits to load. If the bitLen is less than 32, the data is zero sign extended. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to load a word from physical memory.  |
@@ -817,7 +818,29 @@ The load instruction will load the operand into the general register "r". The of
 
 #### Operation
 
+
 ```
+   opMode 2: 
+
+   if ( instr.[M] ) {
+
+      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + GR[a];
+      else                                offset = GR[b];
+   }
+
+   len = dataLen( instr.[12..13] );
+
+   if ( instr.[12..13] == 0 ) seg = segSelect( offset );
+   else                       seg = instr.[12..13];
+   
+   GR[b] = GR[b] + GR[a];
+   
+   GR[r] <- zeroExtend( memLoad( seg, offset, len ), len );
+```
+
+```
+   opMode 3:
+
    if ( instr.[M] ) {
 
       if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 14 );
@@ -829,9 +852,9 @@ The load instruction will load the operand into the general register "r". The of
    if ( instr.[12..13] == 0 ) seg = segSelect( offset );
    else                       seg = instr.[12..13];
    
-   GR[b] = GR[b] + lowSignExtend( ofs, 14 );
+   GR[b] = GR[b] + lowSignExtend( ofs, 12 );
    
-   GR[r] <- zeroExtend( memLoad( seg, GR[b] + lowSignExtend( ofs, 14 ), len ), len );
+   GR[r] <- zeroExtend( memLoad( seg, offset, len ), len );
 ```
 
 #### Exceptions
@@ -873,7 +896,7 @@ Stores a general register value into memory using a logical address.
 
 #### Description
 
-The load instruction will store the data in general register "r" to memory. The offset is computed by adding the sign extended offset to "b". The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. The "dw" field specifies the data length. From 0 to 3 the data length is byte, half word, word and double. The double option is reserved for future use. The computed offset must match the alignment size of the data to fetch. The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. 
+The store instruction will store the data in general register "r" to memory. The offset is computed by adding the sign extended offset to "b". The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. The "dw" field specifies the data length. From 0 to 3 the data length is byte, half word, word and double. The double option is reserved for future use. The computed offset must match the alignment size of the data to fetch. The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. 
 
 #### Operation
 
@@ -889,9 +912,9 @@ The load instruction will store the data in general register "r" to memory. The 
    if ( instr.[12..13] == 0 ) seg = segSelect( offset );
    else                       seg = instr.[12..13];
 
-   GR[b] = GR[b] + lowSignExtend( ofs, 14 );
+   GR[b] = GR[b] + lowSignExtend( ofs, 12 );
    
-   memStore( seg, GR[b] + lowSignExtend( ofs, 14 ), GR[r], len );
+   memStore( seg, GR[b] + lowSignExtend( ofs, 12 ), GR[r], len );
 ```
 
 #### Exceptions
@@ -941,6 +964,8 @@ The load absolute instruction will load the content of the physical memory addre
 #### Operation
 
 ```
+   LDA: 
+
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
    if ( instr.[M] ) {
@@ -949,9 +974,25 @@ The load absolute instruction will load the content of the physical memory addre
       else                                offset = GR[b];
    }
 
-   GR[b] <- GR[b] + lowSignExtend( ofs, 16 );
+   GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
 
-   GR[r] <- memLoad( 0, GR[b] + lowSignExtend( offset, 18 ), 32 );
+   GR[r] <- memLoad( 0, offset, 32 );
+```
+
+```
+   LDAX:
+
+   if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
+
+   if ( instr.[M] ) {
+
+      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + GR[a];
+      else                                offset = GR[b];
+   }
+
+   GR[b] <- GR[b] + GR[a];
+
+   GR[r] <- memLoad( 0, GR[b] + GR[a], 32 );
 ```
 
 #### Exceptions
@@ -983,7 +1024,7 @@ Stores a general register value into memory using an absolute physical address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : STA     ( 0x37 ): r         :0 :M : ofs                                           : b         :
+   : STA     ( 0x37 ): r         :0 :M : 0         : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1002,9 +1043,9 @@ The store absolute instruction will store the target register into memory using 
       else                                offset = GR[b];
    }
 
-   GR[b] <- GR[b] + lowSignExtend( ofs, 16 );
+   GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
 
-   memStore( 0, GR[b] + lowSignExtend( ofs, 18 ), GR[r], 32 );
+   memStore( 0, GR[b] + lowSignExtend( ofs, 12 ), GR[r], 32 );
 ```
 
 #### Exceptions
@@ -1031,15 +1072,12 @@ Loads the operand into the target register from the address and marks that addre
 
 ```
    LDR r, ofs(b)
-   LDR.X r, a(b)
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : LDR     ( 0x32 ): r         : 0   : seg : 0   : ofs                               : b         :
-   :-----------------:-----------------------------------------------------------------------------:
-   : LDR.X   ( 0x32 ): r         :1 :0 : seg : 0                            : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1051,7 +1089,7 @@ The LDR instruction is used for implementing semaphore type operations. The firs
 
 ```
    if ( instr.[10] ) offset = GR[b] + GR[a];
-   else              offset = GR[b] + lowSignExtend( ofs, 14 );
+   else              offset = GR[b] + lowSignExtend( ofs, 12 );
 
    if ( instr.[12..13] == 0 ) seg = segSelect( offset );
    else                       seg = instr.[12..13];
@@ -1108,7 +1146,7 @@ The STC conditional instruction will store a value in "r" to the memory location
 ```
    if (( lrValid ) && ( lrVal == GR[r])) {
 
-      ofs = GR[b] + lowSignExtend( ofs, 14 );
+      ofs = GR[b] + lowSignExtend( ofs, 12 );
 
       if ( instr.[12..13] == 0 ) seg = segSelect( offset );
       else                       seg = instr.[12..13];
@@ -1336,7 +1374,7 @@ The branch instruction performs a branch to an instruction address relative loca
 
 ```
    GR[r]  <- IA-OFS + 4;
-   IA-OFS <- IA-OFS + ( lowSignExt( ofs << 2 ), 22 );
+   IA-OFS <- IA-OFS + lowSignExt(( ofs << 2 ), 24 );
 ```
 
 #### Exceptions
@@ -2155,6 +2193,7 @@ The compare condition are encoded as follows.
 The instructions can also be used to implement the greater than (GT) and greater or equal (GE) condition. 
 
 CMP.GT r1, r2 -> CMP.LE r2, r1
+
 CMP.GE r1, r2 -> CMP.LT r2, r1
 
 
@@ -2307,10 +2346,10 @@ The instruction extracts the right justified bit field of length "len" in genera
 #### Operation
 
 ```
+   if ( instr.[Z] ) GR[r] <- 0;
+
    if ( instr.[A] ) tmpPos <- SHAMT.[27..31];
    else tmpPos <- pos;
-
-   if ( instr.[Z] ) GR[r] <- 0;
 
    if ( instr.[I] ) tmpB = instr.[28..31];
    else tmpB <- GR[b];
@@ -2368,7 +2407,7 @@ The double shift right instruction concatenates the general registers specified 
 
 #### Exceptions
 
-- illegal instruction trap.
+None.
 
 #### Notes
 
@@ -2638,7 +2677,7 @@ Load the physical address for a virtual address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDPA    ( 0x37 ): r         : 0         : seg : 0                     : a         : b         :
+   : LDPA    ( 0x37 ): r         : 0   : seg : 0                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2651,8 +2690,8 @@ The LDPA instruction returns the physical address for a logical or virtual addre
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-   seg <- segSelect( instr );
    ofs <- GR[b] + GR[a];
+   seg <- segSelect( ofs );
 
    GR[r] <- loadPhysAdr( seg, ofs );
 ```
@@ -2692,16 +2731,11 @@ Probe data access to a virtual address.
 
 #### Description
 
-The PRB instruction determines whether data access at the requested privilege level stored in the general register "r" is allowed. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "M" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. the "P" bit designates the privilege level to use for the probe operation. The "I" bit, if set, uses the value in register "a" as the privilege level to test for instead of the "P" bit. If protection ID checking is enabled, the protection ID is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
+The PRB instruction determines whether data access at the requested privilege level stored in the general register "r" is allowed. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "M" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. the "P" bit designates the privilege level to use for the probe operation. If the "I" bit is set, the PRB instruction uses the value in register "a" as the privilege level to test for instead of the "P" bit. If protection ID checking is enabled, the protection ID is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
 
 #### Operation
 
 ```
-   if ( opMode < 2 ) illegalInstructionTrap( );
-
-   seg <- operandAdrSeg( instr );
-   ofs <- operandAdrOfs( instr );
-   
    if ( ! searchDataTlbEntry( seg, ofs, &entry )) {
 
       if ( instr.[I] ) {
@@ -2770,7 +2804,7 @@ Depending on the "T" bit, the protection information part or the address part is
 
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   :V :T :D :B :X :  : AR        :                 : Protect-ID                                    :    T = 1
+   :V :T :D :B :X :  : AR        : 0               : Protect-ID                                    :    T = 1
    :-----------------------------------------------------------------------------------------------:
 ```
 
@@ -2920,13 +2954,13 @@ Issues commands to hardware specific components and implementation features.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : DIAG    ( 0x3E ): r         :  0                                      : a         : b         :
+   : DIAG    ( 0x3E ): r         : info      : 0                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The DIAG instruction sends a command to an implementation hardware specific components. The instruction accepts two argument registers "a" and "b" and returns a result in "r".  The meaning if the input and output arguments are processor implementation dependent and described in the respective processor documentation.
+The DIAG instruction sends a command to an implementation hardware specific components. The instruction accepts two argument registers "a" and "b" and returns a result in "r".  The meaning of the "info" field and the input and output arguments are processor implementation dependent and described in the respective processor documentation.
 
 #### Operation
 
@@ -3070,11 +3104,10 @@ The following table shows potential synthetic instructions.
 | **DEC** | DEC [ .< opt > ] GRx, val | SUB [ .< opt > ] GR x, val | |
 | **NEG** | NEG GRx | SUB [ .<opt> ] GRx, GRx, opMode 1 | |
 | **COM** | COM GRx | OR.N  GRx, GRx, opMode 1 | |
-| **LDSR** | LDSR SRx, GRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
-| **LDCR** | LDCR CRx, GRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
-| **STSR** | STSR GRx, SRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
-| **STCR** | STCR GRx, CRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
-
+| **MFSR** | LDSR SRx, GRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
+| **MFCR** | LDCR CRx, GRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
+| **MTSR** | STSR GRx, SRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
+| **MTCR** | STCR GRx, CRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
 | ... | ... | ... | more to come ... |
 |||||
 
@@ -3145,7 +3178,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : SHLA    ( 0x08 ): r         :I :L :O : 0                     : sa  :0 : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-   : CMR     ( 0x09 ): r         :cond    : 0                              : a         : b         : 
+   : CMR     ( 0x09 ): r         :cond : 0                                 : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3173,8 +3206,6 @@ This appendix lists all instructions by instruction group.
    : STw     ( 0x31 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : LDR     ( 0x32 ): r         : 0   : seg : 0   : ofs                               : b         :
-   :-----------------:-----------------------------------------------------------------------------:
-   : LDR.X   ( 0x32 ): r         :1 :0 : seg : 0                            : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : STC     ( 0x33 ): r         : 0   : seg : 0   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
@@ -3212,7 +3243,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : BVE     ( 0x26 ): 0                                                   : a         : b         :      
    :-----------------:-----------------------------------------------------------------------------:
-   : CBR     ( 0x27 ): cond   : ofs                                        : a         : b         : 
+   : CBR     ( 0x27 ):cond : ofs                                           : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3442,7 +3473,7 @@ The SR5 quadrant contains the global data of the current module, the task stack 
       :                           :                        :                           :
       :   Function                :                        :                           :
       :                           :                        :                           :
-      :       Current instruction :<-- IA-SEG.IA-OFS       :                           :                     :                           :                        :                           :
+      :       Current instruction :<-- IA-SEG.IA-OFS       :                           :   
       :                           :                        :                           :
       :                           :                        :                           :
       :                           :                        :===========================:
