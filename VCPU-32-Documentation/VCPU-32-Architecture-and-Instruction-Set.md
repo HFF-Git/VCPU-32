@@ -600,7 +600,7 @@ The function builds the hash index, which may also be used for TLB entries, virt
 
 Control flow is implemented through a set of branch instructions. They can be classified into unconditional and conditional instruction branches.
 
-**Unconditional Branches**. Unconditional branches fetch the next instruction address from the computed branch target. The address computation can be relative to the current instruction address ( instruction relative branch ) or relativ to an address register ( base register relative ). For a segment local branch, the instruction address segment part will not change. Unconditional branches are also used to jump to a subroutine and return from there. The branch and link instruction types save the return point to a general register. External calls are quite similar, except that they always branch to an absolute offset in the external segment. Just like the branch instruction, the return point can be saved, but this time the segment is stored in SR0 and the offset in GR1.
+**Unconditional Branches**. Unconditional branches fetch the next instruction address from the computed branch target. The address computation can be relative to the current instruction address ( instruction relative branch ) or relativ to an address register ( base register relative ). For a segment local branch, the instruction address segment part will not change. Unconditional branches are also used to jump to a subroutine and return from there. The branch and link instruction types save the return point to a general register. External calls are quite similar, except that they always branch to an absolute offset in the external segment. Just like the branch instruction, the return point can be saved, but this time the segment is stored in SR0.
 
 **Conditional Branches**. VCPU-32 features two conditional branch instructions. These instructions compares two register values or test a register for a certain condition. If the condition is met a branch to the target address is performed.  The target address is always a local address and the offset is instruction address relative. Conditional branches adopt a static prediction model. Forward branches are assumed not taken, backward branches are assumed taken.
 
@@ -784,9 +784,9 @@ The next chapters present the instruction set. The set itself is divided into se
 
 Memory reference instruction operate on memory and a general register with a unit of transfer of a word, a half-word or a byte. In that sense the architecture is a typical load/store architecture. However, in contrast to a load/store architecture VCPU-32 load / store instructions are not the only instructions that access memory. Being a register/memory architecture, all instructions with an operand field encoding, will access memory as well. There are however no instructions that will access data memory access for reading and writing back an operand in the same instruction. Due to the operand instruction format and the requirement to offer a fixed length instruction word, the offset for an address operation is limited but still covers a large address range. 
 
-The **LDw** and **STw** and instructions access virtual memory. The segment selector field allows to use a logical address with implicit selection of segment register SR4..SR7, or an explicit virtual address using segment register SR1..SR3. The instructions use a **W** for word, a **H** for half-word and a **B** for byte operand size. The **LDWA** and **STWA** instruction implement word access to the physical memory computing a physical address to access. 
+The **LDw** and **STw** and instructions access virtual memory. The segment selector field allows to use a logical address with implicit selection of segment register SR4..SR7, or an explicit virtual address using segment register SR1..SR3. The instructions use a **W** for word, a **H** for half-word and a **B** for byte operand size. The **LDA** and **STA** instruction implement word access to the physical memory computing a physical address to access. 
 
-The **LDWR** and **STWC** instructions support atomic operations. The **LDWR** instruction loads a value form memory and remember this access. The **STWC** instruction will store a value to the same location that the LR instructions used and return a failure if the value was modified since the last LR access. This CPU pipeline friendly pair of instructions allow to build higher level atomic operations on top.
+The **LDR** and **STC** instructions support atomic operations. The **LDR** instruction loads a value form memory and remember this access. The **STC** instruction will store a value to the same location that the LR instructions used and return a failure if the value was modified since the last LR access. This CPU pipeline friendly pair of instructions allow to build higher level atomic operations on top.
 
 Memory reference instructions can be issued when data translation is on and off. When address translation is turned off, the memory reference instructions will ignore the segment part and replace it with a zero value. The address is the physical address. It is an architectural requirement that a virtual address with a segment Id of zero maps to an absolute address with the same offset. The absolute address mode instruction also works with translation turned on and off. 
 
@@ -807,7 +807,7 @@ Loads a memory value into a general register using a logical address.
 
 ```
    LDw [.M] r, ofs(b)          w = B|H|W|D
-   LDw.X [M] r, a(b)          w = B|H|W|D
+   LDw.X [M] r, a(b)           w = B|H|W|D
 ```
 
 ```
@@ -825,25 +825,23 @@ The load instruction will load the operand into the general register "r". The of
 
 #### Operation
 
-
 ```
-   opMode 2: 
+   if ( instr.[X] ) {
 
-   if ( instr.[M] ) {
+      if ( instr.[M] ) {
 
-      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + GR[a];
-      else                                offset = GR[b];
+         if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + GR[a];
+         else                                offset = GR[b];
+      }
    }
+   else {
 
-   opMode 3:
+      if ( instr.[M] ) {
 
-   if ( instr.[M] ) {
-
-      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 14 );
-      else                                offset = GR[b];
+         if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
+         else                                offset = GR[b];
+      }
    }
-
-   common:
 
    len = dataLen( instr.[12..13] );
 
@@ -960,6 +958,8 @@ Loads the memory content into a general register using an absolute address.
 The load absolute instruction will load the content of the physical memory address into the general register "r". The absolute 32-bit address is computed by adding the signed offset to general register "b". The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. The LDwA instructions is a privileged instructions.
 
 #### Operation
+
+// ??? check pseudo code ....
 
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
@@ -1305,7 +1305,7 @@ The LDO instruction loads an offset into general register "r". The offset is com
 
 #### Exceptions
 
-- Illegal Instruction Trap
+None.
 
 #### Notes
 
@@ -1370,11 +1370,11 @@ The **B** instruction is the unconditional IA-relative branch instruction within
 
 The **BV** is an instruction segment absolute instruction. The branch address for the BV instruction is the segment relative offset computed using a segment relative base, adding a signed offset from another register. 
 
-The **BE**, **BLE** and **BVE** instruction are the inter-segment branches. The **BE** instruction branches to a segment absolute address encoded in the segment and general offset register. In addition, a signed offset encoded in the instruction can is added to form the target segment offset. The return address is stored in segment register SR0 and the offset in a the general register. The **BVE** will use a general register containing a logical address. The segment is selected from the upper two bits.
+The **BE** and **BVE** instruction are the inter-segment branches. The **BE** instruction branches to a segment absolute address encoded in the segment and general offset register. In addition, a signed offset encoded in the instruction can is added to form the target segment offset. The return address is stored in segment register SR0 and the offset in a the general register. The **BVE** will use a general register containing a logical address. The segment is selected from the upper two bits.
 
 Segment relative and external branches may branch to pages with a different privilege level. When branching to a higher privilege level, an privilege execution trap is raised. A branch to a page with a lower privilege level will automatically demote the privilege level. The **GATE** instruction will promote the privilege level to the page where the GATE instruction resides. 
 
-The conditional branch instructions combine an operation such as comparison or test with a local instruction address relative branch if the comparison or test condition is met. The **CBR** and **CUBR** instructions will compare two general registers for a condition encoded in the instruction. If the condition is met, an instruction address relative branch is performed. The target address is formed by adding an offset encoded in the instruction to the instruction address. Conditional branches are implemented with a static branch prediction scheme. Forward branches are predicted not taken, backward branches are predicted taken. The decision is predicted during the fetch and decode stage and if predicted correctly will result in no pipeline penalty.
+The conditional branch instructions combine an operation such as comparison or test with a local instruction address relative branch if the comparison or test condition is met. The **CBR** and **CBRU** instructions will compare two general registers for a condition encoded in the instruction. If the condition is met, an instruction address relative branch is performed. The target address is formed by adding an offset encoded in the instruction to the instruction address. Conditional branches are implemented with a static branch prediction scheme. Forward branches are predicted not taken, backward branches are predicted taken. The decision is predicted during the fetch and decode stage and if predicted correctly will result in no pipeline penalty.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1495,7 +1495,7 @@ Since the BV instruction is a segment base relative branch, a branch to page wit
 #### Operation
 
 ```
-   IA-OFS <- GR[b] + ( GR[a] << 2 );
+   IA-OFS <- GR[b] + GR[a];
 ```
 
 #### Exceptions
@@ -1595,7 +1595,7 @@ Since the BVE instruction is a segment base relative branch, a branch to page wi
    GR[r] <- IA-OFS + 4;
 
    IA-SEG <- segSelect( GR[b] );
-   IA-OFS <- GR[b] + ( GR[a] << 2 );
+   IA-OFS <- GR[b] + GR[a];
 ```
 
 #### Exceptions
@@ -1649,12 +1649,12 @@ The GATE instruction computes the target address by adding "ofs" shifted by 2 bi
    } else ST.[P] <- 0;
 
    IA-OFS <- IA-OFS + lowSignExt(( ofs << 2 ), 24 );
-   GR[r]  <- ST.[P];
+   GR[r]  <- entry.[PL1];
 ```
 
 #### Exceptions
 
-None.
+- Instruction memory protection trap
 
 #### Notes
 
@@ -1676,7 +1676,7 @@ None.
 
 <div style="page-break-before: always;"></div>
 
-### CBR, CUBR
+### CBR, CBRU
 
 Compare two registers and branch on condition.
 
@@ -1684,7 +1684,7 @@ Compare two registers and branch on condition.
 
 ```
    CBR .<cond> a, b, ofs
-   CUBR .<cond> a, b, ofs
+   CBRU .<cond> a, b, ofs
 ```
 
 ```
@@ -1692,7 +1692,7 @@ Compare two registers and branch on condition.
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : CBR     ( 0x26 ):cond : ofs                                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : CUBR    ( 0x27 ):cond : ofs                                           : a         : b         :
+   : CBRU    ( 0x27 ):cond : ofs                                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1743,7 +1743,7 @@ Often a comparison is followed by a branch in an instruction stream. VCPU-32 the
 
 ## Computational Instructions
 
-The arithmetic, logical and bit field operations instruction represent the computation type instructions. Most of the computational instructions use the operand instruction format, where the operand fields, opMode and opArg, define one of the instruction operands. The computation instructions are divided into the numeric instructions **ADD**, **ADDC**, **SUB** and **SUBC**, the logical instructions **AND**, **OR**, **XOR** and the bit field operational instructions **EXTR**, **DEP** and **DSR**. 
+The arithmetic, logical and bit field operations instruction represent the computation type instructions. Most of the computational instructions use the operand instruction format, where the operand fields, opMode and opArg, define one of the instruction operands. The computation instructions are divided into the numeric instructions **ADD**, **ADC**, **SUB** and **SBC**, the logical instructions **AND**, **OR**, **XOR** and the bit field operational instructions **EXTR**, **DEP** and **DSR**. 
 
 The numeric and logical instructions encode the second operand in the operand field. This allows for immediate values, register values and values accessed via their logical address. The numeric instructions allow for a carry/borrow bit for implementing multi-precision operations as well as the distinction between signed and unsigned operation overflow detection traps. The logical instructions allow to negate the operand as well as the output. The bit field instructions will perform bit extraction and deposit as well as double register shifting. These instruction not only implement bit field manipulation, they are also the base for all shift and rotate operations.
 
@@ -1764,7 +1764,7 @@ Adds the operand to the target register.
 
 ```
    ADD [.<opt> ] r, operand
-   ADDC [.<opt> ] r, operand
+   ADC [.<opt> ] r, operand
 ```
 
 ```
@@ -1778,7 +1778,7 @@ Adds the operand to the target register.
 
 #### Description
 
-The **ADD** instruction fetches the operand and adds it to the general register "r". The "L" bit set specifies an unsigned addition. If the "O" bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes. The operations will set the carry/borrow bits in the processor status word.  The **ADDC** instruction behaves identical the **ADD** instruction, except it also adds the carry bit from the status register.
+The **ADD** instruction fetches the operand and adds it to the general register "r". The "L" bit set specifies an unsigned addition. If the "O" bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes. The operations will set the carry/borrow bits in the processor status word.  The **ADC** instruction behaves identical the **ADD** instruction, except it also adds the carry bit from the status register.
 
 #### Operation
 
@@ -1802,9 +1802,9 @@ The **ADD** instruction fetches the operand and adds it to the general register 
       } break;     
    }
 
-   for ADD:  res <- GR[a]; tmpB <- GR[b];
+   for ADD:  res <- tmpA + tmpB;
          
-   for ADDC: res <- tmpA + tmpB + instr.[C];
+   for ADC: res <- tmpA + tmpB + instr.[C];
 
    if ( instr.[O] && overflow ) overflowTrap( );
    else {
@@ -1825,7 +1825,7 @@ The **ADD** instruction fetches the operand and adds it to the general register 
 
 #### Notes
 
-The **ADDC** is typically used to implement multi-precision addition. 
+The **ADC** is typically used to implement multi-precision addition. 
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1856,7 +1856,7 @@ Subtracts the operand from the target register.
 
 #### Description
 
-The instruction fetches the operand and subtracts it from the general register "r". The "L" bit set specifies an unsigned subtraction. If the "O" bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes. The operations will set the carry/borrow bits in the processor status word. The **SUBC** instruction behaves identical the **SUB** instruction, except it also adds the carry bit from the status register.
+The instruction fetches the operand and subtracts it from the general register "r". The "L" bit set specifies an unsigned subtraction. If the "O" bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes. The operations will set the carry/borrow bits in the processor status word. The **SBC** instruction behaves identical the **SUB** instruction, except it also adds the carry bit from the status register.
 
 #### Operation
 
@@ -1903,7 +1903,7 @@ The instruction fetches the operand and subtracts it from the general register "
 
 #### Notes
 
-The **SUBC** is typically used to implement multi-precision subtraction. 
+The **SBC** is typically used to implement multi-precision subtraction. 
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -2298,7 +2298,7 @@ Performs a bit field extract from a general register and stores the result in th
 
 #### Description
 
-The instruction performs a bit field extract specified by the position and length instruction data from general register "b". The "pos" field specifies the rightmost bit of the bitfield to extract. It is encoded as 31- pos. The "len" field specifies the bit size if the field to extract. It is encoded as 32 - len. The extracted bit field is stored right justified in the general register "r". If set, the "S" bit allows to sign extend the extracted bit field. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
+The instruction performs a bit field extract specified by the position and length instruction data from general register "b". The "pos" field specifies the rightmost bit of the bitfield to extract. It is encoded as 31 - pos. The "len" field specifies the bit size if the field to extract. It is encoded as 32 - len. The extracted bit field is stored right justified in the general register "r". If set, the "S" bit allows to sign extend the extracted bit field. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
 
 #### Operation
 
@@ -2345,7 +2345,7 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 
 #### Description
 
-The instruction extracts the right justified bit field of length "len" in general register "b" and deposits this field in the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. It is encoded as 31- pos. The "len" field specifies the bit size if the field to extract. It is encoded as 32 - len. The extracted bit field is stored right justified in the general register "r". The "Z" bit clears the target register "r" before storing the bit field, the "I" bit specifies that the instruction bits 28..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
+The instruction extracts the right justified bit field of length "len" in general register "b" and deposits this field in the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. It is encoded as 31 - pos. The "len" field specifies the bit size if the field to extract. It is encoded as 32 - len. The extracted bit field is stored right justified in the general register "r". The "Z" bit clears the target register "r" before storing the bit field, the "I" bit specifies that the instruction bits 28..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
 
 #### Operation
 
@@ -2634,7 +2634,7 @@ Load the physical address for a virtual address.
 #### Format
 
 ```
-   LDPA r, operand
+   LDPA r, a(b)
 ```
 
 ```
@@ -3053,7 +3053,7 @@ There is also the case where the assembler could simplify the coding process by 
 | Pseudo Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
 | **NOP** | NOP | OR  GR0, GR0 | There are many instructions that can be used for a NOP. The idea is to pick one that does not affect the program state. |
-| **LDI** | LDI GRx, val | LDO GRx, val | If val is in the 18-bit range. |
+| **LDI** | LDI GRx, val | LDO GRx, val(GR0) | If val is in the 18-bit range. |
 | **LDI** | LDI GRx, val | LDIL GRx, L%val; LDO   GRx, R%val(GRx) | The 32-bit value is stored with a two instruction sequence. |
 | **CLR** | CLR GRn | OR  GRn, GR0 | Clears a general register. There are many instructions that can be used for a CLR. |
 | **MR** | MR GRx, GRy | OR GRx, GRy, GR0 ; This overlaps the MR instruction for moving two general registers. |
@@ -3082,12 +3082,14 @@ VCPU-32 does not offer instructions for shift and rotate operations. They can ea
 
 The MR instruction is used to move values to and from a control or segment register. The synthetic instructions shown below are just a more readable version.
 
+// ??? 
+
 | Synthetic Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
-| **MFSR** | LDSR SRx, GRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
-| **MFCR** | LDCR CRx, GRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
-| **MTSR** | STSR GRx, SRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
-| **MTCR** | STCR GRx, CRy | MR SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
+| **LDSR** | LDSR SRx, GRy | MR.xx SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
+| **LDCR** | LDCR CRx, GRy | MR.xx SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
+| **STSR** | STSR GRx, SRy | MR.xx SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
+| **STCR** | STCR GRx, CRy | MR.xx SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
 |||||
 
 
@@ -3286,7 +3288,7 @@ The SR5 quadrant contains the global data of the current module, the task stack 
       :                           :                        :===========================:
       :                           :                        : Global Data               :
       :===========================:                        :                           :
-      : Module                    :                        :   Current module globals  :<-- DP
+      : Module                    :                        :   Current module globals  :<-- TP
       :                           :                        :                           :
       :   Function                :                        :                           :
       :                           :                        :                           :
@@ -3555,7 +3557,7 @@ Assemblers and compilers should not create different calling sequences depending
       :                        : <---:      :----------------> :  BL                    : -----:      :
       :     Import Stub        :            :         :        :                        :             :
       :                        :            :         :        :    Export Stub         :             :
-      :  BLE                   : -----------:         :        :                        :             :
+      :  BE                    : -----------:         :        :                        :             :
       :------------------------:                      :        :                        : <-----------:
       :                        :                      :------- :  BE                    :  
       :                        :                               :------------------------:   
@@ -3597,7 +3599,7 @@ The linkage table is a memory structure built by the load operation. It contains
       :       Call "EXT.FOO"      :           :----------->:===========================:  |             :---------------------------------: 
       :                           :           :            : Module B externals        :  |             : "FOO" address in Segment        :
       :                           :           :            :                           :  |             :---------------------------------: 
-      :===========================: ----------:            :                           :  |             : DP Value for Module "EXT"       : 
+      :===========================: ----------:            :                           :  |             : TP Value for Module "EXT"       : 
       : Module "B"                :                        :                           :  |             :---------------------------------: 
       :                           :                        :                           :  |
       :                           :                        :===========================:  |
@@ -3615,8 +3617,7 @@ The linkage table is a memory structure built by the load operation. It contains
 
 - how to get to the linkage table subsection ? -> DP - 4 location could hold the pointer to the XRT subtable for the module.
 
-
-            
+        
 
 ### Privilege level changes
 
@@ -3825,7 +3826,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : CBR     ( 0x26 ):cond : ofs                                           : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-   : CUBR    ( 0x27 ):cond : ofs                                           : a         : b         : 
+   : CBRU    ( 0x27 ):cond : ofs                                           : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3848,7 +3849,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : PCA     ( 0x3D ): 0         :T :F : 0                                 : a         : b         :     
    :-----------------:-----------------------------------------------------------------------------:
-   : DIAG    ( 0x3E ): r         : 0                                       : a         : b         :
+   : DIAG    ( 0x3E ): r         : info      : 0                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : RFI     ( 0x3F ): 0                                                                           :
    :-----------------:-----------------------------------------------------------------------------:
