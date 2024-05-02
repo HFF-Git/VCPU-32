@@ -1370,7 +1370,7 @@ The **B** instruction is the unconditional IA-relative branch instruction within
 
 The **BV** is an instruction segment absolute instruction. The branch address for the BV instruction is the segment relative offset computed using a segment relative base, adding a signed offset from another register. 
 
-The **BE**, **BLE** and **BVE** instruction are the inter-segment branches. The **BE** instruction branches to a segment absolute address encoded in the segment and general offset register. In addition, a signed offset encoded in the instruction can is added to form the target segment offset. The **BLE** instruction will in addition return the return address in the segment register SR0 and the offset on the general register GR0. The **BVE** will use a general register containing a logical address. The segment is selected from the upper two bits.
+The **BE**, **BLE** and **BVE** instruction are the inter-segment branches. The **BE** instruction branches to a segment absolute address encoded in the segment and general offset register. In addition, a signed offset encoded in the instruction can is added to form the target segment offset. The return address is stored in segment register SR0 and the offset in a the general register. The **BVE** will use a general register containing a logical address. The segment is selected from the upper two bits.
 
 Segment relative and external branches may branch to pages with a different privilege level. When branching to a higher privilege level, an privilege execution trap is raised. A branch to a page with a lower privilege level will automatically demote the privilege level. The **GATE** instruction will promote the privilege level to the page where the GATE instruction resides. 
 
@@ -1507,6 +1507,8 @@ Since the BV instruction is a segment base relative branch, a branch to page wit
 
 The **BV** instruction with general register "a" being register zero is typically used in a procedure return. The **B** instruction with a return link left in a general register, which can directly be used by this instruction to return to the location after the **B** instruction.
 
+// ??? **note** we could return in "r" the current IA-OFS + 4, useful ?
+
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -1521,76 +1523,30 @@ Perform an unconditional external branch.
 #### Format
 
 ```
-   BE ofs (a, b)
+   BE r, ofs (a, b)
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : BE      ( 0x24 ): ofs                                                 : a         : b         :
+   : BE      ( 0x24 ): r         : ofs                                     : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The branch external instruction branches to a segment relative location in another code segment. The target address is built from the segment register in field "a" and the base register "b" to which the sign extended offset is added. If code translation is disabled, the offset is the absolute physical address and the "a" field ignored.
+The branch external instruction branches to a segment relative location in another code segment. The target address is built from the segment register in field "a" and the base register "b" to which the sign extended offset is added. If code translation is disabled, the offset is the absolute physical address and the "a" field ignored. The return offset is stored in "r", the return segment Id in SR0.
 
 Since the BE instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level results in adjusting the privilege level in the status register. Otherwise, the privilege level remains unchained.
 
 #### Operation
 
 ```
-   IA-SEG <- GR[a];
-   IA-OFS <- GR[b] + lowSignExt(( ofs << 2 ), 20 );
-```
-
-#### Exceptions
-
-- Taken branch trap
-- Instruction memory protection trap
-
-#### Notes
-
-None.
-
-
-<!--------------------------------------------------------------------------------------------------------->
-
-<div style="page-break-before: always;"></div>
-
-### BLE
-
-<hr>
-
-Perform an unconditional external branch and save the return address.
-
-#### Format
-
-```
-   BLE ofs (a, b)
-```
-
-```
-    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : BLE     ( 0x25 ): ofs                                                 : a         : b         :
-   :-----------------:-----------------------------------------------------------------------------:
-```
-
-#### Description
-
-The branch and link external instruction branches to an absolute location in another code segment. The target address is built from the segment register in field "a" and the base register "b" to which the sign extended offset "ofs" is added. The return address is saved in SR0 and GR0. If code translation is disabled, the offset is the absolute physical address and the "a" field being ignored.
-
-Since the BLE instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level results in adjusting the privilege level in the status register. Otherwise, the privilege level remains unchained.
-
-#### Operation
-
-```
    SR[0] <- IA-SEG;
-   GR[1] <- IA-OFS + 4;
+   GR[r] <- IA-OFS + 4;
 
    IA-SEG <- GR[a];
-   IA-OFS <- GR[b] + lowSignExt(( ofs << 2 ), 20 );
+   IA-OFS <- GR[b] + lowSignExt(( ofs << 2 ), 16 );
 ```
 
 #### Exceptions
@@ -1616,25 +1572,28 @@ Perform an unconditional external branch using a logical address and save the re
 #### Format
 
 ```
-   BVE ofs (a, b)
+   BVE r, (a, b)
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : BVE     ( 0x26 ): 0                                                   : a         : b         :
+   : BVE     ( 0x25 ): r         : 0                                       : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The branch and link vectored external instruction branches to an absolute location in another code segment. The target address is built from adding general register "a" shifted by 2 to the base register "b". The segment register is selected based on the upper two bits of general register "b". 
+The branch and link vectored external instruction branches to an absolute location in another code segment. The target address is built from adding general register "a" shifted by 2 to the base register "b". The segment register is selected based on the upper two bits of general register "b". The return link is stored in general register "r", the return segment Id in SR0.
 
 Since the BVE instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level results in adjusting the privilege level in the status register. Otherwise, the privilege level remains unchained.
 
 #### Operation
 
 ```
+   SR[0] <- IA-SEG;
+   GR[r] <- IA-OFS + 4;
+
    IA-SEG <- segSelect( GR[b] );
    IA-OFS <- GR[b] + ( GR[a] << 2 );
 ```
@@ -1731,9 +1690,9 @@ Compare two registers and branch on condition.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : CBR     ( 0x27 ):cond : ofs                                           : a         : b         :
+   : CBR     ( 0x26 ):cond : ofs                                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : CUBR    ( 0x28 ):cond : ofs                                           : a         : b         :
+   : CUBR    ( 0x27 ):cond : ofs                                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3475,7 +3434,7 @@ To the programmer general registers and segment registers are the primary regist
          :-----------------------------:               
       11 :  Caller Save, ARG1, RET0    :            
          :-----------------------------:              
-      12 :  Caller Save                :             
+      12 :  Task Data ( TP )           :             
          :-----------------------------:              
       13 :  Global Data ( DP )         :             
          :-----------------------------:              
@@ -3860,15 +3819,13 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : BV      ( 0x23 ): 0                                                   : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : BE      ( 0x24 ): ofs                                                 : a         : b         :
+   : BE      ( 0x24 ): r         : 0                                       : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : BLE     ( 0x25 ): ofs                                                 : a         : b         :      
+   : BVE     ( 0x25 ): r         : 0                                       : a         : b         :      
    :-----------------:-----------------------------------------------------------------------------:
-   : BVE     ( 0x26 ): 0                                                   : a         : b         :      
+   : CBR     ( 0x26 ):cond : ofs                                           : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-   : CBR     ( 0x27 ):cond : ofs                                           : a         : b         : 
-   :-----------------:-----------------------------------------------------------------------------:
-   : CUBR    ( 0x28 ):cond : ofs                                           : a         : b         : 
+   : CUBR    ( 0x27 ):cond : ofs                                           : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
