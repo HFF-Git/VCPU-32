@@ -2458,8 +2458,6 @@ The shift left and add instruction will shift general register "a" left by the b
 None.
 
 
-
-
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!-- Chapter -->
@@ -3048,22 +3046,29 @@ The instruction opCode for BRK is the opCode value of zero. A zero instruction w
 
 The instruction set allows for a rich set of options on the individual instruction functions. Setting a defined option bit in the instruction adds useful capabilities to an instruction with little additional overhead to the overall data path. The same is true for instruction that use general register zero as an argument. For better readability, an assembler could offer synthetic instructions for more convenient usage of the available instructions. 
 
-There is also the case where the assembler could simplify the coding process by emitting instruction sequences that implement often used code sequences. For example consider the load an immediate value operation. When the immediate value is larger than what the instruction field can hold, a two instruction sequence is used to load an arbitrary 32-bit value. An assembler could offer a generic "load immediate" synthetic instruction and either use a one instruction or two instruction sequence. Another example is the case where the offset to a base register is not large enough to reach the data item. A two instruction sequence using the ADDIL instruction could transparently be emitted by the assembler.
+There is also the case where the assembler could simplify the coding process by emitting instruction sequences that implement often used code sequences. For example consider the load an immediate value operation. When the immediate value is larger than what the instruction field can hold, a two instruction sequence is used to load an arbitrary 32-bit value. For example, an assembler could offer a generic "load immediate" synthetic instruction and either use a one instruction or two instruction sequence depending on the numeric value. Another example is the case where the offset to a base register is not large enough to reach the data item. A two instruction sequence using the ADDIL instruction could transparently be emitted by the assembler.
 
-### Immediate and Register Operations
+### Immediate Operations
+
+| Pseudo Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
+|:---|:---|:---|:---|
+| **LDI** | LDI GRx, val | LDO GRx, val(GR0) | If val is in the 18-bit range. |
+| **LDI** | LDI GRx, val | LDIL GRx, L%val; LDO   GRx, R%val(GRx) | The 32-bit value is stored with a two instruction sequence. |
+|||||
+
+### Register Operations
 
 | Pseudo Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
 | **NOP** | NOP | OR  GR0, GR0 | There are many instructions that can be used for a NOP. The idea is to pick one that does not affect the program state. |
-| **LDI** | LDI GRx, val | LDO GRx, val(GR0) | If val is in the 18-bit range. |
-| **LDI** | LDI GRx, val | LDIL GRx, L%val; LDO   GRx, R%val(GRx) | The 32-bit value is stored with a two instruction sequence. |
-| **CLR** | CLR GRn | OR  GRn, GR0 | Clears a general register. There are many instructions that can be used for a CLR. |
+| **CLR** | CLR GRn | AND  GRn, GR0 | Clears a general register. |
+| **COPY** | COPY GRx, GRy | OR  GRx, GRy, GR0 |Copies general register GRy to GRx. |
 | **MR** | MR GRx, GRy | OR GRx, GRy, GR0 ; This overlaps the MR instruction for moving two general registers. |
 | **NOT** | NOT GRx, GRy | CMP.NE GRx, GRy | Logical NOT. Tests GRy for a non-zero value and returns 0 or 1. |
-| **INC** | INC [ .< opt > ] GRx, val | ADD [ .< opt > ] GR x, val | |
-| **DEC** | DEC [ .< opt > ] GRx, val | SUB [ .< opt > ] GR x, val | |
-| **NEG** | NEG GRx | SUB [ .<opt> ] GRx, GRx, opMode 1 | |
-| **COM** | COM GRx | OR.N  GRx, GRx, opMode 1 | |
+| **INC** | INC [ .< opt > ] GRx, val | ADD [ .< opt > ] GRx, val | Increments GRx by "val". Note that "val" can also be a negative number, which then results in a decrement. |
+| **DEC** | DEC [ .< opt > ] GRx, val | SUB [ .< opt > ] GRx, val | Decrements GRx by "val". Note that "val" can also be a negative number, which then results in an increment. |
+| **NEG** | NEG GRx | SUB [ .<opt> ] GRx, GR0, GRy | Negates a register by subtracting GRy from zero. |
+| **COM** | COM GRx | OR.N  GRx, GRx, R0 | OR a zero value with GRx and complements the result stored in GRx. |
 | ... | ... | ... | more to come ... |
 |||||
 
@@ -3073,7 +3078,7 @@ VCPU-32 does not offer instructions for shift and rotate operations. They can ea
 
 | Synthetic Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
-| **ASR** | ASR GRx, shamt | EXTR.S Rx, Rx, 31 - shamt, 32 - shamt | For the right shift operations, the shift amount is transformed into the bot position of the bit field and the length of the field to shift right. For arithmetic shifts, the result is sign extended. |
+| **ASR** | ASR GRx, shamt | EXTR.S Rx, Rx, 31 - shamt, 32 - shamt | For the right shift operations, the shift amount is transformed into the bit position of the bit field and the length of the field to shift right. For arithmetic shifts, the result is sign extended. |
 | **LSR** | LSR GRx, shamt | EXTR   Rx, Rx, 31 - shamt, 32 - shamt | For the right shift operations, the shift amount is transformed into the bot position of the bit field and the length of the field to shift right. |
 | **LSL** | LSR GRx, shamt | DEP.Z  Rx, Rx, 31 - shamt, 32 - shamt | |
 | **ROL** | ROL GRx, GRy, shamt | DSR Rx, Rx, shamt | |
@@ -3860,18 +3865,17 @@ This appendix lists all instructions by instruction group.
 
 ## A pipelined CPU model
 
-The VCPU-32 instruction set and runtime architecture has been designed with a pipelined CPU in mind. In general, pipeline operations such as stalling or flushing a CPU are in terms of performance costly and should be avoided where possible. Also, access data memory twice or any indirection level of data access would also affect the pipeline performance i a negative way. This chapter presents a simple pipeline reference model of a VCPU-32 implementation for discussing some instruction design rationale. 
+The VCPU-32 instruction set and runtime architecture has been designed with a pipeline CPU in mind. In general, pipeline operations such as stalling or flushing a CPU pipeline are in terms of performance costly and should be avoided where possible. Also, accessing data memory twice or any indirection level of data access would also affect the pipeline performance in a negative way. This chapter presents a simple pipeline reference model of a VCPU32 implementation for discussing architecture and instruction design rationales.
 
-The VCPU-32 reference implementation that can be ofund in teh simulator uses a three stage pipeline model. There stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
+The VCPU-32 reference implementation that can be found in the simulator uses a three stage pipeline model. There stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
 
 - **Instruction fetch and decode**. The first stage will fetch the instruction word from memory and decode it. There are two parts. The first part of the stage will use the instruction address and attempt to fetch the instruction word from the instruction cache. At the same time the translation look-aside buffer will be checked whether the virtual to physical translation is available and if so whether the access rights match. The second part of the stage will decode the instruction and also read the general registers from the register file.
 
 - **Memory access**. The memory access stage will take the instruction decoded in the previous stage and compute the address for the memory data access. This also the stage where any segment or control register are accessed. In addition, unconditional branches are handled at this stage. Memory data item are read or stored depending on the instruction. Due to the nature of a register/memory architecture, the memory access has to be performed before the execute stage. This also implies that there needs to be an address arithmetic unit at this state. The classical 5-stage RISC pipeline with memory access past the execute stage uses the ALU for this purpose.
 
-- **Execute**. The Execute Stage will primarily do the computational work using the values passed from the MA stage. The computational result will be written back to the registers on the next clock cycle. Within the execute stage, there is the computational half followed by the result comitting half. In addition, instructions that need to comitt two results push one resut to the first half of the instruction fecth and decode stage. Currently, the base register modification option of the load instrctions will comitt the loaded value in the EXECUTE stage but push the base register update to the instruction fetch half of the next instruction.
+- **Execute**. The Execute Stage will primarily do the computational work using the values passed from the MA stage. The computational result will be written back to the registers on the next clock cycle. Within the execute stage, there is the computational half followed by the result committing half. In addition, instructions that need to commit two results push one result to the first half of the instruction fetch and decode stage. Currently, the base register modification option of the load instructions will commit the loaded value in the EXECUTE stage but push the base register update to the instruction fetch half of the next instruction.
 
 Note that this is perhaps one of many ways to implement a pipeline. The three major stages could also be further divided internally. For example, the fetch and decode stage could consist of two sub stages. Likewise, the memory access stages could be divided into an address calculation sub-stage and the actual data access. Dividing into three stages however simplifies the bypass logic as there are only two spots to insert any register overriding. This is especially important for the memory access stage, which uses the register content to build addresses. Two separate stages, i.e. address computation and memory access, would require options to redo the address arithmetic when detecting a register interlock at the memory access stage.
-
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
@@ -3884,7 +3888,6 @@ Note that this is perhaps one of many ways to implement a pipeline. The three ma
 ## Notes
 
 None so far.
-
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
