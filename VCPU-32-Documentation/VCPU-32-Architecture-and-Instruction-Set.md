@@ -4,16 +4,6 @@
 <!--------------------------------------------------------------------------------------------------------->
 
 
-
-<!--------------------------------------------------------------------------------------------------------->
-
-# VCPU-32 System Architecture and Instruction Set Reference
-
-Helmut Fieres
-Version B.00.04
-May, 2024
-
-
 <!--------------------------------------------------------------------------------------------------------->
 <!-- use "&nbsp; " to insert a blank in the table column if too narrow...                               --->
 <!-- a CSS style to make the tables having the possible width of the page                               --->
@@ -66,6 +56,13 @@ May, 2024
 </style>
 
 
+<!--------------------------------------------------------------------------------------------------------->
+
+# VCPU-32 System Architecture and Instruction Set Reference
+
+Helmut Fieres
+Version B.00.04
+May, 2024
 
 
 <!-- TOC -->
@@ -831,7 +828,7 @@ The load instruction will load the operand into the general register "r". The of
 #### Operation
 
 ```
-   if ( instr.[X] ) {
+   if ( instr.[10] ) {
 
       if ( instr.[M] ) {
 
@@ -964,28 +961,25 @@ The load absolute instruction will load the content of the physical memory addre
 
 #### Operation
 
-// ??? check pseudo code ....
-
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
-   for LDA:
+   if ( instr.[10] ) {
 
-   if ( instr.[M] ) {
+      if ( instr.[M] ) {
 
-      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
-      else                                offset = GR[b];
+         if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + GR[a];
+         else                                offset = GR[b];
+      }
    }
+   else {
 
-   for LDA.X
+      if ( instr.[M] ) {
 
-   if ( instr.[M] ) {
-
-      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + GR[a];
-      else                                offset = GR[b];
+         if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
+         else                                offset = GR[b];
+      }
    }
-
-   common:
 
    GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
 
@@ -1487,13 +1481,13 @@ Perform an unconditional branch using a base and offset general register for for
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : BV      ( 0x23 ): 0                                                   : a         : b         :
+   : BV      ( 0x23 ): r      : 0                                          : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The branch vectored instruction performs an unconditional branch by adding the offset register in "a" shifted by two bits to the base address in register in "b". The result is interpreted as an instruction address in the current code segment. This unconditional jump allows to reach the entire code address range. If code translation is disabled, the resulting offset is the absolute physical address.
+The branch vectored instruction performs an unconditional branch by adding the offset register in "a" shifted by two bits to the base address in register in "b". The result is interpreted as an instruction address in the current code segment. This unconditional jump allows to reach the entire code address range. If code translation is disabled, the resulting offset is the absolute physical address. In addition, the current instruction offset + 4 is stored in "r".
 
 Since the BV instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level result in the privilege level adjusted in the status register. Otherwise, the privilege level remains unchained.
 
@@ -1511,8 +1505,6 @@ Since the BV instruction is a segment base relative branch, a branch to page wit
 #### Notes
 
 The **BV** instruction with general register "a" being register zero is typically used in a procedure return. The **B** instruction with a return link left in a general register, which can directly be used by this instruction to return to the location after the **B** instruction.
-
-// ??? **note** we could return in "r" the current IA-OFS + 4, useful ?
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -2491,7 +2483,7 @@ The **DIAG** instruction is a control instructions to issue hardware specific im
 
 <div style="page-break-before: always;"></div>
 
-### MR
+### MFSR, MFCR, MTSR, MTCR
 
 <hr>
 
@@ -2500,32 +2492,41 @@ Copy data between a general register and a segment or control register.
 #### Format
 
 ```
-   MR [.<opt>] r, s
+   MFSR r, s
+   MFCR r, s
+   MTSR s, r
+   MTCR s, r
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : MR      ( 0x0A ): r         :D :M : 0                                       : s               :
+   : MFSR    ( 0x0A ): r         :0 :0 : 0                                       : s               :
+   :-----------------:-----------------------------------------------------------------------------:
+   : MFCR    ( 0x0A ): r         :0 :1 : 0                                       : s               :
+   :-----------------:-----------------------------------------------------------------------------:
+   : MTSR    ( 0x0A ): r         :1 :0 : 0                                       : s               :
+   :-----------------:-----------------------------------------------------------------------------:
+   : MTCR    ( 0x0A ): r         :1 :1 : 0                                       : s               :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The move register instruction MR copies data from a segment or control register "s" to a general register "r" and vice versa. If the "D" bit is set, the copy direction is from "r" to a segment or control register in "s", otherwise from "s" to "r". The "M" bit indicates whether a segment register or a control register is moved. Setting a value for a privileged segment or control register is a privileged operation.
+The move register instructions copy data from a segment or control register "s" to a general register "r" and vice versa. Setting a value for a privileged segment or control register is a privileged operation.
 
 #### Operation
 
 ```
-   if ( instr.[D] ) {
+   if ( instr.[10] ) {
 
-      if ( instr.[M] ) GR[ instr.[27..31]] <- GR[r];
-      else             SR[ instr.[29..31]] <- GR[r];
+      if ( instr.[11] ) GR[ instr.[27..31]] <- GR[r];
+      else              SR[ instr.[29..31]] <- GR[r];
    
    } else {
 
-      if ( instr.[M] ) GR[r] <- CR[ instr.[27..31]];
-      else             GR[r] <- SR[ instr.[29..31]];
+      if ( instr.[11] ) GR[r] <- CR[ instr.[27..31]];
+      else              GR[r] <- SR[ instr.[29..31]];
    }
 ```
 
@@ -2535,8 +2536,7 @@ The move register instruction MR copies data from a segment or control register 
 
 #### Notes
 
-Although there are option bits for direction and register type, the assembler will simplify the instruction syntax. By deducing the the type of register, the "D" and "M" bits are set by the assembler.
-
+The move register instructions are all implemented as a "MR" instruction opCode with direction and register type select bits. 
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -3034,10 +3034,7 @@ The BRK instruction raises a debug breakpoint trap and enters the debug trap han
 
 #### Notes
 
-The instruction opCode for BRK is the opCode value of zero. A zero instruction word result is treated as a NOP. 
-
-// ??? **note** is BRK 0, 0 as a NOP a good choice ?
-
+The instruction opCode for BRK is the opCode value of zero. A zero instruction word result is treated as a NOP. As an alternative option the the BRK 0, 0 could be implemented as an "illegal" instruction trap to detect instruction references to a zero content memory. The current VCPU-32 simulator interprets a zero instruction word as a NOP. To be decided.
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
@@ -3081,20 +3078,6 @@ VCPU-32 does not offer instructions for shift and rotate operations. They can ea
 | **LSL** | LSR GRx, shamt | DEP.Z  Rx, Rx, 31 - shamt, 32 - shamt | |
 | **ROL** | ROL GRx, GRy, shamt | DSR Rx, Rx, shamt | |
 | **ROR** | ROR GRx, GRy, shamt | DSR Rx, Rx, 32 - shamt | |
-|||||
-
-### Segment and Control Register moves
-
-The MR instruction is used to move values to and from a control or segment register. The synthetic instructions shown below are just a more readable version.
-
-// ??? 
-
-| Synthetic Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
-|:---|:---|:---|:---|
-| **LDSR** | LDSR SRx, GRy | MR.xx SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
-| **LDCR** | LDCR CRx, GRy | MR.xx SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
-| **STSR** | STSR GRx, SRy | MR.xx SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
-| **STCR** | STCR GRx, CRy | MR.xx SRx, GRy | Assembler deduces form S and G register position the D and M flags. |
 |||||
 
 
@@ -3451,7 +3434,7 @@ To the programmer general registers and segment registers are the primary regist
          :-----------------------------:               
 ```
 
-Some VCPU-32 instructions have a registers as an implicit target. For example, the ADDIL instruction uses general register one as implicit target. The BLE instructions saves the return link implicitly in GR1 and SR0. The caller can rely on that certain register are preserved across the calls. In addition to the callee save registers Gr2..GR7, the SP value, the RL and the DP value as well as SR4 to SR 7 are preserved across a call. In addition to the caller save segment registers, the processor status registers as well as any registers set by privileged code is not preserved across a procedure call.
+Some VCPU-32 instructions have a registers as an implicit target. For example, the ADDIL instruction uses general register one as implicit target. The BE instruction saves the return link segment implicitly in SR0. The caller can rely on that certain register are preserved across the calls. In addition to the callee save registers Gr2 to GR7, the SP value, the RL and the DP value as well as SR4 to SR 7 are expected to be preserved across a call. In addition to the caller save segment registers, the processor status registers as well as any registers set by privileged code are NOT preserved across a procedure call.
 
 ### Parameter passing
 
@@ -3676,11 +3659,10 @@ Part of the I/O memory address range is allocated to processor dependent code.
 
 ## VCPU-32 Input/Output system
 
-// ??? note what part do we architect ?
 
 ### The physical address space
 
-VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory address space is dedicated to the I/O system. The IO Space is further divided into a memory address range for the processor dependent code and the IO modules.
+VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory address space is dedicated to the I/O system. The I/O Space is further divided into a memory address range for the processor dependent code and the IO modules.
 
 | Adress range start | end |Usage |
 |:---|:---|:---|
@@ -3840,7 +3822,13 @@ This appendix lists all instructions by instruction group.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : MR      ( 0x0A ): r         :D :M : 0                                       : s               :
+   : MFSR    ( 0x0A ): r         :0 :0 : 0                                       : s               :
+   :-----------------:-----------------------------------------------------------------------------:
+   : MFCR    ( 0x0A ): r         :0 :1 : 0                                       : s               :
+   :-----------------:-----------------------------------------------------------------------------:
+   : MTSR    ( 0x0A ): r         :1 :0 : 0                                       : s               :
+   :-----------------:-----------------------------------------------------------------------------:
+   : MTCR    ( 0x0A ): r         :1 :1 : 0                                       : s               :
    :-----------------:-----------------------------------------------------------------------------:
    : MST     ( 0x0B ): r         :mode : 0                                       : s               :
    :-----------------:-----------------------------------------------------------------------------:
@@ -3870,17 +3858,17 @@ This appendix lists all instructions by instruction group.
 
 <div style="page-break-before: always;"></div>
 
-## A pipelined CPU
+## A pipelined CPU model
 
-The VCPU-32 instruction set and runtime architecture has been designed to take in consideration the effects of stalling and flushing a CPU pipeline. In general, such operations are in terms of performance costly and should be avoided. Also, access data memory twice or any indirection level of data access will also affect the pipeline performance i a negative way. This chapter presents a simple pipeline reference model for a VCPU-32 implementation.
+The VCPU-32 instruction set and runtime architecture has been designed with a pipelined CPU in mind. In general, pipeline operations such as stalling or flushing a CPU are in terms of performance costly and should be avoided where possible. Also, access data memory twice or any indirection level of data access would also affect the pipeline performance i a negative way. This chapter presents a simple pipeline reference model of a VCPU-32 implementation for discussing some instruction design rationale. 
 
-The VCPU-32 reference implementation uses a three stage pipeline model. There stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
+The VCPU-32 reference implementation that can be ofund in teh simulator uses a three stage pipeline model. There stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
 
 - **Instruction fetch and decode**. The first stage will fetch the instruction word from memory and decode it. There are two parts. The first part of the stage will use the instruction address and attempt to fetch the instruction word from the instruction cache. At the same time the translation look-aside buffer will be checked whether the virtual to physical translation is available and if so whether the access rights match. The second part of the stage will decode the instruction and also read the general registers from the register file.
 
 - **Memory access**. The memory access stage will take the instruction decoded in the previous stage and compute the address for the memory data access. This also the stage where any segment or control register are accessed. In addition, unconditional branches are handled at this stage. Memory data item are read or stored depending on the instruction. Due to the nature of a register/memory architecture, the memory access has to be performed before the execute stage. This also implies that there needs to be an address arithmetic unit at this state. The classical 5-stage RISC pipeline with memory access past the execute stage uses the ALU for this purpose.
 
-- **Execute**. The Execute Stage will primarily do the computational work using the values passed from the MA stage. The computational result will be written back to the registers on the next clock cycle.
+- **Execute**. The Execute Stage will primarily do the computational work using the values passed from the MA stage. The computational result will be written back to the registers on the next clock cycle. Within the execute stage, there is the computational half followed by the result comitting half. In addition, instructions that need to comitt two results push one resut to the first half of the instruction fecth and decode stage. Currently, the base register modification option of the load instrctions will comitt the loaded value in the EXECUTE stage but push the base register update to the instruction fetch half of the next instruction.
 
 Note that this is perhaps one of many ways to implement a pipeline. The three major stages could also be further divided internally. For example, the fetch and decode stage could consist of two sub stages. Likewise, the memory access stages could be divided into an address calculation sub-stage and the actual data access. Dividing into three stages however simplifies the bypass logic as there are only two spots to insert any register overriding. This is especially important for the memory access stage, which uses the register content to build addresses. Two separate stages, i.e. address computation and memory access, would require options to redo the address arithmetic when detecting a register interlock at the memory access stage.
 
