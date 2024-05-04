@@ -3,6 +3,17 @@
 <!-- VCPU-32 Document                                                                                   --->
 <!--------------------------------------------------------------------------------------------------------->
 
+
+
+<!--------------------------------------------------------------------------------------------------------->
+
+# VCPU-32 System Architecture and Instruction Set Reference
+
+Helmut Fieres
+Version B.00.04
+May, 2024
+
+
 <!--------------------------------------------------------------------------------------------------------->
 <!-- use "&nbsp; " to insert a blank in the table column if too narrow...                               --->
 <!-- a CSS style to make the tables having the possible width of the page                               --->
@@ -55,13 +66,7 @@
 </style>
 
 
-<!--------------------------------------------------------------------------------------------------------->
 
-# VCPU-32 System Architecture and Instruction Set Reference
-
-Helmut Fieres
-Version B.00.04
-April, 2024
 
 <!-- TOC -->
 
@@ -198,25 +203,25 @@ April, 2024
 >
 > "Seriously?“
 >
-> “OK, seriously. Designers of the eighties CPUs almost all used a micro-coded approach with hundreds of instructions. Also, registers were not really generic but often had a special function or meaning. And many instructions were rather complicated and the designers felt they were useful. The compiler writers often used a small subset ignoring these complex instructions because they were so specialized. The nineties shifted to RISC based designs with large sets of registers, fixed word instruction length, and instructions that are in general pipeline friendly. What if these principles had found their way earlier into these designs? What if a large virtual address space, a fixed instruction length and simple pipeline friendly instructions had found their way into these designs ?
+> “OK, seriously. Designers of the seventies and early eighties CPUs almost all used a micro-coded approach with hundreds of instructions. RISC was just starting to enter the stage. Registers were not really generic but often had a special function or meaning and many instructions were rather complicated and the designers felt they were useful. The compiler writers often used a small subset ignoring these complex instructions because they were so specialized. The later eighties and nineties shifted to RISC based designs with large sets of registers, fixed word instruction length, a large virtual memory address range and instructions that are in general much more pipeline friendly. What if these principles had found their way earlier into CPU designs? 
 >
-> A 32-bit vintage CPU will give us a good set of design challenges when looking into and opportunities to include modern RISC features as well as learning about instruction sets and pipeline design as any other CPU would do. Although not a modern design, it will still be a useful CPU. Let's see where this leads us. Most importantly our aim should be an undertaking that one person can truly understand. In todays systems this became virtually impossible. And come on, it is simply fun to build something like a CPU on your own."
+> A 32-bit vintage CPU will give us a good set of design challenges when looking into and opportunities to include modern RISC features as well as learning about instruction sets and pipeline design as any other CPU would do. Although not really a modern design, it will still be a useful CPU. Let's see where this leads us. Most importantly our aim should be an undertaking that one person can truly understand from top to bottom. In todays systems this became virtually impossible. And come on, it is simply fun to build something like a CPU on your own."
 >
 > "OK, so what do you have in mind ?"
 
-Welcome to VCPU-32. VCPU-32 is a simple 32-bit CPU with a register-memory model and a segmented virtual memory. The design is heavily influenced by Hewlett Packard's PA_RISC architecture, which was initially a 32 bit RISC-style register-register load-store machine. Many of the key architecture features come from there. However, other processors, the Data General MV8000, the DEC Alpha, and the IBM PowerPc, were also influential.
+Welcome to VCPU-32. VCPU-32 is a simple 32-bit CPU with a register-memory model and a segmented virtual memory. The design is heavily influenced by Hewlett Packard's PA_RISC architecture, which was initially a 32 bit RISC-style register-register load-store machine. Almost all of the key architecture features come from there. However, other processors, such as the Data General MV8000, the DEC Alpha, and the IBM PowerPc, were also influential or at least investigated for their architectural choices.
 
-The original design goal that started this work was to truly understand the design process and implementation tradeoffs for a simple pipelined CPU. While it is not a design goal to build a modern, competitive CPU, the CPU should nevertheless be useful and largely follow established common practices. For example, instructions should not be invented because they seem to be useful, but rather designed with the assembler and compilers in mind. Instruction set design is also CPU design. Register memory architectures in the 80s were typically micro-coded complex instruction machine. In contrast, VCPU-32 instructions will be hard coded and should be in general "pipeline friendly" and avoid data and control hazards and stalls where possible.
+The original design goal that started this work was to truly understand the design process and implementation tradeoffs for a simple pipelined CPU. While it is not a design goal to build a modern, competitive CPU, the CPU should nevertheless be useful and largely follow established common practices. For example, instructions should not be invented because they seem to be useful, but rather designed with the assembler and compilers in mind. Instruction set design is also CPU design. Register memory architectures were typically micro-coded complex instruction machines. In contrast, VCPU-32 instructions will be hard coded and are in general "pipeline friendly", avoiding data and control hazards and stalls where possible.
 
-The instruction set design guidelines center around the following principles. First, in the interest of a simple and efficient instruction decoding step, instructions are of fixed length. A machine word is the instruction word length. As a consequence, some address offsets are rather short and addressing modes are required for reaching the entire address range. Instead of a multitude of addressing modes, typically found in the CPUs of the 80s and 90s, VCPU-32 offers very few addressing modes with a simple base address - offset calculation model. No indirection or any addressing mode that would require to read a memory item for address calculation is part of the architecture.
+The instruction set design guidelines center around the following principles. First, in the interest of a simple and efficient instruction decoding step, instructions are of fixed length. A machine word is the instruction word length. As a consequence, some address offsets are rather short and addressing modes are required for reaching the entire address range. Instead of a multitude of addressing modes, typically found in the CISC style CPUs, VCPU-32 offers very few addressing modes with a simple base address - offset calculation model. No indirection or any addressing mode that would require to read a memory item for address calculation is part of the architecture.
 
 There will be few instructions in total, however, depending on the instruction several options for the instruction execution are encoded to make an instruction more versatile. For example, a boolean instruction will offer options to negate the result thus offering and "AND" and a "NAND" with one instruction. Wherever possible, useful options such as the one outlined before are added to an instruction, such that it covers a range of instructions typically found on the CPUs looked into. Great emphasis is placed in that such options do not overly complicated the pipeline and increase the overall data path length slightly.
 
-Modern RISC CPUs are load/store CPUs and feature a large number of general registers. Operations takes place between registers. VCPU-32 follows a slightly different route. There is a rather small number of general registers leading to a model where one operand is fetched from memory. There are however no instructions that read and write to memory in one instruction cycle as this would complicate the design considerably.
+Modern RISC CPUs are typically load/store CPUs and feature a large number of general registers. Operations takes place between registers. VCPU-32 follows a slightly different route. There is a smaller number of general registers and in addition to computation between registers, a register-memory model is also supported. There are however no instructions that read and write to memory in one instruction cycle as this would complicate the design considerably.
 
 VCPU-32 offers a large address range, organized into segments. Segment and offset into the segment form a virtual address. In addition, a short form of a virtual address, called a logical address, will select a segment register from the upper logical address bits to form a virtual address. Segments are also associated with access rights and protection identifies. The CPU itself can run in user and privilege mode.
 
-This document describes the architecture, instruction set and runtime for VCPU-32. It is organized into several chapters. The first chapter will give an overview on the architecture. It presents the memory model, registers sets and basic operation modes. The major part of the document then presents the instruction set. Memory reference instructions, branch instructions, computational instructions and system control instructions are described in detail. These chapters are the authoritative reference of the instruction set. The runtime environment chapters present the runtime architecture. Finally, the remainder of the chapters summarize the instructions defined and also offer an instruction and runtime commentary to illustrate key points on the design choices taken.
+This document describes the overall architecture, instruction set and runtime model for VCPU-32. It is organized into several chapters. The first chapter will give an overview on the architecture. It presents the memory model, registers sets and basic operation modes. The major part of the document then presents the instruction set. Memory reference instructions, immediate instructions, branch instructions, computational instructions and system control instructions are described in detail. These chapters are the authoritative reference of the instruction set. The runtime environment chapters present the runtime architecture. Finally, the remainder of the chapters present architectural parts of the CPU in more details. 
 
 
 <!--------------------------------------------------------------------------------------------------------->
