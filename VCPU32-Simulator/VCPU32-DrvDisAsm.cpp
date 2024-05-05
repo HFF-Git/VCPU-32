@@ -77,7 +77,7 @@ static inline uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "printImmVal" disply an immediate value in the selected radix. Octals and hex numbers are printed unsigned
+// "printImmVal" display an immediate value in the selected radix. Octals and hex numbers are printed unsigned
 // quantities, decimal numbers are interpreted as signed integers. Most often decimal notation is used to
 // specifiy offsets on indexed addressing modes.
 //
@@ -96,7 +96,9 @@ void printImmVal( uint32_t val, TokId fmtType = TOK_HEX ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// A little helper function to display the comparison condition in human readable form.
+// A little helper function to display the comparison condition in human readable form. We only decode the
+// two bits which map to EQ, NE, LT and LE. A possible GT and GE cases cannot be deduced from just looking
+// at the instruction.
 //
 //------------------------------------------------------------------------------------------------------------
 void displayComparisonCodes( uint32_t cmpCode ) {
@@ -105,12 +107,8 @@ void displayComparisonCodes( uint32_t cmpCode ) {
             
         case CC_EQ:  fprintf( stdout, "EQ" ); return;
         case CC_LT:  fprintf( stdout, "LT" ); return;
-        case CC_GT:  fprintf( stdout, "GT" ); return;
-        case CC_LS:  fprintf( stdout, "LS" ); return;
         case CC_NE:  fprintf( stdout, "NE" ); return;
         case CC_LE:  fprintf( stdout, "LE" ); return;
-        case CC_GE:  fprintf( stdout, "GE" ); return;
-        case CC_HI:  fprintf( stdout, "HI" ); return;
         default:     fprintf( stdout, "**" ); return;
     }
 }
@@ -118,6 +116,7 @@ void displayComparisonCodes( uint32_t cmpCode ) {
 //------------------------------------------------------------------------------------------------------------
 // A little helper function to display the test condition in human readable form.
 //
+// ??? this is currently only used by the CMR instruction ... to think about ...
 //------------------------------------------------------------------------------------------------------------
 void displayTestCodes( uint32_t tstCode ) {
     
@@ -136,76 +135,102 @@ void displayTestCodes( uint32_t tstCode ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// There are quite a few instructions that use the operand argument format. This routine will format such
-// an operand. The disassembler shows all modes, also the ones that the assembler does not use directly.
+// There are instructions that use the operand argument format. This routine will format such an operand.
 //
 //------------------------------------------------------------------------------------------------------------
 void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
-    uint32_t opMode = getBitField( instr, 14, 2 );
+    uint32_t opMode = getBitField( instr, 13, 2 );
     
     switch ( opMode ) {
             
-        case OP_MODE_IMM: printImmVal( immGenPosLenLowSign( instr, 31, 17 ), TOK_DEC ); break;
+        case OP_MODE_IMM: {
+            
+            printImmVal( immGenPosLenLowSign( instr, 31, 18 ), TOK_DEC );
+            
+        } break;
           
         case OP_MODE_REG: {
-            
-            if ( getBitField( instr, 16, 2 ) == 0 ) {
-                
-                fprintf( stdout, "0,r%d", getBitField( instr, 31, 4 ));
-            }
-            else if ( getBitField( instr, 16, 2 ) == 1 ) {
-                
-                fprintf( stdout, "r%d,r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-            }
-            else fprintf( stdout, "**reg**" );
+          
+            fprintf( stdout, "r%d,r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_MODE_REG_INDX: {
-            
-            if ( getBitField( instr, 16, 2 ) == 0 ) {
-                
-                fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
-            }
-            else fprintf( stdout, "(s%d,r%d)", getBitField( instr, 16, 2 ), getBitField( instr, 31, 4 ));
+           
+            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 16, 2 ), getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_MODE_INDX: {
             
-            printImmVal( immGenPosLenLowSign( instr, 27, 9 ), TOK_DEC );
-            
-            if ( getBitField( instr, 16, 2 ) == 0 ) {
-                
-                fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
-            }
-            else fprintf( stdout, "(s%d,r%d)", getBitField( instr, 16, 2 ), getBitField( instr, 31, 4 ));
+            printImmVal( immGenPosLenLowSign( instr, 27, 12 ), TOK_DEC );
+            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 16, 2 ), getBitField( instr, 31, 4 ));
             
         } break;
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Each instruction has an opCode. Instructions that contains an operand are appended the data item length.
-// Instructions with an operand mode encoding will append to the opCode the data item size if reqeuired. One
-// exception to this rule is that an operation on a word will not always add "W" to the mnemonic.
+// Each instruction has an opCode. For most of the instructions, the mnemonic is just a simple mapping to the
+// name stored in the opCode table. However, for some instructions we need to look at more options in the
+// instruction word to come up with the mnemonic. Currently we append to the opCode that allow for a word
+// length to append a character to indicate byte, half-word or word access.
+//
+// There are also instructions have the same opCode but result in a different mnemonic. For example the MR
+// instruction will decode to four different mnemonics.
 //
 //------------------------------------------------------------------------------------------------------------
 void displayOpCode( uint32_t instr ) {
     
     uint32_t opCode = getBitField( instr, 5, 6 );
     
-    fprintf( stdout, "%s", opCodeTab[ opCode ].mnemonic );
-    
     if ( opCodeTab[ opCode ].flags & OP_MODE_INSTR ) {
         
-        switch ( getBitField( instr, 18, 2 )) {
+        fprintf( stdout, "%s", opCodeTab[ opCode ].mnemonic );
+        
+        if (( getBitField( instr, 13, 2 ) == 2 ) || ( getBitField( instr, 13, 2 ) == 3 )) {
+            
+            switch ( getBitField( instr, 15, 2 )) {
+                    
+                case 0:  fprintf( stdout, "B" ); break;
+                case 1:  fprintf( stdout, "H" ); break;
+                case 2:  break;
+                default: fprintf( stdout, "**dw**" );
+            }
+        }
+    }
+    else {
+        
+        switch ( opCode ) {
                 
-            case 0:  if (( opCode == OP_LD ) || ( opCode == OP_ST )) fprintf( stdout, "W" ); break;
-            case 1:  fprintf( stdout, "H" ); break;
-            case 2:  fprintf( stdout, "B" ); break;
-            default: fprintf( stdout, "**dw**" );
+            case OP_LD: case OP_ST: {
+                
+                fprintf( stdout, "%s", opCodeTab[ opCode ].mnemonic );
+                
+                switch ( getBitField( instr, 15, 2 )) {
+                        
+                    case 0:  fprintf( stdout, "B" ); break;
+                    case 1:  fprintf( stdout, "H" ); break;
+                    case 2:  break;
+                    default: fprintf( stdout, "**dw**" );
+                }
+                
+            } break;
+                
+            case OP_MR: {
+                
+                switch ( getBitField( instr, 11, 2 )) {
+                        
+                    case 0:  fprintf( stdout, "MFSR" ); break;
+                    case 1:  fprintf( stdout, "MFCR" ); break;
+                    case 2:  fprintf( stdout, "MTSR" ); break;
+                    case 3:  fprintf( stdout, "MTCR" ); break;
+                }
+              
+            } break;
+                
+            default: fprintf( stdout, "%s", opCodeTab[ opCode ].mnemonic );
         }
     }
 }
@@ -221,13 +246,27 @@ void displayOpCodeOptions( uint32_t instr ) {
     
     switch ( opCode ) {
             
-        case OP_ADD:
-        case OP_SUB: {
+        case OP_LD:     case OP_ST:
+        case OP_LDA:    case OP_STA: {
             
-            if ( getBitField( instr, 12, 3 ) > 0 ) {
+            if ( getBit( instr, 10 )) {
+                
+                if ( getBit( instr, 11 )) fprintf( stdout, ".XM" );
+                else fprintf( stdout, ".X" );
+            }
+            else {
+                
+                if ( getBit( instr, 11 )) fprintf( stdout, ".M" );
+            }
+            
+        } break;
+            
+        case OP_ADD:    case OP_ADC:
+        case OP_SUB:    case OP_SBC: {
+            
+            if ( getBitField( instr, 11, 2 ) > 0 ) {
                 
                 fprintf( stdout, "." );
-                if ( getBit( instr, 10 ))   fprintf( stdout, "C" );
                 if ( getBit( instr, 11 ))   fprintf( stdout, "L" );
                 if ( getBit( instr, 12 ))   fprintf( stdout, "O" );
             }
@@ -302,21 +341,15 @@ void displayOpCodeOptions( uint32_t instr ) {
         case OP_CMR: {
             
             fprintf( stdout, "." );
-            displayTestCodes( getBitField( instr, 12, 3 ));
+            displayTestCodes( getBitField( instr, 11, 2 ));
             
         } break;
             
-        case OP_CBR: {
+        case OP_CBR: 
+        case OP_CBRU: {
             
             fprintf( stdout, "." );
-            displayComparisonCodes( getBitField( instr, 8, 3 ));
-            
-        } break;
-            
-        case OP_TBR: {
-            
-            fprintf( stdout, "." );
-            displayTestCodes( getBitField( instr, 8, 3 ));
+            displayComparisonCodes( getBitField( instr, 11, 2 ));
             
         } break;
             
@@ -383,14 +416,14 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
     if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {
         
-        if ( opCode != OP_BLE ) {
+        if ( opCode != OP_BE ) {
             
             fprintf( stdout, "r%d", getBitField( instr, 9, 4 ));
         }
     }
     else if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
         
-        if ( opCode == OP_STWA )  {
+        if ( opCode == OP_STA )  {
             
             printImmVal( getBitField( instr, 27, 18 ));
             fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
@@ -420,16 +453,52 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
     switch ( opCode ) {
             
-        case OP_ADD:    case OP_SUB:    case OP_CMP:
-        case OP_AND:    case OP_OR:     case OP_XOR:
-        case OP_LD:     case OP_ST:     case OP_LDO:
-        case OP_LDWR:   case OP_STWC:   case OP_PRB:
+        case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_CMP:
+        case OP_CMPU:   case OP_AND:    case OP_OR:     case OP_XOR: {
+            
+            fprintf( stdout, "," );
+            displayOperandModeField( instr, fmtId );
+            
+        } break;
+            
+        case OP_LD: case OP_LDA: {
+            
+            if ( getBit( instr, 10 )) {
+                
+                // indexed
+            }
+            else {
+                
+                // offset
+            }
+            
+            
+        } break;
+            
+        case OP_ST: case OP_STA: case OP_LDR: case OP_STC: {
+            
+            // offset
+            
+            
+        } break;
+        
+        case OP_LDO: {
+            
+            // to do ...
+            
+        } break;
+      
+        case OP_PRB:
         case OP_LDPA: {
             
             fprintf( stdout, "," );
             
             if ( opCodeTab[ opCode ].flags & STORE_INSTR ) fprintf( stdout, "r%d", getBitField( instr, 9, 4 ));
-            else displayOperandModeField( instr, fmtId );
+            else {
+                
+                // ???
+                
+            }
             
         } break;
             
@@ -483,66 +552,35 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         } break;
             
-        case OP_LDWA: {
-            
-            fprintf( stdout, "," );
-            printImmVal( immGenPosLenLowSign( instr, 27, 18 ), TOK_DEC );
-            fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
-            
-        } break;
-            
-        case OP_LDWAX: {
-            
-            fprintf( stdout, ",r%d(r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-        
-        } break;
-
-        case OP_STWA: {
-            
-            fprintf( stdout, ",r%d", getBitField( instr, 9, 4 ));
-            
-        } break;
-            
         case OP_B: 
-        case OP_GATE:
-        case OP_BL: {
+        case OP_GATE: {
+            
+            // ??? what about return link ? priv level ?
             
             printImmVal( immGenPosLenLowSign( instr, 31, 22 ) << 2, TOK_DEC );
                         
         } break;
             
         case OP_BR:
-        case OP_BLR:
         case OP_BV: {
+            
+            // ??? what about return link ?
             
             fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
             
         } break;
             
-        case OP_BVR: {
-            
-            fprintf( stdout, "r%d(r%d)", getBitField( instr, 27, 4 ) << 2, getBitField( instr, 31, 4 ));
-            
-        } break;
-            
-        case OP_BE:
-        case OP_BLE: {
+        case OP_BE: {
             
             printImmVal( immGenPosLenLowSign( instr, 23, 18 ));
             fprintf( stdout, ",(s%d,r%d)", getBitField( instr, 27, 4 ) << 2, getBitField( instr, 31, 4 ));
             
         } break;
             
-        case OP_CBR: {
+        case OP_CBR: 
+        case OP_CBRU: {
             
             fprintf( stdout, "r%d,r%d,", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-            printImmVal( immGenPosLenLowSign( instr, 23, 15 ) << 2 );
-            
-        } break;
-            
-        case OP_TBR: {
-            
-            fprintf( stdout, "r%d,", getBitField( instr, 31, 4 ));
             printImmVal( immGenPosLenLowSign( instr, 23, 15 ) << 2 );
             
         } break;

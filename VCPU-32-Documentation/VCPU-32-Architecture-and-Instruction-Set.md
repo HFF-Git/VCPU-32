@@ -110,10 +110,9 @@ May, 2024
         - [BR](#br)
         - [BV](#bv)
         - [BE](#be)
-        - [BLE](#ble)
         - [BVE](#bve)
         - [GATE](#gate)
-        - [CBR, CUBR](#cbr-cubr)
+        - [CBR, CBRU](#cbr-cbru)
     - [Computational Instructions](#computational-instructions)
         - [ADD, ADC](#add-adc)
         - [SUB, SBC](#sub-sbc)
@@ -127,7 +126,7 @@ May, 2024
         - [DSR](#dsr)
         - [SHLA](#shla)
     - [System Control Instructions](#system-control-instructions)
-        - [MR](#mr)
+        - [MFSR, MFCR, MTSR, MTCR](#mfsr-mfcr-mtsr-mtcr)
         - [MST](#mst)
         - [LDPA](#ldpa)
         - [PRB](#prb)
@@ -138,17 +137,9 @@ May, 2024
         - [RFI](#rfi)
         - [BRK](#brk)
     - [Synthetic Instructions](#synthetic-instructions)
-        - [Immediate and Register Operations](#immediate-and-register-operations)
+        - [Immediate Operations](#immediate-operations)
+        - [Register Operations](#register-operations)
         - [Shift and Rotate Operations](#shift-and-rotate-operations)
-        - [Segment and Control Register moves](#segment-and-control-register-moves)
-    - [Instruction Set Summary](#instruction-set-summary)
-        - [Operand Encoding](#operand-encoding)
-        - [Computational Instructions](#computational-instructions)
-        - [Immediate Instructions](#immediate-instructions)
-        - [Memory Reference Instruction](#memory-reference-instruction)
-        - [Absolute Memory Reference Instructions](#absolute-memory-reference-instructions)
-        - [Control Flow Instructions](#control-flow-instructions)
-        - [System Control Instructions](#system-control-instructions)
     - [TLB and Cache Models](#tlb-and-cache-models)
         - [Instruction and Data L1 Cache](#instruction-and-data-l1-cache)
         - [Unified L2 Cache](#unified-l2-cache)
@@ -177,7 +168,14 @@ May, 2024
         - [The physical address space](#the-physical-address-space)
         - [Concept of an I/O Module](#concept-of-an-io-module)
         - [External Interrupts](#external-interrupts)
-    - [A pipelined CPU](#a-pipelined-cpu)
+    - [Instruction Set Summary](#instruction-set-summary)
+        - [Operand Encoding](#operand-encoding)
+        - [Computational Instructions](#computational-instructions)
+        - [Immediate Instructions](#immediate-instructions)
+        - [Memory Reference Instruction](#memory-reference-instruction)
+        - [Control Flow Instructions](#control-flow-instructions)
+        - [System Control Instructions](#system-control-instructions)
+    - [A pipelined CPU model](#a-pipelined-cpu-model)
     - [Notes](#notes)
     - [References](#references)
 
@@ -715,7 +713,7 @@ The **register modes** specify two registers "a" and "b" for the operation and s
 
 The machine addresses memory with a byte address. There are indexed and register indexed operand mode. Operand mode 2 is the **register indexed address mode**, which will use a base register "b" and add an offset in "a" to it, forming the final byte address offset. The upper two bits select one of the four segment register SR4 .. SR7. The **dw** field specifies the data field width. A value of 0 represent a byte, 1 a half-word and 2 a word and 3 a double word. The last option is reserved and not implemented yet. The computed address must be aligned with the size of data to fetch. 
 
-The final operand mode is the **indexed address mode**. The operand address is built by adding an signed byte offset to the base register "b". The offset field is a signed 12 bit field. The sign bit is in the rightmost position of the field. Depending on the sign, the remaining value in the field is sign extended or zero extended. The **dw** field specifies the data field width, just as in operand mode 2. 
+The final operand mode is the **indexed address mode**. The offset field is a signed 12 bit field. The sign bit is in the rightmost position of the field. Depending on the sign, the remaining value in the field is sign extended or zero extended. The operand address is built by adding an signed byte offset to the base register "b". The upper two bits select one of the four segment register SR4 .. SR7. The **dw** field specifies the data field width, just as in operand mode 2. 
 
 ### Instruction Operand Notation
 
@@ -808,8 +806,8 @@ Loads a memory value into a general register using a logical address.
 #### Format
 
 ```
-   LDw [.M] r, ofs(b)          w = B|H|W|D
-   LDw.X [M] r, a(b)           w = B|H|W|D
+   LDw [.M] r, ofs(b)          w = B|H|W
+   LDw.X [M] r, a(b)           w = B|H|W
 ```
 
 ```
@@ -882,7 +880,7 @@ Stores a general register value into memory using a logical address.
 #### Format
 
 ```
-   STw [.M] operand, r         w = B|H|W|D
+   STw [.M] operand, r         w = B|H|W
 ```
 
 ```
@@ -949,9 +947,9 @@ Loads the memory content into a general register using an absolute address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDA     ( 0x36 ): r         :0 :M : 0         : ofs                               : b         :
+   : LDA     ( 0x32 ): r         :0 :M : 0   : 2   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDA.X   ( 0x36 ): r         :1 :M : 0                                  : a        : b         :
+   : LDA.X   ( 0x32 ): r         :1 :M : 0   : 2   : 0                      : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1015,7 +1013,7 @@ Stores a general register value into memory using an absolute physical address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : STA     ( 0x37 ): r         :0 :M : 0         : ofs                               : b         :
+   : STA     ( 0x33 ): r         :0 :M : 0   : 2   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1068,7 +1066,7 @@ Loads the operand into the target register from the address and marks that addre
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDR     ( 0x32 ): r         : 0   : seg : 0   : ofs                               : b         :
+   : LDR     ( 0x34 ): r         : 0   : seg : 2   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1124,7 +1122,7 @@ Conditionally store a value to memory.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : STC     ( 0x33 ): r         : 0   : seg : 0   : ofs                               : b         :
+   : STC     ( 0x35 ): r         : 0   : seg : 2   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1760,16 +1758,16 @@ Adds the operand to the target register.
 #### Format
 
 ```
-   ADD [.<opt> ] r, operand
-   ADC [.<opt> ] r, operand
+   ADDw [.<opt> ] r, operand        w = B|H|W
+   ADCw [.<opt> ] r, operand        w = B|H|W
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : ADD     ( 0x10 ): r         :L :O : operand                                                   :
+   : ADDw    ( 0x10 ): r         :L :O : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
-   : ADC     ( 0x11 ): r         :L :O : operand                                                   :
+   : ADCw    ( 0x11 ): r         :L :O : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1838,16 +1836,16 @@ Subtracts the operand from the target register.
 #### Format
 
 ```
-   SUB[.<opt>] r, operand
-   SBC[.<opt>] r, operand
+   SUB[.<opt>] r, operand        w = B|H|W
+   SBC[.<opt>] r, operand        w = B|H|W
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : SUB     ( 0x12 ): r         :L :O : operand                                                   :
+   : SUBw    ( 0x12 ): r         :L :O : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
-   : SBC     ( 0x13 ): r         :L :O : operand                                                   :
+   : SBCw    ( 0x13 ): r         :L :O : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1916,13 +1914,13 @@ Performs a bitwise AND of the operand and the target register and stores the res
 #### Format
 
 ```
-   AND[.<opt>] r, operand
+   ANDw [.<opt>] r, operand         w = B|H|W
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : AND     ( 0x14 ): r         :N :C : operand                                                   :
+   : ANDw    ( 0x14 ): r         :N :C : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1985,13 +1983,13 @@ Performs a bitwise OR of the operand and the target register and stores the resu
 #### Format
 
 ```
-   OR[.<opt>] r, operand
+   ORw[.<opt>] r, operand         w = B|H|W
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : OR      ( 0x15 ): r         :N :C : operand                                                   :
+   : ORw      ( 0x15 ): r         :N :C : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2054,13 +2052,13 @@ Performs a bitwise XORing the operand and the target register and stores the res
 #### Format
 
 ```
-   XOR[.<opt>] r, operand
+   XORw [.<opt>] r, operand          w = B|H|W
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : XOR     ( 0x16 ): r         :N :C : operand                                                   :
+   : XORw    ( 0x16 ): r         :N :C : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2123,16 +2121,16 @@ Compares a register and an operand and stores the comparison result in the targe
 #### Format
 
 ```
-   CMP .cond> r, operand
-   CMPU .cond> r, operand
+   CMPw .cond> r, operand         w = B|H|W
+   CMPUw .cond> r, operand        w = B|H|W        
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : CMP     ( 0x17 ): r         :cond : operand                                                   :
+   : CMPw    ( 0x17 ): r         :cond : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
-   : CMPU    ( 0x18 ): r         :cond : operand                                                   :
+   : CMPUw   ( 0x18 ): r         :cond : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2268,6 +2266,8 @@ In combination with the CMP instruction, simple instruction sequences such as "i
 ```
 
 The CMR instruction is a rather specialized instruction. It highly depends on a good peephole optimizer to detect such a situation. The instruction sequence might also be a candidate for a compare and move instruction.
+
+// ??? **note** what do we do about unsigned cases ? Since we have bits left, would other condition cases be useful ? 
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -2643,7 +2643,7 @@ Load the physical address for a virtual address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDPA    ( 0x37 ): r         : 0   : seg : 0                           : a         : b         :
+   : LDPA    ( 0x39 ): r         : 0   : seg : 0                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3776,26 +3776,19 @@ This appendix lists all instructions by instruction group.
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : LDw     ( 0x30 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDw.X   ( 0x30 ): r         :1 :M : seg : dw  : 0                      : a        : b         :
+   : LDw.X   ( 0x30 ): r         :1 :M : seg : dw  : 0                     : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : STw     ( 0x31 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDR     ( 0x32 ): r         : 0   : seg : 0   : ofs                               : b         :
+   : LDR     ( 0x34 ): r         : 0   : seg : 2   : ofs                               : b         :
+   :----------------:------------------------------------------------------------------------------:
+   : STC     ( 0x35 ): r         : 0   : seg : 2   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : STC     ( 0x33 ): r         : 0   : seg : 0   : ofs                               : b         :
+   : LDA     ( 0x32 ): r         :0 :M : 0   : 2   : ofs                               : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-```
-
-### Absolute Memory Reference Instructions
-
-```
-    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDA     ( 0x36 ): r         :0 :M : 0         : ofs                               : b         : 
+   : LDA.X   ( 0x32 ): r         :1 :M : 0   : 2   : 0                     : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-   : LDA.X   ( 0x36 ): r         :1 :M : 0                                 : a         : b         : 
-   :-----------------:-----------------------------------------------------------------------------:
-   : STA     ( 0x37 ): r         :0 :M : ofs                                           : b         :
+   : STA     ( 0x33 ): r         :0 :M : 0   : 2   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3814,7 +3807,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : BE      ( 0x24 ): r         : 0                                       : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : BVE     ( 0x25 ): r         : 0                                       : a         : b         :      
+   : BVE     ( 0x25 ): r         : 0                                       : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
    : CBR     ( 0x26 ):cond : ofs                                           : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
@@ -3837,7 +3830,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : MST     ( 0x0B ): r         :mode : 0                                       : s               :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDPA    ( 0x37 ): r         : 0   : seg : 0                           : a         : b         :       
+   : LDPA    ( 0x39 ): r         : 0   : seg : 0                           : a         : b         :       
    :-----------------:-----------------------------------------------------------------------------:
    : PRB     ( 0x3A ): r         :M :P : seg :I : 0                        : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:

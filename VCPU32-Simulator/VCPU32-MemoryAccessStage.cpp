@@ -317,8 +317,10 @@ void MemoryAccessStage::process( ) {
     switch( opCode ) {
             
         case OP_ADD:    case OP_SUB:    case OP_AND:    case OP_OR:     case OP_XOR:
-        case OP_CMP:    case OP_LDO:    case OP_LD:     case OP_ST:     case OP_LDWR:
-        case OP_STWC: {
+        case OP_CMP:
+        
+        case OP_LDO:    case OP_LD:     case OP_ST:     case OP_LDR:
+        case OP_STC: {
             
             if ( opMode >= 2 ) {
             
@@ -331,9 +333,8 @@ void MemoryAccessStage::process( ) {
             
         } break;
             
-        case OP_LDWA:
-        case OP_LDWAX:
-        case OP_STWA: {
+        case OP_LDA:
+        case OP_STA: {
             
             valX            = add32( valB, valX );
             regIdForValX    = MAX_GREGS;
@@ -342,11 +343,8 @@ void MemoryAccessStage::process( ) {
         } break;
             
         case OP_B:
-        case OP_BL:
         case OP_BR:
-        case OP_BLR:
         case OP_BV:
-        case OP_BVR: 
         case OP_GATE: {
             
             core -> fdStage -> psInstrSeg.set( instrSeg );
@@ -360,8 +358,7 @@ void MemoryAccessStage::process( ) {
             
         } break;
             
-        case OP_BE:
-        case OP_BLE: {
+        case OP_BE: {
            
             core -> fdStage -> psInstrSeg.set( core -> sReg[ getBitField( instr, 27, 4 ) ].get( ));
             core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
@@ -374,8 +371,13 @@ void MemoryAccessStage::process( ) {
             
         } break;
             
-        case OP_CBR:
-        case OP_TBR: {
+        case OP_BVE: {
+            
+            // ??? to do ...
+            
+        } break;
+            
+        case OP_CBR: {
             
             regIdForValX    = MAX_GREGS;
             valX            = add32( instrOfs, valX );

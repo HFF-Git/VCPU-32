@@ -265,84 +265,51 @@ enum OpMode : uint32_t {
 //------------------------------------------------------------------------------------------------------------
 enum InstrOpCode : uint8_t {
     
-    // group zero - register based, special
-    
     OP_BRK          = 0x00,     // break for debug
-    OP_LSID         = 0x01,     // load segement id
-    OP_LDIL         = 0x02,     // load immediate left
-    OP_ADDIL        = 0x03,     // add immediate left
-    OP_EXTR         = 0x04,     // extract bit field of operand
-    OP_DEP          = 0x05,     // extract bit field into operand
-    OP_DSR          = 0x06,     // double register shift right
-    OP_SHLA         = 0x07,     // shift left and add
-    OP_CMR          = 0x0B,     // conditional move register or value
-    OP_MR           = 0x09,     // move to or from a segment or control register
-    OP_MST          = 0x0A,     // set or clear status bits
-    
-    OP_RSV_0B       = 0x0B,     // reserved
-    OP_RSV_0C       = 0x0C,     // reserved
-    OP_RSV_0D       = 0x0D,     // reserved
-    OP_RSV_0E       = 0x0E,     // reserved
-    OP_RSV_0F       = 0x0F,     // reserved
-    
-    // group one - opMode group
+    OP_LDIL         = 0x01,     // load immediate left
+    OP_ADDIL        = 0x02,     // add immediate left
+    OP_LDO          = 0x03,     // load offset
+    OP_LSID         = 0x04,     // load segement id
+    OP_EXTR         = 0x05,     // extract bit field of operand
+    OP_DEP          = 0x06,     // extract bit field into operand
+    OP_DSR          = 0x07,     // double register shift right
+    OP_SHLA         = 0x08,     // shift left and add
+    OP_CMR          = 0x09,     // conditional move register or value
+    OP_MR           = 0x0A,     // move to or from a segment or control register
+    OP_MST          = 0x0B,     // set or clear status bits
     
     OP_ADD          = 0x10,     // target = target + operand ;options for carry, ovl trap, etc.
-    OP_SUB          = 0x11,     // target = target - operand ;options for carry, ovl trap, etc.
-    OP_AND          = 0x12,     // target = target & operand ; option to negate the result
-    OP_OR           = 0x13,     // target = target | operand ; option to negate the result
-    OP_XOR          = 0x14,     // target = target ^ operand ; option to negate the result
-    OP_CMP          = 0x15,     // subtract reg2 from reg1 and set target reg
-    OP_RSV_16       = 0x16,     // reserved
-    OP_LDO          = 0x17,     // load offset
-   
-    OP_LD           = 0x18,     // target = [ operand ]   // covers LDW, LDH, LDB
-    OP_ST           = 0x19,     // [ operand ] = target   // covers STW, STH, STB
-    OP_LDWR         = 0x1A,     // load word referenced
-    OP_STWC         = 0X1B,     // store word conditional
-    
-    OP_RSV_1C       = 0x1C,     // reserved
-    OP_RSV_1D       = 0x1D,     // reserved
-    OP_LDPA         = 0x1E,     // load physical address
-    OP_PRB          = 0x1F,     // probe access
-    
-    // group two - branch type group
+    OP_ADC          = 0x11,     // target = target + operand ;options for carry, ovl trap, etc.
+    OP_SUB          = 0x12,     // target = target - operand ;options for carry, ovl trap, etc.
+    OP_SBC          = 0x13,     // target = target - operand ;options for carry, ovl trap, etc.
+    OP_AND          = 0x14,     // target = target & operand ; option to negate the result
+    OP_OR           = 0x15,     // target = target | operand ; option to negate the result
+    OP_XOR          = 0x16,     // target = target ^ operand ; option to negate the result
+    OP_CMP          = 0x17,     // subtract reg2 from reg1 and set target reg
+    OP_CMPU         = 0x18,     // subtract reg2 from reg1 and set target reg
     
     OP_B            = 0x20,     // branch
-    OP_BL           = 0x21,     // branch and link
+    OP_GATE         = 0x21,     // gateway instruction
     OP_BR           = 0x22,     // branch register
-    OP_BLR          = 0x23,     // branch and link register
-    OP_BV           = 0x24,     // branch vectored
-    OP_BVR          = 0x25,     // branch vectored register
-    OP_BE           = 0x26,     // branch external
-    OP_BLE          = 0x27,     // branch and link external
-    OP_GATE         = 0x28,     // gateway instruction
-    OP_CBR          = 0x29,     // compare and branch
-    OP_TBR          = 0x2A,     // test and branch
+    OP_BV           = 0x23,     // branch vectored
+    OP_BE           = 0x24,     // branch external
+    OP_BVE          = 0x25,     // branch and link external
+    OP_CBR          = 0x26,     // compare and branch
+    OP_CBRU         = 0x27,     // test and branch
     
-    OP_RSV_2B       = 0x2B,     // reserved
-    OP_RSV_2C       = 0x2C,     // reserved
-    OP_RSV_2D       = 0x2D,     // reserved
-    OP_RSV_2E       = 0x2E,     // reserved
-    OP_RSV_2F       = 0x2F,     // reserved
+    OP_LD           = 0x30,     // target = [ operand ]   // covers LDW, LDH, LDB
+    OP_ST           = 0x31,     // [ operand ] = target   // covers STW, STH, STB
+    OP_LDA          = 0x32,     // load word from absolute address
+    OP_STA          = 0x33,     // store word to absolute adress
+    OP_LDR          = 0x34,     // load word referenced
+    OP_STC          = 0X35,     // store word conditional
     
-    // group three - special and control group
-    
-    OP_RSV_30       = 0x30,     // reserved
-    OP_RSV_31       = 0x31,     // reserved
-    OP_RSV_32       = 0x32,     // reserved
-    OP_RSV_33       = 0x33,     // reserved
-    OP_RSV_34       = 0x34,     // reserved
-    OP_RSV_35       = 0x35,     // reserved
-    OP_RSV_36       = 0x36,     // reserved
-    OP_RSV_37       = 0x37,     // reserved
-    OP_ITLB         = 0x38,     // insert into TLB
-    OP_PTLB         = 0x39,     // remove from TLB
-    OP_PCA          = 0x3A,     // purge and flush cache
-    OP_DIAG         = 0x3B,     // diagnostics instruction, tbd.
-    OP_LDWA         = 0x3C,     // load word from absolute address
-    OP_LDWAX        = 0x3D,     // load word indexed from absolute address
-    OP_STWA         = 0x3E,     // store word to absolute adress
+    OP_LDPA         = 0x39,     // load physical address
+    OP_PRB          = 0x3A,     // probe access
+    OP_ITLB         = 0x3B,     // insert into TLB
+    OP_PTLB         = 0x3C,     // remove from TLB
+    OP_PCA          = 0x3D,     // purge and flush cache
+    OP_DIAG         = 0x3E,     // diagnostics instruction, tbd.
     OP_RFI          = 0x3F      // return from interrupt
 };
 
@@ -384,72 +351,71 @@ const struct opCodeInfo {
 } opCodeTab[ ] = {
     
     /* 0x00 */  { "BRK",    OP_BRK,     ( CTRL_INSTR ) },
-    /* 0x01 */  { "LSID",   OP_LSID,    ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x02 */  { "LDIL",   OP_LDIL,    ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x03 */  { "ADDIL",  OP_ADDIL,   ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x04 */  { "EXTR",   OP_EXTR,    ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x05 */  { "DEP",    OP_DEP,     ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x06 */  { "DSR",    OP_DSR,     ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x07 */  { "SHLA",   OP_SHLA,    ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x08 */  { "CMR",    OP_CMR,     ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x09 */  { "MR",     OP_MR,      ( CTRL_INSTR ) },
-    /* 0x0A */  { "MST",    OP_MST,     ( CTRL_INSTR | PRIV_INSTR | REG_R_INSTR ) },
-    /* 0x0B */  { "RSV_0B", OP_RSV_0B,  ( NO_FLAGS ) },
-    /* 0x0C */  { "RSV_0C", OP_RSV_0C,  ( NO_FLAGS ) },
-    /* 0x0D */  { "RSV_0D", OP_RSV_0D,  ( NO_FLAGS ) },
-    /* 0x0E */  { "RSV_0E", OP_RSV_0E,  ( NO_FLAGS ) },
-    /* 0x0F */  { "RSV_0F", OP_RSV_0F,  ( NO_FLAGS ) },
+    /* 0x01 */  { "LDIL",   OP_LDIL,    ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x02 */  { "ADDIL",  OP_ADDIL,   ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x03 */  { "LOD",    OP_LDO,     ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x04 */  { "LSID",   OP_LSID,    ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x05 */  { "EXTR",   OP_EXTR,    ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x06 */  { "DEP",    OP_DEP,     ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x07 */  { "DSR",    OP_DSR,     ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x08 */  { "SHLA",   OP_SHLA,    ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x09 */  { "CMR",    OP_CMR,     ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x0A */  { "MR",     OP_MR,      ( CTRL_INSTR ) },
+    /* 0x0B */  { "MST",    OP_MST,     ( CTRL_INSTR | PRIV_INSTR | REG_R_INSTR ) },
+    /* 0x0C */  { "RSV_0C", 0x0C,       ( NO_FLAGS ) },
+    /* 0x0D */  { "RSV_0D", 0x0D,       ( NO_FLAGS ) },
+    /* 0x0E */  { "RSV_0E", 0x0E,       ( NO_FLAGS ) },
+    /* 0x0F */  { "RSV_0F", 0x0F,       ( NO_FLAGS ) },
     
     /* 0x10 */  { "ADD",    OP_ADD,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
-    /* 0x11 */  { "SUB",    OP_SUB,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
-    /* 0x12 */  { "AND",    OP_AND,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
-    /* 0x13 */  { "OR",     OP_OR,      ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
-    /* 0x14 */  { "XOR",    OP_XOR,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
-    /* 0x15 */  { "CMP",    OP_CMP,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
-    /* 0x16 */  { "RSV_16", OP_RSV_16,  ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x17 */  { "LOD",    OP_LDO,     ( COMP_INSTR | OP_MODE_INSTR | REG_R_INSTR ) },
-    /* 0x18 */  { "LD",     OP_LD,      ( LOAD_INSTR  | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
-    /* 0x19 */  { "ST",     OP_ST,      ( STORE_INSTR | OP_MODE_INSTR | WRITE_INSTR ) },
-    /* 0x1A */  { "LDWR",   OP_LDWR,    ( LOAD_INSTR  | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
-    /* 0x1B */  { "STWC",   OP_STWC,    ( STORE_INSTR | OP_MODE_INSTR | WRITE_INSTR) },
-    /* 0x1C */  { "RSV_1C", OP_RSV_1C,  ( NO_FLAGS ) },
-    /* 0x1D */  { "RSV_1D", OP_RSV_1D,  ( NO_FLAGS ) },
-    /* 0x1E */  { "LDPA",   OP_LDPA,    ( LOAD_INSTR | PRIV_INSTR | REG_R_INSTR ) },
-    /* 0x1F */  { "PRB",    OP_PRB,     ( CTRL_INSTR | REG_R_INSTR ) },
+    /* 0x11 */  { "ADC",    OP_ADC,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x12 */  { "SUB",    OP_SUB,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x13 */  { "SBC",    OP_SBC,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x14 */  { "AND",    OP_AND,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x15 */  { "OR",     OP_OR,      ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x16 */  { "XOR",    OP_XOR,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x17 */  { "CMP",    OP_CMP,     ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x18 */  { "CMPU",   OP_CMPU,    ( COMP_INSTR | OP_MODE_INSTR | READ_INSTR | REG_R_INSTR ) },
+    /* 0x19 */  { "RSV_19", 0x19,       ( NO_FLAGS ) },
+    /* 0x1A */  { "RSV_1A", 0x1A,       ( NO_FLAGS ) },
+    /* 0x1B */  { "RSV_1B", 0x1B,       ( NO_FLAGS ) },
+    /* 0x1C */  { "RSV_1C", 0x1C,       ( NO_FLAGS ) },
+    /* 0x1D */  { "RSV_1D", 0x1D,       ( NO_FLAGS ) },
+    /* 0x1E */  { "RSV_1E", 0x1E,       ( NO_FLAGS ) },
+    /* 0x1F */  { "RSV_1F", 0x1F,       ( NO_FLAGS ) },
     
-    /* 0x20 */  { "B",      OP_B,       ( BRANCH_INSTR ) },
-    /* 0x21 */  { "BL",     OP_BL,      ( BRANCH_INSTR | REG_R_INSTR ) },
-    /* 0x22 */  { "BR",     OP_BR,      ( BRANCH_INSTR ) },
-    /* 0x23 */  { "BLR",    OP_BLR,     ( BRANCH_INSTR | REG_R_INSTR ) },
-    /* 0x24 */  { "BV",     OP_BV,      ( BRANCH_INSTR ) },
-    /* 0x25 */  { "BVR",    OP_BVR,     ( BRANCH_INSTR ) },
-    /* 0x26 */  { "BE",     OP_BE,      ( BRANCH_INSTR ) },
-    /* 0x27 */  { "BLE",    OP_BLE,     ( BRANCH_INSTR | REG_R_INSTR ) },
-    /* 0x28 */  { "GATE",   OP_GATE,    ( CTRL_INSTR | BRANCH_INSTR | REG_R_INSTR ) },
-    /* 0x29 */  { "CBR",    OP_CBR,     ( BRANCH_INSTR ) },
-    /* 0x2A */  { "TBR",    OP_TBR,     ( BRANCH_INSTR ) },
-    /* 0x2B */  { "RSV_2B", OP_RSV_2B,  ( NO_FLAGS ) },
-    /* 0x2C */  { "RSV_2C", OP_RSV_2C,  ( NO_FLAGS ) },
-    /* 0x2D */  { "RSV_2D", OP_RSV_2D,  ( NO_FLAGS ) },
-    /* 0x2E */  { "RSV_2E", OP_RSV_2E,  ( NO_FLAGS ) },
-    /* 0x2F */  { "RSV_2F", OP_RSV_2F,  ( NO_FLAGS ) },
+    /* 0x20 */  { "B",      OP_B,       ( BRANCH_INSTR | REG_R_INSTR ) },
+    /* 0x21 */  { "GATE",   OP_GATE,    ( CTRL_INSTR | BRANCH_INSTR | REG_R_INSTR ) },
+    /* 0x22 */  { "BR",     OP_BR,      ( BRANCH_INSTR | REG_R_INSTR ) },
+    /* 0x23 */  { "BV",     OP_BV,      ( BRANCH_INSTR | REG_R_INSTR ) },
+    /* 0x24 */  { "BE",     OP_BE,      ( BRANCH_INSTR | REG_R_INSTR ) },
+    /* 0x25 */  { "BVE",    OP_BVE,     ( BRANCH_INSTR | REG_R_INSTR ) },
+    /* 0x26 */  { "CBR",    OP_CBR,     ( BRANCH_INSTR ) },
+    /* 0x27 */  { "CBRU",   OP_CBR,     ( BRANCH_INSTR ) },
+    /* 0x28 */  { "RSV_28", 0x28,       ( NO_FLAGS ) },
+    /* 0x29 */  { "RSV_29", 0x29,       ( NO_FLAGS ) },
+    /* 0x2A */  { "RSV_2A", 0x0A,       ( NO_FLAGS ) },
+    /* 0x2B */  { "RSV_2B", 0x2B,       ( NO_FLAGS ) },
+    /* 0x2C */  { "RSV_2C", 0x2C,       ( NO_FLAGS ) },
+    /* 0x2D */  { "RSV_2D", 0x2D,       ( NO_FLAGS ) },
+    /* 0x2E */  { "RSV_2E", 0x2E,       ( NO_FLAGS ) },
+    /* 0x2F */  { "RSV_2F", 0x2F,       ( NO_FLAGS ) },
     
-    /* 0x30 */  { "RSV_30", OP_RSV_30,  ( NO_FLAGS ) },
-    /* 0x31 */  { "RSV_31", OP_RSV_31,  ( NO_FLAGS ) },
-    /* 0x32 */  { "RSV_32", OP_RSV_32,  ( NO_FLAGS ) },
-    /* 0x33 */  { "RSV_33", OP_RSV_33,  ( NO_FLAGS ) },
-    /* 0x34 */  { "RSV_34", OP_RSV_34,  ( NO_FLAGS ) },
-    /* 0x35 */  { "RSV_35", OP_RSV_35,  ( NO_FLAGS ) },
-    /* 0x36 */  { "RSV_36", OP_RSV_36,  ( NO_FLAGS ) },
-    /* 0x37 */  { "RSV_37", OP_RSV_37,  ( NO_FLAGS ) },
-    
-    /* 0x38 */  { "ITLB",   OP_ITLB,    ( CTRL_INSTR | PRIV_INSTR ) },
-    /* 0x39 */  { "PTLB",   OP_PTLB,    ( CTRL_INSTR | PRIV_INSTR ) },
-    /* 0x3A */  { "PCA",    OP_PCA,     ( CTRL_INSTR ) },
-    /* 0x3B */  { "DIAG",   OP_DIAG,    ( CTRL_INSTR ) },
-    /* 0x3C */  { "LDWA",   OP_LDWA,    ( LOAD_INSTR  | PRIV_INSTR | READ_INSTR | REG_R_INSTR  ) },
-    /* 0x3D */  { "LDWAX",  OP_LDWAX,   ( LOAD_INSTR  | PRIV_INSTR | READ_INSTR | REG_R_INSTR  ) },
-    /* 0x3E */  { "STWA",   OP_STWA,    ( STORE_INSTR | PRIV_INSTR | WRITE_INSTR ) },
+    /* 0x30 */  { "LD",     OP_LD,      ( LOAD_INSTR  | READ_INSTR | REG_R_INSTR ) },
+    /* 0x31 */  { "ST",     OP_ST,      ( STORE_INSTR | WRITE_INSTR ) },
+    /* 0x32 */  { "LDA",    OP_LDA,     ( LOAD_INSTR  | PRIV_INSTR | READ_INSTR | REG_R_INSTR  ) },
+    /* 0x33 */  { "STA",    OP_STA,     ( STORE_INSTR | PRIV_INSTR | WRITE_INSTR ) },
+    /* 0x34 */  { "LDR",    OP_LDR,     ( LOAD_INSTR  | READ_INSTR | REG_R_INSTR ) },
+    /* 0x35 */  { "STC",    OP_STC,     ( STORE_INSTR | WRITE_INSTR) },
+    /* 0x36 */  { "RSV_36", 0x36,       ( NO_FLAGS ) },
+    /* 0x37 */  { "RSV_37", 0x37,       ( NO_FLAGS ) },
+    /* 0x38 */  { "RSV_38", 0x38,       ( NO_FLAGS ) },
+    /* 0x39 */  { "LDPA",   OP_LDPA,    ( LOAD_INSTR | PRIV_INSTR | REG_R_INSTR ) },
+    /* 0x3A */  { "PRB",    OP_PRB,     ( CTRL_INSTR | REG_R_INSTR ) },
+    /* 0x3B */  { "ITLB",   OP_ITLB,    ( CTRL_INSTR | PRIV_INSTR ) },
+    /* 0x3C */  { "PTLB",   OP_PTLB,    ( CTRL_INSTR | PRIV_INSTR ) },
+    /* 0x3C */  { "PCA",    OP_PCA,     ( CTRL_INSTR ) },
+    /* 0x3D */  { "DIAG",   OP_DIAG,    ( CTRL_INSTR ) },
     /* 0x3F */  { "RFI",    OP_RFI,     ( CTRL_INSTR | PRIV_INSTR ) }
 };
 

@@ -526,23 +526,25 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_LD:
-        case OP_LDWA: {
+        case OP_LDA: {
             
             valR = valB;
             
         } break;
             
-        case OP_BL:
-        case OP_BLR: {
+        case OP_B: {
             
             valR = instrOfs + 4;
             
         } break;
             
-        case OP_BLE: {
+        case OP_BE: {
             
             core -> sReg[ 0 ].set( instrSeg );
-            core -> gReg[ 0 ].set( instrOfs );
+            
+            // ??? fix it is a reg now ...
+            
+            core -> gReg[ 1 ].set( instrOfs );
             
         } break;
             
@@ -557,14 +559,9 @@ void ExecuteStage::process( ) {
             
         } break;
             
-        case OP_TBR: {
+        case OP_CBRU: {
             
-            if (( testCond( instr, valA )) != ( branchTaken )) {
-                
-                core -> fdStage -> psInstrSeg.set( instrSeg );
-                core -> fdStage -> psInstrOfs.set( valX );
-                flushPipeLine( );
-            }
+            // ??? to do ...
             
         } break;
             
