@@ -126,7 +126,7 @@ May, 2024
         - [DSR](#dsr)
         - [SHLA](#shla)
     - [System Control Instructions](#system-control-instructions)
-        - [MFSR, MFCR, MTSR, MTCR](#mfsr-mfcr-mtsr-mtcr)
+        - [MR](#mr)
         - [MST](#mst)
         - [LDPA](#ldpa)
         - [PRB](#prb)
@@ -2481,7 +2481,7 @@ The **DIAG** instruction is a control instructions to issue hardware specific im
 
 <div style="page-break-before: always;"></div>
 
-### MFSR, MFCR, MTSR, MTCR
+### MR
 
 <hr>
 
@@ -2490,35 +2490,27 @@ Copy data between a general register and a segment or control register.
 #### Format
 
 ```
-   MFSR r, s
-   MFCR r, s
-   MTSR s, r
-   MTCR s, r
+   MR r, s
+   MR s, r
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : MFSR    ( 0x0A ): r         :0 :0 : 0                                       : s               :
-   :-----------------:-----------------------------------------------------------------------------:
-   : MFCR    ( 0x0A ): r         :0 :1 : 0                                       : s               :
-   :-----------------:-----------------------------------------------------------------------------:
-   : MTSR    ( 0x0A ): r         :1 :0 : 0                                       : s               :
-   :-----------------:-----------------------------------------------------------------------------:
-   : MTCR    ( 0x0A ): r         :1 :1 : 0                                       : s               :
+   : MR      ( 0x0A ): r         :D :M : 0                                       : s               :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The move register instructions copy data from a segment or control register "s" to a general register "r" and vice versa. Setting a value for a privileged segment or control register is a privileged operation.
+The move register instructions copy data from a segment or control register "s" to a general register "r" and vice versa. The "D" field indicates the copy direction. A value of one will copy general register "r" to the segment or control register "s". A value of zero copies "r" to the segment or control register "s". The "M" field identifies the register type. A value of one refers to a control register, otherwise a segment register. Setting a value for a privileged segment or control register is a privileged operation.
 
 #### Operation
 
 ```
    if ( instr.[10] ) {
 
-      if ( instr.[11] ) GR[ instr.[27..31]] <- GR[r];
+      if ( instr.[11] ) CR[ instr.[27..31]] <- GR[r];
       else              SR[ instr.[29..31]] <- GR[r];
    
    } else {
@@ -2534,7 +2526,7 @@ The move register instructions copy data from a segment or control register "s" 
 
 #### Notes
 
-The move register instructions are all implemented as a "MR" instruction opCode with direction and register type select bits. 
+None.
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -2697,7 +2689,7 @@ Probe data access to a virtual address.
 
 #### Description
 
-The PRB instruction determines whether data access at the requested privilege level stored in the general register "r" is allowed. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "M" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. the "P" bit designates the privilege level to use for the probe operation. If the "I" bit is set, the PRB instruction uses the value in register "a" as the privilege level to test for instead of the "P" bit. If protection ID checking is enabled, the protection ID is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
+The PRB instruction determines whether data access at the requested privilege level stored in the general register "r" is allowed. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "M" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. The "P" bit designates the privilege level to use for the probe operation. If the "I" bit is set, the PRB instruction uses the value in register "a" as the privilege level to test for instead of the "P" bit in the status register. If protection ID checking is enabled, the protection ID is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
 
 #### Operation
 
@@ -2706,15 +2698,15 @@ The PRB instruction determines whether data access at the requested privilege le
 
       if ( instr.[I] ) {
 
-         if      ((   instr.[M] ) && ( writeAccessAllowed( entry, GR[a] )))    GR[r] <- 1;
-         else if (( ! instr.[M] ) && ( readAccessAllowed( entry, GR[a] )))     GR[r] <- 1;
-         else                                                                  GR[r] <- 0;
+         if      ((   instr.[M] ) && ( writeAccessAllowed( entry, GR[a] )))      GR[r] <- 1;
+         else if (( ! instr.[M] ) && ( readAccessAllowed( entry, GR[a] )))       GR[r] <- 1;
+         else                                                                    GR[r] <- 0;
 
       } else {
 
-         if      ((   instr.[M] ) && ( writeAccessAllowed( entry, instr.[P] )))    GR[r] <- 1;
-         else if (( ! instr.[M] ) && ( readAccessAllowed( entry, instr.[P] )))     GR[r] <- 1;
-         else                                                                      GR[r] <- 0;
+         if      ((   instr.[M] ) && ( writeAccessAllowed( entry, instr.[P] )))  GR[r] <- 1;
+         else if (( ! instr.[M] ) && ( readAccessAllowed( entry, instr.[P] )))   GR[r] <- 1;
+         else                                                                    GR[r] <- 0;
       }
       
    } else nonAccessDataTlbMiss( );
@@ -3760,7 +3752,8 @@ This appendix lists all instructions by instruction group.
 ### Immediate Instructions
 
 ```
-   :-----------------:-----------------------------------------------------------------------------:
+    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : LDIL    ( 0x01 ): r         : val                                                             :
    :-----------------:-----------------------------------------------------------------------------:
    : ADDIL   ( 0x02 ): r         : val                                                             :
@@ -3820,13 +3813,7 @@ This appendix lists all instructions by instruction group.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : MFSR    ( 0x0A ): r         :0 :0 : 0                                       : s               :
-   :-----------------:-----------------------------------------------------------------------------:
-   : MFCR    ( 0x0A ): r         :0 :1 : 0                                       : s               :
-   :-----------------:-----------------------------------------------------------------------------:
-   : MTSR    ( 0x0A ): r         :1 :0 : 0                                       : s               :
-   :-----------------:-----------------------------------------------------------------------------:
-   : MTCR    ( 0x0A ): r         :1 :1 : 0                                       : s               :
+   : MR      ( 0x0A ): r         :D :M : 0                                       : s               :
    :-----------------:-----------------------------------------------------------------------------:
    : MST     ( 0x0B ): r         :mode : 0                                       : s               :
    :-----------------:-----------------------------------------------------------------------------:
