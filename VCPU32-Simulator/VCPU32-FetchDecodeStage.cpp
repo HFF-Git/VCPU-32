@@ -327,17 +327,8 @@ void FetchDecodeStage::process( ) {
     // are bypassed. The offset is the physical memory address. We also must be privileged.
     //
     //--------------------------------------------------------------------------------------------------------
-    if ( instrSeg == 0 ) {
-        
-        if ( core -> stReg.get( ) & ST_EXECUTION_LEVEL ) {
-            
-            setupTrapData( INSTR_MEM_PROTECT_TRAP, instrSeg, instrOfs, core -> stReg.get( ));
-            stallPipeLine( );
-            return;
-        }
-    }
-    else {
-        
+    if ( core -> stReg.get( ) & ST_CODE_TRANSLATION_ENABLE ) {
+   
         tlbEntryPtr = core -> iTlb -> lookupTlbEntry( instrSeg, instrOfs );
         if ( tlbEntryPtr == nullptr ) {
             
@@ -368,6 +359,15 @@ void FetchDecodeStage::process( ) {
        
         pAdr = tlbEntryPtr -> tPhysPage( ) | pOfs;
     }
+    else {
+    
+         if ( core -> stReg.get( ) & ST_EXECUTION_LEVEL ) {
+             
+             setupTrapData( INSTR_MEM_PROTECT_TRAP, instrSeg, instrOfs, core -> stReg.get( ));
+             stallPipeLine( );
+             return;
+         }
+     }
     
     //--------------------------------------------------------------------------------------------------------
     // Instruction word fetch. If the address is in between the physical memory range, we pass the "seg.ofs"
@@ -385,7 +385,6 @@ void FetchDecodeStage::process( ) {
             stallPipeLine( );
             return;
         }
-        
     } 
     else if (( pAdr >= core -> pdcMem -> getStartAdr( )) && ( pAdr <= core -> pdcMem -> getEndAdr( ))) {
        

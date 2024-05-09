@@ -317,10 +317,7 @@ void MemoryAccessStage::process( ) {
     switch( opCode ) {
             
         case OP_ADD:    case OP_SUB:    case OP_AND:    case OP_OR:     case OP_XOR:
-        case OP_CMP:
-        
-        case OP_LDO:    case OP_LD:     case OP_ST:     case OP_LDR:
-        case OP_STC: {
+        case OP_CMP:    case OP_CMPU: {
             
             if ( opMode >= 2 ) {
             
@@ -333,12 +330,28 @@ void MemoryAccessStage::process( ) {
             
         } break;
             
+       case OP_LD:     case OP_ST:     case OP_LDR:     case OP_STC: {
+            
+            dLen            = getBitField( instr, 18, 2 );
+            valS            = core -> sReg[ getBitField( valB, 1, 2 ) ].get( );
+            valX            = add32( valB, valX );
+            regIdForValX    = MAX_GREGS;
+            regIdForValB    = MAX_GREGS;
+            
+        } break;
+            
         case OP_LDA:
         case OP_STA: {
             
             valX            = add32( valB, valX );
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
+            
+        } break;
+            
+        case OP_LDO:    {
+            
+            // ??? to do ...
             
         } break;
             
@@ -453,7 +466,6 @@ void MemoryAccessStage::process( ) {
                 cPtr -> purgeBlock( seg, ofs, ( tlbEntryPtr -> tPhysPage( ) << PAGE_SIZE_BITS ));
             
         } break;
-            
     }
     
     //--------------------------------------------------------------------------------------------------------
@@ -466,19 +478,8 @@ void MemoryAccessStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ opCode ].flags & ( READ_INSTR | WRITE_INSTR )) {
         
-        if ( valS == 0 ) {
-            
-            if ( core -> stReg.get( ) & ST_EXECUTION_LEVEL ) {
-                
-                setupTrapData( DATA_MEM_PROTECT_TRAP, instrSeg, instrOfs, core -> stReg.get( ));
-                stallPipeLine( );
-                return;
-            }
-            
-            pAdr = valX;
-        }
-        else {
-        
+        if ( core -> stReg.get( ) & ST_DATA_TRANSLATION_ENABLE ) {
+       
             TlbEntry   *tlbEntryPtr = core -> dTlb -> lookupTlbEntry( valS, valX );
             if ( tlbEntryPtr == nullptr ) {
                 
@@ -538,7 +539,17 @@ void MemoryAccessStage::process( ) {
            
             pAdr = tlbEntryPtr -> tPhysPage( ) | pOfs;
         }
-    
+        else {
+            
+             if ( core -> stReg.get( ) & ST_EXECUTION_LEVEL ) {
+                 
+                 setupTrapData( DATA_MEM_PROTECT_TRAP, instrSeg, instrOfs, core -> stReg.get( ));
+                 stallPipeLine( );
+                 return;
+             }
+             
+             pAdr = valX;
+         }
         
         bool rStat = false;
         
@@ -555,7 +566,7 @@ void MemoryAccessStage::process( ) {
                 rStat = core -> pdcMem -> readWord( 0, pAdr, 0, dLen, &valB );
             else {
                 
-                // ??? cannot write to PDC, raise a trap
+                // ??? cannot write to PDC, raise a trap or HPMC ?
             }
         }
         else if (( pAdr >= core -> ioMem -> getStartAdr( )) && ( pAdr <= core -> ioMem -> getEndAdr( ))) {

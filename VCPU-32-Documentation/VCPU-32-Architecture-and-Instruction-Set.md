@@ -335,10 +335,10 @@ Some general registers have a dedicated use. Register zero will always return a 
 VCPU-32 features three registers to hold the processor state. The **instruction address register** holds the address of the current instruction being executed. The instruction address is formed by the instruction address segment, IA-SEG,  and the instruction address offset, IA-OFS. The instruction address is the virtual or absolute memory location of the current instruction. The lower two bits are zero, as instruction words are word aligned in memory. 
 
 ```
-    0                                          31    0                                     29 30 31 
-   :---------------------------------------------:  :----------------------------------------:-----:
-   :  IA segment Id                              :  :  IA offset                             : 0   :
-   :---------------------------------------------:  :----------------------------------------------:
+                         0                    15    0                                     29 30 31 
+                        :-----------------------:  :----------------------------------------:-----:
+                        :  IA segment Id        :  :  IA offset                             : 0   :
+                        :-----------------------:  :----------------------------------------------:
 ```
 
 The **status register** holds the processor state information, such as the carry bit or current execution privilege. The status register is labelled ST.
@@ -385,13 +385,13 @@ The **control registers** hold information about the processor configuration as 
 
 ### Segmented Memory Model
 
-The VCPU-32 memory model features a **segmented memory model**. The address space consists of up to 2^32 segments, each of which holds up to 2^32 words in size. Segments are further subdivided into pages with a page size of 4K Words. The concatenation of segment ID and offset form a **virtual address**.
+The VCPU-32 memory model features a **segmented memory model**. The address space consists of up to 2^16 segments, each of which holds up to 2^32 words in size. Segments are further subdivided into pages with a page size of 4K Words. The concatenation of segment ID and offset form a **virtual address**.
 
 ```
-    0                                       31     0                          20            31
-   :------------------------------------------:   :-------------------------------------------:
-   : segment Id                               :   : page number              : page offset    :
-   :------------------------------------------:   :-------------------------------------------:
+                       0                     15     0                          20            31
+                      :------------------------:   :-------------------------------------------:
+                      : segment Id             :   : page number              : page offset    :
+                      :------------------------:   :-------------------------------------------:
                              |                                          |
                              |                                          |
                              v                                          |
@@ -419,7 +419,7 @@ The VCPU-32 memory model features a **segmented memory model**. The address spac
        :-------------------------------------------:
 ```
 
-Implementations may not utilize the full 32-bit segment ID space. For example, a CPU could only implement a 16-bit segment Id, allowing for 65636 segments. Segments should be considered as address ranges from which an operating system allocates virtual memory space for code and data objects. 
+A segment Id of 16-bits allows allowing for 65636 segments. Segments should be considered as address ranges from which an operating system allocates virtual memory space for code and data objects. 
 
 ### Address Translation
 
@@ -428,29 +428,29 @@ VCPU-32 defines three types of addresses. At the highest level is the **logical 
 The **virtual address** is the concatenation of a segment and an offset. Together they form a maximum address range of 2^32 segments with 2^32 bits each. Once the virtual address is formed, the virtual to physical translation process is the same for both logical and virtual addressing mode. The following figure shows the translation process. First a logical address is translated into a virtual address. A virtual address is then translated into a **physical address**. 
 
 ```
-                                                   0    1 2                                 31
-                                                  :------:------------------------------------:
-                      -- selects ---              : sReg : offset                             :    logical
-                     |                            :------:------------------------------------:
-                     |                            \_sel_/\_  logical page  _/\__ page ofs ___/
-                     |                                              |
-                     v                                              v
-    0                                        31    0    1 2                  20             31
-   :-------------------------------------------:  :------:------------------------------------:
-   : segment Id                                :  : sReg : offset                             :    virtual
-   :-------------------------------------------:  :------:------------------------------------:
-   \______________________________ virtual page ____________________________/\__ page ofs ___/
+                                                  0    1 2                             31
+                                             :------:------------------------------------:
+                           + -- selects ---  : sReg : offset                             :    logical
+                           |                 :------:------------------------------------:
+                           |                 \_sel_/\_  logical page  _/\__ page ofs ___/
+                           |                                    |
+                           v                                    v
+                 0                     15     0    1 2                  20             31
+                :------------------------:   :------:------------------------------------:
+                : segment Id             :   : sReg : offset                             :    virtual
+                :------------------------:   :------:------------------------------------:
+                 \________________ virtual page _______________________/\__ page ofs ___/
 
-                                                |
-                                                v
-                                          ( translation )
-                                                |                     
-                                                v
-                            0                          20           31
-                           :-------------------------------------------:
-                           : physical address                          :    physical
-                           :-------------------------------------------:
-                           \_______ physical page ___/\__ page ofs ___/
+                                          |
+                                          v
+                                    ( translation )
+                                          |                     
+                                          v
+                      0                          20           31
+                     :-------------------------------------------:
+                     : physical address                          :    physical
+                     :-------------------------------------------:
+                     \_______ physical page ___/\__ page ofs ___/
 ```
 
 Address translation is separately enabled for code and data translation. When translation is disabled, the address is the offset directly mapping to the physical address range with the segment part ignored. Segment zero has a special role. Hardware must guarantee that a virtual address with a zero segment, e.g. *0x0.0x500* will also directly map to the physical address specified by the offset. The maximum physical memory size that can be reached this way is 4 GBytes. The architecture does not preclude supporting a larger physical address range though. A translation buffer hardware could allow for a larger physical address range beyond 4BBytes. This physical memory is however only reachable when translation is enabled.
@@ -482,6 +482,8 @@ The second dimension of protection is a **protection ID**. A protection ID is a 
 
 Protection IDs are typically used to form a grouping of access. A good example is a stack data segment, which is accessible at user privilege level in read and write access from every thread that has R/W access with user privilege. However, only the corresponding user thread should be allowed to access the stack data segment. If a protection ID is assigned to the user thread, this can easily be accomplished. In addition, the protection ID also features a write disable bit, for allowing a model where many threads can read the protected segment but only few or one can write to it. If the segment Id is zero, the execution level must be privileged and address translation and protection checking is disabled.
 
+// ??? **note** Another way is to use the segment ID as the protection ID value. A thread can only access a segment when it is given the protection ID. Protection Id checking can globally enabled in the processor status word, and also individually on a segment base. We would loose however the write disable bit.
+
 ### Adress translation and caching
 
 The previous section depicted the virtual address translation. While the CPU architects the logical, virtual and physical address scheme, it does not specify how exactly the hardware supports the translation process. A very common model is to have for performance reasons TLBs for caching translation results and Caches for data caching. However, split TLBS and unified TLBs, L1 and L2 caches and other schemes are models to consider. This section just outline the common architecture and instructions to manage these CPU components.
@@ -504,6 +506,8 @@ TLB fields (example):
    : reserved                          : PPN                                                       :
    :-----------------------------------------------------------------------------------------------:
 ```
+
+// ??? **note** with the alternative protection Id implementation, this could become a two word entry and speed up the TLB update, 64bit could nicely be packed. 8 bits status, 16 bits segment Id, 20 bits VPN offset, 20 bits PPN offset.
 
 | Field | Purpose |
 |:---|:---|
@@ -560,6 +564,8 @@ Page Table Entry (Example):                                                     
    : physical address of next entry in chain                                                       :
    :-----------------------------------------------------------------------------------------------:
 ```
+
+// ??? **note** with the alternative protection check design, the page table entry could fit in a 4 word structure and still have place for OS related data. 
 
 Each page table entry contains at least the virtual page address, the physical pages address, the access rights information, a set of status flags and the physical address of the next entry in the page table. On a TLB miss, the page table entry contains all the information that needs to go into the TLB entry. The example shown above contains several reserved fields. For a fast lookup index computation, page table entries should have a power of 2 size, typically 4 or 8 words. The reserved fields could be used for the operating system memory management data.
 
@@ -2289,7 +2295,7 @@ Performs a bit field extract from a general register and stores the result in th
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : EXTR    ( 0x05 ): r         :S :A : 0               : len          : pos          : b         :
+   : EXTR    ( 0x05 ): r         :S :A :0             : len          :0 : pos          : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2336,7 +2342,7 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      : DEP     ( 0x06 ): r         :Z :A :I : 0            : len          : pos          : b         :
+      : DEP     ( 0x06 ): r         :Z :A :I : 0         : len          :0 : pos          : b         :
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2385,7 +2391,7 @@ Performs a right shift of two concatenated registers for shift amount bits and s
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : DSR     ( 0x07 ): r         :A : 0                  : shamt        :0 : a         : b         :
+   : DSR     ( 0x07 ): r         :A : 0               : shamt        :0    : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2433,7 +2439,7 @@ Performs a combined shift left and add operation and stores the result into the 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : SHLA    ( 0x08 ): r         :L :O : 0                        : sa  :0 : a         : b         :
+   : SHLA    ( 0x08 ): r         :L :O : 0                     : sa  : 0   : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -3737,13 +3743,13 @@ This appendix lists all instructions by instruction group.
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : LSID    ( 0x04 ): r         : 0                                                   : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : EXTR    ( 0x05 ): r         :S :A :0                : len          : pos          : b         :
+   : EXTR    ( 0x05 ): r         :S :A :0             : len          :0 : pos          : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : DEP     ( 0x06 ): r         :Z :A :I :              : len          : pos          : b         :
+   : DEP     ( 0x06 ): r         :Z :A :I : 0         : len          :0 : pos          : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : DSR     ( 0x07 ): r         :0 :A : 0               : shamt        :0 : a         : b         :
+   : DSR     ( 0x07 ): r         :0 :A : 0            : shamt        : 0   : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : SHLA    ( 0x08 ): r         :I :L :O : 0                     : sa  :0 : a         : b         : 
+   : SHLA    ( 0x08 ): r         :I :L :O : 0                  : sa  : 0   : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
    : CMR     ( 0x09 ): r         :cond : 0                                 : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:

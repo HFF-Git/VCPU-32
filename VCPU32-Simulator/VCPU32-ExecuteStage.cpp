@@ -92,12 +92,20 @@ bool compareCond( uint32_t instr, uint32_t valA, uint32_t valB ) {
             
         case CC_EQ: return( valA == valB );
         case CC_LT: return(((int32_t) valA )  < ((int32_t) valB ));
-        case CC_GT: return(((int32_t) valA )  > ((int32_t) valB ));
-        case CC_HI: return(((uint32_t) valA ) > ((uint32_t) valB ));
         case CC_NE: return( valA != valB );
         case CC_LE: return(((int32_t) valA )  <= ((int32_t) valB ));
-        case CC_GE: return(((int32_t) valA )  >= ((int32_t) valB ));
-        case CC_LS: return(((uint32_t) valA ) < ((uint32_t) valB ));
+        default: return( false );
+    }
+}
+
+bool compareCondU( uint32_t instr, uint32_t valA, uint32_t valB ) {
+    
+    switch( getBitField( instr, 8, 3 )) {
+            
+        case CC_EQ: return( valA == valB );
+        case CC_LT: return( valA  < valB );
+        case CC_NE: return( valA != valB );
+        case CC_LE: return( valA <= valB );
         default: return( false );
     }
 }
@@ -432,6 +440,12 @@ void ExecuteStage::process( ) {
             
         } break;
             
+        case OP_CMPU: {
+            
+            valR = (( compareCondU( instr, valA, valB )) ? 1 : 0 );
+            
+        } break;
+            
         case OP_CMR: {
             
             valR = (( compareCond( instr, valA, valB )) ? 1 : 0 );
@@ -441,7 +455,7 @@ void ExecuteStage::process( ) {
         case OP_EXTR: {
             
             uint8_t extrOpPos = getBitField( instr, 27, 5 );
-            uint8_t extrOpLen = getBitField( instr, 22, 5 );
+            uint8_t extrOpLen = getBitField( instr, 21, 5 );
             
             if ( getBit( instr, 11 )) extrOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
             
@@ -452,7 +466,7 @@ void ExecuteStage::process( ) {
         case OP_DEP: {
             
             uint8_t depOpPos = getBitField( instr, 27, 5 );
-            uint8_t depOpLen = getBitField( instr, 22, 5 );
+            uint8_t depOpLen = getBitField( instr, 21, 5 );
             
             if ( getBit( instr, 11 )) depOpPos = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
             
@@ -463,7 +477,7 @@ void ExecuteStage::process( ) {
             
         case OP_DSR: {
             
-            uint8_t shAmtLen = getBitField( instr, 22, 5 );
+            uint8_t shAmtLen = getBitField( instr, 21, 5 );
             
             if ( getBit( instr, 11 )) shAmtLen = core -> cReg[ CR_SHIFT_AMOUNT ].get( );
             
@@ -473,7 +487,7 @@ void ExecuteStage::process( ) {
             
         case OP_SHLA: {
             
-            uint8_t shAmt = getBitField( instr, 22, 2 );
+            uint8_t shAmt = getBitField( instr, 21, 2 );
             
             if ( getBit( instr, 12 )) {
                 
@@ -512,7 +526,10 @@ void ExecuteStage::process( ) {
             
         } break;
             
-        case OP_LDIL: {
+        case OP_LDIL: 
+        case OP_LDO: 
+        case OP_LD:
+        case OP_LDA: {
             
             valR = valB;
             
@@ -525,26 +542,25 @@ void ExecuteStage::process( ) {
             
         } break;
             
-        case OP_LD:
-        case OP_LDA: {
-            
-            valR = valB;
-            
-        } break;
-            
         case OP_B: {
             
             valR = instrOfs + 4;
             
         } break;
             
+        case OP_GATE: {
+            
+            // ??? the offset was already executed in the previous stage, all we do here is to set the status bit
+            // and return the former privilege status.
+            
+            valR = valB; // ??? check when we set R
+            
+        } break;
+            
         case OP_BE: {
             
             core -> sReg[ 0 ].set( instrSeg );
-            
-            // ??? fix it is a reg now ...
-            
-            core -> gReg[ 1 ].set( instrOfs );
+            valR = instrOfs + 4;
             
         } break;
             
@@ -561,16 +577,12 @@ void ExecuteStage::process( ) {
             
         case OP_CBRU: {
             
-            // ??? to do ...
-            
-        } break;
-            
-        case OP_GATE: {
-            
-            // ??? the offset was already executed in the previous stage, all we do here is to set the status bit
-            // and return the former privilege status.
-            
-            valR = valB; // ??? check when we set R
+            if (( compareCondU( instr, valA, valB )) != ( branchTaken )) {
+                
+                core -> fdStage -> psInstrSeg.set( instrSeg );
+                core -> fdStage -> psInstrOfs.set( valX );
+                flushPipeLine( );
+            }
             
         } break;
             
@@ -578,10 +590,8 @@ void ExecuteStage::process( ) {
             
             if ( getBit( instr, 11 )) {
                 
-                if ( getBit( instr, 12 ))
-                    core -> sReg[ getBitField( instr, 31, 4 ) ].set( valB );
-                else
-                    core -> cReg[ getBitField( instr, 31, 5  ) ].set( valB );
+                if ( getBit( instr, 12 ))   core -> sReg[ getBitField( instr, 31, 4 ) ].set( valB );
+                else                        core -> cReg[ getBitField( instr, 31, 5  ) ].set( valB );
                 
             } else valR = valB;
             
@@ -598,6 +608,14 @@ void ExecuteStage::process( ) {
                 case 2: core -> stReg.set( core -> stReg.get( ) & (( ~ valB ) & 0x3F )); break;
                 default: ;
             }
+            
+        } break;
+            
+        case OP_ITLB: {
+            
+        } break;
+            
+        case OP_PTLB: {
             
         } break;
             
@@ -633,7 +651,7 @@ void ExecuteStage::process( ) {
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Conditional branch logic.
+    // Comitt stage.
     //
     //--------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {
@@ -668,7 +686,7 @@ void ExecuteStage::process( ) {
     FetchDecodeStage *fdStage   = core -> fdStage;
     MemoryAccessStage *maStage  = core -> maStage;
     
-    if ( opCodeTab[ getBitField( instr, 5, 6 ) ].flags & REG_R_INSTR ) {
+    if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {
         
         if ( fdStage -> regIdForValA == regIdForValR ) maStage -> psValA.set( valR );
         if ( fdStage -> regIdForValB == regIdForValR ) maStage -> psValB.set( valR );
