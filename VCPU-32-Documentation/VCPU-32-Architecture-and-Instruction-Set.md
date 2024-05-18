@@ -297,35 +297,34 @@ VCPU-32 features a set of registers. They are grouped in general registers, segm
 
 ```
                   Segment                         General                           Control
-       0                     31          0                     31          0                     31
-      :------------------------:        :------------------------:        :------------------------:
-      :         SR0            :        :          GR0           :        :        CR0             :
-      :------------------------:        :------------------------:        :------------------------:
-      :                        :        :                        :        :                        :
-      :         ...            :        :                        :        :                        :
-      :                        :        :                        :        :                        :
-      :------------------------:        :                        :        :                        :
-      :         SR7            :        :                        :        :          ...           :
-      :------------------------:        :                        :        :                        :
-                                        :         ...            :        :                        :
-                                        :                        :        :                        :
-                                        :                        :        :                        :
-                                        :                        :        :                        :
-                                        :                        :        :                        :
-                                        :                        :        :                        :
-                                        :                        :        :                        :
-                                        :------------------------:        :                        :
-                                        :          GR15          :        :                        :
-                                        :------------------------:        :                        :
-                                                                          :                        :
-                                                                          :                        :
-      :------------------------:        :------------------------:        :                        :
-      :         IA Seg         :        :          IA Ofs        :        :                        :
-      :------------------------:        :------------------------:        :                        :
-                                                                          :                        :
-                                        :------------------------:        :------------------------:
-                                        :         Status         :        :        CR31            :
-                                        :------------------------:        :------------------------:
+       0           15          0                     31          0                     31
+      :--------------:        :------------------------:       :------------------------:
+      :   SR0        :        :          GR0           :       :        CR0             :
+      :--------------:        :------------------------:       :------------------------:
+      :              :        :                        :       :                        :
+      :     ...      :        :                        :       :                        :
+      :              :        :                        :       :                        :
+      :--------------:        :                        :       :                        :
+      :   SR7        :        :                        :       :          ...           :
+      :--------------:        :                        :       :                        :
+                              :         ...            :       :                        :                                 :                        :       :                        :
+                              :                        :       :                        :
+                              :                        :       :                        :
+                              :                        :       :                        :
+                              :                        :       :                        :
+                              :                        :       :                        :
+                              :------------------------:       :                        :
+                              :          GR15          :       :                        :
+                              :------------------------:       :                        :
+                                                               :                        :
+                                                               :                        :
+      :--------------:        :------------------------:       :                        :
+      :   IA Seg     :        :          IA Ofs        :       :                        :
+      :--------------:        :------------------------:       :                        :
+                                                               :                        :
+                              :------------------------:       :------------------------:
+                              :         Status         :       :        CR31            :
+                              :------------------------:       :------------------------:
 ```
 
 Some general registers have a dedicated use. Register zero will always return a zero value when read and a write operation will have no effect. Although there are only 16 general registers in the CPU, implementing such a register greatly simplifies the instruction design. General register one is a scratch register and also serves as an implicit target for some instruction. Segment register zero severs as n implicit target for some of the branching instructions. Other general register and segment registers may have dedicated purpose defined in the runtime architecture. Hardware only implements dedicated purposes for the above mentioned registers.
@@ -385,12 +384,12 @@ The **control registers** hold information about the processor configuration as 
 
 ### Segmented Memory Model
 
-The VCPU-32 memory model features a **segmented memory model**. The address space consists of up to 2^16 segments, each of which holds up to 2^32 words in size. Segments are further subdivided into pages with a page size of 4K Words. The concatenation of segment ID and offset form a **virtual address**.
+The VCPU-32 memory model features a **segmented memory model**. The address space consists of up to 2^16 segments, each of which holds up to 2^32 words in size. Segments are further subdivided into pages with a page size of 16K Words. The concatenation of segment ID and offset form a **virtual address**.
 
 ```
-                       0                     15     0                          20            31
+                       0                     15     0                        18              31
                       :------------------------:   :-------------------------------------------:
-                      : segment Id             :   : page number              : page offset    :
+                      : segment Id             :   : page number            : page offset      :
                       :------------------------:   :-------------------------------------------:
                              |                                          |
                              |                                          |
@@ -407,7 +406,7 @@ The VCPU-32 memory model features a **segmented memory model**. The address spac
        :                                           :     :      :       |
        :                                           :     :      :       |
        :-------------------------------------------:     :      : <-----+
-       : A 4Kb page                                :     :      :
+       : A 16Kb page                               :     :      :
        :-------------------------------------------:     :      :
        :                                           :     :      :
        :                                           :     :      :
@@ -419,7 +418,7 @@ The VCPU-32 memory model features a **segmented memory model**. The address spac
        :-------------------------------------------:
 ```
 
-A segment Id of 16-bits allows allowing for 65636 segments. Segments should be considered as address ranges from which an operating system allocates virtual memory space for code and data objects. 
+A segment Id of 16-bits allows allowing for 65636 segments. Segments should be considered as address ranges from which an operating system allocates virtual memory space for code and data objects. A page size of 16Kb will ease the burden on address translation hardware.
 
 ### Address Translation
 
@@ -435,7 +434,7 @@ The **virtual address** is the concatenation of a segment and an offset. Togethe
                            |                 \_sel_/\_  logical page  _/\__ page ofs ___/
                            |                                    |
                            v                                    v
-                 0                     15     0    1 2                  20             31
+                 0                     15     0    1 2                  18             31
                 :------------------------:   :------:------------------------------------:
                 : segment Id             :   : sReg : offset                             :    virtual
                 :------------------------:   :------:------------------------------------:
@@ -446,7 +445,7 @@ The **virtual address** is the concatenation of a segment and an offset. Togethe
                                     ( translation )
                                           |                     
                                           v
-                      0                          20           31
+                      0                          18           31
                      :-------------------------------------------:
                      : physical address                          :    physical
                      :-------------------------------------------:
@@ -471,18 +470,9 @@ For all segments except the non-zero segment VCPU-32 implements a **protection m
    type: 2 - gateway,     read: not allowed,  write : not allowed,   execute: PL2 <= PL <= PL1
 ```
 
-The second dimension of protection is a **protection ID**. A protection ID is a value assigned to the segment address range at object creation time. The processor control register section contains four protection ID registers. For each access to a segment that has a non-zero protection ID associated, one of the protection ID registers must match the segment protection ID. If not, a protection violation trap is raised.
+The second dimension of protection is a **protection ID**. VCPU-32 allows to record a set of segment IDs in the processor control registers. For each access to a segment that has the protection check bit set, one of the protection ID registers must match the segment  Id. If not, a protection violation trap is raised.
 
-```
-    0                               14  15
-   :----------------------------------:---:
-   : Protection ID                    : W :
-   :----------------------------------:---:
-```
-
-Protection IDs are typically used to form a grouping of access. A good example is a stack data segment, which is accessible at user privilege level in read and write access from every thread that has R/W access with user privilege. However, only the corresponding user thread should be allowed to access the stack data segment. If a protection ID is assigned to the user thread, this can easily be accomplished. In addition, the protection ID also features a write disable bit, for allowing a model where many threads can read the protected segment but only few or one can write to it. If the segment Id is zero, the execution level must be privileged and address translation and protection checking is disabled.
-
-// ??? **note** Another way is to use the segment ID as the protection ID value. A thread can only access a segment when it is given the protection ID. Protection Id checking can globally enabled in the processor status word, and also individually on a segment base. We would loose however the write disable bit.
+Protection ID checking is typically used to form a grouping of access. A good example is a stack data segment, which is accessible at user privilege level in read and write access from every thread that has R/W access with user privilege. However, only the corresponding user thread should be allowed to access the stack data segment. If the segment protection checking bit is not set, the execution level must either be the privileged execution level or address translation and protection checking disabled.
 
 ### Adress translation and caching
 
@@ -497,17 +487,11 @@ TLB fields (example):
 
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   :V :T :D :B :X :  : AR        : 0               : Protect-ID                                    :
+   :V :T :D :B :X :P : AR        : 0   : Segment Id                                    : VPN       :
    :-----------------------------------------------------------------------------------------------:
-   : VPN - high                                                                                    :
-   :-----------------------------------------------------------------------------------------------:
-   : VPN - low                                                 : 0                                 :
-   :-----------------------------------------------------------------------------------------------:
-   : reserved                          : PPN                                                       :
+   : VPN                                     : PPN                                                 :
    :-----------------------------------------------------------------------------------------------:
 ```
-
-// ??? **note** with the alternative protection Id implementation, this could become a two word entry and speed up the TLB update, 64bit could nicely be packed. 8 bits status, 16 bits segment Id, 20 bits VPN offset, 20 bits PPN offset.
 
 | Field | Purpose |
 |:---|:---|
@@ -516,10 +500,9 @@ TLB fields (example):
 | **D** | dirty trap. If the bit is set, the first write access to the TLB raises a trap.|
 | **B** | data reference trap. If the bit is set, access to the data page raises a trap. |
 | **X** | the code page can be modified at the highest privilege level. |
-| **Protection ID** | The assigned bit protection ID for the page. |
+| **P** | Segment Id checking enabled for the page. |
 | **Access Rights** | The access rights for the page. |
-| **VPN-H** | the upper 32 bits of a virtual page address, which are also the segment ID. |
-| **VPN-L** | the lower 20 bits of a virtual page address, which are the page in the segment. |
+| **VPN** | the virtual page number in the segment. |
 | **PPN** | the physical page number. |
 |||
 
@@ -547,27 +530,17 @@ Page Table Entry (Example):                                                     
                                                                                                        |
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31    |
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:   |
-   :V :T :D :B :X :  : AR        :                 : Protect-ID                                    : <-+
+   :V :T :D :B :X :P : AR        : 0   : Segment Id                                    : VPN       :
+   :-----------------------------------------------------------------------------------------------:
+   : VPN                                     : PPN                                                 :
    :-----------------------------------------------------------------------------------------------:
    : reserved                                                                                      :
-   :-----------------------------------------------------------------------------------------------:
-   : reserved                                                                                      :
-   :-----------------------------------------------------------------------------------------------:
-   : reserved                                                                                      :
-   :-----------------------------------------------------------------------------------------------:
-   : VPN - high                                                                                    :
-   :-----------------------------------------------------------------------------------------------:
-   : VPN - low                                                 : 0                                 : 
-   :-----------------------------------------------------------------------------------------------:
-   : reserved                          : PPN                                                       :
    :-----------------------------------------------------------------------------------------------:
    : physical address of next entry in chain                                                       :
    :-----------------------------------------------------------------------------------------------:
 ```
 
-// ??? **note** with the alternative protection check design, the page table entry could fit in a 4 word structure and still have place for OS related data. 
-
-Each page table entry contains at least the virtual page address, the physical pages address, the access rights information, a set of status flags and the physical address of the next entry in the page table. On a TLB miss, the page table entry contains all the information that needs to go into the TLB entry. The example shown above contains several reserved fields. For a fast lookup index computation, page table entries should have a power of 2 size, typically 4 or 8 words. The reserved fields could be used for the operating system memory management data.
+Each page table entry contains the virtual page address, the physical pages address, the access rights information, a set of status flags and the physical address of the next entry in the page table. On a TLB miss, the page table entry contains all the information that needs to go into the TLB entry. The example shown above contains several reserved fields. For a fast lookup index computation, page table entries should have a power of 2 size, typically 4 or 8 words. The reserved fields could be used for the operating system memory management data.
 
 | Field | Purpose |
 |--------|--------|
@@ -575,11 +548,10 @@ Each page table entry contains at least the virtual page address, the physical p
 | **T** | page reference trap. If the bit is set, a reference to the page results in a trap.|
 | **D** | dirty trap. If the bit is set, the first write access to the TLB raises a trap.|
 | **B** | data reference trap. If the bit is set, access to the data page raises a trap. |
-| **X** | the code page can be modified at the highest privilege level. ( **note** better name ? ) |
-| **Protection ID** | The assigned bit protection ID for the page. |
+| **X** | the code page can be modified at the highest privilege level. |
+| **P** | Segment Id checking enabled for the page. |
 | **Access Rights** | The access rights for the page. |
-| **VPN-H** | the upper 32 bits of a virtual address, which are also the segment ID. |
-| **VPN-L** | the lower 20 bits of a virtual address, which are the page in the segment. |
+| **VPN** | the virtual page number in the segment. |
 | **PPN** | the physical page number. |
 | **next PTE** | the physical address of the next page table entry, zero if there is none. |
 |||
@@ -591,7 +563,7 @@ Locating a virtual page in the page table requires to first index into the hash 
 
   const uint segShift         = 4;      // the number of bits to shift the segment part. This specifies how many
                                         // consecutive pages will result in consecutive hash values.
-  const uint pageOffsetBits  = 12;      // number of bits for page offset, page size of 4K
+  const uint pageOffsetBits  = 14;      // number of bits for page offset, page size of 16K
   const uint hashTableMask   = 0x3FF;   // a hash table of 1024 entries, memory size dependent, must be a power of two.
 
   uint hash_index ( uint32_t segment, uint32_t offset ) {
@@ -2746,29 +2718,20 @@ Inserts a translation into the instruction or data TLB.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : ITLB    ( 0x3B ): r         :T :M : 0                                 : a         : b         :
+   : ITLB    ( 0x3B ): r         :T : 0                                    : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The ITLB instruction inserts a translation into the instruction or data TLB. The virtual address is encoded in "a" for the segment register and "b" for the offset. The data to be inserted is grouped into two steps. The first step will enter the virtual address and physical address is associated with. The second step will enter the access rights and protection information and marks the entry valid. The TLB entry is set to invalid and the address fields are filled. The "T" bit specifies whether the instruction or the data TLB is addressed. A value of zero references the instruction TLB, a value of one refers to the data TLB.
-
-The "r" register contains either the physical address or the access rights and protection information. The "M" bit indicates which part of the TLB insert operation is being requested. A value of zero refers to part one, which will enter the address information, a value of one will enter the access rights and protection information. The sequence should be to first issue the ITLB.A instruction for the address part, which still leaves the TLB entry marked invalid. Issuing the second part, the ITLB.P instruction, which sets the access rights and protection information, will mark the entry valid after the operation.
+The ITLB instruction inserts a translation into the instruction or data TLB. The virtual address is encoded in "a" for the segment register and "b" for the offset. The "T" bit specifies whether the instruction or the data TLB is addressed. A value of zero references the instruction TLB, a value of one refers to the data TLB. The "r" register contains the TLB infomration data.
 
 #### Argument Word Layout
-
-Depending on the "T" bit, the protection information part or the address part is passed to the TLB subsystem. The individual bits are described in the architecture chapter TLB section.
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : 0                                 : PPN                                                       :      T = 0
-   :-----------------------------------------------------------------------------------------------:
-
-    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   :V :T :D :B :X :  : AR        : 0               : Protect-ID                                    :    T = 1
+   :V :T :D :B :X :P  : AR       : 0         : PPN                                                 :
    :-----------------------------------------------------------------------------------------------:
 ```
 
@@ -2782,16 +2745,9 @@ Depending on the "T" bit, the protection information part or the address part is
    else
       if ( ! searchInstructionTlbEntry( SR[a], GR[b],, &entry )) allocateInstructionTlbEntry( SR[a], GR[b], &entry );
 
-   if ( instr.[M] ) {
+   // fill in entry...
 
-      entry.[addressPart] <- GR[r];
-      entry.[V] <- false;
-	  
-   } else {
-
-      entry.[protectPart] <- GR[r];
-      entry.[V] <- true;
-   }
+   entry.[V] <- true;
 ```
 
 #### Exceptions
@@ -3827,7 +3783,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : PRB     ( 0x3A ): r         :M :P : seg :I : 0                        : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-   : ITLB    ( 0x3B ): r         :T :M : 0                                 : a         : b         :
+   : ITLB    ( 0x3B ): r         :T : 0                                    : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : PTLB    ( 0x3C ): 0         :T : 0                                    : a         : b         :      
    :-----------------:-----------------------------------------------------------------------------:
