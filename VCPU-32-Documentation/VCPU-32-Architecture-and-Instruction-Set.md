@@ -61,7 +61,7 @@
 # VCPU-32 System Architecture and Instruction Set Reference
 
 Helmut Fieres
-Version B.00.04
+Version B.00.05
 May, 2024
 
 
@@ -298,7 +298,8 @@ VCPU-32 features a set of registers. They are grouped in general registers, segm
       :--------------:        :                        :       :                        :
       :   SR7        :        :                        :       :          ...           :
       :--------------:        :                        :       :                        :
-                              :         ...            :       :                        :                                 :                        :       :                        :
+                              :         ...            :       :                        :                                 
+                              :                        :       :                        :
                               :                        :       :                        :
                               :                        :       :                        :
                               :                        :       :                        :
@@ -327,13 +328,13 @@ VCPU-32 features two registers to hold the processor state. The **instruction ad
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   :M :X :C :0 :CB: reserved           :0 :D :P :E : IA segment Id                                 :
+   :M :X :C :0 :CB: reserved           :0 :D :P :E : IA segment Id                                 :  PSW-0
    :-----------------------------------------------------------------------------------------------:
-   : IA offset                                                                               : 0   :
+   : IA offset                                                                               : 0   :  PSW-1
    :-----------------------------------------------------------------------------------------------:
 ```
 
-A carry bit, bit 4, is generated for the , ADC, SUB, ADC, SCUB and SUBC instruction. Bits 12 .. 15 represent the bit set that can be modified by the privileged MST instruction.
+A carry bit, bit 4, is generated for the ADC, SUB, ADC, SUB and SUBC instructions. Bits 12 .. 15 represent the bit set that can be modified by the privileged MST instruction.
 
 | Flag | Name | Purpose |
 |:---|:---|:---|
@@ -369,16 +370,16 @@ The **control registers** hold information about the processor configuration as 
 
 ### Segmented Memory Model
 
-The VCPU-32 memory model features a **segmented memory model**. The address space consists of up to 2^16 segments, each of which holds up to 2^32 words in size. Segments are further subdivided into pages with a page size of 16K Words. The concatenation of segment ID and offset form a **virtual address**.
+The VCPU-32 memory model features a **segmented memory model**. The address space consists of up to 2^16 segments, each of which holds up to 2^32 words in size. Segments are further subdivided into pages with a page size of 16K Words. The concatenation of segment ID and offset form a **virtual address**. 
 
 ```
                        0                     15     0                        18              31
                       :------------------------:   :-------------------------------------------:
                       : segment Id             :   : page number            : page offset      :
                       :------------------------:   :-------------------------------------------:
-                             |                                          |
-                             |                                          |
-                             v                                          |
+                                 |                                      |
+                                 |                                      |
+                                 v                                      |
                     :-------------------------------------------:       |
                     :                                           :       |
              :-------------------------------------------:      :       |
@@ -423,7 +424,7 @@ The **virtual address** is the concatenation of a segment and an offset. Togethe
                 :------------------------:   :------:------------------------------------:
                 : segment Id             :   : sReg : offset                             :    virtual
                 :------------------------:   :------:------------------------------------:
-                 \________________ virtual page _______________________/\__ page ofs ___/
+                 \________________ virtual page (VPN) _________________/\__ page ofs ___/
 
                                           |
                                           v
@@ -434,14 +435,14 @@ The **virtual address** is the concatenation of a segment and an offset. Togethe
                      :-------------------------------------------:
                      : physical address                          :    physical
                      :-------------------------------------------:
-                     \_______ physical page ___/\__ page ofs ___/
+                     \__ physical page (PPN) __/\__ page ofs ___/
 ```
 
-Address translation is separately enabled for code and data translation. When translation is disabled, the address is the offset directly mapping to the physical address range with the segment part ignored. Segment zero has a special role. Hardware must guarantee that a virtual address with a zero segment, e.g. *0x0.0x500* will also directly map to the physical address specified by the offset. The maximum physical memory size that can be reached this way is 4 GBytes. The architecture does not preclude supporting a larger physical address range though. A translation buffer hardware could allow for a larger physical address range beyond 4GBytes. This part of physical memory is however only reachable when address translation is enabled.
+Address translation is separately enabled for code and data translation. When translation is disabled, the address is the offset directly mapping to the physical address range with the segment part ignored. Segment zero has a special role. Hardware must guarantee that a virtual address with a zero segment, e.g. *0x0.0x500* will also directly map to the physical address specified by the offset. The maximum physical memory size that can be reached this way is 4 GBytes. The architecture does not exclude supporting a larger physical address range though. A translation buffer hardware could allow for a larger physical address range beyond 4GBytes. This part of physical memory is however only reachable when address translation is enabled.
 
 ### Access Control
 
-For all segments except the non-zero segment VCPU-32 implements a **protection model** along two dimensions. The first dimension is the access control and privilege level check. Each page is associated with a **page type**. There are read-only, read-write, execute and gateway pages. Each memory access is checked to be compatible with the allowed type of access set in the page descriptor. There are two privilege levels, user and supervisor mode. On each instruction execution, the privilege bit in the instruction address is checked against the access type and privilege information field in the access control field, stored in the TLB. Access type and privilege level form the access control information field, which is checked for each memory access. For read access the privilege level us be least as high as the PL1 field, for write access the privilege level must be as least as high as PL2. For execute access the privilege level must be at least as high as PL1 and not higher than PL2. If the instruction privilege level is not within this bounds, a privilege violation trap is raised. If the page type does not match the instruction access type an access violation trap is raised. In both cases the instruction is aborted and a memory protection trap is raised.
+VCPU-32 implements a **protection model** along two dimensions. The first dimension is the access control and privilege level check. Each page is associated with a **page type**. There are read-only, read-write, execute and gateway pages. Each memory access is checked to be compatible with the allowed type of access set in the page descriptor. There are two privilege levels, user and supervisor mode. On each instruction execution, the privilege bit in the instruction address is checked against the access type and privilege information field in the access control field, stored in the TLB. Access type and privilege level form the access control information field, which is checked for each memory access. For read access the privilege level us be least as high as the PL1 field, for write access the privilege level must be as least as high as PL2. For execute access the privilege level must be at least as high as PL1 and not higher than PL2. If the instruction privilege level is not within this bounds, a privilege violation trap is raised. If the page type does not match the instruction access type an access violation trap is raised. In both cases the instruction is aborted and a memory protection trap is raised.
 
 ```
     0           2     3
@@ -452,7 +453,7 @@ For all segments except the non-zero segment VCPU-32 implements a **protection m
    type: 0 - read-only,   read: PL <= PL1,    write : not allowed,   execute: not allowed
    type: 1 - read-write,  read: PL <= PL1,    write : PL <= PL2,     execute: not allowed
    type: 2 - execute,     read: PL <= PL1,    write : PL == 0,       execute: PL2 <= PL <= PL1
-   type: 2 - gateway,     read: PL == 0,      write : PL == 0,       execute: PL2 <= PL <= PL1
+   type: 2 - gateway,     read: PL<= PL1,     write : PL == 0,       execute: PL2 <= PL <= PL1
 ```
 
 The second dimension of protection is a **protection ID**. VCPU-32 allows to record a set of segment IDs in the processor control registers. For each access to a segment that has the protection check bit set, one of the protection ID registers must match the segment  Id. If not, a protection violation trap is raised.
@@ -472,9 +473,9 @@ TLB fields (example):
 
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   :V :T :D :B :P : 0      : AR        : Segment Id                                    : VPN       :
+   :V :T :D :B :P : 0      : AR        : VPN-H                                                     :
    :-----------------------------------------------------------------------------------------------:
-   : VPN                                     : PPN                                                 :
+   : VPN-L                                   : PPN                                                 :
    :-----------------------------------------------------------------------------------------------:
 ```
 
@@ -490,7 +491,7 @@ TLB fields (example):
 | **PPN** | the physical page number. |
 |||
 
-When address translation is disabled, the respective TLB is bypassed and the address represents a physical address. Also, protection ID checking is disabled. The U, D, T, B only apply to a data TLB. The X bit is only applies to the instruction TLB. When the processor cannot find the address translation in the TLB, a TLB miss trap will invoke a software handler. The handler will walk the page table for an entry that matches the virtual address and update the TLB with the corresponding physical address and access right information, otherwise the virtual page is not in main memory and there will be a page fault to be handled by the operating system. In a sense the TLB is the cache for the address translations found in the page table. The implementation of the TLB is hardware dependent.
+When address translation is disabled, the respective TLB is bypassed and the address represents a physical address. Also, protection ID checking is disabled. The U, D, T, B only apply to a data TLB. When the processor cannot find the address translation in the TLB, a TLB miss trap will invoke a software handler. The handler will walk the page table for an entry that matches the virtual address and update the TLB with the corresponding physical address and access right information, otherwise the virtual page is not in main memory and there will be a page fault to be handled by the operating system. In a sense the TLB is the cache for the address translations found in the page table. The implementation of the TLB is hardware dependent.
 
 ### Caches
 
@@ -513,12 +514,12 @@ Hash table Entry (Example):
 Page Table Entry (Example):                                                                            |
                                                                                                        |
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31    |
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:   |
-   :V :T :D :B :P : 0      : AR        : Segment Id                                    : VPN       :
+   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:<--+
+   :V :T :D :B :P : 0      : AR        : VPN-H                                                     :
    :-----------------------------------------------------------------------------------------------:
-   : VPN                                     : PPN                                                 :
+   : VPN-L                                   : PPN                                                 :
    :-----------------------------------------------------------------------------------------------:
-   : reserved                                                                                      :
+   : reserved OS                                                                                   :
    :-----------------------------------------------------------------------------------------------:
    : physical address of next entry in chain                                                       :
    :-----------------------------------------------------------------------------------------------:
@@ -534,7 +535,7 @@ Each page table entry contains the virtual page address, the physical pages addr
 | **B** | data reference trap. If the bit is set, access to the data page raises a trap. |
 | **P** | Segment Id checking enabled for the page. |
 | **AR** | The access rights data for the page. |
-| **VPN** | the virtual page number in the segment. |
+| **VPN** | the virtual page number. |
 | **PPN** | the physical page number. |
 | **next PTE** | the physical address of the next page table entry, zero if there is none. |
 |||
@@ -2503,7 +2504,7 @@ Set and clears bits in the processor status word.
 
 #### Description
 
-The MST instruction sets the status bits 26.. 31 of the processor status word. The previous bit settings are returned in "r". There are three modes. Mode 0 will replace the user status bits 28..31 with the bits 28..31 in general register "b". Mode 1 and 2 will interpret the 6-bit field bits 26..31 as the bits to set or clear with a bit set to one will perform the set or clear operation. Modifying the status register is a privileged instruction. 
+The MST instruction sets the status bits 28.. 31 of the processor status word. The previous bit settings are returned in "r". There are three modes. Mode 0 will replace the user status bits 28..31 with the bits 28..31 in general register "b". Mode 1 and 2 will interpret the 6-bit field bits 28..31 as the bits to set or clear with a bit set to one will perform the set or clear operation. Modifying the status register is a privileged instruction. 
 
 #### Mode
 
@@ -3097,17 +3098,17 @@ While cache flushes and deletions are under software control, cache insertions a
 
 Computers with virtual addressing simply cannot work without a form of **translation look-aside buffer** (TLB). For each instruction using a virtual address for instruction fetch and data access a translation to the physical memory address needs to be performed. The TLB is a kind of cache for translations and comparable to the data caches, separate instruction and data TLBs are the common implementation.
 
-### Separate Instruction and Data TLB
+#### Separate Instruction and Data TLB
 
-TLBs are indexed by a portion of the virtual address. There is the option of a simple direct mapped TLB, set associative TLBs and a fully associative TLBs. Because of the high hardware cost, a fully associative TLB has only few entries versus the mapped models.
+TLBs are indexed by a portion of the virtual address. There is the option of a simple direct mapped TLB, set associative TLBs and a fully associative TLBs. Because of the high hardware cost, a fully associative TLB has only few entries versus the mapped models, which typically have a few hundreds of entries.
 
-### Joint TLBs
+#### Joint TLBs
 
-Another implementation could combine both TLB units. Both types of translation are kept in one store. Such a TLB should be implemented as two-port TLB because of he simultaneous instruction and data access. Another approach could be to complement a single port joint TLB with a small fully associative instruction TLB that holds entries from the unified TLB. An instruction TLB miss has priority over a data TLB miss.
+Another implementation option is to combine both TLB units. Both types of translation are kept in one store. Such a TLB should be implemented as two-port TLB because of he simultaneous instruction TLB instruction and data TLB access. Another approach could be to complement a single port joint instruction and data TLB with a small fully associative instruction TLB that holds entries from the unified TLB. An instruction TLB miss has priority over a data TLB miss.
 
-### Instructions to manage TLBs
+#### Instructions to manage TLBs
 
-TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for insertion and deletion of TLB entries. The insert into TLB instructions perform the insertion in two parts. The first instruction puts the address related information into a TLB entry but marks the entry not valid yet. The second insert into TLB instruction will enter access right related information and marks the entry valid.
+TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for insertion and deletion of TLB entries. The insert TLB instruction will place an entry for the virtual page number along with access rights and th ephysical page number. The purge TLB instruction removes an entry for the virtual page number.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3124,7 +3125,7 @@ No CPU architecture with an idea of a runtime environment. Although the instruct
 
 ### The bigger picture
 
-The following figure depicts a high level overview of a software system for VCPU-32. At the center is the execution thread, which is called a **task**. A task will consist of the current execution object and the task data area. Tasks belong to a **job**. All tasks of a job share the job data area. At the highest level is the **system**, which contains the global data area for the system. All tasks make calls to system services. At any point in time the CPU is executing a task of a job or a system level functions. If the CPU has more than one core, there are as many tasks active as there are cores in the CPU.
+The following figure depicts a high level overview of a software system for VCPU-32. At the center is the execution thread, which is called a **task**. A task will consist of the current execution object and the task data area. Tasks belong to a **job**. All tasks of a job share a common job data area. At the highest level is the **system**, which contains the global data area for the system. All tasks make calls to system services. At any point in time the CPU is executing a task of a job or a system level functions. If the CPU has more than one core, there are as many tasks active as there are cores in the CPU.
 
 ```
       :---------------------------------------------------------------------------------------:
@@ -3160,9 +3161,9 @@ A running task accesses the data areas through an address formed by the dedicate
 
 ### Register Usage
 
-The CPU features general registers, segment registers and control registers. As described before, all general registers can do computation as well as address computation. Segment registers complement the general register set. A combination of a general index register and a segment register form a virtual address. To avoid juggling on every access both a segment and an index register, the segment register selection field in the respective instructions will either implicitly pick one of the upper four segment registers or specify on of the segment registers 1 to 3. This scheme allows to use in most cases just the offset portion of the virtual address when passing pointers to function and so on. The segment register is implicitly encoded in the upper two bits. 
+The CPU features general registers, segment registers and control registers. As described before, all general registers can do computation as well as address computation. Segment registers complement the general register set. A combination of a general index register and a segment register form a virtual address. To avoid juggling on every access both a segment and an index register, the segment register selection field in the respective instructions will either implicitly pick one of the upper four segment registers or explicity specify on of the segment registers 1 to 3. This scheme allows in most cases to just use the offset portion of the virtual address when passing pointers to function and so on. The segment register is implicitly encoded in the upper two bits. 
 
-Segment 4 to 7 thus play a special role in the runtime environment. An execution thread, i.e. a **task**, in the runtime environment expects access to three data areas. The outermost area is the **system global area**, which is created at system start and never changed for there on. Segment register 7 is assigned to contain the segment ID of this space. Once set at system startup, its content will never change. Since the upper two bits of the address offset select the segment register, the maximum size of these areas is 30 bits i.e. one gByte. Several executing tasks belonging to the same job are provided with the **job data area**. All threads belonging to the job have access to it via the SR6 segment register. This register is set every time the execution changes to a thread of another job. This area can be up to one gByte in size. Finally, in a similar manner, the task local data is pointed to by the segment register 5. This data area contains through local data and the stack. 
+Consequenty, segment 4 to 7 play a special role in the runtime environment. An execution thread, i.e. a **task**, in the runtime environment expects access to three data areas. The outermost area is the **system global area**, which is created at system start and never changed for there on. Segment register 7 is assigned to contain the segment ID of this space. Once set at system startup, its content will never change. Since the upper two bits of the address offset select the segment register, the maximum size of these areas is 30 bits i.e. one gByte. Several executing tasks belonging to the same job are provided with the **job data area**. All threads belonging to the job have access to it via the SR6 segment register. This register is set every time the execution changes to a task of another job. This area can also be up to one gByte in size. Finally, in a similar manner, the task local data is pointed to by the segment register 5. This data area contains task local data and the stack. 
 
 ```
         SR7                         SR6                         SR5                          SR4
@@ -3181,7 +3182,7 @@ Segment 4 to 7 thus play a special role in the runtime environment. An execution
                                   \---------------------------- current Job ------------------------------------/
 ```
 
-Switching between task will set SR5 to the segment containing the task data and stack. SR6 is set to the job data segment to which the task belongs. Naturally, setting any of these registers is a privileged operation. SR4 will track the current code module so that program literals can be referenced. It will change when crossing a module boundary. SR7 never changes after system startup. 
+Switching between tasks will set SR5 to the segment containing the task data and stack. In addition, SR6 is set to the job data segment to which the task belongs. Naturally, setting any of these registers is a privileged operation. SR4 will track the current code module so that program literals can be referenced. It will change when crossing a code module boundary. SR7 never changes after system startup. 
 
 ### Task Execution
 
@@ -3744,7 +3745,7 @@ This appendix lists all instructions by instruction group.
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : MR      ( 0x0A ): r         :D :M : 0                                       : s               :
    :-----------------:-----------------------------------------------------------------------------:
-   : MST     ( 0x0B ): r         :mode : 0                                       : s               :
+   : MST     ( 0x0B ): r         :mode : 0                                             : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : LDPA    ( 0x39 ): r         : 0   : seg : 0                           : a         : b         :       
    :-----------------:-----------------------------------------------------------------------------:
