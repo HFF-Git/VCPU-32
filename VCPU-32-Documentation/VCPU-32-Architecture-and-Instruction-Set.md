@@ -78,7 +78,7 @@ May, 2024
         - [Control Registers](#control-registers)
         - [Segmented Memory Model](#segmented-memory-model)
         - [Address Translation](#address-translation)
-        - [Access Control](#access-control)
+        - [Protection Model](#protection-model)
         - [Adress translation and caching](#adress-translation-and-caching)
         - [Translation Lookaside Buffer](#translation-lookaside-buffer)
         - [Caches](#caches)
@@ -87,10 +87,11 @@ May, 2024
         - [Privilege change](#privilege-change)
         - [Interrupts and Exceptions](#interrupts-and-exceptions)
         - [Instruction and Data Breakpoints](#instruction-and-data-breakpoints)
+        - [External Interrupts](#external-interrupts)
     - [Instruction Set Overview](#instruction-set-overview)
-        - [General Instruction Encoding](#general-instruction-encoding)
         - [Instruction Operation Notation](#instruction-operation-notation)
-        - [Instruction description functions](#instruction-description-functions)
+        - [Instruction Operation Description Functions](#instruction-operation-description-functions)
+        - [Instruction description example](#instruction-description-example)
     - [Memory Reference Instructions](#memory-reference-instructions)
         - [LD](#ld)
         - [ST](#st)
@@ -145,9 +146,6 @@ May, 2024
         - [Unified L2 Cache](#unified-l2-cache)
         - [Instructions to manage caches](#instructions-to-manage-caches)
         - [Instruction and Data TLBs](#instruction-and-data-tlbs)
-        - [Separate Instruction and Data TLB](#separate-instruction-and-data-tlb)
-        - [Joint TLBs](#joint-tlbs)
-        - [Instructions to manage TLBs](#instructions-to-manage-tlbs)
     - [VCPU-32 Runtime Environment](#vcpu-32-runtime-environment)
         - [The bigger picture](#the-bigger-picture)
         - [Register Usage](#register-usage)
@@ -201,14 +199,15 @@ The original design goal that started this work was to truly understand the desi
 
 The instruction set design guidelines center around the following principles. First, in the interest of a simple and efficient instruction decoding step, instructions are of fixed length. A machine word is the instruction word length. As a consequence, some address offsets are rather short and addressing modes are required for reaching the entire address range. Instead of a multitude of addressing modes, typically found in the CISC style CPUs, VCPU-32 offers very few addressing modes with a simple base address - offset calculation model. No indirection or any addressing mode that would require to read a memory item for address calculation is part of the architecture.
 
-There will be few instructions in total, however, depending on the instruction several options for the instruction execution are encoded to make an instruction more versatile. For example, a boolean instruction will offer options to negate the result thus offering and "AND" and a "NAND" with one instruction. Wherever possible, useful options such as the one outlined before are added to an instruction, such that it covers a range of instructions typically found on the CPUs looked into. Great emphasis is placed in that such options do not overly complicated the pipeline and increase the overall data path length slightly.
+There will be few instructions in total, however, depending on the instruction several options for the instruction execution are encoded to make an instruction more versatile. For example, a boolean instruction will offer options to negate the result thus offering and "AND" and a "NAND" with one instruction. Wherever possible, useful options such as the one outlined before are added to an instruction, such that it covers a range of instructions typically found on the CPUs looked into. Great emphasis is placed in that such options do not overly complicated the pipeline and only increase the overall data path length slightly.
 
 Modern RISC CPUs are typically load/store CPUs and feature a large number of general registers. Operations takes place between registers. VCPU-32 follows a slightly different route. There is a smaller number of general registers and in addition to computation between registers, a register-memory model is also supported. There are however no instructions that read and write to memory in one instruction cycle as this would complicate the design considerably.
 
-VCPU-32 offers a large address range, organized into segments. Segment and offset into the segment form a virtual address. In addition, a short form of a virtual address, called a logical address, will select a segment register from the upper logical address bits to form a virtual address. Segments are also associated with access rights and protection identifies. The CPU itself can run in user and privilege mode.
+VCPU-32 offers a large address range, organized into segments. Segment Id and offset into the segment form a virtual address. In addition, a short form of a virtual address, called a logical address, will select a segment register based on the upper two bits of the logical address to form a virtual address. Segments are also associated with access rights and protection identifies. The CPU itself can run in user and privilege mode.
 
-This document describes the overall architecture, instruction set and runtime model for VCPU-32. It is organized into several chapters. The first chapter will give an overview on the architecture. It presents the memory model, registers sets and basic operation modes. The major part of the document then presents the instruction set. Memory reference instructions, immediate instructions, branch instructions, computational instructions and system control instructions are described in detail. These chapters are the authoritative reference of the instruction set. The runtime environment chapters present the runtime architecture. Finally, the remainder of the chapters present architectural parts of the CPU in more details. 
+This document describes the overall architecture, instruction set and runtime model for VCPU-32. It is organized into several parts. The first part will give an overview on the architecture. It presents the memory model, registers sets and basic operation modes. The major part of the document then presents the instruction set. Memory reference instructions, immediate instructions, branch instructions, computational instructions and system control instructions are described in detail. These chapters are the authoritative reference of the instruction set. 
 
+The runtime environment chapters present the runtime architecture. Although the CPU architecture and instructions allow for a great flexibility how to write programs, a runtime architecture is essential to define the common usage of the instruction set for assembler and compilers. 
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
@@ -220,17 +219,17 @@ This document describes the overall architecture, instruction set and runtime mo
 
 ## Architecture Overview
 
-This chapter presents an overview on the VCPU-32 architecture. The chapter introduces the memory model, the register set, address translation and trap handling. 
+This chapter presents an overview on the overall VCPU-32 architecture. The chapter introduces the memory model, the register set, address translation and trap handling. 
 
 ### A Register Memory Architecture.
 
-VCPU-32 implements a **register memory architecture** offering few addressing modes for the "operand" combined with a fixed instruction word length. For most of the instructions one operand is the register, the other is a flexible operand which could be an immediate, a register content or a memory address where the data is obtained. The result is placed in the register which is also the first operand. These type of machines are also called two address machines.
+VCPU-32 implements a **register memory architecture** offering few addressing modes for the "operand" combined with a fixed instruction word length. For most of the instructions one operand is the register, the other is a flexible operand which could be an immediate, a register content or a memory address from where the data is obtained or placed. The result is placed in the register which is also the first operand. These type of machines are also called two address machines.
 
 ```
    REG <- REG op OPERAND
 ```
 
-In contrast to similar historical register-memory designs, there is no operation which does a read and write operation to memory in the same instruction. For example, there is no "increment memory" instruction, since this would require two memory operations and is not pipeline friendly. Memory access is performed on a machine word, half-word or byte basis. Besides the implicit operand fetch in an instruction, there are dedicated memory load / store instructions. Computational operations and memory reference operations use a common addressing model, also called **operand mode**. In addition to the memory register mode, one operand mode supports also a three operand model ( Rs = Ra OP Rb ), specifying two registers and a result register, which allows to perform three address register for computational operations as well. The machine can therefore operate in a memory register model as well as a load / store register model.
+In contrast to similar historical register-memory designs, there is no operation which does a read and write operation to memory in the same instruction. For example, there is no "increment memory" instruction, since this would require two memory operations and is in general not pipeline friendly. Memory data access is performed on a machine word, half-word or byte basis. Besides the implicit operand fetch in an instruction, there are dedicated memory load / store instructions. In addition to the register-immediate operand and register memory-operand mode, one operand mode supports the three operand model ( Rs = Ra OP Rb ), specifying two registers and a result register, which allows to perform three address register for computational operations as well. The machine can therefore operate in a memory register model as well as a load / store register model.
 
 ### Memory and IO Address Model
 
@@ -265,10 +264,11 @@ VCPU-32 features a physical memory address range of 32-bits. The picture below d
    :                                     :                            :                                     :
    :-------------------------------------: 0xFFFFFFFF --------------->:-------------------------------------:
 ```
+The I/O address space dedicates a 1/16th of the space to an area that contains the processor dependent code. Typically, this is a set of library functions to manage the processor itself but also provide low-level primitives for the boot process and the operating system. The remainder of the I/O address space is divided into I/O modules, which map the I/O hardware components to a memory addressable location. Both PDC and I/O firmware design is explained in a later part of the document.
 
 ### Data Types
 
-VCPU-32 is a big endian 32-bit machine. The fundamental data type is a 32-bit machine word with the most significant bit being left. Bits are numbered from left to right, starting with bit 0 as the MSB bit. Memory access is performed on a word, half-word or byte basis. All address are however expressed as bytes addresses.
+VCPU-32 is a big endian 32-bit machine. The fundamental data type is a 32-bit machine word with the most significant bit being left. Bits are numbered from left to right, starting with bit 0 as the MSB bit. Memory access is performed on a word, half-word or byte basis. All addresses are however always expressed as bytes addresses.
 
 ```
        MSB                                                      LSB
@@ -284,29 +284,26 @@ VCPU-32 is a big endian 32-bit machine. The fundamental data type is a 32-bit ma
 
 ### General Register Model
 
-VCPU-32 features a set of registers. They are grouped in general registers, segment registers and control registers. There are sixteen general registers, labeled GR0 to GR15, and eight segment registers, labeled SR0 to SR7. All general registers can do arithmetic and logical operations. The eight segment registers hold the segment part of the virtual address. The control registers contain system level information such as protection registers and interrupt and trap data registers.
+VCPU-32 features a set of registers. They are grouped in **general registers**, **segment registers** and **control registers**. There are sixteen general registers, labeled GR0 to GR15, and eight segment registers, labeled SR0 to SR7. All general registers can do arithmetic and logical operations. The eight segment registers hold the segment part of the virtual address. The control registers, labelled CR0 to CR31, contain system level information such as protection registers and interrupt and trap data registers.
 
 ```
-                  Segment                         General                           Control
+          Segment                      General                           Control
        0           15          0                     31          0                     31
       :--------------:        :------------------------:       :------------------------:
-      :   SR0        :        :          GR0           :       :        CR0             :
+      :     SR0      :        :        GR0             :       :        CR0             :
       :--------------:        :------------------------:       :------------------------:
       :              :        :                        :       :                        :
       :     ...      :        :                        :       :                        :
       :              :        :                        :       :                        :
       :--------------:        :                        :       :                        :
-      :   SR7        :        :                        :       :          ...           :
+      :    SR7       :        :                        :       :          ...           :
       :--------------:        :                        :       :                        :
-                              :         ...            :       :                        :                                 
-                              :                        :       :                        :
-                              :                        :       :                        :
-                              :                        :       :                        :
+                              :         ...            :       :                        :                   
                               :                        :       :                        :
                               :                        :       :                        :
                               :                        :       :                        :
                               :------------------------:       :                        :
-                              :          GR15          :       :                        :
+                              :        GR15            :       :                        :
                               :------------------------:       :                        :
                                                                :                        :
                                                                :                        :
@@ -314,16 +311,16 @@ VCPU-32 features a set of registers. They are grouped in general registers, segm
       :   IA Seg     :        :          IA Ofs        :       :                        :
       :--------------:        :------------------------:       :                        :
                                                                :                        :
-                              :------------------------:       :------------------------:
-                              :         Status         :       :        CR31            :
-                              :------------------------:       :------------------------:
+      :--------------:                                         :------------------------:
+      :   Status     :                                         :        CR31            :
+      :--------------:                                         :------------------------:
 ```
 
-Some general registers have a dedicated use. Register zero will always return a zero value when read and a write operation will have no effect. Although there are only 16 general registers in the CPU, implementing such a register greatly simplifies the instruction design. General register one is a scratch register and also serves as an implicit target for some instruction. Segment register zero severs as n implicit target for some of the branching instructions. Other general register and segment registers may have dedicated purpose defined in the runtime architecture. Hardware only implements dedicated purposes for the above mentioned registers.
+Some general registers have a dedicated use. Register zero will always return a zero value when read and a write operation will have no effect. Although there are only 16 general registers in the CPU, implementing such a register greatly simplifies the instruction design, in that it for example provides a target when the result is not needed. General register one is a scratch register and also serves as an implicit target for some instruction. Segment register zero serves as implicit target for some of the external branching instructions. Other general register and segment registers may have dedicated purpose defined in the runtime architecture. Hardware only implements dedicated purposes for the above mentioned registers.
 
 ### Processor State
 
-VCPU-32 features two registers to hold the processor state. The **instruction address** part holds the segment Id and offset of the current instruction being executed. The instruction address is the virtual or absolute memory location of the current instruction. The lower two bits are zero, as instruction words are word aligned in memory. The **status** part holds the processor state information, such as the carry bit or current execution privilege. The portion is labelled **ST**.
+VCPU-32 features two registers to hold the processor state. The **instruction address** part holds the segment Id and offset of the current instruction being executed. The instruction address is the virtual or absolute memory location of the current instruction. The lower two bits are zero, as instruction words are always word aligned in memory. The **status** part holds the processor status information, such as the carry bit or current execution privilege. The portion is labelled **ST**.
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
@@ -334,11 +331,11 @@ VCPU-32 features two registers to hold the processor state. The **instruction ad
    :-----------------------------------------------------------------------------------------------:
 ```
 
-A carry bit, bit 4, is generated for the ADC, SUB, ADC, SUB and SUBC instructions. Bits 12 .. 15 represent the bit set that can be modified by the privileged MST instruction.
+Bits 12 .. 15 of the processor status represent the bit set that can be modified by the privileged MST instruction. Setting the other status bits requires the usage of the privileged RFI instruction.
 
 | Flag | Name | Purpose |
 |:---|:---|:---|
-| **M** | Machine Check | Machine check. When set, checks are disabled.|
+| **M** | Machine Check | When set, checks are disabled.|
 | **X** | Execution level | When set, the CPU runs in user mode, otherwise in privileged mode. |
 | **C** | Code Translation | When set, code translation is enabled. |
 | **CB** | Carry/Borrow | The carry bit for ADD, ADC, SUB and SUBC instructions. |
@@ -349,7 +346,7 @@ A carry bit, bit 4, is generated for the ADC, SUB, ADC, SUB and SUBC instruction
 
 ### Control Registers
 
-The **control registers** hold information about the processor configuration as well as data needed for the current execution. There are 32 control registers. Examples are the return link address, protection ID values, the current trap handling information, or the interrupt mask.
+The **control registers** hold information about the processor configuration as well as data needed for the current execution. There are 32 control registers. Examples are the shift amount register, protection ID values, the current trap handling information, or the interrupt mask.
 
 | CR | Name | Purpose |
 |:---|:---|:---|
@@ -359,10 +356,10 @@ The **control registers** hold information about the processor configuration as 
 | 3 - 7 | | reserved |
 | 8 - 11 | **PID-n**  | Protection Id registers. When protection ID checking is enabled, the segment part of a virtual page accessed is checked for matching one of the protection IDs stored in these control registers. There are two protection IDs in each register. |
 | 12 -15 | | reserved |
-| 16 | **I-BASE-ADR** | Interrupt and trap vector table base address. The absolute address of the interrupt vector table. When an interrupt or trap is encountered, the next instruction to execute is calculated by adding the interrupt number shifted by 32 to this address. Each interrupt has eight instruction locations that can be used for this interrupt. The table must be page aligned. |
+| 16 | **I-BASE-ADR** | Interrupt and trap vector table base address. The absolute memory address of the interrupt vector table. When an interrupt or trap is encountered, the next instruction to execute is calculated by adding the interrupt number shifted by 32 to this address. Each interrupt has eight instruction locations that can be used for this interrupt. The table must be page aligned. |
 | 17 |  **I-PSW-0** | When an interrupt or trap is encountered, this control register holds the current status word and IA segment portion. |
 | 18 |  **I-PSW-1** | When an interrupt or trap is encountered, control register holds the current instruction address offset. |
-| 19 - 21 | **I-PARM-n** | Interrupts and pass along further information through these control registers. |
+| 19 - 21 | **I-PARM-n** | Interrupts pass along further information through these control registers. |
 | 22 | **I-EIM** | External interrupt mask. |
 | 23 | | reserved |
 | 24 - 31 | **TMP-n** | These control registers are scratch pad registers. Temporary registers are typically used in an interrupt handlers as a scratch register space to save general registers so that they can be used in the interrupt routine handler. They also contain some further values for the actual interrupt. These register will neither be saved nor restored upon entry and exit from an interrupt. |
@@ -370,7 +367,7 @@ The **control registers** hold information about the processor configuration as 
 
 ### Segmented Memory Model
 
-The VCPU-32 memory model features a **segmented memory model**. The address space consists of up to 2^16 segments, each of which holds up to 2^32 words in size. Segments are further subdivided into pages with a page size of 16K Words. The concatenation of segment ID and offset form a **virtual address**. 
+The VCPU-32 memory model features a **segmented memory model**. The address space consists of up to 2^16 segments, each of which holds up to 2^32 bytes in size. Segments are further subdivided into pages with a page size of 16 Kbytes. The concatenation of segment ID and offset form the **virtual address**. 
 
 ```
                        0                     15     0                        18              31
@@ -410,7 +407,9 @@ A segment Id of 16-bits allows allowing for up to 65636 segments. Segments shoul
 
 VCPU-32 defines three types of addresses. At the highest level is the **logical address**. The logical address is a 32-bit word, which contains a 2-bit segment register selector and a 30-bit offset. During data access with a logical address the segment selector selects from the segment register set SR4 to SR7 and forms together with the remaining 30-bit offset a virtual address. Since the upper two bits are inherently fixed, the address range in the particular segment is one of four possible 30-bit quadrants. For example, when the upper two bits are zero, the first quadrant *0x00000000* to *0x3FFFFFFF* of a segment is addressable. When the upper two bits are *0x2*, the reachable address range is *0x80000000* to *0xBFFFFFF*. When the segment registers SR4 to SR7 all would point to the same segment, the entire address range of a segment is reachable via a logical address. It is however more likely that these registers point to different segments though.
 
-The **virtual address** is the concatenation of a segment and an offset. Together they form a maximum address range of 2^32 segments with 2^32 bits each. Once the virtual address is formed, the virtual to physical translation process is the same for both logical and virtual addressing mode. The following figure shows the translation process. First a logical address is translated into a virtual address. A virtual address is then translated into a **physical address**. 
+Instructions that work with an address have a two bit segment select field. A value of zero indicates to use the implicit segment register selection as outlined before, a value of 1 to 3 will select segment register SR1 to SR3. Either way the logical address translation will result in a virtual address.
+
+The **virtual address** is the concatenation of a segment and an offset. Together they form a maximum address range of 2^16 segments with 2^32 bytes each. Once the virtual address is formed, the virtual to physical translation process is the same for both logical and virtual addressing mode. The following figure shows the translation process. First a logical address is translated into a virtual address. A virtual address is then translated into a **physical address**. 
 
 ```
                                                   0    1 2                             31
@@ -438,11 +437,11 @@ The **virtual address** is the concatenation of a segment and an offset. Togethe
                      \__ physical page (PPN) __/\__ page ofs ___/
 ```
 
-Address translation is separately enabled for code and data translation. When translation is disabled, the address is the offset directly mapping to the physical address range with the segment part ignored. Segment zero has a special role. Hardware must guarantee that a virtual address with a zero segment, e.g. *0x0.0x500* will also directly map to the physical address specified by the offset. The maximum physical memory size that can be reached this way is 4 GBytes. The architecture does not exclude supporting a larger physical address range though. A translation buffer hardware could allow for a larger physical address range beyond 4GBytes. This part of physical memory is however only reachable when address translation is enabled.
+Address translation is separately enabled for code and data translation. When translation is disabled, the address offset directly maps to the physical address range with the segment part ignored. Segment zero has a special role. Hardware must guarantee that a virtual address with a zero segment, e.g. *0x0.0x500* will also directly map to the physical address specified by the offset. The maximum physical memory size that can be reached this way is 4 GBytes. The architecture does however not exclude supporting a larger physical address range. For example, a translation buffer hardware could allow for a larger physical address range beyond the 4GBytes. This part of physical memory is however only reachable when address translation is enabled.
 
-### Access Control
+### Protection Model
 
-VCPU-32 implements a **protection model** along two dimensions. The first dimension is the access control and privilege level check. Each page is associated with a **page type**. There are read-only, read-write, execute and gateway pages. Each memory access is checked to be compatible with the allowed type of access set in the page descriptor. There are two privilege levels, user and supervisor mode. On each instruction execution, the privilege bit in the instruction address is checked against the access type and privilege information field in the access control field, stored in the TLB. Access type and privilege level form the access control information field, which is checked for each memory access. For read access the privilege level us be least as high as the PL1 field, for write access the privilege level must be as least as high as PL2. For execute access the privilege level must be at least as high as PL1 and not higher than PL2. If the instruction privilege level is not within this bounds, a privilege violation trap is raised. If the page type does not match the instruction access type an access violation trap is raised. In both cases the instruction is aborted and a memory protection trap is raised.
+VCPU-32 implements a protection model along two dimensions. The first dimension is the **access control** and privilege level check. Each page is associated with a **page type**. There are read-only, read-write, execute and gateway pages. Each memory access is checked to be compatible with the allowed type of access set in the page descriptor. There are two **privilege levels**, user and supervisor mode. Access type and privilege level form the access control information field, which is checked for each instruction and data memory access. For read access the privilege level us be least as high as the PL1 field, for write access the privilege level must be as least as high as PL2. An exception are the execute and gateway pages, where a write access is only allowed for privilege code. For execute access the privilege level must be at least as high as PL1 and not higher than PL2. If the instruction privilege level is not within this bounds, a privilege violation trap is raised. If the page type does not match the instruction access type an access violation trap is raised. In both cases the instruction is aborted and a memory protection trap is raised.
 
 ```
     0           2     3
@@ -453,20 +452,20 @@ VCPU-32 implements a **protection model** along two dimensions. The first dimens
    type: 0 - read-only,   read: PL <= PL1,    write : not allowed,   execute: not allowed
    type: 1 - read-write,  read: PL <= PL1,    write : PL <= PL2,     execute: not allowed
    type: 2 - execute,     read: PL <= PL1,    write : PL == 0,       execute: PL2 <= PL <= PL1
-   type: 2 - gateway,     read: PL<= PL1,     write : PL == 0,       execute: PL2 <= PL <= PL1
+   type: 2 - gateway,     read: PL <= PL1,    write : PL == 0,       execute: PL2 <= PL <= PL1
 ```
 
-The second dimension of protection is a **protection ID**. VCPU-32 allows to record a set of segment IDs in the processor control registers. For each access to a segment that has the protection check bit set, one of the protection ID registers must match the segment  Id. If not, a protection violation trap is raised.
+The second dimension of protection is a **protection ID**. VCPU-32 allows to record a set of segment Id values in the processor control registers. For each access to a segment that has the protection check bit set, one of the protection Id control registers must match the segment Id. If not, a protection violation trap is raised.
 
-Protection ID checking is typically used to form a grouping of access. A good example is a stack data segment, which is accessible at user privilege level in read and write access from every thread that has R/W access with user privilege. However, only the corresponding user thread should be allowed to access the stack data segment. If the segment protection checking bit is not set, the execution level must either be the privileged execution level or address translation and protection checking disabled.
+Protection Id checking is typically used to form a grouping of access. A good example are stack data segment, which is accessible at user privilege level. Since the CPU features a global virtual memory address space, every every task could access a data stack of another task. With protection Id checking enabled and the stack segment Id loaded in one of the control registers, only the corresponding user task is allowed to access the stack data segment with a matching protection Id. 
 
 ### Adress translation and caching
 
-The previous section depicted the virtual address translation. While the CPU architects the logical, virtual and physical address scheme, it does not specify how exactly the hardware supports the translation process. A very common model is to have for performance reasons TLBs for caching translation results and Caches for data caching. However, split TLBS and unified TLBs, L1 and L2 caches and other schemes are models to consider. This section just outline the common architecture and instructions to manage these CPU components.
+The previous section depicted the virtual address translation process. While the CPU architects the logical, virtual and physical address scheme, it does not specify how exactly the hardware supports the translation process. A very common model is to have for performance reasons instruction and data translation buffers(TLB) for caching translation results and data caches for caching memory data. The CPU architecture does not specify a particular model of TLB and cache implementation. Split TLBS and unified TLBs, L1 and L2 caches and other schemes are models to consider. This section just outlines the common architecture and instructions to manage these CPU components.
 
 ### Translation Lookaside Buffer
 
-For performance reasons, the virtual address translation result is stored in a translation look-aside buffer (TLB). Depending on the hardware implementation, there can be a combined TLB or a separate instruction TLB and data TLB. The TLB is essentially a copy of the page table entry information that represents the virtual page currently loaded at the physical address.
+For performance reasons, the virtual address translation result is stored in a translation look-aside buffer. The TLB is essentially a copy of the page table entry information that represents the virtual page currently loaded at the physical address. Depending on the hardware implementation, there can be a combined TLB or a separate instruction TLB and data TLB. 
 
 ```
 TLB fields (example):
@@ -483,25 +482,23 @@ TLB fields (example):
 |:---|:---|
 | **V** | the entry is valid. |
 | **T** | page reference trap. If the bit is set, a reference to the page results in a trap.|
-| **D** | dirty trap. If the bit is set, the first write access to the TLB raises a trap.|
-| **B** | data reference trap. If the bit is set, access to the data page raises a trap. |
+| **D** | dirty trap. If the bit is set, the first write access raises a trap.|
+| **B** | data reference trap. If the bit is set, data access raises a trap. |
 | **P** | Segment Id checking enabled for the page. |
 | **AR** | The access rights data for the page. |
 | **VPN** | the virtual page number in the segment. |
 | **PPN** | the physical page number. |
 |||
 
-When address translation is disabled, the respective TLB is bypassed and the address represents a physical address. Also, protection ID checking is disabled. The U, D, T, B only apply to a data TLB. When the processor cannot find the address translation in the TLB, a TLB miss trap will invoke a software handler. The handler will walk the page table for an entry that matches the virtual address and update the TLB with the corresponding physical address and access right information, otherwise the virtual page is not in main memory and there will be a page fault to be handled by the operating system. In a sense the TLB is the cache for the address translations found in the page table. The implementation of the TLB is hardware dependent.
+When address translation is disabled, the respective TLB is bypassed and the address represents a physical address. Also, protection ID checking is disabled. The D, T, B only apply to a data TLB. When the processor cannot find the address translation in the TLB, a TLB miss trap will invoke a software handler. The handler will walk the page table for an entry that matches the virtual address and update the TLB with the corresponding physical address and access right information, otherwise the virtual page is not in main memory and there will be a page fault to be handled by the operating system. In a sense the TLB is the cache for the address translations found in the page table. Again, the implementation of the TLB is hardware dependent.
 
 ### Caches
 
-VCPU-32 is a cache visible architecture, featuring a separate instruction and data cache. While hardware directly controls the cache for cache line insertion and replacement, the software has explicit control on flushing and purging cache line entries. There are instructions to flush and purge cache lines. To speed up the entire memory access process, the cache uses the virtual address to index into the arrays, which can be done in parallel to the TLB lookup. When the physical address tag in the cache and the physical page address in the TLB match, there will be a cache hit. The architecture will not specify the size of cache lines or cache organization. Typically a cache line will hold four to eight machine words, the cache organization is in the simplest case a single set direct mapped cache.
-
-A system may choose direct map or set-associative caches. Furthermore, there are L1 and L2 cache models. For example, separate instruction and data L1 caches connecting to an external L2 cache with larger cache memories. The architecture just specifies instructions to handle cache operations.
+VCPU-32 is a cache visible architecture, featuring a separate instruction and data cache. While hardware directly controls the cache for cache line insertion and replacement, the software has explicit control on flushing and purging cache line entries. There are instructions to flush and purge cache lines. To speed up the entire memory access process, the cache uses the virtual address to index into the arrays, which can be done in parallel to the TLB lookup. When the physical address tag in the cache and the physical page address in the TLB match, there will be a cache hit. The architecture will not specify the size of cache lines or cache organization. Typically a cache line will hold four to eight machine words, the cache organization is in the simplest case a single set direct mapped cache. The CPU architecture does not specify a particular cache and layer model. The CPU architecture just specifies instructions to handle cache operations, such as delete or flushing a cache.
 
 ### Page Tables
 
-Physical memory is organized in pages with a size of 4K words. The architecture does not specify the page table model. There are again several models of page tables possible. One model is to use an inverted page table model, in which each physical page has an entry in the page table. During a TLB miss, a hash function computes an index into the a hash table which potentially has a link to the first page table entry and then walks the collision chain for a matching entry. A possible implementation of the page table entry is shown below.
+Physical memory is organized in pages with a size of 16 Kbytes. The CPU architecture does not specify the page table model. There are again several models of page tables possible. One model is to use an inverted page table model, in which each physical page has an entry in the page table. During a TLB miss, a hash function computes an index into the a hash table which potentially has a link to the first page table entry and then walks the collision chain for a matching entry. A possible implementation of the page table entry is shown below.
 
 ```
 Hash table Entry (Example):
@@ -525,7 +522,7 @@ Page Table Entry (Example):                                                     
    :-----------------------------------------------------------------------------------------------:
 ```
 
-Each page table entry contains the virtual page address, the physical pages address, the access rights information, a set of status flags and the physical address of the next entry in the page table. On a TLB miss, the page table entry contains all the information that needs to go into the TLB entry. The example shown above contains several reserved fields. For a fast lookup index computation, page table entries should have a power of 2 size, typically 4 or 8 words. The reserved fields could be used for the operating system memory management data.
+Each page table entry contains the virtual page address, the physical pages address, the access rights information, a set of status flags and the physical address of the next entry in the page table. On a TLB miss, the page table entry contains all the information that needs to go into the TLB entry. For a fast lookup index computation, page table entries should have a power of 2 size, typically 4 or 8 words. The reserved fields could be used for the operating system memory management data.
 
 | Field | Purpose |
 |--------|--------|
@@ -556,23 +553,21 @@ Locating a virtual page in the page table requires to first index into the hash 
   }
 ```
 
-The function builds the hash index, which may also be used for TLB entries, virtually tagged caches and walking the page table itself. In case of a TLB miss, the hash value is directly available to the miss handler via a control register. In the example above, the segment portion is left shifted by a value of 4. The hash function will map 16 consecutive virtual pages to consecutive indices.
-
 ### Control Flow
 
 Control flow is implemented through a set of branch instructions. They can be classified into unconditional and conditional instruction branches.
 
-**Unconditional Branches**. Unconditional branches fetch the next instruction address from the computed branch target. The address computation can be relative to the current instruction address ( instruction relative branch ) or relativ to an address register ( base register relative ). For a segment local branch, the instruction address segment part will not change. Unconditional branches are also used to jump to a subroutine and return from there. The branch and link instruction types save the return point to a general register. External calls are quite similar, except that they always branch to an absolute offset in the external segment. Just like the branch instruction, the return point can be saved, but this time the segment is stored in SR0.
+**Unconditional Branches**. Unconditional branches fetch the next instruction address from the computed branch target. The address computation can be relative to the current instruction address ( instruction relative branch ) or relativ to an address register ( base register relative ). For a segment local branch, the instruction address segment part will not change. Unconditional branches are also used to jump to a subroutine and return from there. The branch and link instruction types save the return point to a general register. External calls are quite similar, except that they always branch to an absolute offset in the external segment. Just like the branch instruction, the return point can be saved, but this time the segment is additionally stored in SR0.
 
-**Conditional Branches**. VCPU-32 features two conditional branch instructions. These instructions compares two register values or test a register for a certain condition. If the condition is met a branch to the target address is performed.  The target address is always a local address and the offset is instruction address relative. Conditional branches adopt a static prediction model. Forward branches are assumed not taken, backward branches are assumed taken.
+**Conditional Branches**. VCPU-32 features one conditional branch instructions. These instruction compares two register values for a certain condition. If the condition is met a branch to the target address is performed.  The target address is always a local address and the offset is instruction address relative. Conditional branches adopt a static prediction model. Forward branches are assumed not taken, backward branches are assumed taken.
 
 ### Privilege change
 
 Modern processors support the distinction between several privilege levels. Instructions can only access data or execute instructions when the privilege level matches the privilege level required. Two or four levels are the most common implementation. Changing between levels is often done with a kind of trap operation to a higher privilege level software, for example the operating system kernel. However, traps are expensive, as they cause a CPU pipeline to be flush when going through a trap handler.
 
-VCPU-32 follows the PA-RISC route of using gateways for privilege promotion. A special branch instruction will raise the privilege level when the instruction is executed on a gateway page. The branch target instruction continues execution with the privilege level specified by the gateway page. Return from a higher privilege level to a code page with lower privilege level, will automatically set the lower privilege level.
+VCPU-32 follows the PA-RISC route of using gateways for privilege promotion. Im contrast, VCPU-32 implements a two privilege level model with **user** and **priv** mode. A special branch instruction will raise the privilege level when the instruction is executed on a gateway page. The branch target instruction continues execution with the privilege level specified by the gateway page and the "X" bit in the status register is set. Return from a higher privilege level to a code page with lower privilege level, will automatically set the lower privilege level.
 
-In contrast to PA-RISC, VCPU-32 implement only two privilege levels, **user** and **priv** mode. The privilege status is not encoded in the instruction address, but rather in the process status word. A transition from user to privilege mode is accomplished by setting the "X" bit in the status register when the GATE instruction is executed on a gateway page with appropriate privilege mode settings. Each instruction fetch compares the privilege level of the page where the instruction is fetched from with the status register "P" bit. A higher privilege level on an execution page results in a privilege violation trap. A lower level of the execute page and a higher level in the status register will in an automatic demotion of the privilege level. If the architecture chooses one day to implement a four level privilege level protection architecture, the access rights fields and where to store the current execution privilege level needs to be revisited. Perhaps it should then just follow the PA-RISC architecture in this matter.
+Each instruction fetch compares the privilege level of the page where the instruction is fetched from with the status register "P" bit. A higher privilege level on an execution page results in a privilege violation trap. A lower level of the execute page and a higher level in the status register will in an automatic demotion of the privilege level. 
 
 ### Interrupts and Exceptions
 
@@ -621,6 +616,10 @@ A fundamental requirement is the ability to set instruction and data breakpoints
 
 Data breakpoints are traps that are taken when a data reference to the page is done. They do not modify the instruction stream. Depending on the data access, the trap could happen before or after the instruction that accesses the data. A write operation is trapped before the data is written, a read instruction is trapped after the instruction took place.
 
+### External Interrupts
+
+To be defined ...
+
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
@@ -633,20 +632,7 @@ Data breakpoints are traps that are taken when a data reference to the page is d
 
 ## Instruction Set Overview
 
-This chapter gives a brief overview on the instruction set. The instruction set is divided into five general groups of instructions. The **memory reference** group contains the instructions to load ans store to virtual and physical memory. The **immediate** group contains the instructions for building an immediate value up to 32 bit. The **branch** group present the conditional and unconditional instructions. The **computational** instructions perform arithmetic, boolean and bit functions such as bit extract and deposit. Finally, the **control** instruction group contains all instructions for managing HW elements such as caches and TLBs, register movements, as well as traps and interrupt handling. 
-
-### General Instruction Encoding
-
-The instruction set is a fixed word length instruction format. Instructions are always one machine word. In general there is a 6 bit field to encode the instruction opCode. The instruction opCode field is encoded as follows:
-
-```
-    0                 6                                                                          31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : opCode          : opCode specific portion                                                     :
-   :-----------------:-----------------------------------------------------------------------------:
-```
-
-In the interest of a simplified hardware design, the opCode and opCode specific instruction fields are regular and on fixed positions whenever possible. As shown above, the opCode is always at bits 0 .. 5. But also registers, modes and offsets are at the same locations. The benefit is that the decoding logic can just extract the fields without completely decoding the instruction upfront. For some instructions not all bits in the instruction word are used. They are reserved fields and should be filled with a zero for now. Throughout the remainder of this document numbers are shown in three numeric formats. A decimal number is a number starting with the digits 1 .. 9. An octal number starts with the number 0, and a hex number starts with the "0x" prefix.
+This chapter gives a brief overview on the instruction set. The instruction set is a fixed word length instruction format of one machine word. The instruction set is divided into five general groups of instructions. The **memory reference** group contains the instructions to load ans store to virtual and physical memory. The **immediate** group contains the instructions for building an immediate value up to 32 bit. The **branch** group present the conditional and unconditional instructions. The **computational** instructions perform arithmetic, boolean and bit functions such as bit extract and deposit. Finally, the **control** instruction group contains all instructions for managing HW elements such as caches and TLBs, register movements, as well as traps and interrupt handling. 
 
 ### Instruction Operation Notation
 
@@ -654,7 +640,9 @@ The instructions described in the following chapters contain the instruction wor
 
 Additional options for an instruction will be specified by a "." followed by a sequence of characters. Each character is one of the defined options for the instruction. As an example, the AND instruction can negate the result. The assembler notation would be "AND.N ...". The order of the individual characters does not matter. In the instruction description, a generic ".< opt >" is used.
 
-### Instruction description functions
+Reserved fields in an instruction word should be filled with a zero value for now. Throughout the remainder of this document numbers are shown in three numeric formats. A decimal number is a number starting with the digits 1 .. 9. An octal number starts with the number 0, and a hex number starts with the "0x" prefix.
+
+### Instruction Operation Description Functions
 
 Instruction operations are described in a pseudo C style language using assignment and simple control structures to describe the instruction operation. In addition there are functions that perform operations and compute expressions. The following table lists these functions.
 
@@ -670,21 +658,52 @@ Instruction operations are described in a pseudo C style language using assignme
 | **operandAdrOfs( instr )** | computes the offset portion from the instruction and mode information. ( See the operand encoding diagram for modes 2 and 3 ). For load and store instructions, the base register is optionally adjusted with the offset value. |
 | **operandBitLen( instr )** | computes the operand bit length from the instruction and mode information. ( See the operand encoding diagram for modes ) |
 | **rshift( x, amount )** | logical right shift of the bits in x by "amount" bits. |
-| **memLoad( seg, ofs, bitLen )** | loads data from virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. The bitLen is the number of bits to load. If the bitLen is less than 32, the data is zero sign extended. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to load a word from physical memory.  |
-| **memStore( seg, ofs, val, bitLen )** | store data to virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to store the word "val" from physical memory. |
+| **memLoad( seg, ofs, len )** | loads data from virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. The bitLen is the number of bits to load. If "len" is less than 32, the data is zero sign extended. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to load a word from physical memory.  |
+| **memStore( seg, ofs, val, len )** | store data to virtual or physical memory. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "seg" is zero and "ofs" is the offset from where to store the word "val" from physical memory. "len" specifies the number of bits to store. |
 | **loadPhysAdr( seg, ofs )** | returns the physical address for a virtual address. The "seg" parameter is the segment and "ofs" the offset into the segment. If virtual to physical translation is disabled, the "ofs" is the physical address in memory. |
-| **searchInstructionTlbEntry( seg, ofs, entry )** | lookup the TLB entry and if found return a pointer to the entry. |
-| **allocateInstructionTlbEntry( seg, ofs, entry )** | allocate an entry in the TLB and return a pointer to the entry. |
-| **purgeIinstructionTlbEntry( entry )** | purge the TLB entry by simply invalidating the entry. |
-| **searchDataTlbEntry( seg, ofs, entry )** | lookup the TLB entry and if found return a pointer to the entry.|
+| **allocateInstructionTlbEntry( seg, ofs, entry )** | allocate an entry in the instruction TLB and return a pointer to the entry. |
+| **purgeIinstructionTlbEntry( entry )** | purge the instruction TLB entry by simply invalidating the entry. |
+| **searchInstructionTlbEntry( seg, ofs, entry )** | lookup the instruction TLB entry and if found return a pointer to the entry. |
+| **allocateDataTlbEntry( seg, ofs, entry )** | allocate an entry in the data TLB and return a pointer to the entry. |
+| **purgeDataTlbEntry( entry )** | purge the dataTLB entry by simply invalidating it. |
+| **searchDataTlbEntry( seg, ofs, entry )** | lookup the data TLB entry and if found return a pointer to the entry.|
 | **readAccessAllowed( tlbEntry, privLevel )** | checks the TLB entry for the requested access mode and privilege level. |
 | **writeAccessAllowed( tlbEntry, privLevel )** | checks the TLB entry for the requested access mode and privilege level. |
-| **allocateDataTlbEntry( seg, ofs, entry )** | allocate an entry in the TLB and return a pointer to the entry. |
-| **purgeDataTlbEntry( entry )** | purge the TLB entry by simply invalidating it. |
-| **flushDataCache( seg, ofs )** | write the cache line that contains the virtual address back to memory and purge the entry. |
-| **purgeDataCache( seg, ofs )** | remove the cache line that contains the virtual address by simply invalidating it. |
-| **purgeInstructionCache( seg, ofs )** | remove the cache line that contains the virtual address by simply invalidating it. |
+| **purgeInstructionCache( seg, ofs )** | remove the instruction cache line that contains the virtual address by simply invalidating it. |
+| **flushDataCache( seg, ofs )** | write the data cache line that contains the virtual address back to memory and purge the entry. |
+| **purgeDataCache( seg, ofs )** | remove the data cache line that contains the virtual address by simply invalidating it. |
 |||
+
+### Instruction description example
+
+```
+   NAME                                                                 - instruction mnemonic
+
+      ... one line of what the instruction does                         - short description
+
+   Format
+
+      NAME operands                                                     - Assembler notation
+
+      : opCode .. fields :                                              - binary notation             
+
+   Description
+
+      ... detailed textual description of what the instructio does      - detailed description
+
+   Operation
+
+      ... pseudo code of what the instruction does                      - pseudo code
+
+   Exceptions
+
+      ... potentential execptions raised                                - execptions
+
+   Notes
+
+      ... additional notes for implementers and programmers             - notes
+
+```
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -697,15 +716,15 @@ Instruction operations are described in a pseudo C style language using assignme
 
 ## Memory Reference Instructions
 
-Memory reference instruction operate on memory and a general register with a unit of transfer of a word, a half-word or a byte. In that sense the architecture is a typical load/store architecture. However, in contrast to a load/store architecture VCPU-32 load / store instructions are not the only instructions that access memory. Being a register/memory architecture, all instructions with an operand field encoding, will access memory as well. There are however no instructions that will access data memory access for reading and writing back an operand in the same instruction. Due to the operand instruction format and the requirement to offer a fixed length instruction word, the offset for an address operation is limited but still covers a large address range. 
+Memory reference instruction operate on memory and a general register with a unit of transfer being a word, a half-word or a byte. In that sense the architecture is a typical load/store architecture. However, in contrast to a load/store architecture VCPU-32 load / store instructions are not the only instructions that access memory. Being a register/memory architecture, all instructions with an operand field encoding may access memory as well. There are however no instructions that will access data memory access for reading and writing back an operand in the same instruction. Due to the operand instruction format and the requirement to offer a fixed length instruction word, the offset for an address operation is limited but still covers a large address range. 
 
 The **LDw** and **STw** and instructions access virtual memory. The segment selector field allows to use a logical address with implicit selection of segment register SR4..SR7, or an explicit virtual address using segment register SR1..SR3. The instructions use a **W** for word, a **H** for half-word and a **B** for byte operand size. The **LDA** and **STA** instruction implement word access to the physical memory computing a physical address to access. 
 
-The **LDR** and **STC** instructions support atomic operations. The **LDR** instruction loads a value form memory and remember this access. The **STC** instruction will store a value to the same location that the LR instructions used and return a failure if the value was modified since the last LR access. This CPU pipeline friendly pair of instructions allow to build higher level atomic operations on top.
+The **LDR** and **STC** instructions support atomic operations. The **LDR** instruction loads a value form memory and remember this access. The **STC** instruction will store a value to the same location that the LDR instructions used and return a failure if the value was modified since the last LDR access. This CPU pipeline friendly pair of instructions allow to build higher level atomic operations on top.
 
-Memory reference instructions can be issued when data translation is on and off. When address translation is turned off, the memory reference instructions will ignore the segment part and replace it with a zero value. The address is the physical address. It is an architectural requirement that a virtual address with a segment Id of zero maps to an absolute address with the same offset. The absolute address mode instruction also works with translation turned on and off. 
+Memory reference instructions can be issued when data translation is either on and off. When address translation is turned off, the memory reference instructions will ignore the segment part and replace it with a zero value. The address is the physical address. It is an architectural requirement that a virtual address with a segment Id of zero maps to an absolute address with the same offset. The absolute address mode instruction also works with translation turned on and off. 
 
-With the exception of the load reserved and store conditional instruction, memory reference instructions support a base register modification. When the option is set, the base register for an address computation will be adjusted before or after the offset computation. A negative offset will be added before the address computation, a positive offset after the address computation.
+With the exception of the load reserved and store conditional instruction, memory reference instructions support a base register modification. When the option is set, the base register for an address computation will be adjusted before or after the data access. A negative offset will be added before the address computation, a positive offset after the address computation.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -748,6 +767,7 @@ The load instruction will load the operand into the general register "r". The of
          if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + GR[a];
          else                                offset = GR[b];
       }
+      else offset = GR[b] + GR[a];
    }
    else {
 
@@ -756,6 +776,7 @@ The load instruction will load the operand into the general register "r". The of
          if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
          else                                offset = GR[b];
       }
+      else offset = GR[b] + lowSignExtend( ofs, 12 );
    }
 
    len = dataLen( instr.[12..13] );
@@ -763,9 +784,10 @@ The load instruction will load the operand into the general register "r". The of
    if ( instr.[12..13] == 0 ) seg = segSelect( offset );
    else                       seg = instr.[12..13];
    
-   GR[b] = GR[b] + GR[a];
-   
    GR[r] <- zeroExtend( memLoad( seg, offset, len ), len );
+
+   if ( instr.[10] ) GR[b] <- GR[b] + GR[a];
+   else              GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
 ```
 
 #### Exceptions
@@ -775,12 +797,16 @@ The load instruction will load the operand into the general register "r". The of
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
-- Alignment trap
+- Data alignment trap
 
 #### Notes
 
-None.
+The load instruction allows to load a half word or byte. The result is zero sign extended. When the memory location represents a signed value, a sign-extend needs to be performed explicitly.
 
+```
+   LDH r5, 100(R4)
+   EXTR.S r5, r5, 31, 16
+```
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -801,21 +827,27 @@ Stores a general register value into memory using a logical address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : STw     ( 0x31 ): r         :0 :M : seg : dw  : ofs                               : b         :
+   : STw     ( 0x31 ): r         :X :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The store instruction will store the data in general register "r" to memory. The offset is computed by adding the sign extended offset to "b". The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. The "dw" field specifies the data length. From 0 to 3 the data length is byte, half word, word and double. The double option is reserved for future use. The computed offset must match the alignment size of the data to fetch. The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. 
+The store instruction will store the data in general register "r" to memory. The offset is computed by adding the sign extended offset to "b". The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. The "dw" field specifies the data length. From 0 to 3 the data length is byte, half word, word and double. The double option is reserved for future use. The computed offset must match the alignment size of the data to fetch. The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. The "X" field will check "r" that the signed value to store will fit into the target memory length.
 
 #### Operation
 
 ```
     if ( instr.[M] ) {
 
-      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 14 );
+      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
       else                                offset = GR[b];
+   }
+   else offset = GR[b] + lowSignExtend( ofs, 12 );
+
+   if ( instr.[X] ) {
+
+      if ( checkForDataTruncation( GR[r] )) overflowTrap( );
    }
 
    len = dataLen( instr.[12..13] );
@@ -823,9 +855,9 @@ The store instruction will store the data in general register "r" to memory. The
    if ( instr.[12..13] == 0 ) seg = segSelect( offset );
    else                       seg = instr.[12..13];
 
-   GR[b] = GR[b] + lowSignExtend( ofs, 12 );
-   
    memStore( seg, GR[b] + lowSignExtend( ofs, 12 ), GR[r], len );
+
+    GR[b] = GR[b] + lowSignExtend( ofs, 12 );
 ```
 
 #### Exceptions
@@ -835,14 +867,12 @@ The store instruction will store the data in general register "r" to memory. The
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
-- Alignment trap
+- Data alignment trap
+- Overflow trap
 
 #### Notes
 
-None.
-
-// ??? **note** we could use a flag to request signed overflow checking when storing a signed integer to a field smaller than 32 bits. TBD.
-
+The store instruction allows to store a value less than a 32-bit machine word. For signed values, the register content to store may not fit into the target memory field and a truncation would occur. The "X" bit in the instruction will when set check that the signed bit of the field to store is extended to the leftmost bit in the register word. For example, storing a half word with the sign bit ( bit16 ) set is checked for bits 0 to 15 being a 1.
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -886,6 +916,7 @@ The load absolute instruction will load the content of the physical memory addre
          if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + GR[a];
          else                                offset = GR[b];
       }
+      else offset = GR[b] + GR[a];
    }
    else {
 
@@ -894,17 +925,20 @@ The load absolute instruction will load the content of the physical memory addre
          if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
          else                                offset = GR[b];
       }
+      else offset = GR[b] + lowSignExtend( ofs, 12 );
    }
 
-   GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
-
+  
    GR[r] <- memLoad( 0, offset, 32 );
+
+   if ( instr.[10] ) GR[b] <- GR[b] + GR[a];
+   else              GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
 ```
 
 #### Exceptions
 
 - Privileged operation trap
-- Alignment trap
+- Data alignment trap
 
 #### Notes
 
@@ -948,22 +982,21 @@ The store absolute instruction will store the target register into memory using 
       if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
       else                                offset = GR[b];
    }
-
-   GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
+   else offset = GR[b] + lowSignExtend( ofs, 12 );
 
    memStore( 0, GR[b] + lowSignExtend( ofs, 12 ), GR[r], 32 );
+
+   GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
 ```
 
 #### Exceptions
 
 - Privileged operation trap
-- Alignment trap
+- Data alignment trap
 
 #### Notes
 
 None.
-
-// ??? **note** we could use a flag to request signed overflow checking when storing a signed integer to a field smaller than 32 bits. TBD.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1015,7 +1048,7 @@ The LDR instruction is used for implementing semaphore type operations. The firs
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
-- Alignment trap
+- Data alignment trap
 
 #### Notes
 
@@ -1072,7 +1105,7 @@ The STC conditional instruction will store a value in "r" to the memory location
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
-- Alignment trap
+- Data alignment trap
 
 #### Notes
 
@@ -1089,7 +1122,7 @@ The "check the access part" is highly implementation dependent. One option is to
 
 ## Immediate Instructions
 
-Fixed length instruction word size architectures have one issue in that there is not enough room to embed a full word immediate value in the instruction. Typically, a combination of two instructions that concatenate the value from two fields is used. The **LDIL** instruction will place an 22-bit value in the left portion of a register, padded with zeroes to the right. The register content is then paired with an instruction that sets the right most 10-bit value. The **LDO** instruction that computes an offset is an example of such an instruction. The **ADDIL** instructions add the left side of a register argument to a register. In combination, the two instructions LIDL and ADDIL allow to generate a 32-bit offset value. The **LDSID** instruction will load the segment ID computed from the upper two bits of a logical address in to a general register.
+Several instructions have within the instruction word bit fields for representing immediate values. Nevertheless, fixed length instruction word size architectures have one issue in that there is not enough room to embed a full word immediate value in the instruction. Typically, a combination of two instructions that concatenate the value from two parts is used. There are four instructions in this group. The **LDIL** instruction will place an 22-bit value in the left portion of a register, padded with zeroes to the right. The register content is then paired with an instruction that sets the right most 10-bit value. The **LDO** instruction that computes an offset is an example of such an instruction. The **ADDIL** instructions add the left side of a register argument to a register. In combination, the two instructions LIDL and ADDIL allow to generate a 32-bit offset value. The **LDSID** instruction will load the segment ID computed from the upper two bits of a logical address in to a general register.
 
 
 <!--------------------------------------------------------------------------------------------------------->
