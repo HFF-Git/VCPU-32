@@ -48,7 +48,22 @@
       table {
          break-inside: auto;
       }
+      html, body {
+         text-align: justify;
+        height: auto;
+        font-size: 14pt;
+      }
+      h1, h2, h3, h4, h5, h6 { 
+         page-break-after:avoid; 
+         page-break-inside:avoid 
+      }
    }
+   @page { 
+      size:21.0cm 29.7cm;
+      margin-top:1.7cm; 
+      margin-bottom:1.7cm; 
+      margin-left:2cm; 
+      margin-right:2cm  }
    .hljs {
       break-inside: avoid;
    }
@@ -684,12 +699,14 @@ Instruction operations are described in a pseudo C style language using assignme
    Format
 
       NAME operands                                                     - Assembler notation
-
-      : opCode .. fields :                                              - binary notation             
+      
+      :----------------------------------:
+      : opCode : fields                  :                              - binary notation             
+      :----------------------------------:
 
    Description
 
-      ... detailed textual description of what the instructio does      - detailed description
+      ... detailed textual description of what the instruction does     - detailed description
 
    Operation
 
@@ -697,7 +714,7 @@ Instruction operations are described in a pseudo C style language using assignme
 
    Exceptions
 
-      ... potentential execptions raised                                - execptions
+      ... potentential exceptions raised                                - exceptions
 
    Notes
 
@@ -1122,7 +1139,11 @@ The "check the access part" is highly implementation dependent. One option is to
 
 ## Immediate Instructions
 
-Several instructions have within the instruction word bit fields for representing immediate values. Nevertheless, fixed length instruction word size architectures have one issue in that there is not enough room to embed a full word immediate value in the instruction. Typically, a combination of two instructions that concatenate the value from two parts is used. There are four instructions in this group. The **LDIL** instruction will place an 22-bit value in the left portion of a register, padded with zeroes to the right. The register content is then paired with an instruction that sets the right most 10-bit value. The **LDO** instruction that computes an offset is an example of such an instruction. The **ADDIL** instructions add the left side of a register argument to a register. In combination, the two instructions LIDL and ADDIL allow to generate a 32-bit offset value. The **LDSID** instruction will load the segment ID computed from the upper two bits of a logical address in to a general register.
+Several instructions have within the instruction word bit fields for representing immediate values. Nevertheless, fixed length instruction word size architectures have one issue in that there is not enough room to embed a full word immediate value in the instruction. Typically, a combination of two instructions that concatenate the value from two parts is used. There are four instructions in this group. 
+
+The **LDIL** instruction will place an 22-bit value in the left portion of a register, padded with zeroes to the right. The register content is then paired with an instruction that sets the right most 10-bit value. The **LDO** instruction that computes an offset is an example of such an instruction. The **ADDIL** instructions add the left side of a register argument to a register. In combination, the two instructions LIDL and ADDIL allow to generate a 32-bit offset value. 
+
+The **LDSID** instruction will load the segment ID computed from the upper two bits of a logical address in to a general register.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1258,7 +1279,11 @@ None.
 
 #### Notes
 
-The LDO instruction can also be used to load an immediate value into a register, when using general register zero as the base.
+The LDO instruction can also be used to load an immediate value into a register, when using general register zero as the base. The following example load the value -100 into general register R2.
+
+```
+   LDO r2, -100(r0)
+``` 
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1313,17 +1338,17 @@ None.
 
 ## Branch Instructions
 
-The control flow instructions are divided into unconditional and conditional branch type instructions. The unconditional branch type instructions allow in addition to altering the control flow, the save of the return point to a general register. A subroutine call would for example compute the target branch address and store this address + 4 in that register. Upon subroutine return, there is a branch instruction to return via a general register content.
+The control flow instructions are divided into unconditional and conditional branch type instructions. The unconditional branch type instructions allow in addition to alter the control flow and to save the return point to a general register. A subroutine call would for example compute the target branch address and store this address + 4 in that register. Upon subroutine return, there is a branch instruction using this value to return via a general register content.
 
 The **B** instruction is the unconditional IA-relative branch instruction within a program segment. It adds a signed offset to the current instruction address. Additionally the instruction saves a return link in a general register. The **BR** instruction behaves similar to the **B**, except that a general register contains the instruction address relative offset. 
 
-The **BV** is an instruction segment absolute instruction. The branch address for the BV instruction is the segment relative offset computed using a segment relative base, adding a signed offset from another register. 
+The **BV** is an unconditional branch instruction using the segment base relative addressing mode. The branch address for the BV instruction is the segment relative offset computed using a segment relative base stored in a general register, adding a signed offset from another general register. 
 
-The **BE** and **BVE** instruction are the inter-segment branches. The **BE** instruction branches to a segment absolute address encoded in the segment and general offset register. In addition, a signed offset encoded in the instruction can is added to form the target segment offset. The return address is stored in segment register SR0 and the offset in a the general register. The **BVE** will use a general register containing a logical address. The segment is selected from the upper two bits.
+The **BE** and **BVE** instruction are the inter-segment branches. The **BE** instruction branches to a segment absolute address encoded in the segment and an offset stored in a general register. In addition, a signed offset encoded in the instruction that is added to form the target segment offset. The return address segment part is stored in segment register SR0 and the offset in a the general register. The **BVE** will use a general register containing a logical address to form the target.
 
-Segment relative and external branches may branch to pages with a different privilege level. When branching to a higher privilege level, an privilege execution trap is raised. A branch to a page with a lower privilege level will automatically demote the privilege level. The **GATE** instruction will promote the privilege level to the page where the GATE instruction resides. 
+Segment relative and external branches may branch to pages with a different privilege level. When branching to a higher privilege level, an privilege execution trap is raised. A branch to a page with a lower privilege level will automatically demote the privilege level. The **GATE** instruction will promote the privilege level to the page on which the GATE instruction resides. 
 
-The conditional branch instructions combine an operation such as comparison or test with a local instruction address relative branch if the comparison or test condition is met. The **CBR** and **CBRU** instructions will compare two general registers for a condition encoded in the instruction. If the condition is met, an instruction address relative branch is performed. The target address is formed by adding an offset encoded in the instruction to the instruction address. Conditional branches are implemented with a static branch prediction scheme. Forward branches are predicted not taken, backward branches are predicted taken. The decision is predicted during the fetch and decode stage and if predicted correctly will result in no pipeline penalty.
+The conditional branch instructions combine a comparison operation with a local instruction address relative branch if the comparison or test condition is met. The **CBR** and **CBRU** instructions will compare two general registers for a condition encoded in the instruction. If the condition is met, an instruction address relative branch is performed. The target address is formed by adding an offset encoded in the instruction to the instruction address. Conditional branches are implemented with a static branch prediction scheme. Forward branches are predicted not taken, backward branches are predicted taken. The decision is predicted during the fetch and decode stage and if predicted correctly will result in no pipeline penalty.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1351,7 +1376,7 @@ Perform an unconditional IA-relative branch with a static offset and store the r
 
 #### Description
 
-The branch instruction performs a branch to an instruction address relative location. The target address is shifted by 2 to the left and added to the current instruction offset. The virtual target address is built from the instruction address segment and offset. If code translation is disabled, the target address is the absolute physical address. The current instruction address offset + 4 is returned in general register "r". If code translation is disabled, the return value is the absolute physical address.
+The branch instruction performs a branch to an instruction address relative location. The target address is formed by shifting the low sign extended offset by 2 to the left and adding it to the current instruction offset. The virtual target address is built from the instruction address segment and offset. If code translation is disabled, the target address is the absolute physical address. The current instruction address offset + 4 is returned in general register "r". If code translation is disabled, the return value is the absolute physical address.
 
 #### Operation
 
@@ -1366,7 +1391,7 @@ The branch instruction performs a branch to an instruction address relative loca
 
 #### Notes
 
-Using general register zero as the return link register will be just a branch instruction without saving the return link.
+Using general register zero as the return link register will result in a branch instruction without saving the return link.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1394,7 +1419,7 @@ Perform an unconditional IA-relative branch with a dynamic offset stored in a ge
 
 #### Description
 
-The branch register instruction performs an unconditional IA-relative branch. The target address is formed adding the content of register "b" shifted by two bits to the left to the current instruction address. If code translation is disabled, the target address is the absolute physical address. The current instruction address offset + 4 is returned in general register "r".
+The branch register instruction performs an unconditional IA-relative branch. The target address is formed adding the low sign extended content of register "b" shifted by two bits to the left to the current instruction address. If code translation is disabled, the target address is the absolute physical address. The current instruction address offset + 4 is returned in general register "r".
 
 #### Operation
 
@@ -1409,7 +1434,7 @@ The branch register instruction performs an unconditional IA-relative branch. Th
 
 #### Notes
 
-Using general register zero as the return link register will essentially be just a branch instruction without saving the return link.
+Using general register zero as the return link register will result in a branch instruction without saving the return link.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1437,9 +1462,9 @@ Perform an unconditional branch using a base and offset general register for for
 
 #### Description
 
-The branch vectored instruction performs an unconditional branch by adding the offset register in "a" shifted by two bits to the base address in register in "b". The result is interpreted as an instruction address in the current code segment. This unconditional jump allows to reach the entire code address range. If code translation is disabled, the resulting offset is the absolute physical address. In addition, the current instruction offset + 4 is stored in "r".
+The branch vectored instruction performs an unconditional branch by adding the offset in "a" to the base address in register in "b". The result is interpreted as an instruction address in the current code segment. This unconditional jump allows to reach the entire code address range. If code translation is disabled, the resulting offset is the absolute physical address. In addition, the current instruction offset + 4 is stored in "r".
 
-Since the BV instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level result in the privilege level adjusted in the status register. Otherwise, the privilege level remains unchained.
+Since the BV instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level results in an instruction protection trap. A branch from a higher privilege to a lower privilege level results in the privilege level adjusted in the status register. Otherwise, the privilege level remains unchained.
 
 #### Operation
 
@@ -1455,7 +1480,7 @@ Since the BV instruction is a segment base relative branch, a branch to page wit
 
 #### Notes
 
-The **BV** instruction with general register "a" being register zero is typically used in a procedure return. The **B** instruction with a return link left in a general register, which can directly be used by this instruction to return to the location after the **B** instruction.
+The **BV** instruction with general register "a" being register zero is typically used as a procedure return. The **B** instruction with a return link left in a general register, which can directly be used by this instruction to return to the location after the **B** instruction.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1483,7 +1508,7 @@ Perform an unconditional external branch.
 
 #### Description
 
-The branch external instruction branches to a segment relative location in another code segment. The target address is built from the segment register in field "a" and the base register "b" to which the sign extended offset is added. If code translation is disabled, the offset is the absolute physical address and the "a" field ignored. The return offset is stored in "r", the return segment Id in SR0.
+The branch external instruction branches to a segment relative location in another code segment. The target address is built from the segment register in field "a" and the base register "b" to which the low sign extended offset is added. If code translation is disabled, the offset is the absolute physical address and the "a" field ignored. The return offset is stored in "r", the return segment Id in SR0.
 
 Since the BE instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level results in adjusting the privilege level in the status register. Otherwise, the privilege level remains unchained.
 
@@ -1532,7 +1557,7 @@ Perform an unconditional external branch using a logical address and save the re
 
 #### Description
 
-The branch and link vectored external instruction branches to an absolute location in another code segment. The target address is built from adding general register "a" shifted by 2 to the base register "b". The segment register is selected based on the upper two bits of general register "b". The return link is stored in general register "r", the return segment Id in SR0.
+The branch and link vectored external instruction branches to an absolute location in another code segment. The target address is built from adding general register "a" to the base register "b". The segment register is selected based on the upper two bits of general register "b". The return link is stored in general register "r", the return segment Id in SR0.
 
 Since the BVE instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level result in an instruction protection trap. A branch from a higher privilege to a lower privilege level results in adjusting the privilege level in the status register. Otherwise, the privilege level remains unchained.
 
@@ -1581,7 +1606,7 @@ Perform an instruction address relative branch and change the privilege level.
 
 #### Description
 
-The GATE instruction computes the target address by adding "ofs" shifted by 2 bits to the left to the current instruction address offset. If code translation is enabled, the privilege level is changed to the privilege field in the TLB entry for the page from which the GATE instruction is fetched. The change is only performed when it results in a higher privilege level, otherwise the current privilege level remains. If code translation is disabled, the privilege level is set to zero. The privilege level of the gateway instruction is deposited in GR "r". Execution continues at the target address with the new privilege level.
+The GATE instruction computes the target address by shifting the low sign extended offset by 2 bits adding it to the current instruction address offset. If code translation is enabled, the privilege level is changed to the privilege field in the TLB entry for the page from which the GATE instruction is fetched. The change is only performed when it results in a higher privilege level, otherwise the current privilege level remains. If code translation is disabled, the privilege level is set to zero. The privilege level of the gateway instruction is deposited in GR "r". Execution continues at the target address with the new privilege level.
 
 #### Operation
 
@@ -1646,14 +1671,14 @@ Compare two registers and branch on condition.
 
 #### Description
 
-The CBR and CUBR instructions compare general registers "a" and "b" for the condition specified in the "cond" field. The CBR instruction compares signed values, the CUBR unsigned values.If the condition is met, the target branch address is the offset "ofs" shifted by two to the left and added to the current instruction address, otherwise execution continues with the next instruction. The conditional branch is predicted taken for a backward branch and predicted not taken for a forward branch.
+The CBR and CUBR instructions compare general registers "a" and "b" for the condition specified in the "cond" field. The CBR instruction compares signed values, the CUBR unsigned values. If the condition is met, the target branch address is the low sign extended offset "ofs" shifted by two to the left and added to the current instruction address, otherwise execution continues with the next instruction. The conditional branch is predicted taken for a backward branch and predicted not taken for a forward branch.
 
 #### Branch condition
 
 The condition field is encoded as follows:
 
  ```
-   0 : EQ  ( a == b )                              2 : NE  ( a != b )
+   0 : EQ ( a == b )                               2 : NE  ( a != b )
    1 : LT ( a < b, Signed )                        3 : LE ( a <= b, Signed )
 ```
 
@@ -1678,7 +1703,7 @@ None.
 
 #### Notes
 
-Often a comparison is followed by a branch in an instruction stream. VCPU-32 therefore features conditional branch instructions that both offer the combination of a register evaluation and branch depending on the condition specified. The condition field does not encode a greater or greater-equal condition. This can easily be done by reversing the registers and inverting the comparison condition.
+Often a comparison is followed by a branch in an instruction stream. VCPU-32 therefore features  conditional branch instruction that offers the combination of a register evaluation and branch depending on the condition specified. The condition field does not encode a greater or greater-equal condition. This can easily be done by reversing the registers and inverting the comparison condition.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1691,15 +1716,15 @@ Often a comparison is followed by a branch in an instruction stream. VCPU-32 the
 
 ## Computational Instructions
 
-The arithmetic, logical and bit field operations instruction represent the computation type instructions. Most of the computational instructions use the operand instruction format, where the operand fields, opMode and opArg, define one of the instruction operands. The computation instructions are divided into the numeric instructions **, ADC, SUB**, **ADCC**, **SUB** and **SBC**, the logical instructions **AND**, **OR**, **XOR** and the bit field operational instructions **EXTR**, **DEP** and **DSR**. 
+The arithmetic, logical and bit field operations instruction represent the computation type instructions. The computation instructions are divided into the numeric instructions **ADD**, **ADC**, **SUB** and **SBC**, the logical instructions **AND**, **OR**, **XOR** and the bit field operational instructions **EXTR**, **DEP** and **DSR**. 
 
 The numeric and logical instructions encode the second operand in the operand field. This allows for immediate values, register values and values accessed via their logical address. The numeric instructions allow for a carry/borrow bit for implementing multi-precision operations as well as the distinction between signed and unsigned operation overflow detection traps. The logical instructions allow to negate the operand as well as the output. The bit field instructions will perform bit extraction and deposit as well as double register shifting. These instruction not only implement bit field manipulation, they are also the base for all shift and rotate operations.
 
-The **CMP** instruction compares two values for a condition and returns a result of zero or one. The **SHLA** instruction is a combination of shifting an operand and adding a value to it. Simple integer multiplication with small values can elegantly be done with the help of this instruction. The LDI instruction allows to load a 16-bit value into the right or left half of a register. There are options to clear the register upfront, and to deposit the respective half without modifying the other half of the register. This way immediate values with a full 32-bit range can be constructed.
+The **CMP** instruction compares two values for a condition and returns a result of zero or one. The **SHLA** instruction is a combination of shifting an operand and adding a value to it. Simple integer multiplication with small values can elegantly be done with the help of this instruction.
 
 ### Operand Encoding
 
-VCPU-32 features a register memory model, which means that one operand will be fetched from memory. Some computational instructions use the **operand** format to specify the operand in the computation. The **operand mode** field in instructions that use operand modes is used to specify how the second operand is decoded. The instruction generally has the opCode in position 0 .. 5, the result register in position 6 .. 9 and an instruction specific option field in position 10..11. Bits 12..13 encode the operand mode. There are four operand modes, which are immediate value modes, register modes, and addressing modes. The following figure gives an overview of the instruction layout for instructions with operand encoding. 
+VCPU-32 features a register memory model, which means that one operand may come from memory. Some computational instructions use the **operand** format to specify the operand in the computation. The **operand mode** field in instructions that use operand modes is used to specify how the second operand is decoded. The instruction generally has the opCode in position 0 .. 5, the result register in position 6 .. 9 and an instruction specific option field in position 10..11. Bits 12..13 encode the operand mode. There are four operand modes, which are immediate value mode, register mode, and two addressing modes. The following figure gives an overview of the instruction layout for instructions with operand encoding. 
 
 ```
    <--- operation --> <-  res  -> <opt> <---------------- operand -------------------------------->
@@ -1717,21 +1742,20 @@ VCPU-32 features a register memory model, which means that one operand will be f
 
 The **immediate operand mode** supports a signed 18-bit value. The sign bit is in the rightmost position of the field. Depending on the sign, the remaining value in the field is sign extended or zero extended. 
 
-The **register modes** specify two registers "a" and "b" for the operation and store the result in "r". An example would be an , ADC, SUB instruction that adds the register content of "a" and "b" and stores the result into "r".
+The **register modes** specify two registers "a" and "b" for the operation and store the result in "r". An example would be a the ADD instruction that adds the register content of "a" and "b" and stores the result into "r".
 
-The machine addresses memory with a byte address. There are indexed and register indexed operand mode. Operand mode 2 is the **register indexed address mode**, which will use a base register "b" and add an offset in "a" to it, forming the final byte address offset. The upper two bits select one of the four segment register SR4 .. SR7. The **dw** field specifies the data field width. A value of 0 represent a byte, 1 a half-word and 2 a word and 3 a double word. The last option is reserved and not implemented yet. The computed address must be aligned with the size of data to fetch. 
+The machine addresses memory with a byte address. There are the indexed and register indexed operand mode. Operand mode 2 is the **register indexed address mode**, which will use a base register "b" and add an offset in "a" to it, forming the final byte address offset. The upper two bits select one of the four segment register SR4 .. SR7. The **dw** field specifies the data field width. A value of 0 represent a byte, 1 a half-word and 2 a word and 3 a double word. Option 3 is reserved and not implemented yet. The computed address must be aligned with the size of data to fetch. 
 
-The final operand mode is the **indexed address mode**. The offset field is a signed 12 bit field. The sign bit is in the rightmost position of the field. Depending on the sign, the remaining value in the field is sign extended or zero extended. The operand address is built by adding an signed byte offset to the base register "b". The upper two bits select one of the four segment register SR4 .. SR7. The **dw** field specifies the data field width, just as in operand mode 2. 
+The final operand mode is the **indexed address mode**. The offset field is a signed 12 bit field. The sign bit is in the rightmost position of the field. Depending on the sign, the remaining value in the field is sign extended or zero extended. The **dw** field specifies the data field width, just as in operand mode 2. 
 
-### Register encoding
+The operand address for the indexed and register indexed mode is built by adding an signed byte offset to the base register "b". The upper two bits select one of the four segment register SR4 .. SR7.
 
-All other computational instructions use in general a register based model. The input arguments are taken from the general registers, the result is stored to a general register. 
 
 <!--------------------------------------------------------------------------------------------------------->
 
 <div style="page-break-before: always;"></div>
 
-### , ADC, SUB, ADC
+### ADD, ADC
 
 <Chr>
 
@@ -1755,7 +1779,7 @@ Adds the operand to the target register.
 
 #### Description
 
-The **, ADC, SUB** instruction fetches the operand and adds it to the general register "r". The "L" bit set specifies an unsigned addition. If the "O" bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes. The operations will set the carry/borrow bits in the processor status word.  The **ADC** instruction behaves identical the **, ADC, SUB** instruction, except it also adds the carry bit from the status register.
+The **ADD** and **ADC** instruction fetches the operand and adds it to the general register "r". The "L" bit set specifies an unsigned addition. If the "O" bit is set, a numeric overflow will cause an overflow trap. See the section on operand encoding for the defined operand modes. The operations will set the carry/borrow bits in the processor status word.  The **ADC** instruction behaves identical the **ADD** instruction, except it also adds the carry bit from the status register.
 
 #### Operation
 
@@ -1764,7 +1788,7 @@ The **, ADC, SUB** instruction fetches the operand and adds it to the general re
 
       case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 18 ); break;
       
-      case 1: tmpA + tmpB + instr.[C]; break;
+      case 1: tmpA <- GR[a]; tmpB <- GR[b];
 
       case 2: 
       case 3: {
@@ -1779,7 +1803,7 @@ The **, ADC, SUB** instruction fetches the operand and adds it to the general re
       } break;     
    }
 
-   for , ADC, SUB:  res <C- tmpA + tmpB;
+   for ADD: res <- tmpA + tmpB;
          
    for ADC: res <- tmpA + tmpB + instr.[C];
 
@@ -1798,7 +1822,7 @@ The **, ADC, SUB** instruction fetches the operand and adds it to the general re
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
-- Alignment trap
+- Data alignment trap
 
 #### Notes
 
@@ -1876,7 +1900,7 @@ The instruction fetches the operand and subtracts it from the general register "
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
-- Alignment trap
+- Data alignment trap
 
 #### Notes
 
@@ -1945,7 +1969,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
-- Alignment trap
+- Data alignment trap
 
 #### Notes
 
@@ -1971,7 +1995,7 @@ Performs a bitwise OR of the operand and the target register and stores the resu
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : ORw      ( 0x15 ): r         :N :C : operand                                                   :
+   : ORw      ( 0x15 ): r         :N :C : operand                                                  :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2014,7 +2038,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
-- Alignment trap
+- Data alignment trap
 
 #### Notes
 
@@ -2046,7 +2070,7 @@ Performs a bitwise XORing the operand and the target register and stores the res
 
 #### Description
 
-The instruction fetches the data specified by the operand and performs a bitwise XOR of the general register "r" and the operand fetched. The result is stored in general register "r". The "N" bit allows to negate the result making the OR a XNOR operation. The "C" bit allows to complement ( 1's complement ) the operand input, which is the "b"" register. See the section on operand encoding for the defined operand modes.
+The instruction fetches the data specified by the operand and performs a bitwise XOR of the general register "r" and the operand fetched. The result is stored in general register "r". The "N" bit allows to negate the result making the XOR a XNOR operation. The "C" bit allows to complement ( 1's complement ) the operand input, which is the "b"" register. See the section on operand encoding for the defined operand modes.
 
 #### Operation
 
@@ -2083,7 +2107,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
 - Data memory access rights trap
 - Data memory protection Id trap
 - Page reference trap
-- Alignment trap
+- Data alignment trap
 
 #### Notes
 
@@ -2174,10 +2198,10 @@ The compare condition are encoded as follows.
 
 The instructions can also be used to implement the greater than (GT) and greater or equal (GE) condition. 
 
-CMP.GT r1, r2 -> CMP.LE r2, r1
-
-CMP.GE r1, r2 -> CMP.LT r2, r1
-
+```
+   CMP.GT r1, r2 -> CMP.LE r2, r1
+   CMP.GE r1, r2 -> CMP.LT r2, r1
+```
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -2277,18 +2301,18 @@ Performs a bit field extract from a general register and stores the result in th
 
 #### Description
 
-The instruction performs a bit field extract specified by the position and length instruction data from general register "b". The "pos" field specifies the rightmost bit of the bitfield to extract. It is encoded as 31 - pos. The "len" field specifies the bit size if the field to extract. It is encoded as 32 - len. The extracted bit field is stored right justified in the general register "r". If set, the "S" bit allows to sign extend the extracted bit field. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
+The instruction performs a bit field extract specified by the position and length instruction data from general register "b". The "pos" field specifies the rightmost bit of the bitfield to extract. It is encoded as 31 - pos. The "len" field specifies the bit size if the field to extract. It is encoded as 32 - len. The extracted bit field is stored right justified in the general register "r". If set, the "S" bit allows to sign extend the extracted bit field. If the "A" bit is set, the shift amount control register is used for obtaining the position value instead of the instruction field.
 
 #### Operation
 
 ```
    if ( instr.[A] ) tmpPos <- SHAMT.[27..31];
-   else tmpPos <- pos;
+   else             tmpPos <- pos;
 
    GR[r] <= extract( GR[b], pos, len );
 
    if ( instr.[S] ) signExtend( GR[r], len );
-   else zeroExtend( GR[r], len );
+   else             zeroExtend( GR[r], len );
 ```
 
 #### Exceptions
@@ -2297,7 +2321,7 @@ None.
 
 #### Notes
 
-The VCPU-32 instruction set does not have dedicated instructions for left and right shift operations. They can easily be realized with the EXTR and DEP instructions. Refer to the chapter for pseudo instructions.
+The VCPU-32 instruction set does not have dedicated instructions for left and right shift operations. They can easily be realized with the EXTR and DEP instructions. Refer to the chapter for synthetic instructions.
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -2324,7 +2348,7 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 
 #### Description
 
-The instruction extracts the right justified bit field of length "len" in general register "b" and deposits this field in the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. It is encoded as 31 - pos. The "len" field specifies the bit size if the field to extract. It is encoded as 32 - len. The extracted bit field is stored right justified in the general register "r". The "Z" bit clears the target register "r" before storing the bit field, the "I" bit specifies that the instruction bits 28..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
+The instruction deposits the bit field of length "len" in general register "b" into the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. It is encoded as 31 - pos. The "len" field specifies the bit size if the field to extract. It is encoded as 32 - len. The "Z" bit clears the target register "r" before storing the bit field, the "I" bit specifies that the instruction bits 28..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
 
 #### Operation
 
@@ -2332,10 +2356,10 @@ The instruction extracts the right justified bit field of length "len" in genera
    if ( instr.[Z] ) GR[r] <- 0;
 
    if ( instr.[A] ) tmpPos <- SHAMT.[27..31];
-   else tmpPos <- pos;
+   else             tmpPos <- pos;
 
-   if ( instr.[I] ) tmpB = instr.[28..31];
-   else tmpB <- GR[b];
+   if ( instr.[I] ) tmpB <- instr.[28..31];
+   else             tmpB <- GR[b];
 
    deposit( GR[r], tmpB, pos, len );
 ```
@@ -2346,7 +2370,7 @@ None.
 
 #### Notes
 
-The VCPU-32 instruction set does not have dedicated instructions for left and right shift operations. They can easily be realized with the EXTR and DEP instructions. Refer to the chapter for synthesized instructions.
+The VCPU-32 instruction set does not have dedicated instructions for left and right shift operations. They can easily be realized with the EXTR and DEP instructions. Refer to the chapter for synthetic instructions.
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -2361,7 +2385,7 @@ Performs a right shift of two concatenated registers for shift amount bits and s
 #### Format
 
 ```
-   DSR [.<opt>] r, b, a, shAmt
+   DSR [.A] r, b, a, shAmt
 ```
 
 ```
@@ -2381,9 +2405,6 @@ The double shift right instruction concatenates the general registers specified 
    if ( instr.[A] )  tmpShAmt <- SHAMT.[27..31];
    else              tmpShAmt <- shamt;
 
-   if ( instr.[Z] )  tmp = 0;
-   else              tmp = GR[a];
-
    GR[r] <- rshift( cat( GR[b], tmp ), shamt );
 ```
 
@@ -2393,7 +2414,7 @@ None.
 
 #### Notes
 
-The VCPU-32 instruction set does not have dedicated instructions for shift and rotate operations. They can easily be realized with the DSR instructions. Refer to the chapter for pseudo instructions.
+The VCPU-32 instruction set does not have dedicated instructions for shift and rotate operations. They can easily be realized with the DSR instructions. Refer to the chapter for synthetic instructions.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -2452,11 +2473,15 @@ None.
 
 The system control instructions are intended for the runtime designer to control the CPU resources such as TLB, Cache and so on. There are instruction to load a segment or control registers as well as instructions to store a segment or control register. The TLB and the cache modules are controlled by instructions to insert and remove data in these two entities. Finally, the interrupt and exception system needs a place to store the address and instruction that was interrupted as well as a set of shadow registers to start processing an interrupt or exception. Most of the instructions found in this group require that the processor runs in privileged mode.
 
-The **MR** instructions is used to transfer data to and from a segment register or a control register. The processor status instruction **MST** allows for setting or clearing an individual an accessible bit of the status word. The **LDPA** and **PRB** instructions are used to obtain information about the virtual memory system. The LDPA instruction returns the physical address of the virtual page, if present in memory. The PRB instruction tests whether the desired access mode to an address is allowed.
+The **MR** instructions is used to transfer data to and from a segment register or a control register. The processor status instruction **MST** allows for setting or clearing an individual an accessible bit of the status part of the processor state. 
 
-The TLB and Caches are managed by the **ITLB**, **PTLB** and **PCA** instruction. The ITLB and PTLB instructions insert into the TLB and removes translations from the TLB. The PCA instruction manages the instruction and data cache and features to flush and / or just purge a cache entry. There is no instruction that inserts data into a cache as this is completely controlled by hardware. The **RFI** instruction is used to restore a processor state from the control registers holding the interrupted instruction address, the instruction itself and the processor status word. Optionally, general registers that have been stored into the reserved control registers will be restored.
+The **LDPA** and **PRB** instructions are used to obtain information about the virtual memory system. The LDPA instruction returns the physical address of the virtual page, if present in memory. The PRB instruction tests whether the desired access mode to an address is allowed.
 
-The **DIAG** instruction is a control instructions to issue hardware specific implementation commands. Example is the memory barrier command, which ensures that all memory access operations are completed after the execution of this DIAG instruction.  The **BRK** instruction is transferring control to the breakpoint trap handler.
+The TLB and Caches are managed by the **ITLB**, **PTLB** and **PCA** instruction. The ITLB and PTLB instructions insert into the TLB and removes translations from the TLB. The PCA instruction manages the instruction and data cache and features to flush and / or just purge a cache entry. There is no instruction that inserts data into a cache as this is completely controlled by hardware. 
+
+The **RFI** instruction is used to restore a processor state from the control registers holding the interrupted instruction address, the instruction itself and the processor status word. Optionally, general registers that have been stored into the reserved control registers will be restored.
+
+The **DIAG** instruction is a control instructions to issue hardware specific implementation commands. Example is the memory barrier command, which ensures that all memory access operations are completed after the execution of this DIAG instruction. The **BRK** instruction is transferring control to the breakpoint trap handler.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -2490,14 +2515,14 @@ The move register instructions copy data from a segment or control register "s" 
 #### Operation
 
 ```
-   if ( instr.[10] ) {
+   if ( instr.[D] ) {
 
-      if ( instr.[11] ) CR[ instr.[27..31]] <- GR[r];
+      if ( instr.[M] )  CR[ instr.[27..31]] <- GR[r];
       else              SR[ instr.[29..31]] <- GR[r];
    
    } else {
 
-      if ( instr.[11] ) GR[r] <- CR[ instr.[27..31]];
+      if ( instr.[M] )  GR[r] <- CR[ instr.[27..31]];
       else              GR[r] <- SR[ instr.[29..31]];
    }
 ```
@@ -2537,7 +2562,7 @@ Set and clears bits in the processor status word.
 
 #### Description
 
-The MST instruction sets the status bits 28.. 31 of the processor status word. The previous bit settings are returned in "r". There are three modes. Mode 0 will replace the user status bits 28..31 with the bits 28..31 in general register "b". Mode 1 and 2 will interpret the 6-bit field bits 28..31 as the bits to set or clear with a bit set to one will perform the set or clear operation. Modifying the status register is a privileged instruction. 
+The MST instruction sets the status bits 28.. 31 of the processor status word. The previous bit settings are returned in "r". There are three modes. Mode 0 will replace the user status bits 28..31 with the bits 28..31 in general register "b". Mode 1 and 2 will interpret the 4-bit field bits 28..31 as the bits to set or clear with a bit set to one will perform the set or clear operation. Modifying the status register is a privileged instruction. 
 
 #### Mode
 
@@ -2619,7 +2644,7 @@ Load the physical address for a virtual address.
 
 #### Description
 
-The LDPA instruction returns the physical address for a logical or virtual address into register "r" if the page is main memory. The logical address is formed by adding "a" to "b" and using the segment selector in "seg". If the page is physical memory, the offset is returned in "r", otherwise a zero is returned. The result is ambiguous for a virtual address that translates to a zero address. LDPA is a privileged operation.
+The LDPA instruction returns the physical address for a logical or virtual address into register "r" if the page is main memory. The logical address is formed by adding general register "a" to general register "b" and using the segment selector in "seg". If the page is physical memory, the offset is returned in "r", otherwise a zero is returned. The result is ambiguous for a virtual address that translates to a zero address. LDPA is a privileged operation.
 
 #### Operation
 
@@ -2667,7 +2692,7 @@ Probe data access to a virtual address.
 
 #### Description
 
-The PRB instruction determines whether data access at the requested privilege level stored in the general register "r" is allowed. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "M" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. The "P" bit designates the privilege level to use for the probe operation. If the "I" bit is set, the PRB instruction uses the value in register "a" as the privilege level to test for instead of the "P" bit in the status register. If protection ID checking is enabled, the protection ID is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
+The PRB instruction determines whether data access at the requested privilege level stored in the general register "r" is allowed. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "M" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. The "P" bit designates the privilege level to use for the probe operation. If the "I" bit is set, the PRB instruction uses the value in register "a" as the privilege level to test for instead of the "P" bit in the status register. If protection checking is enabled, the protection Id is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
 
 #### Operation
 
@@ -2743,11 +2768,14 @@ The ITLB instruction inserts a translation into the instruction or data TLB. The
    if ( instr.[T] )
       if ( ! searchDataTlbEntry( SR[a], GR[b], &entry )) allocateDataTlbEntry( SR[a], GR[b], &entry );
    else
-      if ( ! searchInstructionTlbEntry( SR[a], GR[b],, &entry )) allocateInstructionTlbEntry( SR[a], GR[b], &entry );
-
-   // fill in entry...
-
-   entry.[V] <- true;
+      if ( ! searchInstructionTlbEntry( SR[a], GR[b], &entry )) allocateInstructionTlbEntry( SR[a], GR[b], &entry );
+   
+   entry.[T] <- GR[r].[T];
+   entry.[D] <- GR[r].[D];
+   entry.[B] <- GR[r].[B];
+   entry.[P] <- GR[r].[P];
+   entry.AR  <- GR[r].AR;
+   entry.[V] <- 1; 
 ```
 
 #### Exceptions
@@ -2799,7 +2827,7 @@ The DTLB instruction removes a translation from the instruction or data TLB by m
 
 #### Exceptions
 
-- privileged operation trap
+- Privileged operation trap
 
 #### Notes
 
@@ -2831,14 +2859,14 @@ Flush and / or remove cache lines from the cache.
 
 #### Description
 
-The PCA instruction flushes or purges a cache line from the instruction or data cache. The virtual address is encoded in "a" for the segment register and "b" for the offset. An instruction cache line can only be purged, a data cache line can also be written back to memory and then optionally purged. A flush operation is only performed when the cache line is dirty. The "T" bit indicates whether the instruction or the data cache is addressed. A value of zero references the instruction cache. The "F" bit will indicate whether the data cache is to be purged without flushing it first to memory. If "F" is zero, the entry is first flushed and then purged, else just purged. The "F" bit has no meaning for an instruction cache.
+The PCA instruction flushes or purges a cache line from the instruction or data cache. The virtual address is encoded in "a" for the segment register and "b" for the offset. The "T" bit indicates whether the instruction or the data cache is addressed. A value of zero references the instruction cache. An instruction cache line can only be purged, a data cache line can also be written back to memory when dirty and then optionally purged. The "F" bit will indicate whether the data cache is to be purged without flushing it first to memory. If "F" is one, the entry is first flushed and then purged, else just purged. The "F" bit has no meaning for an instruction cache.
 
 #### Operation
 
 ```  
    if ( instr.[T] ) {
 
-      if ( ! instr.[F] ) flushDataCache( SR[a], GR[b] );
+      if ( instr.[F] ) flushDataCache( SR[a], GR[b] );
       purgeDataCache( SR[a], GR[b] );
    
    } else purgeInstructionCache( SR[a], GR[b] );
@@ -2846,7 +2874,7 @@ The PCA instruction flushes or purges a cache line from the instruction or data 
 
 #### Exceptions
 
-- privileged operation trap
+- Privileged operation trap
 - Non-access ITLB trap
 - Non-access DTLB trap
 
@@ -2880,7 +2908,7 @@ Issues commands to hardware specific components and implementation features.
 
 #### Description
 
-The DIAG instruction sends a command to an implementation hardware specific components. The instruction accepts two argument registers "a" and "b" and returns a result in "r".  The meaning of the "info" field and the input and output arguments are processor implementation dependent and described in the respective processor documentation.
+The DIAG instruction sends a command to an implementation hardware specific components. The instruction accepts two argument registers "a" and "b" and returns a result in "r". The meaning of the "info" field and the input and output arguments are processor implementation dependent and described in the respective processor documentation.
 
 #### Operation
 
@@ -2924,7 +2952,7 @@ Restore the processor state and restart execution.
 
 #### Description
 
-The RFI instruction restores the instruction address segment, instruction address offset and the processor status register from the control registers I-IA-SEG, I-IA-OFS and I-STAT.
+The RFI instruction restores the instruction address segment, instruction address offset and the processor status register from the control registers I-PSW-0 and I-PSW-1.
 
 #### Operation
 
@@ -2941,7 +2969,7 @@ The RFI instruction restores the instruction address segment, instruction addres
 
 #### Notes
 
-The RFI instruction is also used to perform a context switch. Changing from one thread to another is accomplished by loading the control registers **I-PSW-0** and **I-PSW-1** and then issue the RFI instruction. Setting bits other than the system mask is generally accomplished by constructing the respective status word and then issuing an RFI instruction to set them.
+The RFI instruction is also used to perform a context switch. Changing from one task to another is accomplished by loading the control registers **I-PSW-0** and **I-PSW-1** and then issue the RFI instruction. Setting bits other than the system mask is generally accomplished by constructing the respective status word and then issuing an RFI instruction to set them.
 
 There could be an option to also restore some of the general and segment registers from a set of shadow registers to which they have been saved when the interrupt occurred. The current implementation does not offer this option.
 
@@ -2999,7 +3027,7 @@ The instruction opCode for BRK is the opCode value of zero. A zero instruction w
 
 The instruction set allows for a rich set of options on the individual instruction functions. Setting a defined option bit in the instruction adds useful capabilities to an instruction with little additional overhead to the overall data path. The same is true for instruction that use general register zero as an argument. For better readability, an assembler could offer synthetic instructions for more convenient usage of the available instructions. 
 
-There is also the case where the assembler could simplify the coding process by emitting instruction sequences that implement often used code sequences. For example consider the load an immediate value operation. When the immediate value is larger than what the instruction field can hold, a two instruction sequence is used to load an arbitrary 32-bit value. For example, an assembler could offer a generic "load immediate" synthetic instruction and either use a one instruction or two instruction sequence depending on the numeric value. Another example is the case where the offset to a base register is not large enough to reach the data item. A two instruction sequence using the ADDIL instruction could transparently be emitted by the assembler.
+There is also the case where the assembler could simplify the coding process by emitting instruction sequences that implement often used code sequences. For example consider the load an immediate value operation. When the immediate value is larger than what the instruction field can hold, a two instruction sequence is used to load an arbitrary 32-bit value. The assembler could offer a generic "load immediate" synthetic instruction and either use a one instruction or two instruction sequence depending on the numeric value. Another example is the case where the offset to a base register is not large enough to reach the data item. A two instruction sequence using the ADDIL instruction could transparently be emitted by the assembler.
 
 ### Immediate Operations
 
@@ -3016,7 +3044,7 @@ There is also the case where the assembler could simplify the coding process by 
 | **NOP** | NOP | OR  GR0, GR0 | There are many instructions that can be used for a NOP. The idea is to pick one that does not affect the program state. |
 | **CLR** | CLR GRn | AND  GRn, GR0 | Clears a general register. |
 | **COPY** | COPY GRx, GRy | OR  GRx, GRy, GR0 |Copies general register GRy to GRx. |
-| **MR** | MR GRx, GRy | OR GRx, GRy, GR0 ; This overlaps the MR instruction for moving two general registers. |
+| **MR** | MR GRx, GRy | OR GRx, GRy, GR0 | This overlaps the MR instruction for moving two general registers. |
 | **NOT** | NOT GRx, GRy | CMP.NE GRx, GRy | Logical NOT. Tests GRy for a non-zero value and returns 0 or 1. |
 | **INC** | INC [ .< opt > ] GRx, val | , ADC, SUB [ .< opCt > ] GRx, val | Increments GRx by "val". Note that "val" can also be a negative number, which then results in a decrement. |
 | **DEC** | DEC [ .< opt > ] GRx, val | SUB [ .< opt > ] GRx, val | Decrements GRx by "val". Note that "val" can also be a negative number, which then results in an increment. |
@@ -3053,8 +3081,7 @@ A key part of the CPU is a cache and a TLB mechanism. The caches bridge the perf
 
 ### Instruction and Data L1 Cache
 
-The processor unit and the L1 caches form the "CPU core". The pipeline design makes a reference to memory during instruction fetch and then optional data access. Since both operations potentially take place  for different instructions but in the same cycle, a separate **instruction cache** and **data cache** is a key part of the overall architecture. These two caches are called **L1 caches**.
-
+The processor unit, the TLB and the L1 caches form the "CPU core". The pipeline design makes a reference to memory during instruction fetch and then optional data access. Since both operations potentially take place  for different instructions but in the same cycle, a separate **instruction cache** and **data cache** is a key part of the overall architecture. These two caches are called **L1 caches**. The L1 cache is a virtually indexed and physically tagged cache. The cache lookup and the TLB lookup can therefore be performed in parallel. If the TLB physical address and the cache tag match, there is a cache hit.
 
 ```
       :---------------------------------------------------------------------------------:        \
@@ -3081,7 +3108,7 @@ The processor unit and the L1 caches form the "CPU core". The pipeline design ma
 
 ```
 
-In an implementation with just L1 caches, both caches will directly interface with the physical memory and IO space. L1 caches typically use a direct mapped indexing methods with one or more sets.
+In an implementation with just L1 caches, both caches will directly interface with the physical memory and IO space. L1 caches typically use a direct mapped indexing methods with one or more sets. They complete a hit within the same cycle.
 
 ### Unified L2 Cache
 
@@ -3125,7 +3152,7 @@ In contrast to the L1 caches, the L2 cache is physically indexed and physically 
 
 ### Instructions to manage caches
 
-While cache flushes and deletions are under software control, cache insertions are alway done by hardware. The PCA instruction manages the cache flush and deletion. A cache is typically organized in cache lines, which are the unit of transfer between the layers of the memory hierarchy. The PCA instruction will flush and/or purge the cache line corresponding to the virtual address. A data page ca be flushed and then purged or just purged. A code page can only be purged. 
+While cache flushes and deletions are under software control, cache insertions are alway done by hardware. The PCA instruction manages the cache flush and deletion. A cache is typically organized in cache lines, which are the unit of transfer between the layers of the memory hierarchy. The PCA instruction will flush and/or purge the cache line corresponding to the virtual address. A data page can be flushed and then purged or just purged. A code page can only be purged. 
 
 ### Instruction and Data TLBs
 
@@ -3141,7 +3168,7 @@ Another implementation option is to combine both TLB units. Both types of transl
 
 #### Instructions to manage TLBs
 
-TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for insertion and deletion of TLB entries. The insert TLB instruction will place an entry for the virtual page number along with access rights and th ephysical page number. The purge TLB instruction removes an entry for the virtual page number.
+TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for insertion and deletion of TLB entries. The insert TLB instruction will place an entry for the virtual page number along with access rights and the physical page number. The purge TLB instruction removes an entry for the virtual page number.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -3194,9 +3221,9 @@ A running task accesses the data areas through an address formed by the dedicate
 
 ### Register Usage
 
-The CPU features general registers, segment registers and control registers. As described before, all general registers can do computation as well as address computation. Segment registers complement the general register set. A combination of a general index register and a segment register form a virtual address. To avoid juggling on every access both a segment and an index register, the segment register selection field in the respective instructions will either implicitly pick one of the upper four segment registers or explicity specify on of the segment registers 1 to 3. This scheme allows in most cases to just use the offset portion of the virtual address when passing pointers to function and so on. The segment register is implicitly encoded in the upper two bits. 
+The CPU features general registers, segment registers and control registers. As described before, all general registers can do computation as well as address computation. Segment registers complement the general register set. A combination of a general index register and a segment register form a virtual address. To avoid juggling on every access both a segment and an index register, the segment register selection field in the respective instructions will either implicitly pick one of the upper four segment registers or explicitly specify on of the segment registers 1 to 3. This scheme allows in most cases to just use the logical address when passing pointers to a function and so on. The segment register is implicitly encoded in the upper two bits. 
 
-Consequenty, segment 4 to 7 play a special role in the runtime environment. An execution thread, i.e. a **task**, in the runtime environment expects access to three data areas. The outermost area is the **system global area**, which is created at system start and never changed for there on. Segment register 7 is assigned to contain the segment ID of this space. Once set at system startup, its content will never change. Since the upper two bits of the address offset select the segment register, the maximum size of these areas is 30 bits i.e. one gByte. Several executing tasks belonging to the same job are provided with the **job data area**. All threads belonging to the job have access to it via the SR6 segment register. This register is set every time the execution changes to a task of another job. This area can also be up to one gByte in size. Finally, in a similar manner, the task local data is pointed to by the segment register 5. This data area contains task local data and the stack. 
+Consequently, segment 4 to 7 play a special role in the runtime environment. An execution thread, i.e. a **task**, in the runtime environment expects access to three data areas. The outermost area is the **system global area**, which is created at system start and never changed for there on. Segment register 7 is assigned to contain the segment ID of this space. Once set at system startup, its content will never change. Since the upper two bits of the address offset select the segment register, the maximum size of these areas is 30 bits i.e. one gByte. Several executing tasks belonging to the same job are provided with the **job data area**. All threads belonging to the job have access to it via the SR6 segment register. This register is set every time the execution changes to a task of another job. This area can also be up to one gByte in size. Finally, in a similar manner, the task local data is pointed to by the segment register 5. This data area contains task local data and the stack. 
 
 ```
         SR7                         SR6                         SR5                          SR4
@@ -3219,27 +3246,26 @@ Switching between tasks will set SR5 to the segment containing the task data and
 
 ### Task Execution
 
-This section provides a high level overview of a running task execution. A running task will execute instruction pointed to by the IA-SEG.IA-OFS virtual address. Code is organized as a collection of modules, which themselves are a collection of functions. By runtime convention, the code is in the SR4 quadrant and contains instructions and constant data. The constant data can be accessed using the SR4 segment register, which tracks the current code module. 
+This section provides a high level overview of a running task execution. A running task will execute instruction pointed to by the virtual address contained in the processor state PSW. Code is organized as a collection of modules, which themselves are a collection of functions. By runtime convention, the code is in the SR4 quadrant and contains instructions and constant data. The constant data can be accessed using the SR4 segment register, which tracks the current code module. 
 
 The SR5 quadrant contains the global data of the current module, the task stack and linkage information for inter module calls. The DP register ( GR13 ) point to the global data of the current module and changes on inter-module calls. The SP register ( GR15 ) points to the stack frame of the current function.
  
 ```
         Code  ( SR4 )                                       Data  ( SR5 )
-      :---------------------------:                        :===========================:
-      :                           :                        : Linkage Data              :
+      :===========================:                        :===========================:
       :                           :                        :                           :
       :                           :                        :                           :
+      :                           :                        
       :                           :                        :                           :
       :                           :                        :                           :
+      :===========================:                        :===========================: <-- TP
+      : Module X                  :                        : Module XC globals         :
+      :                           :                        :                           :
+      :   Function A              :                        :                           :
       :                           :                        :===========================:
-      :                           :                        : Global Data               :
-      :===========================:                        :                           :
-      : Module                    :                        :   Current module globals  :<-- TP
-      :                           :                        :                           :
-      :   Function                :                        :                           :
-      :                           :                        :                           :
-      :       Current instruction :<-- IA-SEG.IA-OFS       :                           :   
-      :                           :                        :                           :
+      :       Current instruction :<-- PSW                 :                           :   
+      :                           :                       
+      :                           :
       :                           :                        :                           :
       :                           :                        :===========================:
       :                           :                        : Stack                     :
@@ -3247,17 +3273,19 @@ The SR5 quadrant contains the global data of the current module, the task stack 
       :                           :                        :   Stack frame             :<-- SP
       :                           :                        :                           :
       :===========================:                        :                           :
+      :                           :                        :===========================: 
       :                           :                        :                           :
       :                           :                        :                           :
-      :                           :                        :                           :
-      :                           :                        :                           :
-      :                           :                        :                           :
-      :---------------------------:                        :===========================:    
+      :                           :                         
+      :                           :                        
+      :---------------------------:                          
 ```
+
+For the discussion of the runtime model there are the terms **compilation unit**, **module**, **functions**, **stack** and **stack frame**. At any time the CPU is executing an instruction in a module. A module is a collection of functions and small code snippets, called stubs. A programmer will program a set of functions in a set of modules. A module also contains a global data area, accessible by all functions. A dedicated register will point to the global data area of the current module. Each function will typically also habe a stack frame. A stack frame is allocated on function entry and deallocated on function return. The stack frame consist of the local data area and a frame marker for linkage information.
 
 ### Calling Conventions and Naming
 
-The runtime description uses a basic model to describe the calling convention. The calling procedure is called the **caller**, the target procedure is called the **callee**.
+A key portion of the runtime model is the method how function call other functions and pass data to them. The runtime description uses a basic model to describe the calling convention. The calling function is called the **caller**, the target function is called the **callee**.
 
 ```
           Caller                           Callee
@@ -3276,11 +3304,11 @@ The runtime description uses a basic model to describe the calling convention. T
       :----------------:                :----------------:
 ```
 
-**"Call"** transfers control to the callee. **"Entry"** is the point of entry to the callee. **"Exit"** is the point of exit from the caller. **"Return"** is the return point of program control to the caller. In addition, there could be pieces of code that enable more complex calling mechanisms such as inter module calls. They are called stubs. Typically, these stubs are added by a linker or loader when preparing the program. The section on external calls will explain stubs in more detail.
+**"Call"** transfers control to the callee. **"Entry"** is the point of entry to the callee. **"Exit"** is the point of exit from the caller. **"Return"** is the return point of program control to the caller. In addition, there could be pieces of code that enable more complex calling mechanisms such as library module calls. These pieces are called stubs. Typically, these stubs are added by a linker or loader when preparing the program. The section on external calls will explain stubs in more detail.
 
 ### Stack and Stack Frames
 
-During program execution procedures call other procedures. Upon entry, a procedure allocates a stack frame for local data, outgoing parameters and a frame maker used for keeping the execution thread data, such as returns links and so on. Generally, there are leaf and non-leaf procedures. A leaf procedure is one that does not make any further calls and perhaps need not to allocate a stack frame. The stack are will grow toward higher memory addresses. The data stack pointer will always points to the location where the next frame will be allocated. Addressing the current frame and the frame marker and parameter area of the previous is SP minus an offset.T
+During program execution functions call other functions. Upon entry, a functions allocates a stack frame for local data, outgoing parameters and a frame maker used for keeping the execution thread data, such as returns links and so on. Generally, there are leaf and non-leaf procedures. A leaf procedure is one that does not make any further calls and perhaps need not to allocate a stack frame. The stack are will grow toward higher memory addresses. The data stack pointer will always points to the location where the next frame will be allocated. Addressing the current frame and the frame marker and parameter area of the previous is SP minus an offset.T
 
 ```
       :                                    :
@@ -3315,11 +3343,11 @@ During program execution procedures call other procedures. Upon entry, a procedu
       :====================================: <------- Stack Pointer ( SP )                             
 ```
 
-A stack frame is the associated data area for a procedure. Its size is computed at compile time and will not change. The frame marker and the argument areas are also at known locations.  Since the overall frame size is fixed, i.e. computed at compile time, the callee can easily locate the incoming arguments by subtracting its own frame size and the position of the particular argument. The data stack pointer will always points to the location where the next frame will be allocated. Addressing the current frame and the frame marker and parameter area of the previous is SP minus an offset. The parameter area contains the formal arguments of the caller when making the call and potential return values when the caller returns.
+A stack frame is the associated data area for a function. Its size is computed at compile time and will not change. The frame marker and the argument areas are also at known locations. Since the overall frame size is fixed, i.e. computed at compile time, the callee can easily locate the incoming arguments by subtracting its own frame size and the position of the particular argument. The data stack pointer will always points to the location where the next frame will be allocated. Addressing the current frame and the frame marker and parameter area of the previous is SP minus an offset. The parameter area contains the formal arguments of the caller when making the call and potential return values when the caller returns.
 
 ### Stack Frame Marker
 
-The frame marker is a fixed structure of 8 locations which will contains the data and link information for the call. It used by the caller to store that kind of data during the calling sequence.
+The frame marker is a fixed structure of 8 locations which will contains the data and link information for the call. It used by the caller and the callee to store that kind of data during the calling sequence.
 
 ```
 
@@ -3392,7 +3420,7 @@ To the programmer general registers and segment registers are the primary regist
          :-----------------------------:               
 ```
 
-Some VCPU-32 instructions have a registers as an implicit target. For example, the ADDIL instruction uses general register one as implicit target. The BE instruction saves the return link segment implicitly in SR0. The caller can rely on that certain register are preserved across the calls. In addition to the callee save registers Gr2 to GR7, the SP value, the RL and the DP value as well as SR4 to SR 7 are expected to be preserved across a call. In addition to the caller save segment registers, the processor status registers as well as any registers set by privileged code are NOT preserved across a procedure call.
+Some VCPU-32 instructions have a registers as an implicit target. For example, the ADDIL instruction uses general register one as implicit target. The BE instruction saves the return link segment implicitly in SR0. The caller can rely on that certain register are preserved across the call. In addition to the callee save registers Gr2 to GR7, the SP value, the RL and the DP value as well as SR4 to SR 7 are expected to be preserved across a call. In addition to the caller save segment registers, the processor state register as well as any registers set by privileged code are NOT preserved across a procedure call.
 
 ### Parameter passing
 
@@ -3404,7 +3432,7 @@ Upon return, the formal argument locations are used as the potential result retu
 
 ### Local Calls
 
-The following figure shows a general flow of control for a local procedure call. In general the sequence consists of loading the arguments into registers or parameter area locations, saving any registers that are in the callers responsibility and branching to the target procedure. The called procedure will save the return link, allocate its stack frame and save any registers to be preserved across the call. Upon return, these registers are restored, the stack frame is deallocated and control transfers back via the return link to the caller procedure.
+A local calls is defined as a call from a function to another function in the same module. The following figure shows a general flow of control for a local procedure call. In general the sequence consists of loading the arguments into registers or parameter area locations, saving any registers that are in the callers responsibility and branching to the target procedure. The called procedure will save the return link, allocate its stack frame and save any registers to be preserved across the call. Upon return, these registers are restored, the stack frame is deallocated and control transfers back via the return link to the caller procedure.
 
 ```
       Caller:  ...
@@ -3422,7 +3450,7 @@ The following figure shows a general flow of control for a local procedure call.
                ...
 ```
 
-Depending on the kind of procedure, not all of these tasks need to be performed. For example, a leaf routine need not save the return link register. A routine with no local data, no usage pf callee save registers and being a leaf routine would not need a stack frame at all. there is great flexibility go omit steps not needed in the particular situation.
+Depending on the kind of function, not all of these tasks need to be performed. For example, a leaf routine need not save the return link register. A routine with no local data, no usage pf callee save registers and being a leaf routine would not need a stack frame at all. There is great flexibility to omit steps not needed in the particular situation.
 
 The following assembly code snippets shows examples of the calling sequences. The first example will show a function that just adds two incoming arguments and returns the result. The example uses the register alias names. ARG0 and ARG1 are loaded with their values and a local call is made to the procedure. The target address of the called function is computed by the assembler and omitted in the examples to follow.
 
@@ -3439,7 +3467,7 @@ The following assembly code snippets shows examples of the calling sequences. Th
 
       LDI ARG0, 500
       LDI ARG1, 300
-      BL  RL, "func2"         ---------------->    , ADC, SUB RET0, ACRG0, ARG1
+      BL  RL, "func2"         ---------------->    ADD RET0, ACRG0, ARG1
       ...                     <---------------     BV RL 
 ```
 
@@ -3477,6 +3505,71 @@ The caller "func1" will produce its arguments and stores them in ARG0 and ARG1, 
 The "func2" procedure will its business and make a call to "func3". The parameters are prepared and a BL instruction branches to "func3". "func3" is a leaf procedure and there is no need for saving RL. If "func3" has local variables, then a frame will be allocated. Also, if "func3" would use a callee save register, there needs to be a spill area to save them before usage. The spill area is a pat of the local data area too. "func3" returns with the BV instruction as before.
 
 When "func2" returns, it will deallocate the stack frame by moving SP back to the previous frame, load the saved return link into RL and a BV instructions branches back to the aller "func1". Phew.
+
+### Long calls
+
+There is the situation where in a very large module the BL instruction cannot reach the target function. In this case, the BL instruction is replaced by two-instruction sequence to implement a "long call".
+
+```
+      Source code:
+
+      void "func1" {                                         int func2( int a, b ) {
+         func( 500, 300 );                                     return( a + b );
+      }                                                      }
+
+      Assembly:
+
+      Caller "func1"                                         Callee "func2"
+
+      LDI ARG0, 500
+      LDI ARG1, 300
+      LDIL R1, L%"func2"
+      BE   RL, R%"func2" ( SR4, R1 )    ---------------->    ADD RET0, ACRG0, ARG1
+      ...                               <---------------     BV RL 
+```
+
+The function address is loaded by loading the left-hand portion with LDIL instruction and performing a BE instruction, adding the right-hand portion of the function address to R1. The segment used is SR4 which by definition tracks the code segment.
+
+### Module data access
+
+The TP register points to the current module global data area. Data items can be accessed with a LD and ST instruction. However, with indexed addressing mode a fairly small data area is directly reachable. A large global data area is typically addressed by forming the address with a two instruction sequence. The following example shows how to load a data word at TP relative offset "data_ofs" into R5.
+
+```
+   ADDIL L%data_ofs( TP )
+   LDW   R5, R%data_ofs( TP )
+```
+Instructions that offer the operand mode encoding use the indexed mode in a similar way. The ADDIL instruction is used to add the left-hand portion of the offset to TP, storing it in R1. The ADD instruction adds the right-hand offset to R1, forming the address of the operand. 
+
+```
+   ADDIL L%data_ofs( TP )
+   ADD   R5, R%data_ofs( R1 )
+```
+In addition, there is there is the register indexed mode, which works with two registers to form the address. The base register could be referring to the global data area, TP, and the offset register to the data item. This way, the entire address range is reachable too.
+
+```
+   LDIL  R4, L%data_ofs
+   LDO   R4, R%data_ofs
+   ADD   R5, R4( TP )
+```
+
+### Intermodule calls
+
+A compilation or assembly unit can contains more than one module. Each module is at first a relocatable module and all code and data addressing is relative to the module itself. All function calls are instruction counter relative, all data item addressing is TP address relative. When the linker prepares the compilation unit, all modules code and data areas put into consecutive locations.
+
+```
+
+
+
+
+
+```
+
+The primary task of the linker is to replace the module relative addressing to a segment relative addressing. A call fro a function in one module to a function in another module will become a long call sequence. 
+
+
+
+
+
 
 ### External Calls
 
