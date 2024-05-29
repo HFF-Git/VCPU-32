@@ -83,119 +83,122 @@ May, 2024
 <!-- TOC -->
 
 - [VCPU-32 System Architecture and Instruction Set Reference](#vcpu-32-system-architecture-and-instruction-set-reference)
-    - [Introduction](#introduction)
-    - [Architecture Overview](#architecture-overview)
-        - [A Register Memory Architecture.](#a-register-memory-architecture)
-        - [Memory and IO Address Model](#memory-and-io-address-model)
-        - [Data Types](#data-types)
-        - [General Register Model](#general-register-model)
-        - [Processor State](#processor-state)
-        - [Control Registers](#control-registers)
-        - [Segmented Memory Model](#segmented-memory-model)
-        - [Address Translation](#address-translation)
-        - [Protection Model](#protection-model)
-        - [Adress translation and caching](#adress-translation-and-caching)
-        - [Translation Lookaside Buffer](#translation-lookaside-buffer)
-        - [Caches](#caches)
-        - [Page Tables](#page-tables)
-        - [Control Flow](#control-flow)
-        - [Privilege change](#privilege-change)
-        - [Interrupts and Exceptions](#interrupts-and-exceptions)
-        - [Instruction and Data Breakpoints](#instruction-and-data-breakpoints)
-        - [External Interrupts](#external-interrupts)
-    - [Instruction Set Overview](#instruction-set-overview)
-        - [Memory Reference Instructions](#memory-reference-instructions)
-        - [Immediate Instructions](#immediate-instructions)
-        - [Branch Instructions](#branch-instructions)
-        - [Computational Instructions](#computational-instructions)
-        - [Operand Encoding](#operand-encoding)
-    - [System Control Instructions](#system-control-instructions)
-    - [Instruction Set Reference](#instruction-set-reference)
-        - [ADD](#add)
-        - [ADC](#adc)
-        - [ADDIL](#addil)
-        - [AND](#and)
-        - [B](#b)
-        - [BE](#be)
-        - [BR](#br)
-        - [BRK](#brk)
-        - [BV](#bv)
-        - [BVE](#bve)
-        - [CBR, CBRU](#cbr-cbru)
-        - [CMP, CMPU](#cmp-cmpu)
-        - [CMR](#cmr)
-        - [DEP](#dep)
-        - [DIAG](#diag)
-        - [DSR](#dsr)
-        - [EXTR](#extr)
-        - [GATE](#gate)
-        - [ITLB](#itlb)
-        - [LD](#ld)
-        - [LDA](#lda)
-        - [LDIL](#ldil)
-        - [LDO](#ldo)
-        - [LDPA](#ldpa)
-        - [LDR](#ldr)
-        - [LSID](#lsid)
-        - [MR](#mr)
-        - [MST](#mst)
-        - [OR](#or)
-        - [PRB](#prb)
-        - [PTLB](#ptlb)
-        - [PCA](#pca)
-        - [RFI](#rfi)
-        - [SBC](#sbc)
-        - [SHLA](#shla)
-        - [ST](#st)
-        - [STA](#sta)
-        - [STC](#stc)
-        - [SUB](#sub)
-        - [XOR](#xor)
-    - [Synthetic Instructions](#synthetic-instructions)
-        - [Immediate Operations](#immediate-operations)
-        - [Register Operations](#register-operations)
-        - [Shift and Rotate Operations](#shift-and-rotate-operations)
-    - [TLB and Cache Models](#tlb-and-cache-models)
-        - [Instruction and Data Caches](#instruction-and-data-caches)
-        - [Instructions to manage caches](#instructions-to-manage-caches)
-        - [Instruction and Data TLBs](#instruction-and-data-tlbs)
-    - [VCPU-32 Runtime Environment](#vcpu-32-runtime-environment)
-        - [The bigger picture](#the-bigger-picture)
-        - [Register Usage](#register-usage)
-        - [Task Execution](#task-execution)
-        - [Calling Conventions and Naming](#calling-conventions-and-naming)
-        - [Stack and Stack Frames](#stack-and-stack-frames)
-        - [Stack Frame Marker](#stack-frame-marker)
-        - [Register Partitioning](#register-partitioning)
-        - [Parameter passing](#parameter-passing)
-        - [Local Calls](#local-calls)
-        - [Long calls](#long-calls)
-        - [Module data access](#module-data-access)
-        - [Module Literal access](#module-literal-access)
-        - [Intermodule calls](#intermodule-calls)
-        - [External Calls](#external-calls)
-        - [Privilege level changes](#privilege-level-changes)
-        - [Traps and Interrupt handling](#traps-and-interrupt-handling)
-        - [Debug](#debug)
-        - [System Startup sequence](#system-startup-sequence)
-    - [Processor Dependent Code](#processor-dependent-code)
-    - [VCPU-32 Input/Output system](#vcpu-32-inputoutput-system)
-        - [The physical address space](#the-physical-address-space)
-        - [Concept of an I/O Module](#concept-of-an-io-module)
-        - [External Interrupts](#external-interrupts)
-    - [Instruction Set Summary](#instruction-set-summary)
-        - [Operand Encoding](#operand-encoding)
-        - [Computational Instructions using Operand Mode Format](#computational-instructions-using-operand-mode-format)
-        - [Computational Instructions](#computational-instructions)
-        - [Immediate Instructions](#immediate-instructions)
-        - [Memory Reference Instruction](#memory-reference-instruction)
-        - [Control Flow Instructions](#control-flow-instructions)
-        - [System Control Instructions](#system-control-instructions)
-    - [A pipelined CPU model](#a-pipelined-cpu-model)
-    - [Instruction Operation Description Functions](#instruction-operation-description-functions)
-    - [Notes](#notes)
-    - [References](#references)
+    - [](#)
+    - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+    - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+    - [](#)
+    - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+    - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+    - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+    - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+    - [](#)
+    - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+    - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+        - [](#)
+    - [](#)
+    - [](#)
+    - [](#)
+    - [](#)
 
+<!-- /TOC -->
+<!-- /TOC -->
 <!-- /TOC -->
 
 <!---C------------------------------------------------------------------------------------------------------>
@@ -3630,64 +3633,89 @@ Literals are constant values stored in the code segment. They can be reached usi
 
 ### Intermodule calls
 
-A compilation or assembly unit can contains more than one module. Each module is at first a relocatable module and all code and data addressing is relative to the module itself. All function calls are instruction counter relative, all data item addressing is TP address relative. When the linker prepares the compilation unit, all modules code and data areas put into consecutive locations.
-
+A compilation or assembly unit can contains more than one module. All code and data addressing is relative to the module itself. Local function calls are instruction counter relative, global data item addressing is TP address relative. and local variables are accessed SP relative. 
  
 ```
         Code Space ( SR4 )                                    Data Space ( SR5 )
-      :===========================:                         :===========================:
-      :                           :                         :                           :
-      :                           :                         :                           :
+      :===========================:                         :==========================:
+      :                           :                         :                          :
+      :                           :                         :                          :
+                                                            :                          :
+      
       :                           :                          
-      :                           :                         :                           :
-      :                           :                         :                           :
-      :===========================:                         :===========================: <-- TP
-      : Module A code             :                         : Module A globals          :
-      :                           :                         :                           :
-      :                           :<-- PSW                  :                           :
-      :                           :                         :===========================:
-      :                           :                         : Module B globals          :
-      :===========================:                         :                           :   
-      : Module B code             :                         :                           :
-      :                           :                         :                           :
-      :                           :                         :===========================:
-      :                           :                         :                           :
-      :===========================:                         :                           :
+      :                           :                         :                          :
+      :                           :                         :                          :
+      :===========================:                         :==========================: <-- TP
+      : Module A code             :                         : Module A globals         :
+      :                           :                         :                          :
+      :                           :<-- PSW                  :                          :
+      :                           :                         :==========================:
+      :                           :                         : Module B globals         :
+      :===========================:                         :                          :   
+      : Module B code             :                         :                          :
+      :                           :                         :                          :
+      :                           :                         :==========================:
+      :                           :                         :                          :
+      :===========================:                         :                          :
       :                           : 
       :                           : 
       : ...                       : 
-      :                           :                         :                           : 
-      :                           :                         :                           :
-                                                            :===========================:
-                                                            : Stack                     :
-                                                            :                           :
-                                                            :   Stack frame             :<-- SP
-                                                            :                           :
-                                                            :                           :
-                                                            :===========================: 
-                                                            :                           :     
-                                                            :                           :                    
+      :                           :                         :                          : 
+      :                           :                         :                          :
+                                                            :==========================:
+                                                            : Stack                    :
+                                                            :                          :
+                                                            :   Stack frame            :<-- SP
+                                                            :                          :
+                                                            :                          :
+                                                            :==========================: 
+                                                            :                          :     
+                                                            :                          :                    
 ```
 
-Assemblers and compilers should not create different calling sequences depending on whether particular call is local to a module or referring to a procedure in another module. The approach is to replace the branch instruction with a branch to a stub, which contains the outgoing code to perform all the operations before calling the target function. Within a module, a calling sequence would be a branch from the calling function to the stub, from the stub to the target function, from the target function back to the stub and then back to the calling function. That is in total four branches.
+Invoking a function in a another module requires to reach the target procedure. Furthermore, the TP value for the taget is that of the target module. Assemblers and compilers should not create different calling sequences depending on whether particular call is local to a module or referring to a procedure in another module. The approach is to replace the branch instruction with a branch to a stub, which contains the outgoing code to perform all the operations before calling the target function. Within a module, a calling sequence would be a branch from the calling function to the stub, from the stub to the target function, from the target function back to the stub and then back to the calling function. That is in total four branches. Therefore, a different approach is chosen for intermodule calls within the same compilation unit.
+
+A call to a function in another module is considered a long call. The assembler/compiler creates a long call code sequence. At module compile time, the final target is however not know yet. The long call needs to be updated when the final position of the target module in the code space is known.
+
+Since the target function relies on the TP value of its own module, the TP value may needs to be adjusted. Instead of saving and restoring the callers TP value and setting the new TP value on each call, the callers TP value is placed in a callee save register and thus preserved across a call. The target function needs to load its own TP value when needed. The compilation unit needs for the approach a module table, where for each module the offset of the TP area is kept.
+
+The following code snippet shows an intermodule call within the same compilation unit.
 
 ```
+   Source code Module A:                                       Source Code Module B:
 
-// ??? **note** sketch the stub code...
+                                                               int i; 
 
+      void func1 {                                             int func2( int a, b ) {
+         func( 500, 300 );                                        return( a + b + i );
+      }                                                        }
 
+      Assembly:
+
+      func1:   LDI  ARG0, 500
+               LDI  ARG1, 300
+               LDIL R1,   L%func2
+               BE.L RL,   R%func2 ( SR4, R1 )   ---------->   func2: ; load TP into R11 ... to do ... 
+
+                                                                        LDW R3, 0( R11 )
+                                                                        ADD R2, ACRG0, ARG1
+                                                                        ADD RET0, R2, R3
+               ...                              <---------              BV RL 
+      
+               BV RL
 ```
 
-// ??? **note** privilege changes between modules ?
+A final topic is inter-module calls within the compilation unit when the target has a different privilege level. The architecture implements a privilege level change via the GATE instruction, which resides on a gateway type page. 
 
+// ??? **note** what exactly is all needed ? Is it only code or also global data at a new priv level ?
 
+// ??? or should we just state that a compilation unit has always the same priv level. If not, it is considered an 
 
+// external call between compilation units ?
 
 ### External Calls
 
-// ??? **note** rework the text a little. External calls are calls between files, i.e. compilation units.
-
-Procedure calls are thus always local calls. Likewise a called function will return via a local branch. En external call is defined as a call that changes module boundaries. When a call is crossing a module boundary, small pieces of code need to be added which perform the additional work. These code sequences are called **stubs**. In general, there are import stubs that are added for a procedure that makes an external call and export stubs for procedure that are a target for an external call. The following figure shows the general flow of control.
+An external call is defined as a call that between compilation units that reside in a separate file. For example, the system library called from a program is considered a compilation unit in a separate file. Since functions are in general unaware whether they are called from inside the compilation unit or from another compilation unit, code sequences are necessary to manage the external call in both units. They are called **import stubs** and **export stubs**. The following figure shows the general flow of control for an external call.
 
 ```
        Calling module "A"                                       Called module "B"
@@ -3698,9 +3726,9 @@ Procedure calls are thus always local calls. Likewise a called function will ret
       :                        :                               :                        :  
       :------------------------:                               :------------------------:  
       : func "FA"              :                               : func "FB"              : <----: 
-      :  ...                   :                               :                        :      :  
-      :  BL  "FB"              : ----:                         :                        :      :
-      :  ...                   : <--------------------:        :                        :      :
+      :                        :                               :                        :      :  
+      :  B.L                   : ----:                         :                        :      :
+      :                        : <--------------------:        :                        :      :
       :                        :     :                :        :  BV                    : ------------:
       :------------------------:     :                :        :------------------------:      :      :
       :                        :     :                :        :                        :      :      :
@@ -3719,7 +3747,15 @@ Procedure calls are thus always local calls. Likewise a called function will ret
       :------------------------:                               :------------------------:            
 ```
 
-The diagram shows "FA" in module "A" calling "FB" in module "B". To call "FB", an import stub is added to module "A". All routines in "A" will use this stub when calling "FB" in module "B". After some housekeeping, the import stub makes an external call using the BLE instruction. The target is another stub, the export stub for "B". Every procedure that is export from a module needs to have such an export stub code sequence. The export stub will perform a local branch and link to the target procedure "FB". "FB" will upon return just branch back to the export stub. As a last step, the export stub will perform an external branch to the location after the call instruction in "FA".
+The diagram shows function "FA" in module "A" calling function "FB" in module "B". To call "FB", an import stub is added to module "A". All routines in "A" will use this stub when calling "FB" in module "B". After some housekeeping, the import stub makes an external call using the BLE instruction. The target is another stub, the export stub for "B". Every procedure that is export from a module needs to have such an export stub code sequence. The export stub will perform a local branch and link to the target procedure "FB". "FB" will upon return just branch back to the export stub. As a last step, the export stub will perform an external branch to the location after the call instruction in "FA".
+
+There are two data structures used for an external call. The first is the stack frame marker, which contains locations for storing the calling function return link and code segment Id. The other data structure is the linkage table, which contains an entry for each external function.
+
+
+// ??? what about global data of the target compilation unit ?
+
+...
+
 
 #### Import Stub
 
@@ -3735,37 +3771,37 @@ The linkage table is a memory structure built by the load operation. It contains
 
 
 ```
-        Code                                                Data  ( SR5 )
-      :========================:                :========================:  
-      :                        :                :                        :  
-      :                        :                :                        :  
-      :                        :                :                        :   
-      :                        :                :                        :  
-      :                        :                :                        :  
-      :                        :        :------>:========================:  \  Linkage Table
-      :                        :        :       : Module A externals     :  |
-      :========================: -------:       :                        :  |               An XRT entry
-      : Module "A"             :                :   XRT Entry "FOO"      :---------->  :---------------------------------:
-      :                        :                :                        :  |          : LinkTab Start for module "A"    :
-      :   Function             :                :                        :  |          :---------------------------------: 
-      :                        :                :                        :  |          : External Segment Id for "FOO"   :
-      :       Call "EXT.FOO"   :        :------>:========================:  |          :---------------------------------: 
-      :                        :        :       : Module B externals     :  |          : "FOO" address in Segment        :
-      :                        :        :       :                        :  |          :---------------------------------: 
-      :========================: -------:       :                        :  |          : TP Value for Module "EXT"       : 
-      : Module "B"             :                :                        :  |          :---------------------------------: 
-      :                        :                :                        :  |
-      :                        :                :========================:  |
-      :                        :                :                        :  |
-      :                        :                :                        :  |
-      :                        :                :                        :  |
-      :========================:                :========================:  /
-      :                        :                :                        :
-      :                        :                :                        :
-      :                        :                        
-      :                        :                        
-      :                        :                       
-      :========================:                          
+        Code  ( SR4 )                       Data  ( SR5 )
+      :======================:            :======================:
+      :                      :            :                      :  
+      :                      :            :                      :  
+      :                      :            :                      :   
+      :                      :            :                      :  
+      :                      :            :                      :  
+      :                      :      :---->:======================:  \  Linkage Table
+      :                      :      :     : Module A externals   :  |
+      :======================: -----:     :                      :  |               An XRT entry
+      : Module "A"           :            :   XRT Entry "FOO"    :---------->  :-------------------------------:
+      :                      :            :                      :  |          : LinkTab Start for module "A"  :
+      :   Function           :            :                      :  |          :-------------------------------: 
+      :                      :            :                      :  |          : External Segment Id for "FOO" :
+      :      Call "EXT.FOO"  :      :---->:======================:  |          :-------------------------------: 
+      :                      :      :     : Module B externals   :  |          : "FOO" address in Segment      :
+      :                      :      :     :                      :  |          :-------------------------------: 
+      :======================: -----:     :                      :  |          : TP Value for Module "EXT"     : 
+      : Module "B"           :            :                      :  |          :-------------------------------: 
+      :                      :            :                      :  |
+      :                      :            :======================:  |
+      :                      :            :                      :  |
+      :                      :            :                      :  |
+      :                      :            :                      :  |
+      :======================:            :======================:  /
+      :                      :            :                      :
+      :                      :            :                      :
+      :                      :                        
+      :                      :                        
+      :                      :                       
+      :======================:                          
 ```
 
 - how to get to the linkage table subsection ? -> DP - 4 location could hold the pointer to the XRT subtable for the module.
@@ -3778,12 +3814,15 @@ The linkage table is a memory structure built by the load operation. It contains
 
 // GATE instruction and external calls
 
-### Traps and Interrupt handling
+### Trap handling
+
+### External Interrupt handling
 
 
-### Debug
+### Debug Subsystem
 
 // essentially a trap
+// support for sigle stepping ?
 
 
 ### System Startup sequence
@@ -3859,7 +3898,7 @@ VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory add
 
 This appendix lists all instructions by instruction group.
 
-### Operand Encoding
+### Computational Instructions Operand Encoding
 
 ```
    <--- operation --> <-  res  -> <opt> <---------------- operand -------------------------------->
@@ -4013,28 +4052,6 @@ This appendix lists all instructions by instruction group.
 
 <div style="page-break-before: always;"></div>
 
-## A pipelined CPU model
-
-The VCPU-32 instruction set and runtime architecture has been designed with a pipeline CPU in mind. In general, pipeline operations such as stalling or flushing a CPU pipeline are in terms of performance costly and should be avoided where possible. Also, accessing data memory twice or any indirection level of data access would also affect the pipeline performance in a negative way. This chapter presents a simple pipeline reference model of a VCPU32 implementation for discussing architecture and instruction design rationales.
-
-The VCPU-32 reference implementation that can be found in the simulator uses a three stage pipeline model. There stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
-
-- **Instruction fetch and decode**. The first stage will fetch the instruction word from memory and decode it. There are two parts. The first part of the stage will use the instruction address and attempt to fetch the instruction word from the instruction cache. At the same time the translation look-aside buffer will be checked whether the virtual to physical translation is available and if so whether the access rights match. The second part of the stage will decode the instruction and also read the general registers from the register file.
-
-- **Memory access**. The memory access stage will take the instruction decoded in the previous stage and compute the address for the memory data access. This also the stage where any segment or control register are accessed. In addition, unconditional branches are handled at this stage. Memory data item are read or stored depending on the instruction. Due to the nature of a register/memory architecture, the memory access has to be performed before the execute stage. This also implies that there needs to be an address arithmetic unit at this state. The classical 5-stage RISC pipeline with memory access past the execute stage uses the ALU for this purpose.
-
-- **Execute**. The Execute Stage will primarily do the computational work using the values passed from the MA stage. The computational result will be written back to the registers on the next clock cycle. Within the execute stage, there is the computational half followed by the result committing half. In addition, instructions that need to commit two results push one result to the first half of the instruction fetch and decode stage. Currently, the base register modification option of the load instructions will commit the loaded value in the EXECUTE stage but push the base register update to the instruction fetch half of the next instruction.
-
-Note that this is perhaps one of many ways to implement a pipeline. The three major stages could also be further divided internally. For example, the fetch and decode stage could consist of two sub stages. Likewise, the memory access stages could be divided into an address calculation sub-stage and the actual data access. Dividing into three stages however simplifies the bypass logic as there are only two spots to insert any register overriding. This is especially important for the memory access stage, which uses the register content to build addresses. Two separate stages, i.e. address computation and memory access, would require options to redo the address arithmetic when detecting a register interlock at the memory access stage.
-
-<!--------------------------------------------------------------------------------------------------------->
-<!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
-<!--------------------------------------------------------------------------------------------------------->
-<!--------------------------------------------------------------------------------------------------------->
-
-<div style="page-break-before: always;"></div>
-
 ## Instruction Operation Description Functions
 
 Instruction operations are described in a pseudo C style language using assignment and simple control structures to describe the instruction operation. In addition there are functions that perform operations and compute expressions. The following table lists these functions.
@@ -4066,6 +4083,29 @@ Instruction operations are described in a pseudo C style language using assignme
 | **flushDataCache( seg, ofs )** | write the data cache line that contains the virtual address back to memory and purge the entry. |
 | **purgeDataCache( seg, ofs )** | remove the data cache line that contains the virtual address by simply invalidating it. |
 |||
+
+
+<!--------------------------------------------------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+<!-- Chapter -->
+<!--------------------------------------------------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
+## A pipelined CPU model
+
+The VCPU-32 instruction set and runtime architecture has been designed with a pipeline CPU in mind. In general, pipeline operations such as stalling or flushing a CPU pipeline are in terms of performance costly and should be avoided where possible. Also, accessing data memory twice or any indirection level of data access would also affect the pipeline performance in a negative way. This chapter presents a simple pipeline reference model of a VCPU32 implementation for discussing architecture and instruction design rationales.
+
+The VCPU-32 reference implementation that can be found in the simulator uses a three stage pipeline model. There stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
+
+- **Instruction fetch and decode**. The first stage will fetch the instruction word from memory and decode it. There are two parts. The first part of the stage will use the instruction address and attempt to fetch the instruction word from the instruction cache. At the same time the translation look-aside buffer will be checked whether the virtual to physical translation is available and if so whether the access rights match. The second part of the stage will decode the instruction and also read the general registers from the register file.
+
+- **Memory access**. The memory access stage will take the instruction decoded in the previous stage and compute the address for the memory data access. This also the stage where any segment or control register are accessed. In addition, unconditional branches are handled at this stage. Memory data item are read or stored depending on the instruction. Due to the nature of a register/memory architecture, the memory access has to be performed before the execute stage. This also implies that there needs to be an address arithmetic unit at this state. The classical 5-stage RISC pipeline with memory access past the execute stage uses the ALU for this purpose.
+
+- **Execute**. The Execute Stage will primarily do the computational work using the values passed from the MA stage. The computational result will be written back to the registers on the next clock cycle. Within the execute stage, there is the computational half followed by the result committing half. In addition, instructions that need to commit two results push one result to the first half of the instruction fetch and decode stage. Currently, the base register modification option of the load instructions will commit the loaded value in the EXECUTE stage but push the base register update to the instruction fetch half of the next instruction.
+
+Note that this is perhaps one of many ways to implement a pipeline. The three major stages could also be further divided internally. For example, the fetch and decode stage could consist of two sub stages. Likewise, the memory access stages could be divided into an address calculation sub-stage and the actual data access. Dividing into three stages however simplifies the bypass logic as there are only two spots to insert any register overriding. This is especially important for the memory access stage, which uses the register content to build addresses. Two separate stages, i.e. address computation and memory access, would require options to redo the address arithmetic when detecting a register interlock at the memory access stage.
 
 
 <!--------------------------------------------------------------------------------------------------------->
