@@ -79,129 +79,126 @@ Helmut Fieres
 Version B.00.05
 May, 2024
 
-
-<!-- TOC -->
-
 - [VCPU-32 System Architecture and Instruction Set Reference](#vcpu-32-system-architecture-and-instruction-set-reference)
-    - [](#)
-    - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-    - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-    - [](#)
-    - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-    - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-    - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-    - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-    - [](#)
-    - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-    - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-        - [](#)
-    - [](#)
-    - [](#)
-    - [](#)
-    - [](#)
+  - [Introduction](#introduction)
+  - [Architecture Overview](#architecture-overview)
+    - [A Register Memory Architecture.](#a-register-memory-architecture)
+    - [Memory and IO Address Model](#memory-and-io-address-model)
+    - [Data Types](#data-types)
+    - [General Register Model](#general-register-model)
+    - [Processor State](#processor-state)
+    - [Control Registers](#control-registers)
+    - [Segmented Memory Model](#segmented-memory-model)
+    - [Address Translation](#address-translation)
+    - [Protection Model](#protection-model)
+    - [Adress translation and caching](#adress-translation-and-caching)
+    - [Translation Lookaside Buffer](#translation-lookaside-buffer)
+    - [Caches](#caches)
+    - [Page Tables](#page-tables)
+    - [Control Flow](#control-flow)
+    - [Privilege change](#privilege-change)
+    - [Interrupts and Exceptions](#interrupts-and-exceptions)
+    - [Instruction and Data Breakpoints](#instruction-and-data-breakpoints)
+    - [External Interrupts](#external-interrupts)
+  - [Instruction Set Overview](#instruction-set-overview)
+    - [Memory Reference Instructions](#memory-reference-instructions)
+    - [Immediate Instructions](#immediate-instructions)
+    - [Branch Instructions](#branch-instructions)
+    - [Computational Instructions](#computational-instructions)
+    - [Operand Encoding for computational instructions](#operand-encoding-for-computational-instructions)
+    - [System Control Instructions](#system-control-instructions)
+  - [Instruction Set Reference](#instruction-set-reference)
+    - [ADD](#add)
+    - [ADC](#adc)
+    - [ADDIL](#addil)
+    - [AND](#and)
+    - [B](#b)
+    - [BE](#be)
+    - [BR](#br)
+    - [BRK](#brk)
+    - [BV](#bv)
+    - [BVE](#bve)
+    - [CBR, CBRU](#cbr-cbru)
+    - [CMP, CMPU](#cmp-cmpu)
+    - [CMR](#cmr)
+    - [DEP](#dep)
+    - [DIAG](#diag)
+    - [DSR](#dsr)
+    - [EXTR](#extr)
+    - [GATE](#gate)
+    - [ITLB](#itlb)
+    - [LD](#ld)
+    - [LDA](#lda)
+    - [LDIL](#ldil)
+    - [LDO](#ldo)
+    - [LDPA](#ldpa)
+    - [LDR](#ldr)
+    - [LSID](#lsid)
+    - [MR](#mr)
+    - [MST](#mst)
+    - [OR](#or)
+    - [PRB](#prb)
+    - [PTLB](#ptlb)
+    - [PCA](#pca)
+    - [RFI](#rfi)
+    - [SBC](#sbc)
+    - [SHLA](#shla)
+    - [ST](#st)
+    - [STA](#sta)
+    - [STC](#stc)
+    - [SUB](#sub)
+    - [XOR](#xor)
+  - [Synthetic Instructions](#synthetic-instructions)
+    - [Immediate Operations](#immediate-operations)
+    - [Register Operations](#register-operations)
+    - [Shift and Rotate Operations](#shift-and-rotate-operations)
+  - [TLB and Cache Models](#tlb-and-cache-models)
+    - [Instruction and Data Caches](#instruction-and-data-caches)
+    - [Instructions to manage caches](#instructions-to-manage-caches)
+    - [Instruction and Data TLBs](#instruction-and-data-tlbs)
+    - [Instructions to manage TLBs](#instructions-to-manage-tlbs)
+  - [VCPU-32 Runtime Environment](#vcpu-32-runtime-environment)
+    - [The bigger picture](#the-bigger-picture)
+    - [Register Usage](#register-usage)
+    - [Task Execution](#task-execution)
+    - [Calling Conventions and Naming](#calling-conventions-and-naming)
+    - [Stack and Stack Frames](#stack-and-stack-frames)
+    - [Stack Frame Marker](#stack-frame-marker)
+    - [Register Partitioning](#register-partitioning)
+    - [Parameter passing](#parameter-passing)
+    - [Local Calls](#local-calls)
+    - [Long calls](#long-calls)
+    - [Module data access](#module-data-access)
+    - [Module Literal access](#module-literal-access)
+    - [Intermodule calls](#intermodule-calls)
+    - [External Calls](#external-calls)
+    - [Privilege level changes](#privilege-level-changes)
+    - [Trap handling](#trap-handling)
+    - [External Interrupt handling](#external-interrupt-handling)
+    - [Debug Subsystem](#debug-subsystem)
+    - [System Startup sequence](#system-startup-sequence)
+  - [Processor Dependent Code](#processor-dependent-code)
+  - [VCPU-32 Input/Output system](#vcpu-32-inputoutput-system)
+    - [The physical address space](#the-physical-address-space)
+    - [Concept of an I/O Module](#concept-of-an-io-module)
+    - [External Interrupts](#external-interrupts-1)
+  - [Instruction Set Summary](#instruction-set-summary)
+    - [Computational Instructions Operand Encoding](#computational-instructions-operand-encoding)
+    - [Computational Instructions using Operand Mode Format](#computational-instructions-using-operand-mode-format)
+    - [Computational Instructions](#computational-instructions-1)
+    - [Immediate Instructions](#immediate-instructions-1)
+    - [Memory Reference Instruction](#memory-reference-instruction)
+    - [Control Flow Instructions](#control-flow-instructions)
+    - [System Control Instructions](#system-control-instructions-1)
+  - [Instruction Operation Description Functions](#instruction-operation-description-functions)
+  - [A pipelined CPU model](#a-pipelined-cpu-model)
+  - [Notes](#notes-40)
+  - [References](#references)
 
-<!-- /TOC -->
-<!-- /TOC -->
-<!-- /TOC -->
 
-<!---C------------------------------------------------------------------------------------------------------>
+
+
+<!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!-- Chapter -->
 <!--------------------------------------------------------------------------------------------------------->
@@ -695,7 +692,7 @@ The numeric and logical instructions encode the second operand in the operand fi
 
 The **CMP** instruction compares two values for a condition and returns a result of zero or one. The **SHLA** instruction is a combination of shifting an operand and adding a value to it. Simple integer multiplication with small values can elegantly be done with the help of this instruction.
 
-### Operand Encoding
+### Operand Encoding for computational instructions
 
 VCPU-32 features a register memory model, which means that one operand may come from memory. Some computational instructions use the **operand** format to specify the operand in the computation. The **operand mode** field in instructions that use operand modes is used to specify how the second operand is decoded. The instruction generally has the opCode in position 0 .. 5, the result register in position 6 .. 9 and an instruction specific option field in position 10..11. Bits 12..13 encode the operand mode. There are four operand modes, which are immediate value mode, register mode, and two addressing modes. The following figure gives an overview of the instruction layout for instructions with operand encoding. 
 
@@ -723,7 +720,7 @@ The final operand mode is the **indexed address mode**. The offset field is a si
 
 The operand address for the indexed and register indexed mode is built by adding an signed byte offset to the base register "b". The upper two bits select one of the four segment register SR4 .. SR7.
 
-## System Control Instructions
+### System Control Instructions
 
 The system control instructions are intended for the runtime designer to control the CPU resources such as TLB, Cache and so on. There are instruction to load a segment or control registers as well as instructions to store a segment or control register. The TLB and the cache modules are controlled by instructions to insert and remove data in these two entities. Finally, the interrupt and exception system needs a place to store the address and instruction that was interrupted as well as a set of shadow registers to start processing an interrupt or exception. Most of the instructions found in this group require that the processor runs in privileged mode.
 
@@ -2279,7 +2276,7 @@ Copy data between a general register and a segment or control register.
 
 #### Description
 
-The move register instructions copy data from a segment or control register "s" to a general register "r" and vice versa. The "D" field indicates the copy direction. A value of one will copy general register "r" to the segment or control register "s". A value of zero copies "r" to the segment or control register "s". The "M" field identifies the register type. A value of one refers to a control register, otherwise a segment register. Setting a value for a privileged segment or control register is a privileged operation.
+The move register instructions copy data from a segment or control register "s" to a general register "r" and vice versa. The "D" field indicates the copy direction. A value of one will copy general register "r" to the segment or control register "s". A value of zero copies "r" from the segment or control register "s". The "M" field identifies the register type. A value of one refers to a control register, otherwise a segment register. Setting a value for a privileged segment or control register is a privileged operation.
 
 #### Operation
 
@@ -3218,7 +3215,7 @@ TLBs are indexed by a portion of the virtual address. There is the option of a s
 
 Another implementation option is to combine both TLB units. Both types of translation are kept in one store. Such a TLB should be implemented as two-port TLB because of he simultaneous instruction TLB instruction and data TLB access. Another approach could be to complement a single port joint instruction and data TLB with a small fully associative instruction TLB that holds entries from the unified TLB. An instruction TLB miss has priority over a data TLB miss.
 
-#### Instructions to manage TLBs
+### Instructions to manage TLBs
 
 TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for insertion and deletion of TLB entries. The insert TLB instruction will place an entry for the virtual page number along with access rights and the physical page number. The purge TLB instruction removes an entry for the virtual page number.
 
@@ -3303,7 +3300,8 @@ Switching between tasks will set SR5 to the segment containing the task data and
 
 This section provides a high level overview of a running task execution. A running task will execute instruction pointed to by the virtual address contained in the processor state PSW. Code is organized as a collection of modules, which themselves are a collection of functions. By runtime convention, the code is in the SR4 quadrant and contains instructions and constant data. The constant data can be accessed using the SR4 segment register, which tracks the current code segment. 
 
-The SR5 quadrant contains the global data the modules, the task stack and linkage information for inter module calls. The TP register ( GR13 ) point to the global data of the current module and changes on inter-module calls. The SP register ( GR15 ) points to the stack frame of the current function.
+The SR5 quadrant contains the global data the modules, the task stack and linkage information for inter module calls. The DP
+ register ( GR13 ) point to the global data of the current module and changes on inter-module calls. The SP register ( GR15 ) points to the stack frame of the current function.
  
 ```
         Code Space ( SR4 )                                    Data Space ( SR5 )
@@ -3313,7 +3311,8 @@ The SR5 quadrant contains the global data the modules, the task stack and linkag
       :                           :                        
       :                           :                        :                           :
       :                           :                        :                           :
-      :===========================:                        :===========================: <-- TP
+      :===========================:                        :===========================: <-- DP
+
       : Module X                  :                        : Module X globals          :
       :                           :                        :                           :
       :   Function A              :                        :                           :
@@ -3436,7 +3435,8 @@ The frame marker is a fixed structure of 8 locations which will contains the dat
 All stack frame locations are addressed relative to the current stack pointer. SP-4 contains the pointer to the previous stack frame. This field is set optional. Since the stack frame size is determined at compile time, the previous stack pointer can be computed by subtracting the frame size from the current stack pointer. SP-8 is the location where the return link can be stored, if necessary. A leaf function may not store the return link in this location.
 
 // ??? **note** under construction. How much space do we need for the calling convention ?
-// ??? we would need a space to keep the TP value, perhaps a static link for Pascal like languages, and so on. 
+// ??? we would need a space to keep the DP
+ value, perhaps a static link for Pascal like languages, and so on. 
 
 ### Register Partitioning
 
@@ -3463,15 +3463,15 @@ To the programmer general registers and segment registers are the primary regist
          :-----------------------------:                :---------------------------------:
       8  :  Caller Save, ARG3, RET3    :                
          :-----------------------------:           
-      9  :  Caller Save, ARG3, RET2    :             
+      9  :  Caller Save, ARG2, RET2    :             
          :-----------------------------:              
-      10 :  Caller Save, ARG2, RET1    :           
+      10 :  Caller Save, ARG1, RET1    :           
          :-----------------------------:               
-      11 :  Caller Save, ARG1, RET0    :            
+      11 :  Caller Save, ARG0, RET0    :            
          :-----------------------------:              
-      12 :  Task Data ( TP )           :             
+      12 :  Caller save                :             
          :-----------------------------:              
-      13 :  Global Data ( DP )         :             
+      13 :  Caller save, ( DP )        :             
          :-----------------------------:              
       14 :  Return link ( RL )         :             
          :-----------------------------:              
@@ -3526,8 +3526,8 @@ The following assembly code snippets shows examples of the local calling sequenc
 
       func1:   LDI ARG0, 500
                LDI ARG1, 300
-               BL  RL,   func2        ------------->       func2:   ADD RET0, ACRG0, ARG1
-               ...                     <------------                 BV (RL) 
+               B   RL,   func2        ------------->       func2:   ADD RET0, ACRG0, ARG1
+               ...                     <------------                BV (RL) 
 ```
 
 The called function will just use the two incoming arguments, adds them and stores the result to RET0. The BV instruction will use the return address stored by the BL instruction to return. This example is very simple but also the most fundamental calling sequence. The called procedure does not make any further calls, hence there is no need to save a return link. In fact, the called procedure does not even need an own stack frame. Next is a small example where the called procedure will itself also make a call. The called procedure also has two local variables.
@@ -3543,13 +3543,13 @@ The called function will just use the two incoming arguments, adds them and stor
 
       func1:   LDI ARG0, 500
                LDI ARG1, 300
-               BL  RL,   func1   -------->   func2:   ST -8(SP), RL
+               B   RL,   func1   -------->   func2:   ST -8(SP), RL
                                                       LDO SP, 56(SP)
                  
                                                       ...
 
-                                                      BL RL,  func3     --------->    func3: ADD RET0, ACRG0, ARG1
-                                                      ...               <--------            BV (RL)
+                                                      B RL,  func3     --------->      func3: ADD RET0, ACRG0, ARG1
+                                                      ...               <--------             BV (RL)
 
                                                       LDO -56(SP), SP
                                                       LD RL, -8(SP)
@@ -3578,37 +3578,36 @@ The branch instruction has a reach of +/- 8Mbytes. There is the situation where 
       func1:   LDI  ARG0, 500
                LDI  ARG1, 300
                LDIL R1,   L%func2
-               BE.L RL,   R%func2 ( SR4, R1 )   ---------->   func2:  ADD RET0, ACRG0, ARG1
+               BE   RL,   R%func2 ( SR4, R1 )   ---------->   func2:  ADD RET0, ACRG0, ARG1
                ...                              <---------            BV RL 
       
                BV RL
 ```
 
-The function address is loaded by loading the left-hand portion with LDIL instruction and performing a BE instruction, adding the right-hand portion of the function address to R1. The segment used is SR4 which by definition tracks the code segment. Note that the function address is a segment relative address. The **BE** instruction uses a segment relative offset stored in R1. This address is however only know when the module is placed in the code segment at its address. A linker is expected to 
-"patch" the LDIL / BE instruction sequence with the final address of the function. Since the **BV** return instruction always works segment relative, no fix is required here.
-
-// ??? **note** what if we would use the BR instruction ? We would need: LDIL / LDO to create the relative value and BR to jump. That is three instructions...
+The function address is loaded by loading the left-hand portion with LDIL instruction and performing a BE instruction, adding the right-hand portion of the function address to R1. The segment used is SR4 which by definition tracks the code segment. Note that the function address is a segment relative address. The **BE** instruction uses a segment relative offset stored in R1. This address is however only know when the module is placed in the code segment at its address. A linker is expected to "patch" the LDIL / BE instruction sequence with the final address of the function. Since the **BV** return instruction always works segment relative, no fix is required here.
 
 ### Module data access
 
-The TP register points to the current module global data area. Data items can be accessed with a LD and ST instruction. However, with indexed addressing mode a fairly small data area is directly reachable. A large global data area is typically addressed by forming the address with a two instruction sequence. The following example shows how to load a data word at TP relative offset "data_ofs" into R5.
+The DP
+ register points to the current module global data area. Data items can be accessed with a LD and ST instruction. However, with indexed addressing mode a fairly small data area is directly reachable. A large global data area is typically addressed by forming the address with a two instruction sequence. The following example shows how to load a data word at DP
+ relative offset "data_ofs" into R5, both short and long versions.
 
 ```
-   ADDIL L%data_ofs( TP )
-   LDW   R5, R%data_ofs( TP )
+   LDW   R5, data_ofs( DP )
 ```
-Instructions that offer the operand mode encoding use the indexed mode in a similar way. The ADDIL instruction is used to add the left-hand portion of the offset to TP, storing it in R1. The ADD instruction adds the right-hand offset to R1, forming the address of the operand. 
+
+Instructions that offer the operand mode encoding use the indexed mode in a similar way. The ADDIL instruction is used to add the left-hand portion of the offset to DP, storing it in R1. The ADD instruction adds the right-hand offset to R1, forming the address of the operand. 
 
 ```
-   ADDIL L%data_ofs( TP )
+   ADDIL L%data_ofs( DP )
    ADD   R5, R%data_ofs( R1 )
 ```
-In addition, there is there is the register indexed mode, which works with two registers to form the address. The base register could be referring to the global data area, TP, and the offset register to the data item. This way, the entire address range is reachable too.
+In addition, there is there is the register indexed mode, which works with two registers to form the address. The base register could be referring to the global data area, DP and the offset register to the data item. This way, the entire address range is reachable too.
 
 ```
    LDIL  R4, L%data_ofs
    LDO   R4, R%data_ofs
-   ADD   R5, R4( TP )
+   ADD   R5, R4( DP )
 ```
 
 ### Module Literal access
@@ -3633,7 +3632,8 @@ Literals are constant values stored in the code segment. They can be reached usi
 
 ### Intermodule calls
 
-A compilation or assembly unit can contains more than one module. All code and data addressing is relative to the module itself. Local function calls are instruction counter relative, global data item addressing is TP address relative. and local variables are accessed SP relative. 
+A compilation or assembly unit can contains more than one module. All code and data addressing is relative to the module itself. Local function calls are instruction counter relative, global data item addressing is DP
+ address relative. and local variables are accessed SP relative. 
  
 ```
         Code Space ( SR4 )                                    Data Space ( SR5 )
@@ -3645,7 +3645,7 @@ A compilation or assembly unit can contains more than one module. All code and d
       :                           :                          
       :                           :                         :                          :
       :                           :                         :                          :
-      :===========================:                         :==========================: <-- TP
+      :===========================:                         :==========================: <-- DP
       : Module A code             :                         : Module A globals         :
       :                           :                         :                          :
       :                           :<-- PSW                  :                          :
@@ -3658,8 +3658,7 @@ A compilation or assembly unit can contains more than one module. All code and d
       :                           :                         :                          :
       :===========================:                         :                          :
       :                           : 
-      :                           : 
-      : ...                       : 
+      :                           :
       :                           :                         :                          : 
       :                           :                         :                          :
                                                             :==========================:
@@ -3673,11 +3672,11 @@ A compilation or assembly unit can contains more than one module. All code and d
                                                             :                          :                    
 ```
 
-Invoking a function in a another module requires to reach the target procedure. Furthermore, the TP value for the taget is that of the target module. Assemblers and compilers should not create different calling sequences depending on whether particular call is local to a module or referring to a procedure in another module. The approach is to replace the branch instruction with a branch to a stub, which contains the outgoing code to perform all the operations before calling the target function. Within a module, a calling sequence would be a branch from the calling function to the stub, from the stub to the target function, from the target function back to the stub and then back to the calling function. That is in total four branches. Therefore, a different approach is chosen for intermodule calls within the same compilation unit.
+Invoking a function in a another module requires to reach the target procedure. Furthermore, the DP value for the taget is that of the target module. Assemblers and compilers should not create different calling sequences depending on whether particular call is local to a module or referring to a procedure in another module. The approach is to replace the branch instruction with a branch to a stub, which contains the outgoing code to perform all the operations before calling the target function. Within a module, a calling sequence would be a branch from the calling function to the stub, from the stub to the target function, from the target function back to the stub and then back to the calling function. That is in total four branches. Therefore, a different approach is chosen for intermodule calls within the same compilation unit.
 
 A call to a function in another module is considered a long call. The assembler/compiler creates a long call code sequence. At module compile time, the final target is however not know yet. The long call needs to be updated when the final position of the target module in the code space is known.
 
-Since the target function relies on the TP value of its own module, the TP value may needs to be adjusted. Instead of saving and restoring the callers TP value and setting the new TP value on each call, the callers TP value is placed in a callee save register and thus preserved across a call. The target function needs to load its own TP value when needed. The compilation unit needs for the approach a module table, where for each module the offset of the TP area is kept.
+Since the target function relies on the DP value of its own module, the DP value may needs to be adjusted. Instead of saving and restoring the callers DP value and setting the new DP value on each call, the callers DP value is placed in a callee save register and thus preserved across a call. The target function needs to load its own DP value when needed. The compilation unit needs for the approach a module table, where for each module the offset of the DP area is kept.
 
 The following code snippet shows an intermodule call within the same compilation unit.
 
@@ -3695,7 +3694,8 @@ The following code snippet shows an intermodule call within the same compilation
       func1:   LDI  ARG0, 500
                LDI  ARG1, 300
                LDIL R1,   L%func2
-               BE.L RL,   R%func2 ( SR4, R1 )   ---------->   func2: ; load TP into R11 ... to do ... 
+               BE   RL,   R%func2 ( SR4, R1 )   ---------->   func2: ; load DP
+               into R11 ... to do ... 
 
                                                                         LDW R3, 0( R11 )
                                                                         ADD R2, ACRG0, ARG1
@@ -3707,11 +3707,7 @@ The following code snippet shows an intermodule call within the same compilation
 
 A final topic is inter-module calls within the compilation unit when the target has a different privilege level. The architecture implements a privilege level change via the GATE instruction, which resides on a gateway type page. 
 
-// ??? **note** what exactly is all needed ? Is it only code or also global data at a new priv level ?
-
-// ??? or should we just state that a compilation unit has always the same priv level. If not, it is considered an 
-
-// external call between compilation units ?
+// ??? **note** what exactly is all needed ? Is it only code or also global data at a new priv level ? Or should we just state that a compilation unit has always the same priv level. If not, it is considered an external call ?
 
 ### External Calls
 
@@ -3727,7 +3723,7 @@ An external call is defined as a call that between compilation units that reside
       :------------------------:                               :------------------------:  
       : func "FA"              :                               : func "FB"              : <----: 
       :                        :                               :                        :      :  
-      :  B.L                   : ----:                         :                        :      :
+      :  B                     : ----:                         :                        :      :
       :                        : <--------------------:        :                        :      :
       :                        :     :                :        :  BV                    : ------------:
       :------------------------:     :                :        :------------------------:      :      :
@@ -3788,7 +3784,7 @@ The linkage table is a memory structure built by the load operation. It contains
       :      Call "EXT.FOO"  :      :---->:======================:  |          :-------------------------------: 
       :                      :      :     : Module B externals   :  |          : "FOO" address in Segment      :
       :                      :      :     :                      :  |          :-------------------------------: 
-      :======================: -----:     :                      :  |          : TP Value for Module "EXT"     : 
+      :======================: -----:     :                      :  |          : DP Value for Module "EXT"     : 
       : Module "B"           :            :                      :  |          :-------------------------------: 
       :                      :            :                      :  |
       :                      :            :======================:  |
