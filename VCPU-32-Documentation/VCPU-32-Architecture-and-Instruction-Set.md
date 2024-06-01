@@ -1239,7 +1239,8 @@ Perform an unconditional branch using a base and offset general register for for
 #### Format
 
 ```
-   BV b, a
+   BV r, a( b )
+   BV a( b )
 ```
 
 ```
@@ -1416,8 +1417,8 @@ The compare instructions will compare two operands for the condition specified i
 The compare condition are encoded as follows.
 
 ```
-   0 : EQ ( r == operand )                               1 : NE ( r != operand )
-   2 : LT ( r <  operand, Signed )                       3 : LE ( r <= operand, Signed )
+   0 : EQ ( r == operand )                               2 : NE ( r != operand )
+   1 : LT ( r <  operand, Signed )                       3 : LE ( r <= operand, Signed )
 ```
 
 #### Operation
@@ -3588,8 +3589,7 @@ The function address is loaded by loading the left-hand portion with LDIL instru
 
 ### Module data access
 
-The DP
- register points to the current module global data area. Data items can be accessed with a LD and ST instruction. However, with indexed addressing mode a fairly small data area is directly reachable. A large global data area is typically addressed by forming the address with a two instruction sequence. The following example shows how to load a data word at DP
+The DP register points to the current module global data area. Data items can be accessed with a LD and ST instruction. However, with indexed addressing mode a fairly small data area is directly reachable. A large global data area is typically addressed by forming the address with a two instruction sequence. The following example shows how to load a data word at DP
  relative offset "data_ofs" into R5, both short and long versions.
 
 ```
