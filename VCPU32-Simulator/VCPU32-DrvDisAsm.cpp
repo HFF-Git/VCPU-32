@@ -459,9 +459,9 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             fprintf( stdout, ",r%d", getBitField( instr, 31, 4 ));
             
             if ( getBit( instr, 11 )) fprintf( stdout, ",shamt" );
-            else fprintf( stdout, ",%d", ( 31 - getBitField( instr, 21, 5 )));
+            else fprintf( stdout, ",%d", ( 31 - getBitField( instr, 27, 5 )));
             
-            fprintf( stdout, ",%d", ( 32 - getBitField( instr, 27, 5 )));
+            fprintf( stdout, ",%d", ( 32 - getBitField( instr, 21, 5 )));
             
         } break;
             

@@ -1246,7 +1246,7 @@ Perform an unconditional branch using a base and offset general register for for
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : BV      ( 0x23 ): r      : 0                                          : a         : b         :
+   : BV      ( 0x23 ): r         : 0                                       : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1568,7 +1568,7 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 
 #### Description
 
-The instruction deposits the bit field of length "len" in general register "b" into the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. It is encoded as 31 - pos. The "len" field specifies the bit size if the field to extract. It is encoded as 32 - len. The "Z" bit clears the target register "r" before storing the bit field, the "I" bit specifies that the instruction bits 28..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
+The instruction deposits the bit field of length "len" in general register "b" into the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. It is encoded as 31 - pos. The "len" field specifies the bit size if the field to deposit. It is encoded as 32 - len. The "Z" bit clears the target register "r" before storing the bit field, the "I" bit specifies that the instruction bits 28..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
 
 #### Operation
 
