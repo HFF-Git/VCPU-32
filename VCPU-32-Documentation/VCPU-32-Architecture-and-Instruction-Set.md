@@ -1,13 +1,11 @@
-
+<!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!-- VCPU-32 Document                                                                                   --->
 <!--------------------------------------------------------------------------------------------------------->
-
+<!--------------------------------------------------------------------------------------------------------->
 
 <!--------------------------------------------------------------------------------------------------------->
-<!-- use "&nbsp; " to insert a blank in the table column if too narrow...                               --->
-<!-- a CSS style to make the tables having the possible width of the page                               --->
-<!-- using orphans and widow parameters for keep a block together...                                    --->
+<!-- CSS styles for the document                                                                        --->
 <!--------------------------------------------------------------------------------------------------------->
 
 <style>
@@ -18,7 +16,7 @@
       widow:2;
 	}
    table {
-      width: 100%;
+      width: 90%;
       padding: 12px;
       break-inside: auto;
     }
@@ -26,7 +24,7 @@
     	display: block;
     	margin-left: auto;
      	margin-right: auto;
-	   max-width:100%;
+	   max-width:90%;
     	height: auto;
     }
    blockquote {
@@ -38,12 +36,16 @@
       break-inside: avoid;
       font-size: 12px;
       line-height: 17px;
+      max-width:90%;
+    	height: auto;
       orphans:3;
-      widow:2;
+      widows:2;
    }
    @media print {
       code, blockquote, figure {
          break-inside: avoid;
+         max-width:90%;
+    	   height: auto;
       }
       table {
          break-inside: auto;
@@ -55,7 +57,9 @@
       }
       h1, h2, h3, h4, h5, h6 { 
          page-break-after:avoid; 
-         page-break-inside:avoid 
+         page-break-inside:avoid;
+         orphans:3;
+         widows:2; 
       }
    }
    @page { 
@@ -63,7 +67,8 @@
       margin-top:1.7cm; 
       margin-bottom:1.7cm; 
       margin-left:1.7cm; 
-      margin-right:1.7cm  }
+      margin-right:1.7cm 
+   }
    .hljs {
       break-inside: avoid;
    }
@@ -78,6 +83,16 @@
 Helmut Fieres
 Version B.00.05
 May, 2024
+
+<!--------------------------------------------------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+<!-- Chapter - Table of Content  -------------------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
+## Table of Content
 
 - [VCPU-32 System Architecture and Instruction Set Reference](#vcpu-32-system-architecture-and-instruction-set-reference)
   - [Introduction](#introduction)
@@ -196,11 +211,9 @@ May, 2024
   - [References](#references)
 
 
-
-
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
+<!-- Chapter - Introduction ------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -640,7 +653,7 @@ To be defined ...
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
+<!-- Chapter - Instruction Set Overview ------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -737,7 +750,7 @@ The **DIAG** instruction is a control instructions to issue hardware specific im
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
+<!-- Chapter - Instruction Set Reference ------------------------------------------------------------------>
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -1308,8 +1321,9 @@ Since the BVE instruction is a segment base relative branch, a branch to page wi
    SR[0] <- IA-SEG;
    GR[r] <- IA-OFS + 4;
 
-   IA-SEG <- segSelect( GR[b] );
    IA-OFS <- GR[b] + GR[a];
+   IA-SEG <- SR[segSelect( IA_OFS )];
+   
 ```
 
 #### Exceptions
@@ -1782,8 +1796,6 @@ The GATE instruction computes the target address by shifting the low sign extend
 
 The access rights field in of the gateway page defines the potential privilege change when executing the gateway instruction. PL1 can be seen as an entry privilege level. If the current privilege level is lower than PL1 a trap is raised. PL2 is the promotion level. If the current privilege level is lower than the PL2 level, it will be raised to the PL2 level. Note that zero is the highest level and one is the lowest level.
 
-None.
-
 | Access Right PL1 | Access Right PL2 | current PrivLevel | new PrivLevel |
 |:---|:---|:---|:---|
 | 0 | 0 | 0 | 0 |
@@ -1870,8 +1882,8 @@ Loads a memory value into a general register using a logical address.
 #### Format
 
 ```
-   LDw [.M] r, ofs(b)          w = B|H|W
-   LDw.X [M] r, a(b)           w = B|H|W
+   LDw [.M] r, ofs([s,] b)          w = B|H|W
+   LDw.X [M] r, a([s,] b)           w = B|H|W
 ```
 
 ```
@@ -1914,7 +1926,7 @@ The load instruction will load the operand into the general register "r". The of
    if ( instr.[12..13] == 0 ) seg = segSelect( offset );
    else                       seg = instr.[12..13];
    
-   GR[r] <- zeroExtend( memLoad( seg, offset, len ), len );
+   GR[r] <- zeroExtend( memLoad( SR[seg], offset, len ), len );
 
    if ( instr.[10] ) GR[b] <- GR[b] + GR[a];
    else              GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
@@ -2118,7 +2130,7 @@ Load the physical address for a virtual address.
 #### Format
 
 ```
-   LDPA r, a(b)
+   LDPA r, a([s,] b)
 ```
 
 ```
@@ -2138,9 +2150,11 @@ The LDPA instruction returns the physical address for a logical or virtual addre
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
 
    ofs <- GR[b] + GR[a];
-   seg <- segSelect( ofs );
 
-   GR[r] <- loadPhysAdr( seg, ofs );
+   if ( instr.[12..13] == 0 ) seg = segSelect( ofs );
+   else                       seg = instr.[12..13];
+
+   GR[r] <- loadPhysAdr( SR[seg], ofs );
 ```
 
 #### Exceptions
@@ -2166,7 +2180,7 @@ Loads the operand into the target register from the address and marks that addre
 #### Format
 
 ```
-   LDR r, ofs(b)
+   LDR r, ofs([s,] b)
 ```
 
 ```
@@ -2189,7 +2203,7 @@ The LDR instruction is used for implementing semaphore type operations. The firs
    if ( instr.[12..13] == 0 ) seg = segSelect( offset );
    else                       seg = instr.[12..13];
   
-   GR[r] <- memLoad( seg, offset, 32 );
+   GR[r] <- memLoad( SR[seg], offset, 32 );
       
    lrValid = true;
    lrArg   = GR[r];
@@ -2469,7 +2483,7 @@ Probe data access to a virtual address.
 #### Format
 
 ```
-   PRB [.<opt>] r, operand
+   PRB [.<opt>] r, ([s,] b) 
 ```
 
 ```
@@ -2481,12 +2495,15 @@ Probe data access to a virtual address.
 
 #### Description
 
-The PRB instruction determines whether data access at the requested privilege level stored in the general register "r" is allowed. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "M" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. The "P" bit designates the privilege level to use for the probe operation. If the "I" bit is set, the PRB instruction uses the value in register "a" as the privilege level to test for instead of the "P" bit in the status register. If protection checking is enabled, the protection Id is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
+The PRB instruction determines whether data access at the requested privilege level stored in the general register "r" is allowed. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "M" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. The "P" bit designates the privilege level to use for the probe operation. The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. If the "I" bit is set, the PRB instruction uses the value in register "a" as the privilege level to test for instead of the "P" bit in the status register. If protection checking is enabled, the protection Id is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
 
 #### Operation
 
 ```
-   if ( ! searchDataTlbEntry( seg, ofs, &entry )) {
+   if ( instr.[12..13] == 0 ) seg = segSelect( offset );
+   else                       seg = instr.[12..13];
+
+   if ( ! searchDataTlbEntry( SR[seg], ofs, &entry )) {
 
       if ( instr.[I] ) {
 
@@ -2786,7 +2803,7 @@ Stores a general register value into memory using a logical address.
 #### Format
 
 ```
-   STw [.M] operand, r         w = B|H|W
+   STw [.M] ofs ([s,] b), r         w = B|H|W
 ```
 
 ```
@@ -2820,7 +2837,7 @@ The store instruction will store the data in general register "r" to memory. The
    if ( instr.[12..13] == 0 ) seg = segSelect( offset );
    else                       seg = instr.[12..13];
 
-   memStore( seg, GR[b] + lowSignExtend( ofs, 12 ), GR[r], len );
+   memStore( SR[seg], GR[b] + lowSignExtend( ofs, 12 ), GR[r], len );
 
     GR[b] = GR[b] + lowSignExtend( ofs, 12 );
 ```
@@ -2907,7 +2924,7 @@ Conditionally store a value to memory.
 #### Format
 
 ```
-   STC operand r
+   STC ofs ( [s,] b),  r
 ```
 
 ```
@@ -2928,10 +2945,10 @@ The STC conditional instruction will store a value in "r" to the memory location
 
       ofs = GR[b] + lowSignExtend( ofs, 12 );
 
-      if ( instr.[12..13] == 0 ) seg = segSelect( offset );
+      if ( instr.[12..13] == 0 ) seg = segSelect( ofs );
       else                       seg = instr.[12..13];
       
-      memStore( seg, ofs, GR[r], 32 );
+      memStore( SR[seg], ofs, GR[r], 32 );
       GR[r] <- 0;
 
    } else GR[r] <- 1;
@@ -3223,7 +3240,7 @@ TLBs are explicitly managed by software. The ITLB and PTLB instruction allow for
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
+<!-- Chapter - VCPU-32 Runtime Environment ---------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -3830,7 +3847,7 @@ The linkage table is a memory structure built by the load operation. It contains
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
+<!-- Chapter -  Processor Dependent Code ------------------------------------------------------------------>
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -3851,7 +3868,7 @@ Part of the I/O memory address range is allocated to processor dependent code.
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
+<!-- Chapter - VCPU-32 Input/Output system ---------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -3884,7 +3901,7 @@ VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory add
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
+<!-- Chapter - Instruction Set Summary -------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -4042,7 +4059,7 @@ This appendix lists all instructions by instruction group.
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
+<!-- Chapter - Instruction Operation Description Functions ------------------------------------------------>
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -4083,7 +4100,7 @@ Instruction operations are described in a pseudo C style language using assignme
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
+<!-- Chapter - A pipelined CPU model ---------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -4106,7 +4123,7 @@ Note that this is perhaps one of many ways to implement a pipeline. The three ma
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
+<!-- Chapter - Notes -------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -4118,7 +4135,7 @@ None so far.
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter -->
+<!-- Chapter - References --------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 

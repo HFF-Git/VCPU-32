@@ -23,8 +23,8 @@
 #ifndef VCPU32Version_hpp
 #define VCPU32Version_hpp
 
-const char VERSION[ ]   = "B.00.03";
-const char BRANCH[ ]    = "16-Register-Index-Proposal";
+const char VERSION[ ]   = "B.00.05";
+const char BRANCH[ ]    = "Main Branch";
 const int  PATCH_LEVEL  = 1;
 
 #endif
