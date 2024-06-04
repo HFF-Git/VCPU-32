@@ -95,6 +95,7 @@ May, 2024
 ## Table of Content
 
 - [VCPU-32 System Architecture and Instruction Set Reference](#vcpu-32-system-architecture-and-instruction-set-reference)
+  - [Table of Content](#table-of-content)
   - [Introduction](#introduction)
   - [Architecture Overview](#architecture-overview)
     - [A Register Memory Architecture.](#a-register-memory-architecture)
@@ -2079,12 +2080,12 @@ will load the left hand side of the 32-bit value "val" into R10 and use the LDO 
 
 <hr>
 
-Loads the effective address offset of the operand.
+Loads an offset into general register.
 
 #### Format
 
 ```
-   LDO r, operand         
+   LDO r, ofs ( b )         
 ```
 
 ```
