@@ -1884,7 +1884,7 @@ Loads a memory value into a general register using a logical address.
 
 ```
    LDw [.M] r, ofs([s,] b)          w = B|H|W
-   LDw.X [M] r, a([s,] b)           w = B|H|W
+   LDw [.M] r, a([s,] b)            w = B|H|W
 ```
 
 ```
@@ -1892,7 +1892,7 @@ Loads a memory value into a general register using a logical address.
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : LDw     ( 0x30 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDw.X   ( 0x30 ): r         :1 :M : seg : dw  : 0                      : a        : b         :
+   : LDw     ( 0x30 ): r         :1 :M : seg : dw  : 0                      : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1966,7 +1966,7 @@ Loads the memory content into a general register using an absolute address.
 
 ```
    LDA [.M] r, ofs(b)
-   LDA.X [M] r, a(b)
+   LDA [.M] r, a(b)
 ```
 
 ```
@@ -1974,7 +1974,7 @@ Loads the memory content into a general register using an absolute address.
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : LDA     ( 0x32 ): r         :0 :M : 0   : 2   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDA.X   ( 0x32 ): r         :1 :M : 0   : 2   : 0                      : a        : b         :
+   : LDA     ( 0x32 ): r         :1 :M : 0   : 2   : 0                      : a        : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2484,7 +2484,8 @@ Probe data access to a virtual address.
 #### Format
 
 ```
-   PRB [.<opt>] r, ([s,] b) 
+   PRB [.<opt>] r, ([s,] b)
+   PRB [.<opt>] r, ([s,] b), a 
 ```
 
 ```
@@ -2496,7 +2497,7 @@ Probe data access to a virtual address.
 
 #### Description
 
-The PRB instruction determines whether data access at the requested privilege level stored in the general register "r" is allowed. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "M" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. The "P" bit designates the privilege level to use for the probe operation. The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. If the "I" bit is set, the PRB instruction uses the value in register "a" as the privilege level to test for instead of the "P" bit in the status register. If protection checking is enabled, the protection Id is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
+The PRB instruction determines whether data access at the requested privilege level stored in the general register "a" is allowed. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "M" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. The "P" bit designates the privilege level to use for the probe operation. The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. If the "I" bit is set, the PRB instruction uses the value in register "a" as the privilege level to test for instead of the "P" bit in the status register. If protection checking is enabled, the protection Id is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
 
 #### Operation
 
@@ -3992,7 +3993,7 @@ This appendix lists all instructions by instruction group.
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
    : LDw     ( 0x30 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : LDw.X   ( 0x30 ): r         :1 :M : seg : dw  : 0                     : a         : b         :
+   : LDw     ( 0x30 ): r         :1 :M : seg : dw  : 0                     : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : STw     ( 0x31 ): r         :0 :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
@@ -4002,7 +4003,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : LDA     ( 0x32 ): r         :0 :M : 0   : 2   : ofs                               : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-   : LDA.X   ( 0x32 ): r         :1 :M : 0   : 2   : 0                     : a         : b         : 
+   : LDA     ( 0x32 ): r         :1 :M : 0   : 2   : 0                     : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
    : STA     ( 0x33 ): r         :0 :M : 0   : 2   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:

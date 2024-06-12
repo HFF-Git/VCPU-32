@@ -237,15 +237,7 @@ void displayOpCodeOptions( uint32_t instr ) {
         case OP_LD:     case OP_ST:
         case OP_LDA:    case OP_STA: {
             
-            if ( getBit( instr, 10 )) {
-                
-                if ( getBit( instr, 11 )) fprintf( stdout, ".XM" );
-                else fprintf( stdout, ".X" );
-            }
-            else {
-                
-                if ( getBit( instr, 11 )) fprintf( stdout, ".M" );
-            }
+            if ( getBit( instr, 11 )) fprintf( stdout, ".M" );
             
         } break;
             
@@ -358,6 +350,8 @@ void displayOpCodeOptions( uint32_t instr ) {
             if ( getBit( instr, 10 )) fprintf( stdout, ".W" );
             else fprintf( stdout, ".R" );
             
+            if ( getBit( instr, 4 ))fprintf( stdout, "I" );
+            
         } break;
             
         case OP_ITLB: {
@@ -412,7 +406,7 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
     }
     else if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
         
-        printImmVal( getBitField( instr, 27, 12 ));
+        printImmVal(  immGenPosLenLowSign( instr, 27, 12 ), TOK_DEC );
         
         if( getBitField( instr, 13, 2 ) == 0 ) {
             
@@ -505,16 +499,16 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
                 else {
                     
                     fprintf( stdout, ", r%d(s%d, r%d)",
-                            getBitField( instr, 13, 2 ),
                             getBitField( instr, 27, 4 ),
+                            getBitField( instr, 13, 2 ),
                             getBitField( instr, 31, 4 ));
                 }
             }
             else {
                 
                 fprintf( stdout, ", " );
-                printImmVal( getBitField( instr, 27, 12 ));
-                
+                printImmVal(  immGenPosLenLowSign( instr, 27, 12 ), TOK_DEC );
+               
                 if ( getBitField( instr, 13, 2 ) == 0 ) {
                     
                     fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
@@ -536,7 +530,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             else {
                 
                 fprintf( stdout, ", " );
-                printImmVal( getBitField( instr, 27, 12 ));
+                printImmVal( immGenPosLenLowSign( instr, 27, 12 ), TOK_DEC );
                 fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
             }
         
@@ -544,7 +538,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         case OP_ST: case OP_STA: case OP_LDR: case OP_STC: {
             
-            fprintf( stdout, ", r%d", getBitField( instr, 31, 4 ));
+            fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
             
         } break;
         
@@ -627,12 +621,12 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
             if ( getBitField( instr, 13, 2 ) > 0 ) {
                 
-                fprintf( stdout, ", (s%d, r%d), ", getBitField(instr, 13, 2 ), getBitField( instr, 31, 4 ));
+                fprintf( stdout, ", (s%d, r%d)", getBitField(instr, 13, 2 ), getBitField( instr, 31, 4 ));
             }
-            else fprintf( stdout, ", (r%d), ", getBitField( instr, 31, 4 ));
+            else fprintf( stdout, ", (r%d)", getBitField( instr, 31, 4 ));
             
-            if ( getBit( instr, 14 ))   fprintf( stdout, "r%d", getBitField( instr, 27, 4 ));
-            else                        fprintf( stdout, "%d", getBit( instr, 11 ));
+            if ( getBit( instr, 14 ))   fprintf( stdout, ", r%d", getBitField( instr, 27, 4 ));
+            else                        fprintf( stdout, ", %d", getBit( instr, 11 ));
             
         } break;
         
