@@ -82,7 +82,7 @@
 
 Helmut Fieres
 Version B.00.05
-May, 2024
+June, 2024
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
@@ -1019,7 +1019,7 @@ Performs a bitwise AND of the operand and the target register and stores the res
 
 #### Description
 
-The instruction fetches the data specified by the operand and performs a bitwise AND of the general register "r" and the operand fetched. The result is stored in general register "r". The "N" bit allows to negate the result making the AND a NAND operation. The "C" bit allows to complement ( 1's complement ) the operand input, which is the "b" register. See the section on operand encoding for the defined operand modes.
+The instruction fetches the data specified by the operand and performs a bitwise AND of the general register "r" and the operand fetched. The result is stored in general register "r". The "N" bit negates the result making the AND a NAND operation. The "C" allows to complement ( 1's complement ) the operand input, which is the "b" register. Using both "C" and "N" is an undefined operation. See the section on operand encoding for the defined operand modes.
 
 #### Operation
 
@@ -1043,7 +1043,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
       } break;     
    }
 
-   if ( instr.[C]) tmpB <- ~ tmpB;
+   if (( instr.[C]) && ( ~  ( instr.[C]))) tmpB <- ~ tmpB;
    res <- tmpA & tmpB;
 
    if ( instr.[N]) res <- ~ res;
@@ -2427,7 +2427,7 @@ Performs a bitwise OR of the operand and the target register and stores the resu
 
 #### Description
 
-The instruction fetches the data specified by the operand and performs a bitwise OR of the general register "r" and the operand fetched. The result is stored in general register "r". The N bit allows to negate the result making the OR a NOR operation. The C bit allows to complement ( 1's complement ) the operand input, which is the regB register. See the section on operand encoding for the defined operand modes.
+The instruction fetches the data specified by the operand and performs a bitwise OR of the general register "r" and the operand fetched. The result is stored in general register "r". The N bit negates the result making the AND a NAND operation. The C allows to complement ( 1's complement ) the operand input, which is the "b" register. Using both C and N is an undefined operation. See the section on operand encoding for the defined operand modes.
 
 #### Operation
 
@@ -2451,7 +2451,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
       } break;     
    }
 
-   if ( instr.[C]) tmpB <- ~ tmpB;
+   if (( instr.[C]) && ( ~  ( instr.[C]))) tmpB <- ~ tmpB;
    res <- tmpA | tmpB;
 
    if ( instr.[N]) res <- ~ res;
@@ -3062,13 +3062,13 @@ Performs a bitwise XORing the operand and the target register and stores the res
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : XORw    ( 0x16 ): r         :N :C : operand                                                   :
+   : XORw    ( 0x16 ): r         :N :0 : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The instruction fetches the data specified by the operand and performs a bitwise XOR of the general register "r" and the operand fetched. The result is stored in general register "r". The "N" bit allows to negate the result making the XOR a XNOR operation. The "C" bit allows to complement ( 1's complement ) the operand input, which is the "b"" register. See the section on operand encoding for the defined operand modes.
+The instruction fetches the data specified by the operand and performs a bitwise XOR of the general register "r" and the operand fetched. The result is stored in general register "r". The "N" bit allows to negate the result making the XOR a XNOR operation. See the section on operand encoding for the defined operand modes.
 
 #### Operation
 
@@ -3092,7 +3092,6 @@ The instruction fetches the data specified by the operand and performs a bitwise
       } break;     
    }
 
-   if ( instr.[C]) tmpB <- ~ tmpB;
    res <- tmpA ^ tmpB;
    
    if ( instr.[N]) res <- ~ res;
