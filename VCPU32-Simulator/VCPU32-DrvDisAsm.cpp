@@ -254,8 +254,7 @@ void displayOpCodeOptions( uint32_t instr ) {
         } break;
             
         case OP_AND:
-        case OP_OR:
-        case OP_XOR: {
+        case OP_OR: {
             
             if ( getBitField( instr, 11, 2 ) > 0 ) {
                 
@@ -263,6 +262,12 @@ void displayOpCodeOptions( uint32_t instr ) {
                 if ( getBit( instr, 10 )) fprintf( stdout, "N" );
                 if ( getBit( instr, 11 )) fprintf( stdout, "C" );
             }
+            
+        } break;
+        
+        case OP_XOR: {
+            
+            if ( getBit( instr, 10 )) fprintf( stdout, ".N" );
             
         } break;
             
@@ -347,11 +352,13 @@ void displayOpCodeOptions( uint32_t instr ) {
             
         case OP_PRB: {
             
-            if ( getBit( instr, 10 )) fprintf( stdout, ".W" );
-            else fprintf( stdout, ".R" );
-            
-            if ( getBit( instr, 4 ))fprintf( stdout, "I" );
-            
+            if (( getBit( instr, 10 ) || getBit( instr, 4 ))) {
+                
+                fprintf( stdout, "." );
+                if ( getBit( instr, 10 )) fprintf( stdout, "M" );
+                if ( getBit( instr, 4 ))fprintf( stdout, "I" );
+            }
+           
         } break;
             
         case OP_ITLB: {
@@ -461,9 +468,9 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             fprintf( stdout, ",r%d", getBitField( instr, 31, 4 ));
             
             if ( getBit( instr, 11 )) fprintf( stdout, ",shamt" );
-            else fprintf( stdout, ",%d", ( 31 - getBitField( instr, 27, 5 )));
+            else fprintf( stdout, ",%d", getBitField( instr, 27, 5 ));
             
-            fprintf( stdout, ",%d", ( 32 - getBitField( instr, 21, 5 )));
+            fprintf( stdout, ",%d", getBitField( instr, 21, 5 ));
             
         } break;
             
