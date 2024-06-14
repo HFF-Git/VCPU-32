@@ -1583,7 +1583,7 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 
 #### Description
 
-The instruction deposits the bit field of length "len" in general register "b" into the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. It is encoded as 31 - pos. The "len" field specifies the bit size if the field to deposit. It is encoded as 32 - len. The "Z" bit clears the target register "r" before storing the bit field, the "I" bit specifies that the instruction bits 28..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
+The instruction deposits the bit field of length "len" in general register "b" into the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. The "len" field specifies the bit size if the field to deposit. The "Z" bit clears the target register "r" before storing the bit field, the "I" bit specifies that the instruction bits 28..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
 
 #### Operation
 
@@ -1722,7 +1722,7 @@ Performs a bit field extract from a general register and stores the result in th
 
 #### Description
 
-The instruction performs a bit field extract specified by the position and length instruction data from general register "b". The "pos" field specifies the rightmost bit of the bitfield to extract. It is encoded as 31 - pos. The "len" field specifies the bit size if the field to extract. It is encoded as 32 - len. The extracted bit field is stored right justified in the general register "r". If set, the "S" bit allows to sign extend the extracted bit field. If the "A" bit is set, the shift amount control register is used for obtaining the position value instead of the instruction field.
+The instruction performs a bit field extract specified by the position and length instruction data from general register "b". The "pos" field specifies the rightmost bit of the bitfield to extract. The "len" field specifies the bit size if the field to extract. The extracted bit field is stored right justified in the general register "r". If set, the "S" bit allows to sign extend the extracted bit field. If the "A" bit is set, the shift amount control register is used for obtaining the position value instead of the instruction field.
 
 #### Operation
 
@@ -3945,7 +3945,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : OR      ( 0x15 ): r         :N :C : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
-   : XOR     ( 0x16 ): r         :N :C : operand                                                   :
+   : XOR     ( 0x16 ): r         :N :0 : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
    : CMP     ( 0x17 ): r         :cond : operand                                                   :
    :-----------------:-----------------------------------------------------------------------------:
