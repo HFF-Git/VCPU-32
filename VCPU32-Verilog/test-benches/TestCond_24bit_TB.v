@@ -20,13 +20,13 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-`include "../hdl/CPU24.v"
+`include "../hdl/VCPU32.v"
 
 `timescale 10ns / 1ns
 
-module TestCond_24bit_TB;
+module TestCond_32bit_TB;
 
-	reg[0:23] 	A_TB 	= 0;
+	reg[0:31] 	A_TB 	= 0;
 	reg[0:2]	OP_TB 	= 0;
 
 	wire		Y_TB;
@@ -44,7 +44,7 @@ module TestCond_24bit_TB;
 
 	task applyTest ( 
 		
-		input [0:23] 	a, 
+		input [0:31] 	a, 
 		input [0:2] 	op,
 
 		input 			res 
@@ -72,28 +72,28 @@ module TestCond_24bit_TB;
 
 		setupTest( );
 
-		applyTest( 24'h0, 0, 1 );
+		applyTest( 32'h0, 0, 1 );
 
-		applyTest( 24'h0, 1, 0 );
-		applyTest( 24'h1, 1, 1 );
+		applyTest( 32'h0, 1, 0 );
+		applyTest( 32'h1, 1, 1 );
 
-		applyTest( 24'hF010FF, 2, 1 );
-		applyTest( 24'h7010FF, 2, 0 );
+		applyTest( 32'hF010FF, 2, 1 );
+		applyTest( 32'h7010FF, 2, 0 );
 
-		applyTest( 24'hF010FF, 3, 0 );
-		applyTest( 24'h7010FF, 3, 1 );
+		applyTest( 32'hF010FF, 3, 0 );
+		applyTest( 32'h7010FF, 3, 1 );
 
-		applyTest( 24'h0, 4, 1 );
-		applyTest( 24'h7010FF, 4, 0 );
+		applyTest( 32'h0, 4, 1 );
+		applyTest( 32'h7010FF, 4, 0 );
 
-		applyTest( 24'hF010FF, 5, 0 );
-		applyTest( 24'h7010FF, 5, 1 );
+		applyTest( 32'hF010FF, 5, 0 );
+		applyTest( 32'h7010FF, 5, 1 );
 
-		applyTest( 24'hF010FF, 6, 0 );
-		applyTest( 24'hF010FE, 6, 1 );
+		applyTest( 32'hF010FF, 6, 0 );
+		applyTest( 32'hF010FE, 6, 1 );
 		
-		applyTest( 24'hF010FE, 7, 0 );
-		applyTest( 24'hF010FF, 7, 1 );
+		applyTest( 32'hF010FE, 7, 0 );
+		applyTest( 32'hF010FF, 7, 1 );
 
    		#10 $finish;
 		

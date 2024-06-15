@@ -20,19 +20,19 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-`include "../hdl/CPU24.v"
+`include "../hdl/VCPU32.v"
 
 `timescale 10ns / 1ns
 
 module Mux_4_1_TB;
 
-	reg[0:23] 	A0_TB 	= 24'h010101;
-	reg[0:23] 	A1_TB 	= 24'h020202;
-	reg[0:23] 	A2_TB 	= 24'h030303;
-	reg[0:23] 	A3_TB 	= 24'h040404;
+	reg[0:31] 	A0_TB 	= 32'h010101;
+	reg[0:31] 	A1_TB 	= 32'h020202;
+	reg[0:31] 	A2_TB 	= 32'h030303;
+	reg[0:31] 	A3_TB 	= 32'h040404;
 	reg[0:1]	SEL_TB 	= 0;
 	reg			ENB_TB  = 1;
-	wire[0:23]	Y_TB;
+	wire[0:31]	Y_TB;
 
 	task setupTest;
 

@@ -28,9 +28,9 @@
 	if ( isVal != toBeVal ) begin $display( "FAIL in %m" ); $finish; end \
 	else                    begin $display( "PASS" ); end
 
-module SignExtend_24bit_TB;
+module SignExtend_32bit_TB;
 
-	reg[0:23] 	A_TB 	= 0;
+	reg[0:31] 	A_TB 	= 0;
 	reg[0:4]	POS_TB 	= 0;
 
 	wire[0:23]  Y_TB;
@@ -54,13 +54,13 @@ module SignExtend_24bit_TB;
 
 	endtask
 	
-	SignExtend_24bit DUT ( .a( A_TB ), .pos( POS_TB ), .y( Y_TB ));
+	SignExtend_32bit DUT ( .a( A_TB ), .pos( POS_TB ), .y( Y_TB ));
 
 	initial begin
 
 		setupTest( );
  		
-   		A_TB 	= 24'h0000FF;
+   		A_TB 	= 32'h0000FF;
    		POS_TB 	= 16;
    		#10 $display( "A: 0x%h, OP: %d -> Y: 0x%h", A_TB, POS_TB, Y_TB );
    		`assert_TB ( Y_TB,  24'hFFFFFF )

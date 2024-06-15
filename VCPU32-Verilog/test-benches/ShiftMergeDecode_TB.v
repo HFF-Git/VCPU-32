@@ -21,15 +21,15 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-`include "../hdl/CPU24.v"
+`include "../hdl/VCPU32.v"
 
 `timescale 1ns/1ns
 
 module ShiftMergeDecode_TB;
 
 	reg			clock_TB;
-	reg[0:23]	instr_TB;
-	reg[0:23]	shamtIn_TB;
+	reg[0:31]	instr_TB;
+	reg[0:31]	shamtIn_TB;
 	
 	wire[0:4]   shamtOut_TB;
 	wire[0:4]   posLeft_TB;

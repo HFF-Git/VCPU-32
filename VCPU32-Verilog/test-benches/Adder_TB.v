@@ -21,7 +21,7 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-`include "../hdl/CPU24.v"
+`include "../hdl/VCPU32.v"
 
 `timescale 10ns / 1ns
 
@@ -74,11 +74,11 @@ module Adder_TB;
 
 		setupTest( );
 
-		applyTest( 24'd0, 24'd0, 0 );
-		applyTest( 24'd10, 24'd5, 0 );
-		applyTest( 24'd0, 24'd5, 0 );
-		applyTest( 24'd10, 24'd31, 1 );
-		applyTest( 24'hFFFFFF, 24'd1, 0 );
+		applyTest( 32'd0, 32'd0, 0 );
+		applyTest( 32'd10, 32'd5, 0 );
+		applyTest( 32'd0, 32'd5, 0 );
+		applyTest( 32'd10, 32'd31, 1 );
+		applyTest( 32'hFFFFFFFF, 32'd1, 0 );
 
    		#10 $finish;
 		

@@ -21,7 +21,7 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-`include "../hdl/CPU24.v"
+`include "../hdl/VCPU32.v"
 
 `timescale 10ns / 1ns
 
@@ -46,9 +46,9 @@ module Incrementer_TB;
 
 	task applyTest ( 
 		
-		input [0:23]	a
+		input [0:31]	a
 		
-		);
+	);
 
 		begin
 
@@ -77,9 +77,9 @@ module Incrementer_TB;
 
 		setupTest( );
 
-		applyTest( 24'd0 ); 
-		applyTest( 24'd10 );
-		applyTest( 24'hFFFFFF );
+		applyTest( 32'd0 ); 
+		applyTest( 32'd10 );
+		applyTest( 32'hFFFFFFFF );
    	
    		#50 $finish;
 		

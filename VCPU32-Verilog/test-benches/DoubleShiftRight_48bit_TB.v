@@ -21,22 +21,22 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-`include "../hdl/CPU24.v"
+`include "../hdl/VCPU32.v"
 
 `timescale 1ns/1ns
 
 module DoubleShiftRight_48bit_TB;
 
-   	reg[0:23]  	A_TB, B_TB;
+   	reg[0:31]  	A_TB, B_TB;
    	reg[0:4]   	SA_TB;
-   	wire[0:23] 	Y_TB;
+   	wire[0:31] 	Y_TB;
 
 	task setupTest;
 
 		begin
 
-		$dumpfile( "DoubleShiftRight_48bit_TB.vcd" );
-   		$dumpvars( 0, DoubleShiftRight_48bit_TB );
+		$dumpfile( "DoubleShiftRight_64bit_TB.vcd" );
+   		$dumpvars( 0, DoubleShiftRight_64bit_TB );
 
 		end
 
@@ -50,14 +50,14 @@ module DoubleShiftRight_48bit_TB;
 
 	endtask
 
-	DoubleShiftRight_48bit DUT ( .a( A_TB ), .b( B_TB ), .sa( SA_TB ), .y( Y_TB ));
+	DoubleShiftRight_64bit DUT ( .a( A_TB ), .b( B_TB ), .sa( SA_TB ), .y( Y_TB ));
 		
 	initial begin
 
  		setupTest( );
    		
-   		A_TB 	= 24'h00FF0F;
-		B_TB 	= 24'h000FFF;
+   		A_TB 	= 32'h00FF0F;
+		B_TB 	= 32'h000FFF;
 		SA_TB 	= 5;
  		#10 $display( "A: 0x%h, B: 0x%h, SA: %d -> Y: 0x%h", A_TB, B_TB, SA_TB, Y_TB );	
 

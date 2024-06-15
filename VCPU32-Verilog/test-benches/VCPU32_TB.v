@@ -1,14 +1,14 @@
-
 //------------------------------------------------------------------------------------------------------------
 //
-// Adder_CLA_24bit - Testbench
+// VCPU-32 - Testbench
 //
 //------------------------------------------------------------------------------------------------------------
-// This module is the test bench for the 24-bit carry lookahead adder, 24-bt wide.
+// This module is the test bench for the VCPU-32 verilog file. It is primarily used to have a way to compile 
+// the CPU file.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// Adder_CLA_4bit - Testbench
+// VCPU-32 - Testbench
 // Copyright (C) 2022 - 2024 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -21,61 +21,58 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-`include "../hdl/CPU24.v"
+`include "../hdl/VCPU32.v"
 
 `timescale 10ns / 1ns
 
-module Adder_CLA_24bit_TB;
+module VCPU32_TB;
 
-	reg[0:`WORD_LENGTH-1] 	A_TB 	= 0;
-	reg[0:`WORD_LENGTH-1] 	B_TB 	= 0;
-	reg						C_IN_TB = 0;
-
-	wire[0:`WORD_LENGTH-1]	S_TB;
-	wire 					C_TB;
+	reg 	CLK_TB 	= 1;
+	reg     RST_TB 	= 0;
 
 	task setupTest;
 
 		begin
 
-		$dumpfile( "Adder_CLA_24bit_TB.vcd" );
-   		$dumpvars( 0, Adder_CLA_24bit_TB );
+		$dumpfile( "VCPU32_TB.vcd" );
+   		$dumpvars( 0, VCPU32_TB );
 
 		end
 
 	endtask
 
-	task applyTest ( 
-
-		input [0:23] a, 
-		input [0:23] b,
-		input 		 cIn
-
-		);
+	task resetCpu;
 
 		begin
 
-			A_TB 	= a;
-			B_TB 	= b;
-			C_IN_TB = cIn;
-			#10 $display( "A: 0x%h, B: 0x%h, cIn: %d -> S: 0x%h, C: %d", A_TB, B_TB, C_IN_TB, S_TB, C_TB );
+				RST_TB = 1'b0;
+			#2 	RST_TB = 1'b1;
+
+		end
+
+	endtask
+
+	task applyTest;
+
+		begin
 	
 		end
 
 	endtask
-	
-	Adder_CLA_24bit DUT ( .a( A_TB ), .b( B_TB ), .inC( C_IN_TB ), .s( S_TB ), .outC( C_TB ));
+
+	VCPU32 DUT ( .clk( CLK_TB ), .rst( RST_TB ));
+
+	always begin
+		
+		#1 CLK_TB = ~ CLK_TB;
+	end
 
 	initial begin
 
- 		setupTest( );
+		setupTest( );
+		resetCpu( );
 
-		applyTest( 24'd0, 24'd0, 0 );
-		applyTest( 24'd10, 24'd5, 0 );
-		applyTest( 24'd1, 24'd15, 0 );
-		applyTest( 24'hFFFFFF, 24'd1, 0 );
-		
-   		#10 $finish;
+   		#20 $finish;
 		
 	end
 

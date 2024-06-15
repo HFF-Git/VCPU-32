@@ -795,8 +795,7 @@ endmodule
 // the pipeline stages.
 //
 // ??? "sel" will be set by the control circuitry.
-// ??? really ugly: we don't know if this is a 32-bit or 22-bit address. This will lead to a rethinking how
-// addresses are defined. We perhaps need to shift to "byte" (12-bit) addressing. Sigh...
+//
 //------------------------------------------------------------------------------------------------------------
 module SelectNextInstrAdr( 
 
@@ -853,7 +852,7 @@ endmodule
 //------------------------------------------------------------------------------------------------------------
 // "FetchSubStage" is the first part of the fetch and decode stage. 
 //
-//
+// ??? do we have another regfile unit write for two regfile writes ?
 //------------------------------------------------------------------------------------------------------------
 module FetchSubStage( 
    
@@ -1864,7 +1863,7 @@ module RegFileUnit #(
    parameter WIDTH   = `WORD_LENGTH
  
    ) (
-
+      
    input    wire                       clk,
    input    wire                       rst,
    input    wire                       write,
@@ -1872,25 +1871,32 @@ module RegFileUnit #(
    input    wire [0:WIDTH-1]           wrData,
    input    wire [0:$clog2( SIZE )-1]  rdAddrA,
    input    wire [0:$clog2( SIZE )-1]  rdAddrB,
+   input    wire                       sIn,
+
    output   wire [0:WIDTH-1]           rdDataA,
-   output   wire [0:WIDTH-1]           rdDataB
+   output   wire [0:WIDTH-1]           rdDataB,
+   output   wire                       sOut
 
    );
 
-   reg [0:WIDTH-1] regFile [0:SIZE-1];
+   reg [0:WIDTH-1] regFile [0:SIZE-2];
 
-   assign rdDataA = regFile[rdAddrA];
-   assign rdDataB = regFile[rdAddrB];
+   assign rdDataA = ( rdAddrA == 0 ) ? 32'h0 : regFile[rdAddrA];
+   assign rdDataB = ( rdAddrB == 0 ) ? 32'h0 : regFile[rdAddrB];
 
    always @( posedge clk or negedge rst ) begin
 
       if ( ~ rst ) begin
 
-         for ( integer i = 0; i < SIZE-1; i = i + 1 ) regFile[i] <= 0;
+         for ( integer i = 1; i < SIZE-1; i = i + 1 ) regFile[i] <= 0;
 
       end else begin
 
-         if ( write ) regFile[wrAddr] <= wrData;
+         if ( wrAddr != 0 ) begin
+            
+            if ( write ) regFile[wrAddr] <= wrData;
+
+         end
 
       end
 
@@ -2084,13 +2090,13 @@ module ShiftMergeUnit (
 
    wire[0:4]                  sa, pl, pr;
    wire[0:5]                  opCode;
-   wire[0:2`WORD_LENGTH-1]    wShift, wMask;
+   wire[0:`WORD_LENGTH-1]    wShift, wMask;
 
    assign opCode = instr[0:5];
 
    ShiftMergeDecode        U0 ( .instr( instr ), .saReg( saReg ), .sa( sa ), .pl( pl ), .pr( pr ), .err( err ));
-   DoubleShiftRight_48bit  U1 ( .a( a ), .b( b ), .sa( sa ), .y( wShift ));
-   ShiftMergeMask_24bit    U2  ( .lft( pl ), .rht( pr ), .y( wMask ));
+   DoubleShiftRight_64bit  U1 ( .a( a ), .b( b ), .sa( sa ), .y( wShift ));
+   ShiftMergeMask_32bit    U2  ( .lft( pl ), .rht( pr ), .y( wMask ));
    
    always @ (*) begin
 
@@ -2271,39 +2277,39 @@ endmodule
 // operation. We implement a barrel shifter type unit using 4 and 2 way multiplexers.
 //
 //------------------------------------------------------------------------------------------------------------
-module DoubleShiftRight_48bit (
+module DoubleShiftRight_64bit (
 
-   input    wire[0:`WORD_LENGTH-1]  a,
-   input    wire[0:`WORD_LENGTH-1]  b,
-   input    wire[0:4]               sa,
+   input    wire[0:31]  a,
+   input    wire[0:31]  b,
+   input    wire[0:4]   sa,
 
-   output   wire[0:`WORD_LENGTH-1]  y
+   output   wire[0:31]  y
 
    );
 
-   wire[0:`DBL_WORD_LENGTH-1] w1, w2, w3, w4;
+   wire[0:63] w1, w2, w3, w4;
 
    assign w1 = { a, b };
    assign y  = w4[`WORD_LENGTH:`DBL_WORD_LENGTH-1];
 
    Mux_4_1 #( .WIDTH( `DBL_WORD_LENGTH )) U0 (  .a0( w1 ), 
-                                                .a1( { 8'b0,  w1[0:48 - 8  - 1] } ), 
-                                                .a2( { 16'b0, w1[0:48 - 16 - 1] } ), 
-                                                .a3( { 32'b0, w1[0:48 - 32 - 1] } ),
+                                                .a1( { 8'b0,  w1[0:64 - 8  - 1] } ), 
+                                                .a2( { 16'b0, w1[0:64 - 16 - 1] } ), 
+                                                .a3( { 32'b0, w1[0:64 - 32 - 1] } ),
                                                 .sel( sa[ 0:1 ] ), 
                                                 .enb( 1'b1 ),
                                                 .y( w2 ));
 
    Mux_4_1 #( .WIDTH( `DBL_WORD_LENGTH )) U1 (  .a0( w2 ), 
-                                                .a1( { 2'b0, w2[0:48 - 2 - 1] } ), 
-                                                .a2( { 4'b0, w2[0:48 - 4 - 1] } ), 
-                                                .a3( { 6'b0, w2[0:48 - 6 - 1] } ), 
+                                                .a1( { 2'b0, w2[0:64 - 2 - 1] } ), 
+                                                .a2( { 4'b0, w2[0:64 - 4 - 1] } ), 
+                                                .a3( { 6'b0, w2[0:64 - 6 - 1] } ), 
                                                 .sel( sa[2:3] ),
                                                 .enb( 1'b1 ), 
                                                 .y( w3 ));
 
    Mux_2_1 #( .WIDTH( `DBL_WORD_LENGTH )) U2 (  .a0( w3 ), 
-                                                .a1( { 1'b0, w3[0:48 - 1 - 1 ] } ), 
+                                                .a1( { 1'b0, w3[0:64 - 1 - 1 ] } ), 
                                                 .sel( sa[4] ),
                                                 .enb( 1'b1 ), 
                                                 .y( w4 ));
@@ -2316,19 +2322,19 @@ endmodule
 // named by the L and R value are included in the field. The outside bits to teh left and right are set to 
 // one. The bit mask is primarily used by the shift/merge unit for extract and deposit instructions.
 //
-// In:      0 1 2 3 ...... 21 22 23
+// In:      0 1 2 3 ...... 29 30 31
 //                ^        ^    
 //                L        R
 //
 // Out:     1 1 1 0 ...... 0  1  1
 //
 //------------------------------------------------------------------------------------------------------------
-module ShiftMergeMask_24bit (
+module ShiftMergeMask_32bit (
 
    input    wire [0:4]  lft,
    input    wire [0:4]  rht,
 
-   output   wire [0:`WORD_LENGTH-1] y
+   output   wire [0:31] y
    
    );
     
@@ -2338,32 +2344,40 @@ module ShiftMergeMask_24bit (
 
       case ( lft )
     
-         5'd00 : maskLeft = 32'o00000000;
-         5'd01 : maskLeft = 32'o40000000;
-         5'd02 : maskLeft = 32'o60000000;
-         5'd03 : maskLeft = 32'o70000000;
-         5'd04 : maskLeft = 32'o74000000;
-         5'd05 : maskLeft = 32'o76000000;
-         5'd06 : maskLeft = 32'o77000000;
-         5'd07 : maskLeft = 32'o77400000;
-         5'd08 : maskLeft = 32'o77600000;
-         5'd09 : maskLeft = 32'o77700000;
-         5'd10 : maskLeft = 32'o77740000;
-         5'd11 : maskLeft = 32'o77760000;
-         5'd12 : maskLeft = 32'o77770000;
-         5'd13 : maskLeft = 32'o77774000;
-         5'd14 : maskLeft = 32'o77776000;
-         5'd15 : maskLeft = 32'o77777000;
-         5'd16 : maskLeft = 32'o77777400;
-         5'd17 : maskLeft = 32'o77777600;
-         5'd18 : maskLeft = 32'o77777700;
-         5'd19 : maskLeft = 32'o77777740;
-         5'd20 : maskLeft = 32'o77777760;
-         5'd21 : maskLeft = 32'o77777770;
-         5'd22 : maskLeft = 32'o77777774;
-         5'd23 : maskLeft = 32'o77777776;
-            
-         default : maskLeft = 32'o00000000;
+         5'd00 : maskLeft = 32'h00000000;
+         5'd01 : maskLeft = 32'h80000000;
+         5'd02 : maskLeft = 32'hc0000000;
+         5'd03 : maskLeft = 32'he0000000;
+         5'd04 : maskLeft = 32'hF0000000;
+         5'd05 : maskLeft = 32'hf8000000;
+         5'd06 : maskLeft = 32'hfc000000;
+         5'd07 : maskLeft = 32'hfe000000;
+         5'd08 : maskLeft = 32'hff000000;
+         5'd09 : maskLeft = 32'hff800000;
+         5'd10 : maskLeft = 32'hffc00000;
+         5'd11 : maskLeft = 32'hffe00000;
+         5'd12 : maskLeft = 32'hfff00000;
+         5'd13 : maskLeft = 32'hfff80000;
+         5'd14 : maskLeft = 32'hfffc0000;
+         5'd15 : maskLeft = 32'hfffe0000;
+         5'd16 : maskLeft = 32'hffff0000;
+         5'd17 : maskLeft = 32'hffff8000;
+         5'd18 : maskLeft = 32'hffffc000;
+         5'd19 : maskLeft = 32'hffffe000;
+         5'd20 : maskLeft = 32'hfffff000;
+         5'd21 : maskLeft = 32'hfffff800;
+         5'd22 : maskLeft = 32'hfffffc00;
+         5'd23 : maskLeft = 32'hfffffe00;
+         5'd24 : maskLeft = 32'hffffff00;
+         5'd25 : maskLeft = 32'hffffff80;
+         5'd26 : maskLeft = 32'hffffffc0;
+         5'd27 : maskLeft = 32'hffffffe0;
+         5'd28 : maskLeft = 32'hfffffff0;
+         5'd29 : maskLeft = 32'hfffffff8;
+         5'd30 : maskLeft = 32'hfffffffc;
+         5'd31 : maskLeft = 32'hfffffffe;
+
+         default : maskLeft = 32'h00000000;
             
       endcase
     
@@ -2373,32 +2387,40 @@ module ShiftMergeMask_24bit (
         
       case ( rht )
 
-         5'd23 : maskRight = 32'o00000000;
-         5'd22 : maskRight = 32'o00000001;
-         5'd21 : maskRight = 32'o00000003;
-         5'd20 : maskRight = 32'o00000007;
-         5'd19 : maskRight = 32'o00000017;
-         5'd18 : maskRight = 32'o00000037;
-         5'd17 : maskRight = 32'o00000077;
-         5'd16 : maskRight = 32'o00000177;
-         5'd15 : maskRight = 32'o00000377;
-         5'd14 : maskRight = 32'o00000777;
-         5'd13 : maskRight = 32'o00001777;
-         5'd12 : maskRight = 32'o00003777;
-         5'd11 : maskRight = 32'o00007777;
-         5'd10 : maskRight = 32'o00017777;
-         5'd09 : maskRight = 32'o00037777;
-         5'd08 : maskRight = 32'o00077777;
-         5'd07 : maskRight = 32'o00177777;
-         5'd06 : maskRight = 32'o00377777;
-         5'd05 : maskRight = 32'o00777777;
-         5'd04 : maskRight = 32'o01777777;
-         5'd03 : maskRight = 32'o03777777;
-         5'd02 : maskRight = 32'o07777777;
-         5'd01 : maskRight = 32'o17777777;
-         5'd00 : maskRight = 32'o37777777;
+         5'd00 : maskRight = 32'h7fffffff; 
+         5'd01 : maskRight = 32'h3fffffff;
+         5'd02 : maskRight = 32'h1fffffff;
+         5'd03 : maskRight = 32'h0fffffff;
+         5'd04 : maskRight = 32'h07ffffff;
+         5'd05 : maskRight = 32'h03ffffff;
+         5'd06 : maskRight = 32'h01ffffff;
+         5'd07 : maskRight = 32'h00ffffff;
+         5'd08 : maskRight = 32'h007fffff;
+         5'd09 : maskRight = 32'h003fffff;
+         5'd10 : maskRight = 32'h001fffff;
+         5'd11 : maskRight = 32'h000fffff;
+         5'd12 : maskRight = 32'h0007ffff;
+         5'd13 : maskRight = 32'h0003ffff;
+         5'd14 : maskRight = 32'h0001ffff;
+         5'd15 : maskRight = 32'h0000ffff;
+         5'd16 : maskRight = 32'h00007fff;
+         5'd17 : maskRight = 32'h00003fff;
+         5'd18 : maskRight = 32'h00001fff;
+         5'd19 : maskRight = 32'h00000fff;
+         5'd20 : maskRight = 32'h000007ff;
+         5'd21 : maskRight = 32'h000003ff;
+         5'd22 : maskRight = 32'h000001ff;
+         5'd23 : maskRight = 32'h000000ff;
+         5'd24 : maskRight = 32'h0000007f;
+         5'd25 : maskRight = 32'h0000003f;
+         5'd26 : maskRight = 32'h0000001f;
+         5'd27 : maskRight = 32'h0000000f;
+         5'd28 : maskRight = 32'h00000007;
+         5'd29 : maskRight = 32'h00000003;
+         5'd30 : maskRight = 32'h00000001;
+         5'd31 : maskRight = 32'h00000000;
 
-         default : maskRight = 32'o00000000;
+         default : maskRight = 32'h00000000;
             
       endcase
     
@@ -2410,17 +2432,17 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// Variable sign extend unit for a 32-bit word. We create a bit mask with "ones" on th eleft side. If the bit
+// Variable sign extend unit for a 32-bit word. We create a bit mask with "ones" on the left side. If the bit
 // at position "P" is zero, we AND the inverted bit mask with the input else we simply OR the mask such that 
 // the sign bit is stored in the posituion left of the sign bit. The position P is the bit number in the word
 //  with bit zero the MSB and bit 23 the LSB.
 //
 //------------------------------------------------------------------------------------------------------------
-module SignExtend_24bit( 
+module SignExtend_32bit( 
 
-   input    wire[0:`WORD_LENGTH-1]  a, 
-   input    wire[0:4]               pos, 
-   output   reg[0:`WORD_LENGTH-1]   y 
+   input    wire[0:31]  a, 
+   input    wire[0:4]   pos, 
+   output   reg[0:31]   y 
    
    );
 
@@ -2430,32 +2452,40 @@ module SignExtend_24bit(
 
       case ( pos ) 
 
-         5'd00 : extMask = 32'o00000000;
-         5'd01 : extMask = 32'o40000000;
-         5'd02 : extMask = 32'o60000000;
-         5'd03 : extMask = 32'o70000000;
-         5'd04 : extMask = 32'o74000000;
-         5'd05 : extMask = 32'o76000000;
-         5'd06 : extMask = 32'o77000000;
-         5'd07 : extMask = 32'o77400000;
-         5'd08 : extMask = 32'o77600000;
-         5'd09 : extMask = 32'o77700000;
-         5'd10 : extMask = 32'o77740000;
-         5'd11 : extMask = 32'o77760000;
-         5'd12 : extMask = 32'o77770000;
-         5'd13 : extMask = 32'o77774000;
-         5'd14 : extMask = 32'o77776000;
-         5'd15 : extMask = 32'o77777000;
-         5'd16 : extMask = 32'o77777400;
-         5'd17 : extMask = 32'o77777600;
-         5'd18 : extMask = 32'o77777700;
-         5'd19 : extMask = 32'o77777740;
-         5'd20 : extMask = 32'o77777760;
-         5'd21 : extMask = 32'o77777770;
-         5'd22 : extMask = 32'o77777774;
-         5'd23 : extMask = 32'o77777776;
-            
-         default : extMask = 32'o00000000;
+         5'd00 : extMask = 32'h00000000;
+         5'd01 : extMask = 32'h80000000;
+         5'd02 : extMask = 32'hc0000000;
+         5'd03 : extMask = 32'he0000000;
+         5'd04 : extMask = 32'hF0000000;
+         5'd05 : extMask = 32'hf8000000;
+         5'd06 : extMask = 32'hfc000000;
+         5'd07 : extMask = 32'hfe000000;
+         5'd08 : extMask = 32'hff000000;
+         5'd09 : extMask = 32'hff800000;
+         5'd10 : extMask = 32'hffc00000;
+         5'd11 : extMask = 32'hffe00000;
+         5'd12 : extMask = 32'hfff00000;
+         5'd13 : extMask = 32'hfff80000;
+         5'd14 : extMask = 32'hfffc0000;
+         5'd15 : extMask = 32'hfffe0000;
+         5'd16 : extMask = 32'hffff0000;
+         5'd17 : extMask = 32'hffff8000;
+         5'd18 : extMask = 32'hffffc000;
+         5'd19 : extMask = 32'hffffe000;
+         5'd20 : extMask = 32'hfffff000;
+         5'd21 : extMask = 32'hfffff800;
+         5'd22 : extMask = 32'hfffffc00;
+         5'd23 : extMask = 32'hfffffe00;
+         5'd24 : extMask = 32'hffffff00;
+         5'd25 : extMask = 32'hffffff80;
+         5'd26 : extMask = 32'hffffffc0;
+         5'd27 : extMask = 32'hffffffe0;
+         5'd28 : extMask = 32'hfffffff0;
+         5'd29 : extMask = 32'hfffffff8;
+         5'd30 : extMask = 32'hfffffffc;
+         5'd31 : extMask = 32'hfffffffe;
+   
+         default : extMask = 32'h00000000;
 
       endcase
 
@@ -2487,11 +2517,15 @@ endmodule
 //    7 - OD   -> a is odd
 //
 //------------------------------------------------------------------------------------------------------------
-module TestCond_24bit (
+module TestCond_Unit #( 
 
-   input  wire [0:`WORD_LENGTH-1]   a,
-   input  wire [0:2]    op,
-   output reg           y
+   parameter WIDTH = `WORD_LENGTH
+
+   ) (
+
+   input  wire [0:WIDTH-1] a,
+   input  wire [0:2]       op,
+   output reg              y
 
    );
 
@@ -2507,8 +2541,8 @@ module TestCond_24bit (
             3'd03 :  y = ( ~ a[0] ) & ( ~z );   // data > 0 
             3'd04 :  y = a[0] || z;             // data <= 0 
             3'd05 :  y = ( ~ a[0] ) || z;       // data >= 0 
-            3'd06 :  y = ~ a[ 23 ];             // even
-            3'd07 :  y = a[ 23 ];               // odd
+            3'd06 :  y = ~ a[ WIDTH-1];         // even
+            3'd07 :  y = a[ WIDTH-1 ];          // odd
             default: y = 0;
            
          endcase
@@ -2567,29 +2601,30 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// The 32-bit carry lookahead adder is built from 4-bit carry lookahead adders connected in ripple mode. So
-// far it is not used. We first write the adder in behavioral mode.
+// The 32-bit carry lookahead adder is built from 4-bit carry lookahead adders connected in ripple mode. 
 // 
 //------------------------------------------------------------------------------------------------------------
-module Adder_CLA_24bit (   
+module Adder_CLA_32bit (   
 
-   input    wire[0:23]  a, 
-   input    wire[0:23]  b, 
+   input    wire[0:31]  a, 
+   input    wire[0:31]  b, 
    input                inC,
 
-   output   wire[0:23]  s,
-   output   wire        outC
+   output   wire[0:31]   s,
+   output   wire         outC
 
    );
 
-   wire[0:4] c;
+   wire[0:6] c;
 
-   Adder_CLA_4bit F0 ( .a( a[20:23]), .b( b[20:23]), .inC( inC  ), .s( s[20:23]), .outC( c[4] ));
-   Adder_CLA_4bit F1 ( .a( a[16:19]), .b( b[16:19]), .inC( c[4] ), .s( s[16:19]), .outC( c[3] ));
-   Adder_CLA_4bit F2 ( .a( a[12:15]), .b( b[12:15]), .inC( c[3] ), .s( s[12:15]), .outC( c[2] ));
-   Adder_CLA_4bit F3 ( .a( a[ 8:11]), .b( b[ 8:11]), .inC( c[2] ), .s( s[ 8:11]), .outC( c[1] ));
-   Adder_CLA_4bit F4 ( .a( a[ 4: 7]), .b( b[ 4: 7]), .inC( c[1] ), .s( s[ 4: 7]), .outC( c[0] ));
-   Adder_CLA_4bit F5 ( .a( a[ 0: 3]), .b( b[ 0: 3]), .inC( c[0] ), .s( s[ 0: 3]), .outC( outC ));
+   Adder_CLA_4bit F0 ( .a( a[28:31]), .b( b[28:31]), .inC( inC  ), .s( s[28:31]), .outC( c[6] ));
+   Adder_CLA_4bit F1 ( .a( a[24:27]), .b( b[24:27]), .inC( inC  ), .s( s[24:27]), .outC( c[5] ));
+   Adder_CLA_4bit F2 ( .a( a[20:23]), .b( b[20:23]), .inC( inC  ), .s( s[20:23]), .outC( c[4] ));
+   Adder_CLA_4bit F3 ( .a( a[16:19]), .b( b[16:19]), .inC( c[4] ), .s( s[16:19]), .outC( c[3] ));
+   Adder_CLA_4bit F4 ( .a( a[12:15]), .b( b[12:15]), .inC( c[3] ), .s( s[12:15]), .outC( c[2] ));
+   Adder_CLA_4bit F5 ( .a( a[ 8:11]), .b( b[ 8:11]), .inC( c[2] ), .s( s[ 8:11]), .outC( c[1] ));
+   Adder_CLA_4bit F6 ( .a( a[ 4: 7]), .b( b[ 4: 7]), .inC( c[1] ), .s( s[ 4: 7]), .outC( c[0] ));
+   Adder_CLA_4bit F7 ( .a( a[ 0: 3]), .b( b[ 0: 3]), .inC( c[0] ), .s( s[ 0: 3]), .outC( outC ));
 
 endmodule
 
@@ -2652,7 +2687,50 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// AND operation of A and B, parameterized with 32-bit word by default. A simple set of AND gates.
+// The logic unit implements the  logical functions of the CPU. It is essentially a lookup table for the 
+// function map and a 4:1 multiplexer that selects the respective function result for a bit from the lookup
+// table.
+//
+// ??? use constants for the aluOp value ? combine them with the other ALU opcodes...
+//------------------------------------------------------------------------------------------------------------
+module logicUnit  #( 
+
+   parameter WIDTH = `WORD_LENGTH
+
+) ( 
+
+    input wire[0:WIDTH-1]  a,
+    input wire[0:WIDTH-1]  b,
+    input wire[0:2]        op,
+    output reg[0:WIDTH-1]  y
+);
+
+reg  [0:3] map;
+
+always @(*) begin
+    
+   case ( op ) 
+
+      3'b000: map = 4'b0001;   // AND
+      3'b001: map = 4'b0010;   // CAND
+      3'b010: map = 4'b0110;   // XOR
+      3'b011: map = 4'b0111;   // OR
+      3'b100: map = 4'b1110;   // NAND
+      3'b101: map = 4'b1011;   // COR
+      3'b110: map = 4'b1001;   // XNOR
+      3'b111: map = 4'b1000;   // NOR
+      default: map = 4'b0000;
+
+   endcase
+
+   for ( integer i = 0; i < WIDTH; i = i + 1 ) y[i] = map[{a[i], b[i]}];
+
+end
+
+endmodule
+
+//------------------------------------------------------------------------------------------------------------
+// AND operation of A and B, parameterized with WORD_LENGTH-bit word by default. A simple set of AND gates.
 //
 //------------------------------------------------------------------------------------------------------------
 module AndOp #(
@@ -2673,7 +2751,7 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// OR operation of A and B, parameterized with 32-bit word by default. A simple set of OR gates.
+// OR operation of A and B, parameterized with WORD_LENGTH-bit word by default. A simple set of OR gates.
 // 
 //------------------------------------------------------------------------------------------------------------
 module OrOp #(
@@ -2694,7 +2772,7 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// XOR operation of A and B, parameterized with 32-bit word by default. A simple set of XOR gates.
+// XOR operation of A and B, parameterized with WORD_LENGTH-bit word by default. A simple set of XOR gates.
 //
 //------------------------------------------------------------------------------------------------------------
 module XorOp #(

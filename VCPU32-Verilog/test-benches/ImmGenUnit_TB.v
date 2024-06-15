@@ -20,7 +20,7 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-`include "../hdl/CPU24.v"
+`include "../hdl/VCPU32.v"
 
 `timescale 10ns / 1ns
 
@@ -59,7 +59,7 @@ module ImmGenUnit_TB;
 
    		// ??? need a lot of instruction examples ...
 
-   		I_TB 	= 24'h0;
+   		I_TB 	= 32'h0;
    		#10 $display( "I: 0x%h -> Y: 0x%h", I_TB, Y_TB );
 
    		// `assert_TB( Y_TB,  24'hFFFFFF )

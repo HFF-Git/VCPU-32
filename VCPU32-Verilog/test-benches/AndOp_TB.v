@@ -20,16 +20,16 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-`include "../hdl/CPU24.v"
+`include "../hdl/VCPU32.v"
 
 `timescale 10ns / 1ns
 
 module AndOp_TB;
 
-	reg[0:23] 	A_TB 	= 0;
-	reg[0:23] 	B_TB 	= 0;
+	reg[0:31] 	A_TB 	= 0;
+	reg[0:31] 	B_TB 	= 0;
 	
-	wire[0:23]  Y_TB;
+	wire[0:31]  Y_TB;
 
 	task setupTest;
 
@@ -56,16 +56,16 @@ module AndOp_TB;
 
  		setupTest( );
 
-   		A_TB 	= 24'hF010FF;
-   		B_TB 	= 24'h0;
+   		A_TB 	= 32'h00F010FF;
+   		B_TB 	= 32'h0;
    		#10 $display( "A: %h, and B: %h -> Y: %h", A_TB, B_TB, Y_TB );
 
-   		A_TB 	= 24'hF010FF;
-   		B_TB 	= 24'hFFFFFF;
+   		A_TB 	= 32'h00F010FF;
+   		B_TB 	= 32'hF0FFFFFF;
    		#10 $display( "A: %h, and B: %h -> Y: %h", A_TB, B_TB, Y_TB );
 
-   		A_TB 	= 24'hF010FF;
-   		B_TB 	= 24'hFFF000;
+   		A_TB 	= 32'h07F010FF;
+   		B_TB 	= 32'h70FFF000;
    		#10 $display( "A: %h, and B: %h -> Y: %h", A_TB, B_TB, Y_TB );
 
    		#50

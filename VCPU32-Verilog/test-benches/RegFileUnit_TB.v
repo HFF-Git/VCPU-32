@@ -20,13 +20,13 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-`include "../hdl/CPU24.v"
+`include "../hdl/VCPU32.v"
 
 `timescale 1ns / 1ns
 
 module RegFileUnit_TB;
 
-	parameter WIDTH = 24;
+	parameter WIDTH = 32;
 	parameter SIZE  = 8;
 
 	reg                       	clk_TB 		= 0;
