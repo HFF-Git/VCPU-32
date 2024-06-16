@@ -74,6 +74,18 @@
 
 
 
+`define LOP_AND   3'b000
+`define LOP_CAND  3'b001
+`define LOP_XOR 3'b010
+`define LOP_OR 3'b011
+`define LOP_NAND 3'b100
+`define LOP_COR 3'b101
+`define LOP_XNOR 3'b110
+`define LOP_NOR 3'b111
+
+
+
+
 //------------------------------------------------------------------------------------------------------------
 // OpCodes.
 //
@@ -798,7 +810,7 @@ module SelectNextInstrAdr(
 
    reg [0:1] tmpSel;
 
-   Adder       U0 (  .a( inFdO ), .b( inFdOfs ), .inC( 1'b0 ), .s( tmpOfs )); 
+   AdderUnit   U0 (  .a( inFdO ), .b( inFdOfs ), .inC( 1'b0 ), .s( tmpOfs )); 
 
    Mux_4_1     U1 (  .a0( inFdP ), 
                      .a1( inExP ), 
@@ -1097,7 +1109,7 @@ module ComputeAddressSubStage (
    
    );
 
-   Adder             U0 ( .a( ), .b( ), .inC( 1'b0 ), .s( )); 
+   AdderUnit         U0 ( .a( ), .b( ), .inC( 1'b0 ), .s( )); 
 
    ScanRegFileUnit   U1 ( .clk( clk ), .rst( rst ), .sMode( 1'b0 ), .write( ), .wrAddr( ),
                            .rdAddrA( ), .rdAddrB( ), .sIn( 1'b0 ),
@@ -1155,9 +1167,10 @@ endmodule
 //------------------------------------------------------------------------------------------------------------
 // Execute sub stage logic.
 //
+// ??? include the arithmetic unit, the logic unit, the shift/merge unit
 // ??? work from instruction or already decoded operations ? 
 //
-// The execte substage is the placd where we ahveall the infomation for dealing with overflows.
+// The execte substage is the place where we deal with overflows.
 //
 // addition signed
 // (( ~ a[0] ) & ( ~ b[0] ) & ( s[0] )) | (( a[0] ) & ( b[0] ) & ( ~ s[0] )) 
@@ -1771,6 +1784,7 @@ endmodule
 // priority encoder. 
 //
 // ??? split pattern in the parts needed ?
+// ??? change for 32-bit words, a virtual page is 16 + 32 - 14 = 34 bits
 //------------------------------------------------------------------------------------------------------------
 module DualPortedCamUnit_16 #(
 
@@ -1877,10 +1891,15 @@ endmodule
 
 //------------------------------------------------------------------------------------------------------------
 // Register file unit. The unit contains a set of registers. It is the building block for the general register
-// set and segment register set. Although we only feature a register file with 8 registers and a word length
-// of 32 bits, the module is parameterized for re-use.
+// set and segment register set. In addition, the ScanRegFileUnit can be operated in two modes. The normal 
+// mode ( 1'b0 ) is a register with a parallel input and output, set at the positive edge of the clock. In 
+// scan mode ( 1'b1 ), the register shifts one position to the right reading one bit the from the serial 
+// input, passing the highest bit to the serial output. The idea is that  a set of scan registers can be 
+// connected serially and shifted out as a big bit string for analysis and diagnostics. Note that the serial
+// output of the last register needs to feed into the serial input of the first register of the overial 
+// register chain. The number of clock cycles needs to match the sum of all bits in  the registers, such that
+//  the original content is restored.
 //
-// ??? should they also become part of the scan chain ?
 //------------------------------------------------------------------------------------------------------------
 module ScanRegFileUnit #(
 
@@ -1936,44 +1955,19 @@ module ScanRegFileUnit #(
 
    end
 
-   endmodule
-
-
-//------------------------------------------------------------------------------------------------------------
-// Register. The new state is stored based on a positive edege. A negative edge of the reset line clears the
-// register.
-//
-//------------------------------------------------------------------------------------------------------------
-module RegUnit ( 
-
-   input    wire                    clk,
-   input    wire                    rst,
-   input    wire[0:`WORD_LENGTH-1]  d,
-
-   output   reg[0:`WORD_LENGTH-1]   q
-   
-   );
-
-   always @ ( posedge clk or negedge rst ) begin
-   
-      if ( ~ rst )   q <= 0;
-      else           q <= d;   
-   
-   end
-
 endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// A general register. The register can be instatiated with different field widths. In addition, the Scan Reg
+// A general register. The register can be instatiated with different field widths. In addition, the ScanReg
 // Unit can be operated in two modes. The normal mode ( 1'b0 ) is a register with a parallel input and output,
 // set at the positive edge of the clock. In scan mode ( 1'b1 ), the register shifts one position to the right
 // reading one bit the from the serial input, passing the highest bit to the serial output. The idea is that 
 // a set of scan registers can be connected serially and shifted out as a big bit string for analysis and
 // diagnostics. Note that the serial output of the last register needs to feed into the serial input of the 
-// first register of the regsiter chain. The number of clock cycles needs to match the sum of all bits in 
-// the registers, such that the original content is restored. A scan register is used for example for the 
-// pipeline register so we can see the setting of them during debug.
+// first register of the overial register chain. The number of clock cycles needs to match the sum of all 
+// bits in the registers, such that the original content is restored. A scan register is used for example 
+// for the  pipeline register so we can see the setting of them during debug.
 //
 //------------------------------------------------------------------------------------------------------------
 module ScanRegUnit #( 
@@ -2049,6 +2043,9 @@ endmodule
 // ??? the shift operations for "a" could also result in an overflow. This should perhaps also be handled
 // by the enclosing module, since this module will know whether this is a shift or unsigned shift. In this
 // case, the err line my not be necessary.
+//
+//
+// ??? rework.....
 //------------------------------------------------------------------------------------------------------------
 module AluUnit (
 
@@ -2067,7 +2064,7 @@ module AluUnit (
    wire[0:`WORD_LENGTH-1] tmpA, tmpB, tAnd, tOr, tXor, tAdd, tmpR;
    wire tCout;
 
-   Adder #( .WIDTH( `WORD_LENGTH )) U1 ( .a( tmpA ), .b( tmpB ), .inC( ac[0] ), .s( tAdd ), .outC( tCout )); 
+   AdderUnit #( .WIDTH( `WORD_LENGTH )) U1 ( .a( tmpA ), .b( tmpB ), .inC( ac[0] ), .s( tAdd ), .outC( tCout )); 
 
    Mux_8_1  U2 (  .a0( 32'd0 ),
                   .a1( tmpA ),
@@ -2109,6 +2106,8 @@ endmodule
 // module generates a bitmask using the left and right bit positions decoded. The double shifter shifts the
 // respective input. This module takes the pieces and assembles the result. 
 //
+//
+// ??? rework ...
 //------------------------------------------------------------------------------------------------------------
 module ShiftMergeUnit (
 
@@ -2179,6 +2178,8 @@ endmodule
 // the DSR instruction, the length field is checked for being a value between 0 and 23. The code is written 
 // in behavioural mode. Let the synthesizer do its magic.
 // 
+//
+// ??? rework ...
 //------------------------------------------------------------------------------------------------------------
 module ShiftMergeDecode (
 
@@ -2220,6 +2221,8 @@ endmodule
 // Immediate Value Generator. The immediate value generator creates the sign extended immediate value from 
 // the instruction word bit fields for the particular instruction format. For instructions without an
 // immediate field, the return value is zero. 
+//
+//
 //
 // ??? needs to change for new formats ...
 //------------------------------------------------------------------------------------------------------------
@@ -2540,7 +2543,7 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// "TestCond_24bit" tests the input word according to the condition selected. The defined conditions are
+// "TestCondUnit" tests the input word according to the condition selected. The defined conditions are
 //
 //    0 - EQ   -> a == 0
 //    1 - NE   -> a != 0
@@ -2551,8 +2554,10 @@ endmodule
 //    6 - EV   -> a is even
 //    7 - OD   -> a is odd
 //
+//
+// ??? we need to match to what the instructions need....
 //------------------------------------------------------------------------------------------------------------
-module TestCond_Unit #( 
+module TestCondUnit #( 
 
    parameter WIDTH = `WORD_LENGTH
 
@@ -2589,10 +2594,12 @@ endmodule
 
 //------------------------------------------------------------------------------------------------------------
 // The Adder is a simple adder of two unsigned numbers including a carry in for multi-precision arithmetic.  
-// Any interpretation of signd or unsigned must be handled in the instantiating layer.
+// Any interpretation of signd or unsigned must be handled in the instantiating layer. The Adder unit is
+// implemented in behavioral verilog. There is also a version which explicitly implements a carry lookahead
+// adder.
 //
 //------------------------------------------------------------------------------------------------------------
-module Adder #( 
+module AdderUnit #( 
 
    parameter WIDTH = `WORD_LENGTH
 
@@ -2613,13 +2620,15 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// The Incrementer is a simple adder of two unsigned numbers including a carry in for multi-precision
-// arithmetic. Any interpretation of signd or unsigned must be handled in the instantiating layer.
+// The Incrementer unit is a simple adder of two unsigned numbers including a carry in for multi-precision
+// arithmetic. Any interpretation of signd or unsigned must be handled in the instantiating layer. The unit
+// is implemented in behavioral verilog.
 //
 //------------------------------------------------------------------------------------------------------------
-module Incrementer #( 
+module IncrementerUnit #( 
 
-   parameter WIDTH = 32
+   parameter WIDTH = 32,
+   parameter AMT   = 1
 
    ) (
    
@@ -2630,7 +2639,7 @@ module Incrementer #(
 
    );
 
-   assign { outC, s } = a + 1;
+   assign { outC, s } = a + AMT;
    
 endmodule
 
@@ -2653,8 +2662,8 @@ module Adder_CLA_32bit (
    wire[0:6] c;
 
    Adder_CLA_4bit F0 ( .a( a[28:31]), .b( b[28:31]), .inC( inC  ), .s( s[28:31]), .outC( c[6] ));
-   Adder_CLA_4bit F1 ( .a( a[24:27]), .b( b[24:27]), .inC( inC  ), .s( s[24:27]), .outC( c[5] ));
-   Adder_CLA_4bit F2 ( .a( a[20:23]), .b( b[20:23]), .inC( inC  ), .s( s[20:23]), .outC( c[4] ));
+   Adder_CLA_4bit F1 ( .a( a[24:27]), .b( b[24:27]), .inC( c[6] ), .s( s[24:27]), .outC( c[5] ));
+   Adder_CLA_4bit F2 ( .a( a[20:23]), .b( b[20:23]), .inC( c[5] ), .s( s[20:23]), .outC( c[4] ));
    Adder_CLA_4bit F3 ( .a( a[16:19]), .b( b[16:19]), .inC( c[4] ), .s( s[16:19]), .outC( c[3] ));
    Adder_CLA_4bit F4 ( .a( a[12:15]), .b( b[12:15]), .inC( c[3] ), .s( s[12:15]), .outC( c[2] ));
    Adder_CLA_4bit F5 ( .a( a[ 8:11]), .b( b[ 8:11]), .inC( c[2] ), .s( s[ 8:11]), .outC( c[1] ));
@@ -2722,47 +2731,47 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// The logic unit implements the  logical functions of the CPU. It is essentially a lookup table for the 
-// function map and a 4:1 multiplexer that selects the respective function result for a bit from the lookup
-// table.
+// The logic unit implements the  logical functions of the CPU. The implementation is essentially a lookup 
+// table for the function map and a 4:1 multiplexer that selects the respective function result for a bit 
+// from the lookup table.
 //
-// ??? use constants for the aluOp value ? combine them with the other ALU opcodes...
 //------------------------------------------------------------------------------------------------------------
 module logicUnit  #( 
 
    parameter WIDTH = `WORD_LENGTH
 
-) ( 
+   ) ( 
 
-    input wire[0:WIDTH-1]  a,
-    input wire[0:WIDTH-1]  b,
-    input wire[0:2]        op,
-    output reg[0:WIDTH-1]  y
-);
+      input wire[0:WIDTH-1]  a,
+      input wire[0:WIDTH-1]  b,
+      input wire[0:2]        op,
+      output reg[0:WIDTH-1]  y
+   );
 
-reg  [0:3] map;
+   reg  [0:3] map;
 
-always @(*) begin
+   always @(*) begin
     
-   case ( op ) 
+      case ( op ) 
 
-      3'b000: map = 4'b0001;   // AND
-      3'b001: map = 4'b0010;   // CAND
-      3'b010: map = 4'b0110;   // XOR
-      3'b011: map = 4'b0111;   // OR
-      3'b100: map = 4'b1110;   // NAND
-      3'b101: map = 4'b1011;   // COR
-      3'b110: map = 4'b1001;   // XNOR
-      3'b111: map = 4'b1000;   // NOR
-      default: map = 4'b0000;
+         `LOP_AND:   map = 4'b0001;   
+         `LOP_CAND:  map = 4'b0010;  
+         `LOP_XOR:   map = 4'b0110;   
+         `LOP_OR:    map = 4'b0111;  
+         `LOP_NAND:  map = 4'b1110;  
+         `LOP_COR:   map = 4'b1011;   
+         `LOP_XNOR:  map = 4'b1001;  
+         `LOP_NOR:   map = 4'b1000;   
+         default:    map = 4'b0000;
 
-   endcase
+      endcase
 
-   for ( integer i = 0; i < WIDTH; i = i + 1 ) y[i] = map[{a[i], b[i]}];
+      for ( integer i = 0; i < WIDTH; i = i + 1 ) y[i] = map[{a[i], b[i]}];
 
-end
+   end
 
 endmodule
+
 
 //------------------------------------------------------------------------------------------------------------
 // AND operation of A and B, parameterized with WORD_LENGTH-bit word by default. A simple set of AND gates.

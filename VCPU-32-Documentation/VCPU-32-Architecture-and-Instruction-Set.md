@@ -2540,13 +2540,13 @@ Probe data access to a virtual address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : PRB     ( 0x3A ): r         :M :P : seg :I : 0                        : a         : b         :
+   : PRB     ( 0x3A ): r         :W :I : seg : 0                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The PRB instruction determines whether data access at the requested privilege level stored in the general register "a" is allowed. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "M" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. The "P" bit designates the privilege level to use for the probe operation. The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. If the "I" bit is set, the PRB instruction uses the value in register "a" as the privilege level to test for instead of the "P" bit in the status register. If protection checking is enabled, the protection Id is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
+The PRB instruction determines whether data access at the requested privilege level. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "W" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. The "I" bit designates the privilege level to use for the probe operation. A value of zero specifies that the privilege level is stored register  "a". A value of one interprets bit 27 as the privilege level. The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. If protection checking is enabled, the protection Id is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
 
 #### Operation
 
@@ -2558,15 +2558,15 @@ The PRB instruction determines whether data access at the requested privilege le
 
       if ( instr.[I] ) {
 
-         if      ((   instr.[M] ) && ( writeAccessAllowed( entry, GR[a] )))      GR[r] <- 1;
-         else if (( ! instr.[M] ) && ( readAccessAllowed( entry, GR[a] )))       GR[r] <- 1;
+         if      ((   instr.[W] ) && ( writeAccessAllowed( entry, GR[a] )))      GR[r] <- 1;
+         else if (( ! instr.[W] ) && ( readAccessAllowed( entry, GR[a] )))       GR[r] <- 1;
          else                                                                    GR[r] <- 0;
 
       } else {
 
-         if      ((   instr.[M] ) && ( writeAccessAllowed( entry, instr.[P] )))  GR[r] <- 1;
-         else if (( ! instr.[M] ) && ( readAccessAllowed( entry, instr.[P] )))   GR[r] <- 1;
-         else                                                                    GR[r] <- 0;
+         if      ((   instr.[W] ) && ( writeAccessAllowed( entry, instr.[27] )))  GR[r] <- 1;
+         else if (( ! instr.[w] ) && ( readAccessAllowed( entry, instr.[27] )))   GR[r] <- 1;
+         else                                                                     GR[r] <- 0;
       }
       
    } else nonAccessDataTlbMiss( );
@@ -4042,7 +4042,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : LDPA    ( 0x39 ): r         : 0   : seg : 0                           : a         : b         :       
    :-----------------:-----------------------------------------------------------------------------:
-   : PRB     ( 0x3A ): r         :M :P : seg :I : 0                        : a         : b         : 
+   : PRB     ( 0x3A ): r         :W :I : seg : 0                           : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
    : ITLB    ( 0x3B ): r         :T : 0                                    : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:

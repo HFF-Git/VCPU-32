@@ -352,38 +352,35 @@ void displayOpCodeOptions( uint32_t instr ) {
             
         case OP_PRB: {
             
-            if (( getBit( instr, 10 ) || getBit( instr, 4 ))) {
+            if (( getBit( instr, 10 ) || getBit( instr, 11 ))) {
                 
                 fprintf( stdout, "." );
-                if ( getBit( instr, 10 )) fprintf( stdout, "M" );
-                if ( getBit( instr, 4 ))fprintf( stdout, "I" );
+                if ( getBit( instr, 10 )) fprintf( stdout, "W" );
+                if ( getBit( instr, 11 ))fprintf( stdout, "I" );
             }
            
         } break;
             
         case OP_ITLB: {
             
-            if ( getBit( instr, 10 )) fprintf( stdout, ".D" );
-            else fprintf( stdout, ".I" );
-            
-            if ( getBit( instr, 11 )) fprintf( stdout, "A" );
-            else fprintf( stdout, "P" );
-            
+            if ( getBit( instr, 10 )) fprintf( stdout, ".T" );
+           
         } break;
             
         case OP_PTLB: {
             
-            if ( getBit( instr, 10 )) fprintf( stdout, ".D" );
-            else fprintf( stdout, ".I" );
-            
+            if ( getBit( instr, 10 )) fprintf( stdout, ".T" );
+          
         } break;
             
         case OP_PCA: {
             
-            if ( getBit( instr, 10 )) fprintf( stdout, ".D" );
-            else fprintf( stdout, ".I" );
-            
-            if ( getBit( instr, 11 )) fprintf( stdout, "F" );
+            if (( getBit( instr, 10 ) || getBit( instr, 11 ))) {
+                
+                fprintf( stdout, "." );
+                if ( getBit( instr, 10 )) fprintf( stdout, "T" );
+                if ( getBit( instr, 11 ))fprintf( stdout, "F" );
+            }
             
         } break;
     }
@@ -632,8 +629,8 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             }
             else fprintf( stdout, ", (r%d)", getBitField( instr, 31, 4 ));
             
-            if ( getBit( instr, 14 ))   fprintf( stdout, ", r%d", getBitField( instr, 27, 4 ));
-            else                        fprintf( stdout, ", %d", getBit( instr, 11 ));
+            if ( getBit( instr, 11 ))   fprintf( stdout, ", r%d", getBitField( instr, 27, 4 ));
+            else                        fprintf( stdout, ", %d", getBit( instr, 27 ));
             
         } break;
         
