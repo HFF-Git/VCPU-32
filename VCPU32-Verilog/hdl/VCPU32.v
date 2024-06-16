@@ -47,9 +47,6 @@
 
 
 
-
-
-
 // ??? over time we need to split into several files.... e.g.
 // ??? VCPU-32Def.v
 // ??? VCPU-32Util.v
@@ -82,76 +79,53 @@
 //
 //
 //------------------------------------------------------------------------------------------------------------
-`define OP_NOP          6'o00       // the no-operation instruction.
-`define OP_ADD          6'o01       // target = target + operand ;options for carry, ovl trap, etc.
-`define OP_SUB          6'o02       // target = target - operand ;options for carry, ovl trap, etc.
-`define OP_AND          6'o03       // target = target & operand ; option to negate the result
-`define OP_OR           6'o04       // target = target | operand ; option to negate the result
-`define OP_XOR          6'o05       // target = target ^ operand ; option to negate the result
-`define OP_CMP          6'o06       // subtract reg2 from reg1 and set condition codes
-`define OP_LDI          6'o07       // load immediate
-`define OP_LEA          6'o10       // load effective address offset
-`define OP_LSID         6'o11       // load segment ID register
-`define OP_EXTR         6'o12       // extract bit field of operand
-`define OP_DEP          6'o13       // extract bit field into operand
-`define OP_DSR          6'o14       // double register shift right
-`define OP_SHLA         6'o15       // shift left and add
-`define OP_RSV016       6'o16       // reserved
-`define OP_RSV017       6'o17       // reserved
+
+`define OP_BRK          6'h00       // break for debug
+`define OP_LDIL         6'h01       // load immediate left
+`define OP_ADDIL        6'h02       // add immediate left
+`define OP_LDO          6'h03       // load offset
+`define OP_LSID         6'h04       // load segment ID register
+`define OP_EXTR         6'h05       // extract bit field of operand
+`define OP_DEP          6'h06       // extract bit field into operand
+`define OP_DSR          6'h07       // double register shift right
+`define OP_SHLA         6'h08       // shift left and add
+`define OP_CMR          6'h09       // conditional move register or value
+`define OP_MR           6'h0a        // move to or from a segment or control register
+`define OP_MST          6'h0b       // set or clear status bits
+
+`define OP_ADD          6'h10       // target = target + operand ; options ovl trap, etc.
+`define OP_ADC          6'h11       // target = target + operand + carry; options for ovl trap, etc.
+`define OP_SUB          6'h12       // target = target - operand ;options for ovl trap, etc.
+`define OP_SBC          6'h13       // target = target - operand - carry ;options for ovl trap, etc.
+`define OP_AND          6'h14       // target = target & operand ; option to negate the result
+`define OP_OR           6'h15       // target = target | operand ; option to negate the result
+`define OP_XOR          6'h16       // target = target ^ operand ; option to negate the result
+`define OP_CMP          6'h17       // subtract reg2 from reg1 and set condition codes
+`define OP_CMPU         6'h18       // subtract reg2 from reg1 and set condition codes - unsigned
+
+`define OP_B            6'h20       // branch
+`define OP_GATE         6'h21       // gateway instruction
+`define OP_BR           6'h22       // branch register
+`define OP_BV           6'h23       // branch vectored
+`define OP_BE           6'h24       // branch external
+`define OP_BVE          6'h25       // branch vectored external
+`define OP_CBR          6'h26       // compare and branch
+`define OP_CBRU         6'h27       // compare and branch - unsigned
+
+`define OP_LD           6'h30       // target = [ operand ]
+`define OP_ST           6'h31       // [ operand ] = target
+`define OP_LDA          6'h32       // load from absolute address
+`define OP_STA          6'h33       // store to absolute adress
+`define OP_LDR          6'h34       // load referenced
+`define OP_STC          6'h35       // store conditional
     
-`define OP_LD           6'o20       // target = [ operand ]
-`define OP_ST           6'o21       // [ operand ] = target
-`define OP_LR           6'o22       // load referenced
-`define OP_SC           6'o23       // store conditional
-`define OP_LDE          6'o24       // load from virtual address
-`define OP_STE          6'o25       // store to virtual adress
-`define OP_LDA          6'o26       // load from absolute address
-`define OP_STA          6'o27       // store to absolute adress
-    
-`define OP_RSV030       6'o30       // reserved for additional memory reference instructions
-`define OP_RSV031       6'o31       // reserved for additional memory reference instructions
-`define OP_RSV032       6'o32       // reserved for additional memory reference instructions
-`define OP_RSV033       6'o33       // reserved for additional memory reference instructions
-`define OP_RSV034       6'o34       // reserved for additional memory reference instructions
-`define OP_RSV035       6'o35       // reserved for additional memory reference instructions
-`define OP_RSV036       6'o36       // reserved for additional memory reference instructions
-`define OP_RSV037       6'o37       // reserved for additional memory reference instructions
-    
-`define OP_B            6'o40       // branch
-`define OP_BL           6'o41       // branch and link
-`define OP_BR           6'o42       // branch register
-`define OP_BLR          6'o43       // branch and link register
-`define OP_BV           6'o44       // branch vectored
-`define OP_BVR          6'o45       // branch vectored register
-`define OP_BE           6'o46       // branch external
-`define OP_BLE          6'o47       // branch and link external
-    
-`define OP_CBR          6'o50       // compare and branch
-`define OP_TBR          6'o51       // test and branch
-`define OP_CMR          6'o52       // conditional move register or value
-`define OP_RSV053       6'o53       // reserved
-`define OP_RSV054       6'o54       // reserved
-`define OP_RSV055       6'o55       // reserved
-`define OP_RSV056       6'o56       // reserved
-`define OP_RSV057       6'o57       // reserved
-    
-`define OP_MR           6'o60       // move to or from a segment or control register
-`define OP_MST          6'o61       // set or clear status bits
-`define OP_LDPA         6'o62       // load physical address
-`define OP_PRB          6'o63       // probe access
-`define OP_GATE         6'o64       // gateway instruction
-`define OP_RSV065       6'o66       // reserved
-`define OP_RSV066       6'o66       // reserved
-`define OP_RSV067       6'o67       // reserved
-    
-`define OP_ITLB         6'o70       // insert into TLB
-`define OP_PTLB         6'o71       // remove from TLB
-`define OP_PCA          6'o72       // purge and flush cache
-`define OP_RSV073       6'o73       // reserved
-`define OP_RSV074       6'o74       // reserved
-`define OP_RFI          6'o75       // return from interrupt
-`define OP_DIAG         6'o76       // diagnostics instruction, tbd.
-`define OP_BRK          6'o77       // break for debug
+`define OP_LDPA         6'h39       // load physical address
+`define OP_PRB          6'h3a       // probe access
+`define OP_ITLB         6'h3b       // insert into TLB
+`define OP_PTLB         6'h3c       // remove from TLB
+`define OP_PCA          6'h3d       // purge and flush cache
+`define OP_DIAG         6'h3e       // diagnostics instruction, tbd.
+`define OP_RFI          6'h3f       // return from interrupt
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -221,9 +195,9 @@ endmodule
 // overall pipeline core skeleton. The follwing figure is a simplified picture of the major modules.
 //
 //
-//    :------------------:
-//    :  :-------------: :
-//    :  :  :--------: : :
+//    +------------------+
+//    :  +-------------+ :
+//    :  :  +--------+ : :
 //    :  :  :        : : :
 //    :  :  :        v v v
 //    :  :  :
@@ -233,25 +207,27 @@ endmodule
 //    :  :  :          v
 //    :  :  :     PregInstrAdr [ P, O ]
 //    :  :  :          :
-//    :  :             :
+//    :  :  :          :
 //    :  :  :          v
-//    :  :  :---  FetchDecodeStage ( FetchSubStage -> ... -> DecodeSubStage )
+//    :  :  +---  FetchDecodeStage ( FetchSubStage -> ... -> DecodeSubStage )
 //    :  :             :
-//    :  :             :              :--:--:------------------------------------------------------:       
+//    :  :             :              +--+--+------------------------------------------------------+    
+//    :  :             :              :  :  :                                                      :
 //    :  :             v              v  v  v                                                      :
 //    :  :        PregFdMa [ P, O, I, A, B, X ]                                                    :
 //    :  :             :                                                                           :
 //    :  :             :                                                                           :
 //    :  :             v                                                                           :
-//    :  :------  MemoryAccessStage ( ComputeAddressSubStage -> ... -> DataAccessSubStage )        :
+//    :  +------  MemoryAccessStage ( ComputeAddressSubStage -> ... -> DataAccessSubStage )        :
 //    :                :                                                                           :
-//    :                :              :--:---------------------------------------------------------:
+//    :                :              +--+---------------------------------------------------------+
+//    :                :              :  :                                                         :
 //    :                v              v  v                                                         :
 //    :           PregMaEx [ P, O, I, A, B, X, S ]                                                 :
 //    :                :                                                                           :
 //    :                :                                                                           :
 //    :                v                                                                           :
-//    :---------  ExecuteStage ( exSubStage -> ... -> csSubStage )   ------------------------------:
+//    +---------  ExecuteStage ( ExecuteSubStage -> ... -> CommittSubStage )   --------------------+
 // 
 // 
 // The pipeline register modules are simple collections of individual pipeline registers with no further 
@@ -283,7 +259,6 @@ endmodule
 // behavioral mode. Let the synthesis tool do its job.
 //
 //
-//
 // ??? quite some ways to go ... need control lines... 
 // ??? basic question: do we decode all control lines in the FD stage or distribute it ?
 // ??? L1 caches, TLBs, RegFile and memory interface are part of the core...
@@ -291,7 +266,7 @@ endmodule
 // ??? a core will connect to the a shared L2 cache and also the system bus.
 // ??? initially we will habe one core and no L2 cache.
 //
-// ??? add a serial interface for teh regsiter dumps...
+// ??? add a serial interface for the register dumps...
 // 
 //------------------------------------------------------------------------------------------------------------
 module CpuCoreUnit #( 
@@ -398,7 +373,8 @@ module CpuCoreUnit #(
       .outA( wDecStage4 ), 
       .outB( wDecStage5 ), 
       .outX( wDecStage6 ),
-      .outIaOfs( wDecStage7 ));
+      .outIaOfs( wDecStage7 )
+   );
 
    PregFdMa pregFdMa ( 
 
@@ -419,7 +395,8 @@ module CpuCoreUnit #(
       .outA( wFdMaReg4 ), 
       .outB( wFdMaReg5 ), 
       .outX( wFdMaReg6 ),
-      .sOut( sOut ));
+      .sOut( sOut )
+   );
 
    ComputeAddressSubStage caSubStage ( 
 
@@ -451,7 +428,8 @@ module CpuCoreUnit #(
       .outB( wDaStage5 ), 
       .outX( wDaStage6 ),
       .outS( wDaStage7 ),
-      .outDaOfs( wDecStage7 ));
+      .outDaOfs( wDecStage7 )
+   );
 
    PregMaEx pregMaEx ( 
 
@@ -474,7 +452,8 @@ module CpuCoreUnit #(
       .outB( wExReg5 ), 
       .outX( wExReg6 ),
       .outS( wExReg7 ),
-      .sOut( sOut ));
+      .sOut( sOut )
+   );
 
    ExecuteSubStage exStage ( 
 
@@ -489,7 +468,8 @@ module CpuCoreUnit #(
       .inX( wExReg6 ),
       .inS( wExReg7 ),
 
-      .outR( wExStage1 ));
+      .outR( wExStage1 )
+   );
 
    CommitSubStage csStage ( 
 
@@ -501,7 +481,8 @@ module CpuCoreUnit #(
       .outP( wCsStage1 ),
       .outO( wCsStage2 ),
       .outST( wCsStage3 ),
-      .outR( wCsStage4 ));
+      .outR( wCsStage4 )
+   );
 
   
    // ??? the caches and TLBs are local to the substage where the are used. Nevertheless, these modules need
@@ -545,7 +526,8 @@ module CpuCoreUnit #(
 
    always @( negedge rst ) begin
 
-      // ??? what tp perhaps do on a reset ?
+      // ??? what to perhaps do on a reset ?
+      // ??? set the IA to 0:F0000000
 
    end
 
@@ -609,7 +591,6 @@ endmodule
 // the next instruction from the current instruction address. The instruction will be teh inoput to the 
 // decode sub-stage.
 // 
-// ??? use ScanRegUnit, outputs become regs ? ( in fact, do for all pipeline regs...)
 //------------------------------------------------------------------------------------------------------------
 module PregInstr (
 
@@ -639,7 +620,6 @@ endmodule
 // Pipeline register: FD to MA Stage. The FD-MA pipeline register is between the fetch-decode and the memory
 // access pipeline stage. Internally we have instances for each of the register parts.
 // 
-// ??? use ScanRegUnit, outputs become regs ? ( in fact, do for all pipeline regs...)
 //------------------------------------------------------------------------------------------------------------
 module PregFdMa ( 
 
@@ -722,7 +702,6 @@ endmodule
 // Pipeline register: MA to EX Stage. The MA-EX pipeline register is between the memory access and the execute
 // stage. Internally we have instances for each of the register parts.
 //
-// ??? use ScanRegUnit, outputs become regs ? ( in fact, do for all pipeline regs...)
 //------------------------------------------------------------------------------------------------------------
 module PregMaEx ( 
 
@@ -778,8 +757,8 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// Before the next instrucution is fetched, the address needs to be selected. It could be the current address
-// incremented by one, a branch target or an execpetion handler instruction. Depending on the instruction, 
+// Before the next instruction is fetched, the address needs to be selected. It could be the current address
+// incremented by four, a branch target or an excepetion handler instruction. Depending on the instruction, 
 // the pipeline stages produce the next instruction address value. The FD stage is will directly compute the
 // next instruction offset and in case of a conditional branch instruction a new instruction offset. The MA 
 // stage  will produce the next instruction offset for unconditional branch instrucutions. FD and MA stage do
@@ -793,8 +772,6 @@ endmodule
 // Note that the setting of a new instruction address will perhaps also require to flush the pipeline. This
 // is not handled in this module. All it does is to compute the next instruction address from the inputs of
 // the pipeline stages.
-//
-// ??? "sel" will be set by the control circuitry.
 //
 //------------------------------------------------------------------------------------------------------------
 module SelectNextInstrAdr( 
@@ -888,7 +865,9 @@ endmodule
 // ??? do we need to pass also the fast clock for regfile write operation ?
 // ??? what is a good strategy to do the opCode analysis ? all in one huge case statement ? grouping ?
 // ??? the cases are actually control lines to select the unit that has the data....
-//
+// 
+// ??? we also need to read the general register file
+// ??? regfile needs to become a version with a serial scan option...
 //------------------------------------------------------------------------------------------------------------
 module DecodeSubStage( 
    
@@ -927,13 +906,13 @@ module DecodeSubStage(
 
    ImmGenUnit              immU  ( .instr( inI ), .y( immVal ));
 
-   RegFileUnit             rFile ( .clk( clk ), .rst( rst ), .write( rfWrite ), .wrAddr( regWriteAdr ),
+   ScanRegFileUnit         rFile ( .clk( clk ), .rst( rst ), .write( rfWrite ), .wrAddr( regWriteAdr ),
                                    .rdAddrA( regReadAdrA ), .rdAddrB( regReadAdrB ), 
                                    .wrData( ), .rdDataA( ), .rdDataB( ));
 
    assign opCode     = inI[0:5];
    assign regIdR     = inI[6:9];
-   assign regIdA     = inI[14:27];
+   assign regIdA     = inI[24:27];
    assign regIdB     = inI[28:31];
 
    assign outA       = valA;
@@ -943,21 +922,14 @@ module DecodeSubStage(
 
    assign outP       = inP;
    assign outO       = inO;
-   assign outIaOfs   = 1;
+   assign outIaOfs   = 4;
 
    always @( negedge clk or negedge rst ) begin 
       
       case ( opCode )
          
-         `OP_NOP: begin
-
-            valA <= 0;
-            valB <= 0;
-            valX <= 0;
-
-         end
-
-         `OP_ADD, `OP_SUB: begin
+        
+         `OP_ADD, `OP_ADC, `OP_SBC, `OP_SUB: begin
 
          end
 
@@ -965,11 +937,27 @@ module DecodeSubStage(
 
          end
 
-         `OP_CMP, `OP_LDI, `OP_LEA, `OP_LSID: begin
+         `OP_LDIL: begin 
 
          end
 
-         `OP_EXTR, `OP_DEP, `OP_DSR: begin 
+         `OP_ADDIL: begin 
+
+         end
+
+         `OP_CMP: begin
+
+         end
+
+         `OP_LSID: begin
+
+         end
+
+         `OP_EXTR, `OP_DEP: begin 
+
+         end
+
+         `OP_DSR: begin 
 
          end
 
@@ -977,39 +965,51 @@ module DecodeSubStage(
 
          end
 
-         `OP_LD, `OP_ST: begin
+         `OP_LD: begin
 
          end
 
-         `OP_LDA, `OP_STA: begin
+         `OP_ST: begin
+
+         end
+
+         `OP_LDA: begin
 
          end 
 
-         `OP_LDE, `OP_STE: begin
-
-         end
-
-         `OP_LR, `OP_SC: begin
-
-         end
-
-         `OP_B, `OP_BL: begin
+         `OP_STA: begin
 
          end 
 
-         `OP_BR, `OP_BLR: begin
+         `OP_LDR: begin
 
          end
 
-         `OP_BE, `OP_BLE: begin
+         `OP_STC: begin
+
+         end
+
+         `OP_B: begin
 
          end 
 
-         `OP_BV, `OP_BVR: begin
+         `OP_BR: begin
 
          end
 
-         `OP_TBR, `OP_CBR: begin
+         `OP_BE: begin
+
+         end 
+
+         `OP_BV: begin
+
+         end
+
+          `OP_BVE: begin
+
+         end
+
+         `OP_CBR: begin
 
          end 
 
@@ -1073,11 +1073,13 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// Data address calculation sub stage. It is the frst part of the memory access for instructions that access
-//  the L1 data cache or calculate a branch target offsets.
+// Data address calculation sub stage. It is the frst part of the memory access stage for instructions that 
+// access the L1 data cache or calculate a branch target offsets. We also use this sub stage and its resources
+// to do branch adddress computations, etc.
 // 
 //
 // ??? input .... what is required ?
+// ??? fix scan input
 //------------------------------------------------------------------------------------------------------------
 module ComputeAddressSubStage ( 
 
@@ -1092,15 +1094,14 @@ module ComputeAddressSubStage (
    input  wire[0:`WORD_LENGTH-1] inX
    
    // ??? output ?
-   // ??? the data ?
-
+   
    );
 
-   Adder          U0 ( .a( ), .b( ), .inC( 1'b0 ), .s( )); 
+   Adder             U0 ( .a( ), .b( ), .inC( 1'b0 ), .s( )); 
 
-   RegFileUnit    U1 ( .clk( clk ), .rst( rst ), .write( ), .wrAddr( ),
-                        .rdAddrA( ), .rdAddrB( ), 
-                        .wrData( ), .rdDataA( ), .rdDataB( ));
+   ScanRegFileUnit   U1 ( .clk( clk ), .rst( rst ), .sMode( 1'b0 ), .write( ), .wrAddr( ),
+                           .rdAddrA( ), .rdAddrB( ), .sIn( 1'b0 ),
+                           .wrData( ), .rdDataA( ), .rdDataB( ), .sOut( ));
 
    
 endmodule
@@ -1163,6 +1164,9 @@ endmodule
 //
 // subtraction signed
 // (( ~ a[0] ) & ( b[0] ) & ( s[0] )) | (( a[0] ) & ( ~ b[0] ) & ( ~ s[0] )) 
+//
+//
+// ??? use logicUnit and Adder ?
 //------------------------------------------------------------------------------------------------------------
 module ExecuteSubStage ( 
 
@@ -1195,10 +1199,11 @@ endmodule
 
 //------------------------------------------------------------------------------------------------------------
 // Commit sub stage logic. The stage is the secod part of the execute stage. The first siubstage computed any
-// results. This sub stage will commit the results, i.e. update the states of registers and so on. 
+// results. This sub stage will commit the results, i.e. update the states of registers and so on.
 //
 // 
 // ??? also set any segment or control register value ?
+// ??? what do we do best about writing two values for LDw.M, etc. type instructions ?
 //------------------------------------------------------------------------------------------------------------
 module CommitSubStage ( 
 
@@ -1223,7 +1228,7 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Instruction TLB.
 //
 //
 //------------------------------------------------------------------------------------------------------------
@@ -1244,11 +1249,21 @@ module ItlbUnit #(
 
    );
 
+   always @( posedge clk or negedge rst ) begin 
+
+      if ( ~ rst ) begin
+
+      end else begin
+
+      end
+
+   end
+
 endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Data TLB.
 //
 //
 //------------------------------------------------------------------------------------------------------------
@@ -1263,6 +1278,16 @@ module DtlbUnit #(
    input    wire     rst
 
    );
+
+   always @( posedge clk or negedge rst ) begin 
+
+      if ( ~ rst ) begin
+
+      end else begin
+
+      end
+
+   end
 
 endmodule
 
@@ -1857,7 +1882,7 @@ endmodule
 //
 // ??? should they also become part of the scan chain ?
 //------------------------------------------------------------------------------------------------------------
-module RegFileUnit #(
+module ScanRegFileUnit #(
 
    parameter SIZE    = 8,
    parameter WIDTH   = `WORD_LENGTH
@@ -1866,6 +1891,7 @@ module RegFileUnit #(
       
    input    wire                       clk,
    input    wire                       rst,
+   input    wire                       sMode,
    input    wire                       write,
    input    wire [0:$clog2( SIZE )-1]  wrAddr,
    input    wire [0:WIDTH-1]           wrData,
@@ -1892,17 +1918,25 @@ module RegFileUnit #(
 
       end else begin
 
-         if ( wrAddr != 0 ) begin
-            
-            if ( write ) regFile[wrAddr] <= wrData;
+          if ( sMode ) begin
 
-         end
+            // scan stuff ...
+
+          end else begin
+
+            if ( wrAddr != 0 ) begin
+            
+               if ( write ) regFile[wrAddr] <= wrData;
+
+            end
+
+          end
 
       end
 
    end
 
-endmodule
+   endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -2187,6 +2221,7 @@ endmodule
 // the instruction word bit fields for the particular instruction format. For instructions without an
 // immediate field, the return value is zero. 
 //
+// ??? needs to change for new formats ...
 //------------------------------------------------------------------------------------------------------------
 module ImmGenUnit (   
 
@@ -2199,7 +2234,7 @@ module ImmGenUnit (
    
       case ( instr[0:5] )
 
-         `OP_LD, `OP_ST, `OP_LR, `OP_SC, `OP_LEA: begin
+         `OP_LD, `OP_ST, `OP_LDR, `OP_STC: begin
 
             if ( instr[12:14] == 3'b011 ) begin
 
@@ -2213,7 +2248,7 @@ module ImmGenUnit (
 
          end
 
-         `OP_LDE, `OP_STE, `OP_CBR, `OP_TBR: begin
+         `OP_CBR: begin
 
             y = {{ 15{ instr[15] }}, { instr[15:17], instr[9:14] }};
 
@@ -2225,25 +2260,25 @@ module ImmGenUnit (
 
          end
 
-         `OP_LDI: begin 
+         `OP_LDIL: begin 
 
              y = {{ 12{ instr[15] }}, { instr[15:23], instr[9:11] }};
 
          end   
       
-         `OP_B, `OP_BL, `OP_GATE: begin     
+         `OP_B, `OP_GATE: begin     
 
             y = {{ 9{ instr[15] }}, { instr[ 15:23], instr[9:14] }};
 
          end
 
-         `OP_BE, `OP_BLE: begin     
+         `OP_BE: begin     
 
             y = {{ 12{ instr[15] }}, { instr[ 15:17], instr[6:14] }};
 
          end
 
-         `OP_ADD, `OP_SUB, `OP_AND, `OP_OR, `OP_XOR, `OP_CMP: begin
+         `OP_ADD, `OP_SUB, `OP_ADC, `OP_SBC, `OP_AND, `OP_OR, `OP_XOR, `OP_CMP: begin
 
              if ( instr[12:14] == 3'b011 ) begin
 

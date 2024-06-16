@@ -1253,20 +1253,20 @@ Perform an unconditional branch using a base and offset general register for for
 #### Format
 
 ```
-   BV r, a( b )
-   BV a( b )
+   BV r,( b )
+   BV ( b )
 ```
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : BV      ( 0x23 ): r         : 0                                       : a         : b         :
+   : BV      ( 0x23 ): r         : 0                                                   : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The branch vectored instruction performs an unconditional branch by adding the offset in "a" to the base address in register in "b". The result is interpreted as an instruction address in the current code segment. This unconditional jump allows to reach the entire code address range. If code translation is disabled, the resulting offset is the absolute physical address. In addition, the current instruction offset + 4 is stored in "r".
+The branch vectored instruction performs an unconditional branch to the base address in register in "b". The result is interpreted as an instruction address in the current code segment. This unconditional jump allows to reach the entire code address range. If code translation is disabled, the resulting offset is the absolute physical address. In addition, the current instruction offset + 4 is stored in "r".
 
 Since the BV instruction is a segment base relative branch, a branch to page with a different privilege level is possible. A branch from a lower level to a higher level results in an instruction protection trap. A branch from a higher privilege to a lower privilege level results in the privilege level adjusted in the status register. Otherwise, the privilege level remains unchained.
 
@@ -1274,7 +1274,7 @@ Since the BV instruction is a segment base relative branch, a branch to page wit
 
 ```
    GR[r]  <- IA-OFS + 4;
-   IA-OFS <- GR[b] + GR[a];
+   IA-OFS <- GR[a];
 ```
 
 #### Exceptions
@@ -1284,7 +1284,7 @@ Since the BV instruction is a segment base relative branch, a branch to page wit
 
 #### Notes
 
-The **BV** instruction with general register "a" being register zero is typically used as a procedure return. The **B** instruction with a return link left in a general register, which can directly be used by this instruction to return to the location after the **B** instruction.
+The **BV** instruction is typically used as a procedure return. The **B** instruction with a return link left in a general register, which can directly be used by this instruction to return to the location after the **B** instruction.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1499,7 +1499,7 @@ Test a general register for a condition and conditionally move a register value 
 #### Format
 
 ```
-   CMR [.<cond>] r, b, a
+   CMR [.<cond>] r, a, b
 ```
 
 ```
@@ -2475,6 +2475,55 @@ Using general register zero as one operand will result in OR-ing a zero with a g
 
 <div style="page-break-before: always;"></div>
 
+### PCA
+
+<hr>
+
+Flush and / or remove cache lines from the cache.
+
+#### Format
+
+```
+   PCA [.<opt>] (a, b)
+```
+
+```
+    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+   : PCA     ( 0x3D ): 0         :T :F : 0                                 : a         : b         :
+   :-----------------:-----------------------------------------------------------------------------:
+```
+
+#### Description
+
+The PCA instruction flushes or purges a cache line from the instruction or data cache. The virtual address is encoded in "a" for the segment register and "b" for the offset. The "T" bit indicates whether the instruction or the data cache is addressed. A value of zero references the instruction cache. An instruction cache line can only be purged, a data cache line can also be written back to memory when dirty and then optionally purged. The "F" bit will indicate whether the data cache is to be purged without flushing it first to memory. If "F" is one, the entry is first flushed and then purged, else just purged. The "F" bit has no meaning for an instruction cache.
+
+#### Operation
+
+```  
+   if ( instr.[T] ) {
+
+      if ( instr.[F] ) flushDataCache( SR[a], GR[b] );
+      purgeDataCache( SR[a], GR[b] );
+   
+   } else purgeInstructionCache( SR[a], GR[b] );
+```
+
+#### Exceptions
+
+- Privileged operation trap
+- Non-access ITLB trap
+- Non-access DTLB trap
+
+#### Notes
+
+None.
+
+
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
 ### PRB
 
 <hr>
@@ -2573,55 +2622,6 @@ The DTLB instruction removes a translation from the instruction or data TLB by m
 #### Exceptions
 
 - Privileged operation trap
-
-#### Notes
-
-None.
-
-
-<!--------------------------------------------------------------------------------------------------------->
-
-<div style="page-break-before: always;"></div>
-
-### PCA
-
-<hr>
-
-Flush and / or remove cache lines from the cache.
-
-#### Format
-
-```
-   PCA [.<opt>] (a, b)
-```
-
-```
-    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : PCA     ( 0x3D ): 0         :T :F : 0                                 : a         : b         :
-   :-----------------:-----------------------------------------------------------------------------:
-```
-
-#### Description
-
-The PCA instruction flushes or purges a cache line from the instruction or data cache. The virtual address is encoded in "a" for the segment register and "b" for the offset. The "T" bit indicates whether the instruction or the data cache is addressed. A value of zero references the instruction cache. An instruction cache line can only be purged, a data cache line can also be written back to memory when dirty and then optionally purged. The "F" bit will indicate whether the data cache is to be purged without flushing it first to memory. If "F" is one, the entry is first flushed and then purged, else just purged. The "F" bit has no meaning for an instruction cache.
-
-#### Operation
-
-```  
-   if ( instr.[T] ) {
-
-      if ( instr.[F] ) flushDataCache( SR[a], GR[b] );
-      purgeDataCache( SR[a], GR[b] );
-   
-   } else purgeInstructionCache( SR[a], GR[b] );
-```
-
-#### Exceptions
-
-- Privileged operation trap
-- Non-access ITLB trap
-- Non-access DTLB trap
 
 #### Notes
 
@@ -4019,7 +4019,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : BR      ( 0x22 ): r         : 0                                                   : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : BV      ( 0x23 ): r         : 0                                       : a         : b         :
+   : BV      ( 0x23 ): r         : 0                                                   : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : BE      ( 0x24 ): r         : 0                                       : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
