@@ -69,29 +69,35 @@
 `define DBL_WORD_LENGTH       64
 `define SEG_ID_WORD_LENGTH    16
 
+
+//------------------------------------------------------------------------------------------------------------
+// The reset vector. Upon reset, execution starts at this address in real mode.
+//
+//------------------------------------------------------------------------------------------------------------
 `define RESET_IA_SEG          32'h0
 `define RESET_IA_OFS          32'hF0000000
 
 
-
+//------------------------------------------------------------------------------------------------------------
+// ALU operation codes.
+//
+//
+//------------------------------------------------------------------------------------------------------------
 `define LOP_AND   3'b000
 `define LOP_CAND  3'b001
-`define LOP_XOR 3'b010
-`define LOP_OR 3'b011
-`define LOP_NAND 3'b100
-`define LOP_COR 3'b101
-`define LOP_XNOR 3'b110
-`define LOP_NOR 3'b111
-
-
+`define LOP_XOR   3'b010
+`define LOP_OR    3'b011
+`define LOP_NAND  3'b100
+`define LOP_COR   3'b101
+`define LOP_XNOR  3'b110
+`define LOP_NOR   3'b111
 
 
 //------------------------------------------------------------------------------------------------------------
-// OpCodes.
+// Instruction Set OpCodes.
 //
 //
 //------------------------------------------------------------------------------------------------------------
-
 `define OP_BRK          6'h00       // break for debug
 `define OP_LDIL         6'h01       // load immediate left
 `define OP_ADDIL        6'h02       // add immediate left
@@ -289,8 +295,7 @@ module CpuCoreUnit #(
 
    input    wire                                clk,
    input    wire                                rst,
-   input    wire                                sMode,
-
+  
    output   wire                                mReadOp,
    output   wire                                mWriteOp,
    input    wire[0:M_BLOCK_SIZE*`WORD_LENGTH-1] mDataIn,  
@@ -301,8 +306,10 @@ module CpuCoreUnit #(
    output   wire[0:`WORD_LENGTH-1]              mAdrOfs,
    output   wire[0:M_BLOCK_SIZE*`WORD_LENGTH-1] mDataOut,
 
-   input    wire                                sIn,
-   output   wire                                sOut   
+   input  wire                                  sClock,
+   input  wire                                  sEnabled,
+   input  wire                                  sIn,
+   output wire                                  sOut 
 
    );
 
@@ -349,14 +356,19 @@ module CpuCoreUnit #(
 
       .clk( clk ), 
       .rst( rst ),
-      .sMode( sMode ), 
+
       .inP( wNi1 ), 
       .inO( wNi2 ),
-      .sIn( sIn ), 
+     
 
       .outP( wIaReg1 ), 
       .outO( wIaReg2 ),
-      .sOut( sOut ));
+
+      .sClock( sClock ),
+      .sEnable( sEnable ),
+      .sIn( sIn ), 
+      .sOut( sOut )
+   );
 
    FetchSubStage fSubStage ( 
 
@@ -392,21 +404,24 @@ module CpuCoreUnit #(
 
       .clk( clk ), 
       .rst( rst ), 
-      .sMode( sMode ), 
+     
       .inP( wIaReg1 ), 
       .inO( wIaReg2 ),
       .inI( wDecStage3 ),
       .inA( wDecStage4 ),
       .inB( wDecStage5 ),
       .inX( wDecStage6 ),
-      .sIn( sIn ),
-
+     
       .outP( wFdMaReg1 ), 
       .outO( wFdMaReg2 ), 
       .outI( wFdMaReg3 ),
       .outA( wFdMaReg4 ), 
       .outB( wFdMaReg5 ), 
       .outX( wFdMaReg6 ),
+    
+      .sClock( sClock ),
+      .sEnable( sEnable ),
+      .sIn( sIn ), 
       .sOut( sOut )
    );
 
@@ -447,7 +462,7 @@ module CpuCoreUnit #(
 
       .clk( clk ), 
       .rst( rst ), 
-      .sMode( sMode ), 
+   
       .inP( wFdMaReg1 ), 
       .inO( wFdMaReg2 ),
       .inI( wDaStage3 ),
@@ -455,8 +470,7 @@ module CpuCoreUnit #(
       .inB( wDaStage5 ),
       .inX( wDaStage6 ),
       .inS( wDaStage7 ),
-      .sIn( sIn ),
-
+     
       .outP( wExReg1 ), 
       .outO( wExReg2 ), 
       .outI( wExReg3 ),
@@ -464,6 +478,10 @@ module CpuCoreUnit #(
       .outB( wExReg5 ), 
       .outX( wExReg6 ),
       .outS( wExReg7 ),
+     
+      .sClock( sClock ),
+      .sEnable( sEnable ),
+      .sIn( sIn ), 
       .sOut( sOut )
    );
 
@@ -557,16 +575,19 @@ module PregInstrAdr (
 
    input  wire                   clk,
    input  wire                   rst,
-   input  wire                   sMode,
+   
    input  wire[0:`WORD_LENGTH-1] inP,
    input  wire[0:`WORD_LENGTH-1] inO,
    input  wire[0:`WORD_LENGTH-1] inST,
-   input  wire                   sIn,
-
+ 
    output wire[0:`WORD_LENGTH-1] outP,
    output wire[0:`WORD_LENGTH-1] outO, 
    output wire[0:`WORD_LENGTH-1] outST,
-   output wire                   sOut 
+
+   input  wire                   sClock,
+   input  wire                   sEnable,
+   input  wire                   sIn,
+   output wire                   sOut
 
    );
 
@@ -574,27 +595,39 @@ module PregInstrAdr (
 
    ScanRegUnit iaSeg (  .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
-                        .d( inP ), 
-                        .sIn( sIn ), 
+                       
+                        .d( inP ),
                         .q( outP ), 
-                        .sOut( w1 ));
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( sIn ), 
+                        .sOut( w1 )
+                     );
 
    ScanRegUnit iaOfs (  .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
-                        .d( inO ), 
+                        
+                        .d( inO ),
+                        .q( outO ),
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
                         .sIn( w1 ), 
-                        .q( outO ), 
-                        .sOut( w2 ));
+                        .sOut( w2 )
+                     );
 
    ScanRegUnit status ( .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
+                        
                         .d( inST ), 
+                        .q( outST ),
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
                         .sIn( w2 ), 
-                        .q( outST ), 
-                        .sOut( sOut ));
+                        .sOut( sOut )
+                     );
    
 endmodule
 
@@ -608,23 +641,28 @@ module PregInstr (
 
    input  wire                   clk,
    input  wire                   rst,
-   input  wire                   sMode,
-
    input  wire[0:`WORD_LENGTH-1] inInstr,
-   input  wire                   sIn,
-
+   
    output wire[0:`WORD_LENGTH-1] outInstr,
-   output  wire                  sOut
+
+   input  wire                   sClock,
+   input  wire                   sEnable,
+   input  wire                   sIn,
+   output wire                   sOut
 
    );
 
    ScanRegUnit iReg (   .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
+
                         .d( inInstr ), 
+                        .q( outInstr ),
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
                         .sIn( sIn ), 
-                        .q( outInstr ), 
-                        .sOut( sOut ));
+                        .sOut( sOut )
+                     );
 
 endmodule
 
@@ -637,7 +675,6 @@ module PregFdMa (
 
    input  wire                   clk,
    input  wire                   rst,
-   input  wire                   sMode,
 
    input  wire[0:`WORD_LENGTH-1] inP,
    input  wire[0:`WORD_LENGTH-1] inO,
@@ -645,7 +682,6 @@ module PregFdMa (
    input  wire[0:`WORD_LENGTH-1] inA,
    input  wire[0:`WORD_LENGTH-1] inB,
    input  wire[0:`WORD_LENGTH-1] inX,
-   input  wire                   sIn,
 
    output wire[0:`WORD_LENGTH-1] outP,
    output wire[0:`WORD_LENGTH-1] outO,
@@ -653,7 +689,11 @@ module PregFdMa (
    output wire[0:`WORD_LENGTH-1] outA,
    output wire[0:`WORD_LENGTH-1] outB,
    output wire[0:`WORD_LENGTH-1] outX,
-   output  wire                  sOut
+
+   input  wire                   sClock,
+   input  wire                   sEnable,
+   input  wire                   sIn,
+   output wire                   sOut
 
    );
 
@@ -661,51 +701,75 @@ module PregFdMa (
 
    ScanRegUnit iaSeg (  .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
+                        
                         .d( inP ), 
-                        .sIn( sIn ), 
                         .q( outP ), 
-                        .sOut( w1 ));
+                       
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( sIn ), 
+                        .sOut( w1 )
+                     );
 
    ScanRegUnit iaOfs (  .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
+                        
                         .d( inO ), 
-                        .sIn( w1 ),  
                         .q( outO ), 
-                        .sOut( w2 ));
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( w1 ), 
+                        .sOut( w2 )
+                     );
 
    ScanRegUnit instr (  .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
+                        
                         .d( inI ), 
-                        .sIn( w2 ),  
                         .q( outI ), 
-                        .sOut( w3 ));
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( sw2 ), 
+                        .sOut( w3 )
+                     );
 
    ScanRegUnit valA  (  .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
+         
                         .d( inA ), 
-                        .sIn( w3 ),  
                         .q( outA ), 
-                        .sOut( w4 ));
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( w3 ), 
+                        .sOut( w4 )
+                     );
 
    ScanRegUnit valB  (  .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
+                        
                         .d( inB ), 
-                        .sIn( w4 ),  
                         .q( outB ), 
-                        .sOut( w5 ));
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( w4 ), 
+                        .sOut( w5 )
+                     );
 
    ScanRegUnit valX  (  .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
+                        
                         .d( inX ), 
-                        .sIn( w5 ),  
                         .q( outX ), 
-                        .sOut( sOut ));
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( w5 ), 
+                        .sOut( sOut )
+                     );
 
 endmodule
 
@@ -719,8 +783,7 @@ module PregMaEx (
 
    input  wire                   clk,
    input  wire                   rst,
-   input  wire                   sMode,
-
+  
    input  wire[0:`WORD_LENGTH-1] inP, // in_PregMaEx_P PregMaEx_P_in
    input  wire[0:`WORD_LENGTH-1] inO,
    input  wire[0:`WORD_LENGTH-1] inI,
@@ -728,7 +791,6 @@ module PregMaEx (
    input  wire[0:`WORD_LENGTH-1] inB,
    input  wire[0:`WORD_LENGTH-1] inX,
    input  wire[0:`WORD_LENGTH-1] inS,
-   input  wire                   sIn,
 
    output wire[0:`WORD_LENGTH-1] outP, // regMaEx_P_out
    output wire[0:`WORD_LENGTH-1] outO,
@@ -737,7 +799,11 @@ module PregMaEx (
    output wire[0:`WORD_LENGTH-1] outB,
    output wire[0:`WORD_LENGTH-1] outX, 
    output wire[0:`WORD_LENGTH-1] outS,
-   output  wire                  sOut 
+   
+   input  wire                   sClock,
+   input  wire                   sEnable,
+   input  wire                   sIn,
+   output wire                   sOut
 
    );
 
@@ -745,25 +811,86 @@ module PregMaEx (
 
    ScanRegUnit iaSeg (  .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
+                        
                         .d( inP ), 
-                        .sIn( sIn ), 
                         .q( outP ), 
-                        .sOut( w1 ));
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( sIn ), 
+                        .sOut( w1 )
+                     );
 
    ScanRegUnit iaOfs (  .clk( clk ), 
                         .rst( rst ), 
-                        .sMode( sMode ), 
-                        .d( inO ), 
-                        .sIn( w1 ),  
+                        
+                        .d( inO ),              
                         .q( outO ), 
-                        .sOut( w2 ));
 
-   ScanRegUnit instr (  .clk( clk ), .rst( rst ), .sMode( sMode ), .d( inI ), .sIn( w2 ),  .q( outI ), .sOut( w3 ));
-   ScanRegUnit valA  (  .clk( clk ), .rst( rst ), .sMode( sMode ), .d( inA ), .sIn( w3 ),  .q( outA ), .sOut( w4 ));
-   ScanRegUnit valB  (  .clk( clk ), .rst( rst ), .sMode( sMode ), .d( inB ), .sIn( w4 ),  .q( outB ), .sOut( w5 ));
-   ScanRegUnit valX  (  .clk( clk ), .rst( rst ), .sMode( sMode ), .d( inX ), .sIn( w5 ),  .q( outX ), .sOut( w6 ));
-   ScanRegUnit valS  (  .clk( clk ), .rst( rst ), .sMode( sMode ), .d( inS ), .sIn( w6 ),  .q( outS ), .sOut( sOut ));
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( w1 ), 
+                        .sOut( w2 )
+                     );
+
+   ScanRegUnit instr (  .clk( clk ), 
+                        .rst( rst ), 
+   
+                        .d( inI ), 
+                        .q( outI ), 
+    
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( w2 ),  
+                        .sOut( w3 )
+                     );
+   
+   ScanRegUnit valA  (  .clk( clk ), 
+                        .rst( rst ), 
+   
+                        .d( inA ),
+                        .q( outA ), 
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( w3 ),  
+                        .sOut( w4 )
+                     );
+
+   ScanRegUnit valB  (  .clk( clk ), 
+                        .rst( rst ), 
+   
+                        .d( inB ), 
+                        .q( outB ), 
+                        
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( w4 ),
+                        .sOut( w5 )
+      );
+
+   ScanRegUnit valX  (  .clk( clk ),
+                        .rst( rst ), 
+   
+                        .d( inX ),
+                        .q( outX ),
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( w5 ), 
+                        .sOut( w6 )
+      );
+   
+   ScanRegUnit valS  (  .clk( clk ), 
+                        .rst( rst ), 
+   
+                        .d( inS ),  
+                        .q( outS ), 
+
+                        .sClock( sClock ),
+                        .sEnable( sEnable ),
+                        .sIn( w6 ),  
+                        .sOut( sOut ));
 
 endmodule
 
@@ -1111,11 +1238,22 @@ module ComputeAddressSubStage (
 
    AdderUnit         U0 ( .a( ), .b( ), .inC( 1'b0 ), .s( )); 
 
-   ScanRegFileUnit   U1 ( .clk( clk ), .rst( rst ), .sMode( 1'b0 ), .write( ), .wrAddr( ),
-                           .rdAddrA( ), .rdAddrB( ), .sIn( 1'b0 ),
-                           .wrData( ), .rdDataA( ), .rdDataB( ), .sOut( ));
+   ScanRegFileUnit   U1 (  .clk( clk ), 
+                           .rst( rst ), 
+                           .write( ), 
+                           .wrAddr( ),
+                           .rdAddrA( ), 
+                           .rdAddrB( ), 
+                           .wrData( ), 
+                           .rdDataA( ), 
+                           .rdDataB( ),
+                           
+                           .sClock( ),
+                           .sEnable( ),
+                           .sIn( ),
+                           .sOut( )
+                        );
 
-   
 endmodule
 
 //------------------------------------------------------------------------------------------------------------
@@ -1243,7 +1381,8 @@ endmodule
 //------------------------------------------------------------------------------------------------------------
 // Instruction TLB.
 //
-//
+// ??? to decide: a small fully associative TLB, in combination with a larger joint TLB for both instruction
+// and data, or a single 2-way associative TLB.
 //------------------------------------------------------------------------------------------------------------
 module ItlbUnit #(
 
@@ -1278,7 +1417,7 @@ endmodule
 //------------------------------------------------------------------------------------------------------------
 // Data TLB.
 //
-//
+// ??? to decide a combo with I-TLB ?
 //------------------------------------------------------------------------------------------------------------
 module DtlbUnit #(
 
@@ -1844,52 +1983,6 @@ endmodule
 
 
 //------------------------------------------------------------------------------------------------------------
-// Dual ported Ram. This is a simple dual ported memory structure of 16 entries.
-//
-// ??? what to do on reset ?
-// ??? make the size also paremeterized ?
-//------------------------------------------------------------------------------------------------------------
-module DualPortedRamUnit_16 #(
-
-   parameter WIDTH = `WORD_LENGTH 
-
-   ) (  
-
-   input    wire              clk, 
-   input    wire              rst,
-   input    wire[0:3]         readAdrA,
-   input    wire[0:3]         readAdrB,
-   input    wire              wEnable,
-   input    wire[0:3]         writeAdr, 
-   input    wire[0:WIDTH-1]   dataIn,
-   output   wire[0:WIDTH-1]   dataOutA,
-   output   wire[0:WIDTH-1]   dataOutB
-   
-   );
-
-   reg [0:WIDTH-1] ram [0:15];
-
-   assign dataOutA = ram[ readAdrA ];
-   assign dataOutB = ram[ readAdrB ];     
-
-   always @( posedge clk or negedge rst ) begin
-
-      if ( ~ rst ) begin
-
-         for ( integer k = 0; k < 15; k = k + 1 ) ram[ k ] <= 0;
-
-      end else begin
-
-         if ( wEnable ) ram[ writeAdr ] <= dataIn;
-
-      end 
-
-   end
-
-endmodule
-
-
-//------------------------------------------------------------------------------------------------------------
 // Register file unit. The unit contains a set of registers. It is the building block for the general register
 // set and segment register set. In addition, the ScanRegFileUnit can be operated in two modes. The normal 
 // mode ( 1'b0 ) is a register with a parallel input and output, set at the positive edge of the clock. In 
@@ -1900,6 +1993,9 @@ endmodule
 // register chain. The number of clock cycles needs to match the sum of all bits in  the registers, such that
 //  the original content is restored.
 //
+//
+// ??? the serial bit vector can become quite large. We need to find a kind of state machine approach to
+// put the registers out one by one...
 //------------------------------------------------------------------------------------------------------------
 module ScanRegFileUnit #(
 
@@ -1910,16 +2006,19 @@ module ScanRegFileUnit #(
       
    input    wire                       clk,
    input    wire                       rst,
-   input    wire                       sMode,
+   
    input    wire                       write,
    input    wire [0:$clog2( SIZE )-1]  wrAddr,
    input    wire [0:WIDTH-1]           wrData,
    input    wire [0:$clog2( SIZE )-1]  rdAddrA,
    input    wire [0:$clog2( SIZE )-1]  rdAddrB,
-   input    wire                       sIn,
 
    output   wire [0:WIDTH-1]           rdDataA,
    output   wire [0:WIDTH-1]           rdDataB,
+   
+   input    wire                       sClock,
+   input    wire                       sEnable,
+   input    wire                       sIn,
    output   wire                       sOut
 
    );
@@ -1929,30 +2028,35 @@ module ScanRegFileUnit #(
    assign rdDataA = ( rdAddrA == 0 ) ? 32'h0 : regFile[rdAddrA];
    assign rdDataB = ( rdAddrB == 0 ) ? 32'h0 : regFile[rdAddrB];
 
-   always @( posedge clk or negedge rst ) begin
+   always @( negedge rst ) begin
 
       if ( ~ rst ) begin
 
          for ( integer i = 1; i < SIZE-1; i = i + 1 ) regFile[i] <= 0;
 
-      end else begin
+      end 
 
-          if ( sMode ) begin
+   end
 
-            // scan stuff ...
+   always @( posedge clk ) begin
 
-          end else begin
-
-            if ( wrAddr != 0 ) begin
+      if ( wrAddr != 0 ) begin
             
-               if ( write ) regFile[wrAddr] <= wrData;
-
-            end
-
-          end
+         if ( write ) regFile[wrAddr] <= wrData;
 
       end
 
+   end
+
+   always @( posedge sClock ) begin
+
+     
+     if ( sEnable ) begin
+       
+            // scan stuff ...
+         
+      end
+   
    end
 
 endmodule
@@ -1976,18 +2080,31 @@ module ScanRegUnit #(
 
    ) (
 
-      input    wire                    clk,
-      input    wire                    rst,
-      input    wire                    sMode,
-      input    wire                    sIn,
-      input    wire[0:`WORD_LENGTH-1]  d,
+      input    wire                       clk,
+      input    wire                       rst,
+      input    wire[0:`WORD_LENGTH-1]     d,
 
-      output   reg[0:`WORD_LENGTH-1]   q,
-      output   reg                     sOut
+      output   reg[0:`WORD_LENGTH-1]      q,
+      
+      input    wire                       sClock,
+      input    wire                       sEnable,
+      input    wire                       sIn,
+      output   reg                        sOut
 
    );
 
-   always @( posedge clk or negedge rst ) begin
+   always @( negedge rst ) begin
+
+       if ( ~ rst ) begin
+
+         q     <= 0;
+         sOut  <= 0;
+
+       end
+
+   end
+
+   always @( posedge clk ) begin
 
        if ( ~ rst ) begin
 
@@ -1996,22 +2113,23 @@ module ScanRegUnit #(
 
       end else begin
 
-         if ( sMode ) begin
-
-            q     <= { sIn, q[`WORD_LENGTH-1] };
-            sOut  <= q[`WORD_LENGTH-1];
-
-         end else begin
-
-            q     <= d;
-            sOut  <= q[`WORD_LENGTH-1];
-
-         end
+         q     <= d;
 
       end
+   
+   end
+      
+   always @( posedge sClock ) begin
+
+      if ( sEnable ) begin
+
+         q     <= { sIn, q[`WORD_LENGTH-1] };
+         sOut  <= q[`WORD_LENGTH-1];
+
+      end 
 
    end
-  
+
 endmodule
 
 

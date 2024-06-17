@@ -1634,14 +1634,13 @@ void DrvWinTlb::drawLine( uint32_t index ) {
         printTextField((( tEntry -> tDirty( )) ? (char *) "D" : (char *) "d" ), fmtDesc );
         printTextField((( tEntry -> tTrapPage( )) ? (char *) "P" : (char *) "p" ), fmtDesc );
         printTextField((( tEntry -> tTrapDataPage( )) ? (char *) "D" : (char *) "d" ), fmtDesc );
-        printTextField((( tEntry -> tModifyExPage( )) ? (char *) "X" : (char *) "x" ), fmtDesc );
         printTextField((char *) "]", fmtDesc );
         
         buildAccessRightsStr( tmpBuf, 32, tEntry ->tPageType( ), tEntry -> tPrivL1( ), tEntry -> tPrivL2( ));
         printTextField((char *) " ACC:", fmtDesc );
         printTextField( tmpBuf, fmtDesc );
         printTextField((char *) " PID:", fmtDesc );
-        printNumericField( tEntry -> tProtectId( ), fmtDesc| FMT_HALF_WORD );
+        printNumericField( tEntry -> tSegId( ), fmtDesc| FMT_HALF_WORD );
         printTextField((char *) " VPN:", fmtDesc );
         printNumericField( tEntry -> vpnHigh, fmtDesc );
         printTextField((char *) ".", fmtDesc );

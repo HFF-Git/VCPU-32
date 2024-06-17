@@ -269,13 +269,12 @@ void DrvLineDisplay::displayTlbEntry( TlbEntry *entry, TokId fmt ) {
     if ( entry -> tDirty( ))            fprintf( stdout, "D" ); else fprintf( stdout, "d" );
     if ( entry -> tTrapPage( ))         fprintf( stdout, "P" ); else fprintf( stdout, "p" );
     if ( entry -> tTrapDataPage( ))     fprintf( stdout, "D" ); else fprintf( stdout, "d" );
-    if ( entry -> tModifyExPage( ))     fprintf( stdout, "X" ); else fprintf( stdout, "x" );
     fprintf( stdout, "]" );
     
     fprintf( stdout, " Acc: (%d,%d,%d)", entry -> tPageType( ), entry -> tPrivL1( ), entry -> tPrivL2( ));
     
     fprintf( stdout,  " Pid: " );
-    displayHalfWord( entry -> tProtectId( ), fmt );
+    displayHalfWord( entry -> tSegId( ), fmt );
     
     fprintf( stdout, " Vpn-H: " );
     displayWord( entry -> vpnHigh, fmt );

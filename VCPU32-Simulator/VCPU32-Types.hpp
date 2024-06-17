@@ -45,12 +45,9 @@ const uint32_t  MAX_GREGS               = 16;
 const uint32_t  MAX_SREGS               = 8;
 const uint32_t  MAX_CREGS               = 32;
 
-const uint32_t  PAGE_SIZE               = 4096U;
-const uint32_t  PAGE_SIZE_BITS          = 12U;
-const uint32_t  PAGE_BIT_MASK           = (( 1U << 12 ) - 1 );
-
-const uint32_t  MAX_BANKS               = 16U;
-const uint32_t  MAX_CPU_IDS             = 16U;
+const uint32_t  PAGE_SIZE               = 16384U;
+const uint32_t  PAGE_SIZE_BITS          = 14U;
+const uint32_t  PAGE_BIT_MASK           = (( 1U << 14 ) - 1 );
 
 const uint32_t  MAX_MEMORY_SIZE         = UINT32_MAX;
 const uint32_t  MAX_IO_MEM_SIZE         = UINT32_MAX / 16;
@@ -58,12 +55,11 @@ const uint32_t  MAX_PHYS_MEM_SIZE       = UINT32_MAX - MAX_IO_MEM_SIZE;
 const uint32_t  MAX_PDC_MEM_SIZE        = MAX_IO_MEM_SIZE / 16;
 
 const uint32_t  MAX_CACHE_BLOCK_ENTRIES = 1024;
-const uint16_t  MAX_BLOCK_SIZE          = 64;
+const uint16_t  MAX_BLOCK_SIZE          = 128;
 const uint16_t  MAX_BLOCK_SETS          = 4;
 
 const uint8_t   MAX_TRAP_ID             = 32;
 const uint8_t   TRAP_CODE_BLOCK_SIZE    = 32;
-
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -71,6 +67,7 @@ const uint8_t   TRAP_CODE_BLOCK_SIZE    = 32;
 // current execution state.
 //
 // ??? note: under construction .... always cross check with the document.
+// ??? it is a 16-bit field now ...
 //------------------------------------------------------------------------------------------------------------
 enum StatusRegFields : uint32_t {
     
@@ -110,10 +107,10 @@ enum ControlRegisterId : uint32_t {
     CR_RSV_5            = 0x5,
     CR_RSV_6            = 0x6,
     CR_RSV_7            = 0x7,
-    CR_PROTECT_ID1      = 0x8,
-    CR_PROTECT_ID2      = 0x9,
-    CR_PROTECT_ID3      = 0xA,
-    CR_PROTECT_ID4      = 0xB,
+    CR_SEG_ID1          = 0x8,
+    CR_SEG_ID2          = 0x9,
+    CR_SEG_ID3          = 0xA,
+    CR_SEG_ID4          = 0xB,
     CR_RSV_12           = 0xC,
     CR_RSV_13           = 0xD,
     CR_RSV_14           = 0xE,
@@ -169,6 +166,7 @@ enum PipeLineStageRegId : uint32_t {
 // cannot continue at all. In an emulator, they most likely do not occur, but in a simulator we could simulate
 // a hardware situation.
 //
+// ??? cross check wth document...
 //------------------------------------------------------------------------------------------------------------
 enum TrapId : uint32_t {
     
@@ -179,6 +177,7 @@ enum TrapId : uint32_t {
     ILLEGAL_INSTR_TRAP      = 4,
     PRIV_OPERATION_TRAP     = 5,
     OVERFLOW_TRAP           = 6,
+    DATA_ALIGNMENT_TRAP     = 19,
     
     INSTR_MEM_PROTECT_TRAP  = 7,
     DATA_MEM_PROTECT_TRAP   = 8,
@@ -213,6 +212,7 @@ enum AccessModes : uint32_t {
 // Compare condition code field values. For the comparisons test result of less than, greater than, less or
 // equal than and greater or equal than, there are signed and unsigned comparison codes.
 //
+// ??? changed ...
 //------------------------------------------------------------------------------------------------------------
 enum CompareConditionCodes : uint32_t {
     

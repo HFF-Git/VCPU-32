@@ -435,11 +435,6 @@ bool TlbEntry::tTrapDataPage( ) {
     return( getBitField( pInfo, 3, 1 ));
 }
 
-bool TlbEntry::tModifyExPage( ) {
-    
-    return( getBitField( pInfo, 4, 1 ));
-}
-
 uint32_t TlbEntry::tPageType( ) {
     
     return( getBitField( pInfo, 7, 2 ));
@@ -455,7 +450,7 @@ uint32_t  TlbEntry::tPrivL2( ) {
     return( getBitField( pInfo, 9, 1 ));
 }
 
-uint32_t TlbEntry::tProtectId( ) {
+uint16_t TlbEntry::tSegId( ) {
     
     return( getBitField( pInfo, 31, 16 ));
 }

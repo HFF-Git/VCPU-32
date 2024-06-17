@@ -507,6 +507,8 @@ void MemoryAccessStage::process( ) {
             }
             else if ( opCodeTab[ opCode ].flags & WRITE_INSTR ) {
                 
+                /* change: if access type ... and not privilged...
+                 
                 if (( tlbEntryPtr -> tPageType( ) != ACC_READ_WRITE ) &&
                     (( tlbEntryPtr -> tPageType( ) == ACC_EXECUTE ) && ( ! tlbEntryPtr -> tModifyExPage( ))) &&
                     (( tlbEntryPtr -> tPageType( ) == ACC_GATEWAY ) && ( ! tlbEntryPtr -> tModifyExPage( )))) {
@@ -515,6 +517,7 @@ void MemoryAccessStage::process( ) {
                     stallPipeLine( );
                     return;
                 }
+                */
                 
                 if ( instrPrivLevel > tlbEntryPtr -> tPrivL2( )) {
                     
@@ -526,10 +529,12 @@ void MemoryAccessStage::process( ) {
             
             if ( core -> stReg.get( ) & ST_PROTECT_ID_CHECK_ENABLE ) {
                 
-                if (( tlbEntryPtr -> tProtectId( ) != core -> cReg[ CR_PROTECT_ID1 ].get( )) &&
-                    ( tlbEntryPtr -> tProtectId( ) != core -> cReg[ CR_PROTECT_ID2 ].get( )) &&
-                    ( tlbEntryPtr -> tProtectId( ) != core -> cReg[ CR_PROTECT_ID3 ].get( )) &&
-                    ( tlbEntryPtr -> tProtectId( ) != core -> cReg[ CR_PROTECT_ID4 ].get( ))) {
+                // ??? factor out into a function "checkSegId" ?
+                
+                if (( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID1 ].get( )) &&
+                    ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID2 ].get( )) &&
+                    ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID3 ].get( )) &&
+                    ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID4 ].get( ))) {
                     
                     setupTrapData( DTLB_PROTECT_ID_TRAP, valS, valX, core -> stReg.get( ));
                     stallPipeLine( );

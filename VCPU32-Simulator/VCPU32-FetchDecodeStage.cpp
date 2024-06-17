@@ -94,9 +94,10 @@ uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
 // branch instructions.
 //
 //
-// Explain ... better .... Has to do with MA stage consuimng B and X and we need to wait for the correct
+// ??? Explain ... better .... Has to do with MA stage consuimng B and X and we need to wait for the correct
 // B and X tgo arrive if needed...
 //
+// ??? anything special to do for REG 0 ?
 //------------------------------------------------------------------------------------------------------------
 bool maStageConsumesRegValBorX( uint32_t instr ) {
     
@@ -346,10 +347,10 @@ void FetchDecodeStage::process( ) {
         
         if ( core -> stReg.get( ) & ST_PROTECT_ID_CHECK_ENABLE ) {
             
-            if (( tlbEntryPtr -> tProtectId( ) != core -> cReg[ CR_PROTECT_ID1 ].get( )) &&
-                ( tlbEntryPtr -> tProtectId( ) != core -> cReg[ CR_PROTECT_ID2 ].get( )) &&
-                ( tlbEntryPtr -> tProtectId( ) != core -> cReg[ CR_PROTECT_ID3 ].get( )) &&
-                ( tlbEntryPtr -> tProtectId( ) != core -> cReg[ CR_PROTECT_ID4 ].get( ))) {
+            if (( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID1 ].get( )) &&
+                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID2 ].get( )) &&
+                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID3 ].get( )) &&
+                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID4 ].get( ))) {
                 
                 setupTrapData( ITLB_PROTECT_ID_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
                 stallPipeLine( );
