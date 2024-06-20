@@ -228,8 +228,8 @@ void ExecuteStage::setupTrapData( uint32_t trapId,
                                  uint32_t p2,
                                  uint32_t p3 ) {
     
-    core -> cReg[ CR_TRAP_INSTR_SEG ].set( iaSeg );
-    core -> cReg[ CR_TRAP_INSTR_OFS ].set( iaOfs );
+    core -> cReg[ CR_TRAP_PSW_0 ].set( iaSeg );
+    core -> cReg[ CR_TRAP_PSW_1 ].set( iaOfs );
     core -> cReg[ CR_TRAP_STAT ].set( pStat );
     core -> cReg[ CR_TRAP_PARM_1 ].set( p1 );
     core -> cReg[ CR_TRAP_PARM_2 ].set( p2 );
@@ -627,8 +627,8 @@ void ExecuteStage::process( ) {
             
         case OP_RFI: {
             
-            core -> fdStage -> psInstrSeg.set( core -> cReg[ CR_TRAP_INSTR_SEG ].get( ));
-            core -> fdStage -> psInstrOfs.set( core -> cReg[ CR_TRAP_INSTR_OFS ].get( ));
+            core -> fdStage -> psInstrSeg.set( core -> cReg[ CR_TRAP_PSW_0 ].get( ));
+            core -> fdStage -> psInstrOfs.set( core -> cReg[ CR_TRAP_PSW_1 ].get( ));
             core -> stReg.set( core -> cReg[ CR_TRAP_STAT ].get( ));
             
         } break;

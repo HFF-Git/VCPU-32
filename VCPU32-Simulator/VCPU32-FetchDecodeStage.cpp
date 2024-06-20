@@ -227,8 +227,10 @@ void FetchDecodeStage::setupTrapData( uint32_t trapId,
                                       uint32_t p2,
                                       uint32_t p3 ) {
     
-    core -> cReg[ CR_TRAP_INSTR_SEG ].set( iaSeg );
-    core -> cReg[ CR_TRAP_INSTR_OFS ].set( iaOfs );
+    // ??? fix PSW=0 ...
+    
+    core -> cReg[ CR_TRAP_PSW_0 ].set( iaSeg );
+    core -> cReg[ CR_TRAP_PSW_1 ].set( iaOfs );
     core -> cReg[ CR_TRAP_STAT ].set( pStat );
     core -> cReg[ CR_TRAP_PARM_1 ].set( p1 );
     core -> cReg[ CR_TRAP_PARM_2 ].set( p2 );
@@ -347,10 +349,10 @@ void FetchDecodeStage::process( ) {
         
         if ( core -> stReg.get( ) & ST_PROTECT_ID_CHECK_ENABLE ) {
             
-            if (( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID1 ].get( )) &&
-                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID2 ].get( )) &&
-                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID3 ].get( )) &&
-                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID4 ].get( ))) {
+            if (( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_0_1 ].get( )) &&
+                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_2_3 ].get( )) &&
+                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_4_5 ].get( )) &&
+                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_6_7 ].get( ))) {
                 
                 setupTrapData( ITLB_PROTECT_ID_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
                 stallPipeLine( );

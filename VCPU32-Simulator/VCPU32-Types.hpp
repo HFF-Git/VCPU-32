@@ -63,23 +63,28 @@ const uint8_t   TRAP_CODE_BLOCK_SIZE    = 32;
 
 
 //------------------------------------------------------------------------------------------------------------
-// Status register fields. The status word is a machine word contains various bits and field recording the
-// current execution state.
+// Processor state fields. There are two machine words containg ingvarious bits and fields for the current
+// execution state.
+//
+//  0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+// :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+// :M :X :C :0 :CB: reserved           :0 :D :P :E : IA segment Id                                 :  PSW-0
+// :-----------------------------------------------------------------------------------------------:
+// : IA offset                                                                               : 0   :  PSW-1
+// :-----------------------------------------------------------------------------------------------:
 //
 // ??? note: under construction .... always cross check with the document.
-// ??? it is a 16-bit field now ...
 //------------------------------------------------------------------------------------------------------------
 enum StatusRegFields : uint32_t {
     
-    ST_INTERRUPT_ENABLE             = ( 1U << 0 ),
-    ST_DATA_TRANSLATION_ENABLE      = ( 1U << 1 ),
-    ST_PROTECT_ID_CHECK_ENABLE      = ( 1U << 2 ),
-   
-    ST_CARRY                        = ( 1U << 15 ),
+    ST_MACHINE_CHECK                = ( 1U << 31 ),
+    ST_EXECUTION_LEVEL              = ( 1U << 20 ),
+    ST_CODE_TRANSLATION_ENABLE      = ( 1U << 29 ),
+    ST_CARRY                        = ( 1U << 27 ),
     
-    ST_EXECUTION_LEVEL              = ( 1U << 29 ),
-    ST_CODE_TRANSLATION_ENABLE      = ( 1U << 30 ),
-    ST_MACHINE_CHECK                = ( 1U << 31 )
+    ST_DATA_TRANSLATION_ENABLE      = ( 1U << 18 ),
+    ST_PROTECT_ID_CHECK_ENABLE      = ( 1U << 17 ),
+    ST_INTERRUPT_ENABLE             = ( 1U << 16 )
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -88,9 +93,8 @@ enum StatusRegFields : uint32_t {
 //------------------------------------------------------------------------------------------------------------
 enum ProgStateRegisterId : uint32_t {
     
-    PS_REG_IA_SEG = 0,
-    PS_REG_IA_OFS = 1,
-    PS_REG_STATUS = 2
+    PS_REG_PSW_0        = 0,
+    PS_REG_PSW_1        = 1,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -99,30 +103,33 @@ enum ProgStateRegisterId : uint32_t {
 //------------------------------------------------------------------------------------------------------------
 enum ControlRegisterId : uint32_t {
     
-    CR_RECOVERY_CNTR    = 0x0,
-    CR_SHIFT_AMOUNT     = 0x1,
-    CR_RSV_2            = 0x2,
+    CR_SYSTEM_SWITCH    = 0x0,
+    CR_RECOVERY_CNTR    = 0x1,
+    CR_SHIFT_AMOUNT     = 0x2,
     CR_RSV_3            = 0x3,
-    CR_RSV_4            = 0x4,
-    CR_RSV_5            = 0x5,
-    CR_RSV_6            = 0x6,
-    CR_RSV_7            = 0x7,
-    CR_SEG_ID1          = 0x8,
-    CR_SEG_ID2          = 0x9,
-    CR_SEG_ID3          = 0xA,
-    CR_SEG_ID4          = 0xB,
+    CR_SEG_ID_0_1       = 0x4,
+    CR_SEG_ID_2_3       = 0x5,
+    CR_SEG_ID_4_5       = 0x6,
+    CR_SEG_ID_6_7       = 0x7,
+    
+    CR_RSV_8            = 0x8,
+    CR_RSV_9            = 0x9,
+    CR_RSV_10           = 0xA,
+    CR_RSV_11           = 0xB,
     CR_RSV_12           = 0xC,
     CR_RSV_13           = 0xD,
     CR_RSV_14           = 0xE,
     CR_RSV_15           = 0xF,
+    
     CR_TRAP_VECTOR_ADR  = 0x10,
-    CR_TRAP_INSTR_SEG   = 0x11,
-    CR_TRAP_INSTR_OFS   = 0x12,
+    CR_TRAP_PSW_0       = 0x11,
+    CR_TRAP_PSW_1       = 0x12,
     CR_TRAP_STAT        = 0x13,
     CR_TRAP_PARM_1      = 0x14,
     CR_TRAP_PARM_2      = 0x15,
     CR_TRAP_PARM_3      = 0x16,
     CR_RSV_22           = 0x17,
+    
     CR_TEMP_0           = 0x18,
     CR_TEMP_1           = 0x19,
     CR_TEMP_2           = 0x1A,
@@ -131,31 +138,6 @@ enum ControlRegisterId : uint32_t {
     CR_TEMP_5           = 0x1D,
     CR_TEMP_6           = 0x1E,
     CR_TEMP_7           = 0x1F
-};
-
-// ??? to core ?
-//------------------------------------------------------------------------------------------------------------
-// Each pipeline consists of a "combinatorial logic" part and the pipeline registers. Our pipeline registers
-// are just a set of registers.
-//
-//------------------------------------------------------------------------------------------------------------
-enum PipeLineStageRegId : uint32_t {
-    
-    PSTAGE_REG_STALLED      = 0,
-    PSTAGE_REG_ID_IA_OFS    = 1,
-    PSTAGE_REG_ID_IA_SEG    = 2,
-    PSTAGE_REG_ID_INSTR     = 3,
-    PSTAGE_REG_ID_VAL_A     = 4,
-    PSTAGE_REG_ID_VAL_B     = 5,
-    PSTAGE_REG_ID_VAL_X     = 6,
-    PSTAGE_REG_ID_VAL_S     = 7,
-    PSTAGE_REG_ID_VAL_ST    = 8,
-    PSTAGE_REG_ID_RID_A     = 9,
-    PSTAGE_REG_ID_RID_B     = 10,
-    PSTAGE_REG_ID_RID_X     = 11,
-    
-    PSTAGE_REG_ID_MA_CTRL   = 12,
-    PSTAGE_REG_ID_EX_CTRL   = 13
 };
 
 //------------------------------------------------------------------------------------------------------------

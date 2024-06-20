@@ -153,9 +153,9 @@ June, 2024
     - [MR](#mr)
     - [MST](#mst)
     - [OR](#or)
+    - [PCA](#pca)
     - [PRB](#prb)
     - [PTLB](#ptlb)
-    - [PCA](#pca)
     - [RFI](#rfi)
     - [SBC](#sbc)
     - [SHLA](#shla)
@@ -384,9 +384,9 @@ The **control registers** hold information about the processor configuration as 
 | 0 | **SWR**  | System Switch Register. On an optional front panel, a set of switches and LEDs represent the switch register. |
 | 1 | **RCTR** | Recovery Counter. Can be used to implement a watchdog function. ( tbd )
 | 2 | **SHAMT** | Shift Amount register. This is a 5-bit register which holds the value for variable shift, extract and deposit instructions. Used in instructions that allow to use the value coming from this register instead of the instruction encoded value. |
-| 3 - 7 | | reserved |
-| 8 - 11 | **PID-n**  | Protection Id registers. When protection ID checking is enabled, the segment part of a virtual page accessed is checked for matching one of the protection IDs stored in these control registers. There are two protection IDs in each register. |
-| 12 -15 | | reserved |
+| 3 | | reserved |
+| 4 - 7 | **PID-n**  | Protection Id registers. When protection ID checking is enabled, the segment part of a virtual page accessed is checked for matching one of the protection IDs stored in these control registers. There are two protection IDs in each register. |
+| 8 -15 | | reserved |
 | 16 | **I-BASE-ADR** | Interrupt and trap vector table base address. The absolute memory address of the interrupt vector table. When an interrupt or trap is encountered, the next instruction to execute is calculated by adding the interrupt number shifted by 32 to this address. Each interrupt has eight instruction locations that can be used for this interrupt. The table must be page aligned. |
 | 17 |  **I-PSW-0** | When an interrupt or trap is encountered, this control register holds the current status word and IA segment portion. |
 | 18 |  **I-PSW-1** | When an interrupt or trap is encountered, control register holds the current instruction address offset. |

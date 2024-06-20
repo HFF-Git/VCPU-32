@@ -876,13 +876,15 @@ void DrvWinProgState::drawBanner( ) {
     
     setWinCursor( 1, 1 );
     printTextField((char *) "Program State", ( fmtDesc ), 16 );
+    
+    
     printTextField((char *) "Seg:", fmtDesc, 5 );
-    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_SEG ), fmtDesc, 12 );
+    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_0 ) & 0xFFFF, fmtDesc | FMT_HALF_WORD, 6 );
     printTextField((char *) "Ofs:", fmtDesc, 5 );
-    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS ), fmtDesc, 12 );
+    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_1 ), fmtDesc, 12 );
     printTextField((char *) "ST:", fmtDesc, 4 );
     
-    uint32_t stat = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_STATUS );
+    uint32_t stat = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_0 );
     
     printTextField(( stat & ST_MACHINE_CHECK ) ? (char *) "M" : (char *) "m", fmtDesc );
     printTextField(( stat & ST_CODE_TRANSLATION_ENABLE ) ? (char *) "I" : (char *) "i", fmtDesc );
@@ -1471,7 +1473,7 @@ void DrvWinCode::drawBanner( ) {
     uint32_t    fmtDesc             = FMT_BOLD | FMT_INVERSE;
     int         currentItemAdr      = getCurrentItemAdr( );
     int         currentItemAdrLimit = currentItemAdr + (( getRows( ) - 1 ) * getLineIncrement( ));
-    int         currentIaOfs        = (int) glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS  );
+    int         currentIaOfs        = (int) glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_1  );
     TokId       currentCmd          = glb -> cmds -> getCurrentCmd( );
     bool        isCurrent           = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
     uint32_t    blockEntries        = glb -> cpu -> physMem -> getBlockEntries( );
@@ -1508,7 +1510,7 @@ void DrvWinCode::drawLine( uint32_t itemAdr ) {
     
     uint32_t    instr           = glb -> cpu -> physMem -> getMemDataWord( itemAdr );
     uint32_t    fmtDesc         = FMT_DEF_ATTR;
-    uint32_t    currentIaOfs    = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_IA_OFS  );
+    uint32_t    currentIaOfs    = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_1  );
     bool        isCurrentIaOfs  = ( itemAdr == currentIaOfs );
     
     printNumericField( itemAdr, fmtDesc | FMT_ALIGN_LFT, 12 );

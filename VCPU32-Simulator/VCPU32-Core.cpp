@@ -263,9 +263,10 @@ uint32_t CpuCore::getReg( RegClass regClass, uint8_t regNum ) {
        
         case RC_PROG_STATE: {
             
-            if      ( regNum == PS_REG_IA_SEG ) return( fdStage -> psInstrSeg.get( ));
-            else if ( regNum == PS_REG_IA_OFS ) return( fdStage -> psInstrOfs.get( ));
-            else if ( regNum == PS_REG_STATUS ) return( stReg.get( ));
+            // *** fix ....
+            if      ( regNum == PS_REG_PSW_0 ) return( fdStage -> psInstrSeg.get( ));
+            else if ( regNum == PS_REG_PSW_1 ) return( fdStage -> psInstrOfs.get( ));
+            else if ( regNum == PS_REG_PSW_0 ) return( stReg.get( ));
             else return( 0 );
             
         } break;
@@ -295,9 +296,10 @@ void CpuCore::setReg( RegClass regClass, uint8_t regNum, uint32_t val ) {
        
         case RC_PROG_STATE: {
         
-            if      ( regNum == PS_REG_IA_SEG ) fdStage -> psInstrSeg.load( val );
-            else if ( regNum == PS_REG_IA_OFS ) fdStage -> psInstrOfs.load( val );
-            else if ( regNum == PS_REG_STATUS ) stReg.load( val );
+            // *** fix ...
+            if      ( regNum == PS_REG_PSW_0 ) fdStage -> psInstrSeg.load( val );
+            else if ( regNum == PS_REG_PSW_1 ) fdStage -> psInstrOfs.load( val );
+            else if ( regNum == PS_REG_PSW_0 ) stReg.load( val );
             
         } break;
         
@@ -330,9 +332,11 @@ void CpuCore::setReg( RegClass regClass, uint8_t regNum, uint32_t val ) {
 //------------------------------------------------------------------------------------------------------------
 void CpuCore::handleTraps( ) {
     
+    // ??? fix ... PSW0 also contains status bits which we do not need ... ?
+    
     if (( cReg[ CR_TEMP_1 ].get( ) != NO_TRAP ) &&
-        ( cReg[ CR_TRAP_INSTR_SEG ].get( ) == exStage -> psInstrSeg.get( )) &&
-        ( cReg[ CR_TRAP_INSTR_OFS ].get( ) == exStage -> psInstrOfs.get( ))) {
+        ( cReg[ CR_TRAP_PSW_0 ].get( ) == exStage -> psInstrSeg.get( )) &&
+        ( cReg[ CR_TRAP_PSW_1 ].get( ) == exStage -> psInstrOfs.get( ))) {
         
         uint32_t trapHandlerOfs = 0;
         
