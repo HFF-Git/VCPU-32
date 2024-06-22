@@ -25,11 +25,11 @@
 
 `timescale 10ns / 1ns
 
-module Incrementer_TB;
+module IncrementerUnit_TB;
 
-	reg[0:`WORD_LENGTH-1] 	A_TB;
+	reg[0:31] 	A_TB;
 
-	wire[0:`WORD_LENGTH-1]	S_TB;
+	wire[0:31]	S_TB;
 	wire 					C_TB;
 
 
@@ -37,8 +37,8 @@ module Incrementer_TB;
 
 		begin
 
-			$dumpfile( "Incrementer_TB.vcd" );
-   			$dumpvars( 0, Incrementer_TB );
+			$dumpfile( "IncrementerUnit_TB.vcd" );
+   			$dumpvars( 0, IncrementerUnit_TB );
 
 		end
 
@@ -71,7 +71,7 @@ module Incrementer_TB;
 
 	endtask
 
-	Incrementer DUT ( .a( A_TB ), .s( S_TB ), .outC( C_TB ));
+	IncrementerUnit DUT ( .a( A_TB ), .s( S_TB ), .outC( C_TB ));
 
 	initial begin
 

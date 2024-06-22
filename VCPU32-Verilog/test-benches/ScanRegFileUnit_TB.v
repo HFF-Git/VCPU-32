@@ -1,14 +1,13 @@
-
 //------------------------------------------------------------------------------------------------------------
 //
-// Adder - Testbench
+// Register File Unit - Testbench
 //
 //------------------------------------------------------------------------------------------------------------
-// This module is the test bench for generic adder written in behavioral verilog code.
+// This module is the test bench for the register file unit.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// Adder - Testbench
+// Register Unit - Testbench
 // Copyright (C) 2022 - 2024 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -23,65 +22,66 @@
 //------------------------------------------------------------------------------------------------------------
 `include "../hdl/VCPU32.v"
 
-`timescale 10ns / 1ns
+`timescale 1ns / 1ns
 
-module Adder_TB;
+module ScanRegFileUnit_TB;
 
-	reg[0:`WORD_LENGTH-1] 	A_TB 	= 0;
-	reg[0:`WORD_LENGTH-1] 	B_TB 	= 0;
-	reg						C_IN_TB = 0;
+	parameter WIDTH = 32;
+	parameter SIZE  = 8;
 
-	wire[0:`WORD_LENGTH-1]	S_TB;
-	wire 					C_TB;
+	reg                       	clk_TB 		= 0;
+   	reg                   		rst_TB 		= 0;
+	reg                       	write_TB 	= 0;
+	reg[0:$clog2( SIZE ) - 1]	wrAddr_TB  	= 0;
+   	reg[0:WIDTH-1]    			wrData_TB 	= 0;
+   	reg[0:$clog2( SIZE ) - 1]  	rdAddrA_TB 	= 0;
+   	reg[0:$clog2( SIZE ) - 1]  	rdAddrB_TB 	= 0;
+   	wire[0:WIDTH-1]    			rdDataA_TB 	= 0;
+   	wire[0:WIDTH-1]    			rdDataB_TB 	= 0;
 
 	task setupTest;
 
 		begin
-			
-			$dumpfile( "Adder_TB.vcd" );
-   			$dumpvars( 0, Adder_TB );
-		
+
+		$dumpfile( "ScanRegFileUnit_TB.vcd" );
+   		$dumpvars( 0, ScanRegFileUnit_TB );
+
 		end
 
 	endtask
 
-	task applyTest ( 
-		
-		input [0:23] 	a, 
-		input [0:23] 	b,
-		input 			c 
-		
-		);
+	task applyTest ( );
 
 		begin
-
-			A_TB 	= a;
-			B_TB    = b;
-			C_IN_TB = c;
-			#10 $display( "A: 0x%h, B: 0x%h, cIn: %d -> S: 0x%h, C: %d", A_TB, B_TB, C_IN_TB, S_TB, C_TB );
-
-			// ??? assert the result right here ?
-			// if ( s != a + b )  begin $display( "FAIL in %m" ); $finish; end
-			// else               begin $display( "PASS" ); end
-		
+	
 		end
 
 	endtask
 
-	Adder #( .WIDTH( `WORD_LENGTH )) DUT ( .a( A_TB ), .b( B_TB ), .inC( C_IN_TB ), .s( S_TB ), .outC( C_TB ));
+	ScanRegFileUnit DUT ( 	.clk( clk_TB ), 
+							.rst( rst_TB ), 
+							.write( write_TB ),
+							.wrAddr( wrAddr_TB ),
+							.wrData( wrData_TB ),
+							.rdAddrA( rdAddrA_TB ),
+							.rdAddrB( rdAddrB_TB ),
+							.rdDataA( rdDataA_TB ),
+							.rdDataB( rdDataB_TB ));
 
 	initial begin
 
-		setupTest( );
+ 		setupTest( );
 
-		applyTest( 32'd0, 32'd0, 0 );
-		applyTest( 32'd10, 32'd5, 0 );
-		applyTest( 32'd0, 32'd5, 0 );
-		applyTest( 32'd10, 32'd31, 1 );
-		applyTest( 32'hFFFFFFFF, 32'd1, 0 );
-
-   		#10 $finish;
+		#10		rst_TB = 0;
+		#10     rst_TB = 1;
+   		
+   		#50 $finish;
 		
+	end
+
+	always begin
+		
+		#10 clk_TB = ~ clk_TB;
 	end
 
 endmodule

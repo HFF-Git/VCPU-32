@@ -1,14 +1,13 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// Double shift right 48bit -- Testbench
+// Register Unit - Testbench
 //
 //------------------------------------------------------------------------------------------------------------
-// The double shift right test bench. We are passed two words, concatenate them and shift right by the shift
-// amount.
+// This module is the test bench for the register unit.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// Shift/Merge Decode Unit -- Testbench
+// Register Unit - Testbench
 // Copyright (C) 2022 - 2024 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -23,20 +22,22 @@
 //------------------------------------------------------------------------------------------------------------
 `include "../hdl/VCPU32.v"
 
-`timescale 1ns/1ns
+`timescale 1ns / 1ns
 
-module DoubleShiftRight_48bit_TB;
+module ScanRegUnit_TB;
 
-   	reg[0:31]  	A_TB, B_TB;
-   	reg[0:4]   	SA_TB;
-   	wire[0:31] 	Y_TB;
+	reg     				clk_TB 	= 0;
+   	reg						rst_TB  = 0;
+   	reg[0:`WORD_LENGTH-1]  	d_TB	= 0;
+
+   	wire[0:`WORD_LENGTH-1]	q_TB;
 
 	task setupTest;
 
 		begin
 
-		$dumpfile( "DoubleShiftRight_64bit_TB.vcd" );
-   		$dumpvars( 0, DoubleShiftRight_64bit_TB );
+		$dumpfile( "ScanRegUnit_TB.vcd" );
+   		$dumpvars( 0, ScanRegUnit_TB );
 
 		end
 
@@ -50,19 +51,29 @@ module DoubleShiftRight_48bit_TB;
 
 	endtask
 
-	DoubleShiftRight_64bit DUT ( .a( A_TB ), .b( B_TB ), .sa( SA_TB ), .y( Y_TB ));
-		
+	ScanRegUnit DUT ( .clk( clk_TB ), .rst( rst_TB ), .d( d_TB ), .q( q_TB ));
+
 	initial begin
 
  		setupTest( );
-   		
-   		A_TB 	= 32'h00FF0F;
-		B_TB 	= 32'h000FFF;
-		SA_TB 	= 5;
- 		#10 $display( "A: 0x%h, B: 0x%h, SA: %d -> Y: 0x%h", A_TB, B_TB, SA_TB, Y_TB );	
 
-   		#50 $finish;
+		#10		rst_TB = 0;
+		#10     rst_TB = 1;
+   		
+		#10 d_TB = 1;
+
+		#10 d_TB = 0;
+
+
+   		#50
+   		
+   		$finish;
 		
+	end
+
+	always begin
+		
+		#10 clk_TB = ~ clk_TB;
 	end
 
 endmodule

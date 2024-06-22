@@ -56,16 +56,16 @@ module OrOp_TB;
 
  		setupTest( );
 
-   		A_TB 	= 31'hF010FF;
-   		B_TB 	= 31'h0;
+   		A_TB 	= 32'hF010FF;
+   		B_TB 	= 32'h0;
    		#10 $display( "A: %h, or B: %h -> Y: %h", A_TB, B_TB, Y_TB );
 
-   		A_TB 	= 31'hF010FF;
-   		B_TB 	= 31'hFFFFFF;
+   		A_TB 	= 32'hF010FF;
+   		B_TB 	= 32'hFFFFFF;
    		#10 $display( "A: %h, or B: %h -> Y: %h", A_TB, B_TB, Y_TB );
 
-   		A_TB 	= 31'hF010FF;
-   		B_TB 	= 31'hFFF000;
+   		A_TB 	= 32'hF010FF;
+   		B_TB 	= 32'hFFF000;
    		#10 $display( "A: %h, or B: %h -> Y: %h", A_TB, B_TB, Y_TB );
 
    		#50

@@ -29,7 +29,7 @@ module ShiftMergeDecode_TB;
 
 	reg			clock_TB;
 	reg[0:31]	instr_TB;
-	reg[0:31]	shamtIn_TB;
+	reg[0:4]	shamtIn_TB;
 	
 	wire[0:4]   shamtOut_TB;
 	wire[0:4]   posLeft_TB;

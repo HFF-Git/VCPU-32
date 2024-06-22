@@ -1,14 +1,13 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// Shift Merge Mask Unit - Testbench
+// Sign Extension Unit - Testbench
 //
 //------------------------------------------------------------------------------------------------------------
-// This module is the test bench for the shift merge mask unit. This unit is used for in the shift merge
-// unit to build the mask for the masking operation.
+// This module is the test bench for the sign extend unit.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// Shift Merge Mask Unit - Testbench
+// Sign Extension Unit - Testbench
 // Copyright (C) 2022 - 2024 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -25,21 +24,23 @@
 
 `timescale 10ns / 1ns
 
-`define assert_TB ( isVal, beVal ) if ( isVal != beVal ) begin $display ( "FAIL in %m, is != to be" ); $finish; end else $display ( "PASS" );
-	
-module ShiftMergeMask_24bit_TB;
+`define assert_TB( isVal, toBeVal ) \
+	if ( isVal != toBeVal ) begin $display( "FAIL in %m" ); $finish; end \
+	else                    begin $display( "PASS" ); end
 
-	reg[0:4] 	L_TB 	= 0;
-	reg[0:4] 	R_TB 	= 0;
-	
-	wire[0:23]  Y_TB;
+module SignExtend_32bit_TB;
+
+	reg[0:31] 	A_TB 	= 0;
+	reg[0:4]	POS_TB 	= 0;
+
+	wire[0:31]  Y_TB;
 
 	task setupTest;
 
 		begin
 
-		$dumpfile( "ShiftMergeMask_24bit_TB.vcd" );
-   		$dumpvars( 0, ShiftMergeMask_24bit_TB );
+		$dumpfile( "SignExtend_32bit_TB.vcd" );
+   		$dumpvars( 0, SignExtend_32bit_TB );
 
 		end
 
@@ -53,21 +54,20 @@ module ShiftMergeMask_24bit_TB;
 
 	endtask
 	
-	ShiftMergeMask_24bit DUT ( .lft( L_TB ), .rht( R_TB ), .y( Y_TB ));
+	SignExtend_32bit DUT ( .a( A_TB ), .pos( POS_TB ), .y( Y_TB ));
 
 	initial begin
 
- 		setupTest( );
+		setupTest( );
+ 		
+   		A_TB 	= 32'h0000FF;
+   		POS_TB 	= 16;
+   		#10 $display( "A: 0x%h, OP: %d -> Y: 0x%h", A_TB, POS_TB, Y_TB );
+   		`assert_TB ( Y_TB,  32'hFFFFFF )
 
-   		// ??? need a lot of instruction examples ...
-
-   		L_TB 	= 5'd0;
-   		R_TB 	= 5'd10;
-   		#10 $display( "L: %d, R: %d -> Y: 0x%h", L_TB, R_TB, Y_TB );
-
-   		// `assert_TB( Y_TB,  24'hFFFFFF )
-      		
-   		#10 $finish;
+   		#50
+   		
+   		$finish;
 		
 	end
 

@@ -1984,18 +1984,12 @@ endmodule
 
 //------------------------------------------------------------------------------------------------------------
 // Register file unit. The unit contains a set of registers. It is the building block for the general register
-// set and segment register set. In addition, the ScanRegFileUnit can be operated in two modes. The normal 
-// mode ( 1'b0 ) is a register with a parallel input and output, set at the positive edge of the clock. In 
-// scan mode ( 1'b1 ), the register shifts one position to the right reading one bit the from the serial 
-// input, passing the highest bit to the serial output. The idea is that  a set of scan registers can be 
-// connected serially and shifted out as a big bit string for analysis and diagnostics. Note that the serial
-// output of the last register needs to feed into the serial input of the first register of the overial 
-// register chain. The number of clock cycles needs to match the sum of all bits in  the registers, such that
-//  the original content is restored.
+// set and segment register set. The ScanRegFileUnit supports two modes. The normal mode is a register with 
+// a parallel input and output, set at the positive edge of the clock. In addition, there is a serial interface
+// for reading the registers as a serial bit stream for analysis and diagnostics. As the bit vector could be
+// quite large, a simple state machine will shift the data on a word by basis.
 //
-//
-// ??? the serial bit vector can become quite large. We need to find a kind of state machine approach to
-// put the registers out one by one...
+// ??? what do we do about the REG0 case ? shift it as a set of zeroes ?
 //------------------------------------------------------------------------------------------------------------
 module ScanRegFileUnit #(
 
@@ -2019,11 +2013,14 @@ module ScanRegFileUnit #(
    input    wire                       sClock,
    input    wire                       sEnable,
    input    wire                       sIn,
-   output   wire                       sOut
+   output   reg                        sOut
 
    );
 
-   reg [0:WIDTH-1] regFile [0:SIZE-2];
+   reg [0:WIDTH-1]            regFile [0:SIZE-1];  // REG0 ???
+   reg [0:$clog2( SIZE )-1]   shiftAdr;
+   reg [0:SIZE-1]             shiftReg;
+   reg [0:5]                  shiftCnt;
 
    assign rdDataA = ( rdAddrA == 0 ) ? 32'h0 : regFile[rdAddrA];
    assign rdDataB = ( rdAddrB == 0 ) ? 32'h0 : regFile[rdAddrB];
@@ -2033,6 +2030,11 @@ module ScanRegFileUnit #(
       if ( ~ rst ) begin
 
          for ( integer i = 1; i < SIZE-1; i = i + 1 ) regFile[i] <= 0;
+
+         sOut     <= 0;
+         shiftAdr <= 0;
+         shiftReg <= 0;
+         shiftCnt <= 0;
 
       end 
 
@@ -2050,11 +2052,31 @@ module ScanRegFileUnit #(
 
    always @( posedge sClock ) begin
 
-     
-     if ( sEnable ) begin
-       
-            // scan stuff ...
+      if ( sEnable ) begin
+
+         if ( shiftCnt == 0 ) begin
+      
+            shiftReg <= regFile[ shiftCnt ];
+            sOut     <= shiftReg[ 0 ];
+            shiftReg <= shiftReg << 1;
+            shiftCnt <= 1;
+
+         end else if ( shiftCnt < WIDTH ) begin
+
+            sOut     <= shiftReg[ 0 ];
+            shiftReg <= { sIn, shiftReg[ 1:SIZE-1] };
+            shiftCnt <= shiftCnt +1; 
+
+         end else begin
+
+            regFile[ shiftAdr ]  <= { sIn, shiftReg[1:SIZE-1]};
+            shiftCnt             <= 0;
+
+            if ( shiftAdr < SIZE -1 )  shiftAdr <= shiftAdr + 1;
+            else                       shiftAdr <= 0;
          
+         end
+
       end
    
    end
@@ -2229,19 +2251,19 @@ endmodule
 //------------------------------------------------------------------------------------------------------------
 module ShiftMergeUnit (
 
-   input    wire[0:`WORD_LENGTH-1]  a,
-   input    wire[0:`WORD_LENGTH-1]  b,
-   input    wire[0:`WORD_LENGTH-1]  instr, 
-   input    wire[0:`WORD_LENGTH-1]  saReg,
+   input    wire[0:31]     a,
+   input    wire[0:31]     b,
+   input    wire[0:31]     instr, 
+   input    wire[0:4]      saReg,
 
-   output   reg[0:`WORD_LENGTH-1]   r,
-   output   wire                    err
+   output   reg[0:31]      r,
+   output   wire           err
 
    );
 
-   wire[0:4]                  sa, pl, pr;
-   wire[0:5]                  opCode;
-   wire[0:`WORD_LENGTH-1]    wShift, wMask;
+   wire[0:4]      sa, pl, pr;
+   wire[0:5]      opCode;
+   wire[0:31]     wShift, wMask;
 
    assign opCode = instr[0:5];
 
@@ -2301,13 +2323,13 @@ endmodule
 //------------------------------------------------------------------------------------------------------------
 module ShiftMergeDecode (
 
-   input    wire[0:`WORD_LENGTH-1]  instr,
-   input    wire[0:`WORD_LENGTH-1]  saReg,
+   input    wire[0:31]  instr,
+   input    wire[0:4]   saReg,
 
-   output   wire[0:4]               sa,
-   output   wire[0:4]               pl,
-   output   wire[0:4]               pr,
-   output   wire                    err
+   output   wire[0:4]   sa,
+   output   wire[0:4]   pl,
+   output   wire[0:4]   pr,
+   output   wire        err
 
    );
 

@@ -1,13 +1,14 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// Register File Unit - Testbench
+// Shift Merge Mask Unit - Testbench
 //
 //------------------------------------------------------------------------------------------------------------
-// This module is the test bench for the register file unit.
+// This module is the test bench for the shift merge mask unit. This unit is used for in the shift merge
+// unit to build the mask for the masking operation.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// Register Unit - Testbench
+// Shift Merge Mask Unit - Testbench
 // Copyright (C) 2022 - 2024 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -22,29 +23,23 @@
 //------------------------------------------------------------------------------------------------------------
 `include "../hdl/VCPU32.v"
 
-`timescale 1ns / 1ns
+`timescale 10ns / 1ns
 
-module RegFileUnit_TB;
+`define assert_TB ( isVal, beVal ) if ( isVal != beVal ) begin $display ( "FAIL in %m, is != to be" ); $finish; end else $display ( "PASS" );
+	
+module ShiftMergeMask_32bit_TB;
 
-	parameter WIDTH = 32;
-	parameter SIZE  = 8;
-
-	reg                       	clk_TB 		= 0;
-   	reg                   		rst_TB 		= 0;
-	reg                       	write_TB 	= 0;
-	reg[0:$clog2( SIZE ) - 1]	wrAddr_TB  	= 0;
-   	reg[0:WIDTH-1]    			wrData_TB 	= 0;
-   	reg[0:$clog2( SIZE ) - 1]  	rdAddrA_TB 	= 0;
-   	reg[0:$clog2( SIZE ) - 1]  	rdAddrB_TB 	= 0;
-   	wire[0:WIDTH-1]    			rdDataA_TB 	= 0;
-   	wire[0:WIDTH-1]    			rdDataB_TB 	= 0;
+	reg[0:4] 	L_TB 	= 0;
+	reg[0:4] 	R_TB 	= 0;
+	
+	wire[0:31]  Y_TB;
 
 	task setupTest;
 
 		begin
 
-		$dumpfile( "RegFileUnit_TB.vcd" );
-   		$dumpvars( 0, RegFileUnit_TB );
+		$dumpfile( "ShiftMergeMask_32bit_TB.vcd" );
+   		$dumpvars( 0, ShiftMergeMask_32bit_TB );
 
 		end
 
@@ -57,33 +52,23 @@ module RegFileUnit_TB;
 		end
 
 	endtask
-
-	RegFileUnit DUT ( 	.clk( clk_TB ), 
-						.rst( rst_TB ), 
-						.write( write_TB ),
-						.wrAddr( wrAddr_TB ),
-						.wrData( wrData_TB ),
-						.rdAddrA( rdAddrA_TB ),
-						.rdAddrB( rdAddrB_TB ),
-						.rdDataA( rdDataA_TB ),
-						.rdDataB( rdDataB_TB ));
+	
+	ShiftMergeMask_32bit DUT ( .lft( L_TB ), .rht( R_TB ), .y( Y_TB ));
 
 	initial begin
 
  		setupTest( );
 
-		#10		rst_TB = 0;
-		#10     rst_TB = 1;
-   		
-		
+   		// ??? need a lot of instruction examples ...
 
-   		#50 $finish;
-		
-	end
+   		L_TB 	= 5'd0;
+   		R_TB 	= 5'd10;
+   		#10 $display( "L: %d, R: %d -> Y: 0x%h", L_TB, R_TB, Y_TB );
 
-	always begin
+   		// `assert_TB( Y_TB,  24'hFFFFFF )
+      		
+   		#10 $finish;
 		
-		#10 clk_TB = ~ clk_TB;
 	end
 
 endmodule

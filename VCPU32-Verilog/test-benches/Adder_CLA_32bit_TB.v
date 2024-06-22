@@ -25,14 +25,14 @@
 
 `timescale 10ns / 1ns
 
-module Adder_CLA_32_TB;
+module Adder_CLA_32bit_TB;
 
-	reg[0:`WORD_LENGTH-1] 	A_TB 	= 0;
-	reg[0:`WORD_LENGTH-1] 	B_TB 	= 0;
-	reg						C_IN_TB = 0;
+	reg[0:31] 	A_TB 	= 0;
+	reg[0:31] 	B_TB 	= 0;
+	reg			C_IN_TB = 0;
 
-	wire[0:`WORD_LENGTH-1]	S_TB;
-	wire 					C_TB;
+	wire[0:31]	S_TB;
+	wire 		C_TB;
 
 	task setupTest;
 
@@ -47,9 +47,9 @@ module Adder_CLA_32_TB;
 
 	task applyTest ( 
 
-		input [0:`WORD_LENGTH-1] 	a, 
-		input [0:`WORD_LENGTH-1] 	b,
-		input 		 				cIn
+		input [0:31] 	a, 
+		input [0:31] 	b,
+		input 		 	cIn
 
 		);
 

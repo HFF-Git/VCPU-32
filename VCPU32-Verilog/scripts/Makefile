@@ -15,7 +15,7 @@ y=$(basename $(x))
 
 all:  exec wave
 
-$(SIM_DIR)/$(y).vvp: $(y).v ../hdl/CPU24.v
+$(SIM_DIR)/$(y).vvp: $(y).v ../hdl/VCPU32.v
 	iverilog -o $(SIM_DIR)/$(y).vvp $(y).v
 	
 exec: $(SIM_DIR)/$(y).vvp

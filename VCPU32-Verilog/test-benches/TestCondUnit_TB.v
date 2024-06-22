@@ -24,7 +24,7 @@
 
 `timescale 10ns / 1ns
 
-module TestCond_32bit_TB;
+module TestCondUnit_TB;
 
 	reg[0:31] 	A_TB 	= 0;
 	reg[0:2]	OP_TB 	= 0;
@@ -35,8 +35,8 @@ module TestCond_32bit_TB;
 
 		begin
 
-		$dumpfile( "TestCond_24bit_TB.vcd" );
-   		$dumpvars( 0, TestCond_24bit_TB );
+		$dumpfile( "TestCondUnit_TB.vcd" );
+   		$dumpvars( 0, TestCondUnit_TB );
 
 		end
 
@@ -66,7 +66,7 @@ module TestCond_32bit_TB;
 	
 	endtask
 	
-	TestCond_24bit DUT ( .a( A_TB ), .op( OP_TB ), .y( Y_TB ));
+	TestCondUnit DUT ( .a( A_TB ), .op( OP_TB ), .y( Y_TB ));
 
 	initial begin
 

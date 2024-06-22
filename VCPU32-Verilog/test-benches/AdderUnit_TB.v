@@ -1,13 +1,14 @@
+
 //------------------------------------------------------------------------------------------------------------
 //
-// Register Unit - Testbench
+// Adder - Testbench
 //
 //------------------------------------------------------------------------------------------------------------
-// This module is the test bench for the register unit.
+// This module is the test bench for generic adder written in behavioral verilog code.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// Register Unit - Testbench
+// Adder - Testbench
 // Copyright (C) 2022 - 2024 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -22,58 +23,65 @@
 //------------------------------------------------------------------------------------------------------------
 `include "../hdl/VCPU32.v"
 
-`timescale 1ns / 1ns
+`timescale 10ns / 1ns
 
-module RegUnit_TB;
+module AdderUnit_TB;
 
-	reg     				clk_TB 	= 0;
-   	reg						rst_TB  = 0;
-   	reg[0:`WORD_LENGTH-1]  	d_TB	= 0;
+	reg[0:31] 	A_TB 	= 0;
+	reg[0:31] 	B_TB 	= 0;
+	reg			C_IN_TB = 0;
 
-   	wire[0:`WORD_LENGTH-1]	q_TB;
+	wire[0:31]	S_TB;
+	wire 		C_TB;
 
 	task setupTest;
 
 		begin
-
-		$dumpfile( "RegUnit_TB.vcd" );
-   		$dumpvars( 0, RegUnit_TB );
-
+			
+			$dumpfile( "AdderUnit_TB.vcd" );
+   			$dumpvars( 0, AdderUnit_TB );
+		
 		end
 
 	endtask
 
-	task applyTest ( );
+	task applyTest ( 
+		
+		input [0:31] 	a, 
+		input [0:31] 	b,
+		input 			c 
+		
+		);
 
 		begin
-	
+
+			A_TB 	= a;
+			B_TB    = b;
+			C_IN_TB = c;
+			#10 $display( "A: 0x%h, B: 0x%h, cIn: %d -> S: 0x%h, C: %d", A_TB, B_TB, C_IN_TB, S_TB, C_TB );
+
+			// ??? assert the result right here ?
+			// if ( s != a + b )  begin $display( "FAIL in %m" ); $finish; end
+			// else               begin $display( "PASS" ); end
+		
 		end
 
 	endtask
 
-	RegUnit DUT ( .clk( clk_TB ), .rst( rst_TB ), .d( d_TB ), .q( q_TB ));
+	AdderUnit #( .WIDTH( `WORD_LENGTH )) DUT ( .a( A_TB ), .b( B_TB ), .inC( C_IN_TB ), .s( S_TB ), .outC( C_TB ));
 
 	initial begin
 
- 		setupTest( );
+		setupTest( );
 
-		#10		rst_TB = 0;
-		#10     rst_TB = 1;
-   		
-		#10 d_TB = 1;
+		applyTest( 32'd0, 32'd0, 0 );
+		applyTest( 32'd10, 32'd5, 0 );
+		applyTest( 32'd0, 32'd5, 0 );
+		applyTest( 32'd10, 32'd31, 1 );
+		applyTest( 32'hFFFFFFFF, 32'd1, 0 );
 
-		#10 d_TB = 0;
-
-
-   		#50
-   		
-   		$finish;
+   		#10 $finish;
 		
-	end
-
-	always begin
-		
-		#10 clk_TB = ~ clk_TB;
 	end
 
 endmodule

@@ -28,9 +28,9 @@
 	
 module ImmGenUnit_TB;
 
-	reg[0:`WORD_LENGTH-1] 	I_TB 	= 0;
+	reg[0:31] 	I_TB 	= 0;
 	
-	wire[0:`WORD_LENGTH-1]  Y_TB;
+	wire[0:31]  Y_TB;
 
 	task setupTest;
 
