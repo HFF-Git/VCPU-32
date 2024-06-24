@@ -160,9 +160,9 @@ void DrvLineDisplay::displayPlIFetchDecodeRegSet( TokId fmt ) {
     else
         fprintf( stdout, "FD:    IA=" );
     
-    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_IA_SEG ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0), fmt );
     fprintf( stdout, "." );
-    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_IA_OFS ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ), fmt );
     fprintf( stdout, "\n" );
 }
 
@@ -173,9 +173,9 @@ void DrvLineDisplay::displayPlMemoryAccessRegSet( TokId fmt ) {
     else
         fprintf( stdout, "MA:    IA=" );
     
-    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_IA_SEG ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_0 ), fmt );
     fprintf( stdout, "." );
-    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_IA_OFS ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_1 ), fmt );
     fprintf( stdout, " I=" );
     displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_INSTR ), fmt );
     fprintf( stdout, " A=" );
@@ -194,9 +194,9 @@ void DrvLineDisplay::displayPlExecuteRegSet( TokId fmt ) {
     else
         fprintf( stdout, "EX:    IA=" );
     
-    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_IA_SEG ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_0 ), fmt );
     fprintf( stdout, "." );
-    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_IA_OFS ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_1 ), fmt );
     fprintf( stdout, " I=" );
     displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_INSTR ), fmt );
     fprintf( stdout, " A=" );

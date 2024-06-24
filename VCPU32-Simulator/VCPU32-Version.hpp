@@ -25,6 +25,6 @@
 
 const char VERSION[ ]   = "B.00.05";
 const char BRANCH[ ]    = "Main Branch";
-const int  PATCH_LEVEL  = 1;
+const int  PATCH_LEVEL  = 2;
 
 #endif

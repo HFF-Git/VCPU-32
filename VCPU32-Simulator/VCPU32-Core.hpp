@@ -73,12 +73,8 @@ enum PipeLineStageRegId : uint32_t {
     
     PSTAGE_REG_STALLED      = 0,
     
-    PSTAGE_REG_PSW_0        = 1,
-    PSTAGE_REG_PSW_1        = 2,
-    
-    PSTAGE_REG_ID_IA_OFS    = 1,  // phase out...
-    PSTAGE_REG_ID_IA_SEG    = 2,  // phase out ...
-    
+    PSTAGE_REG_ID_PSW_0     = 1,
+    PSTAGE_REG_ID_PSW_1     = 2,
     PSTAGE_REG_ID_INSTR     = 3,
     PSTAGE_REG_ID_VAL_A     = 4,
     PSTAGE_REG_ID_VAL_B     = 5,
@@ -609,8 +605,8 @@ public:
     uint32_t        getPipeLineReg( uint8_t pReg );
     void            setPipeLineReg( uint8_t pReg, uint32_t val );
    
-    CpuReg          psInstrSeg;
-    CpuReg          psInstrOfs;
+    CpuReg          psPstate0;
+    CpuReg          psPstate1;
     
     uint8_t         regIdForValA;
     uint8_t         regIdForValB;
@@ -679,10 +675,9 @@ public:
     uint32_t        getPipeLineReg( uint8_t pReg );
     void            setPipeLineReg( uint8_t pReg, uint32_t val );
     
-    CpuReg          psInstrSeg;
-    CpuReg          psInstrOfs;
+    CpuReg          psPstate0;
+    CpuReg          psPstate1;
     CpuReg          psInstr;
-    uint32_t        instrPrivLevel;
     CpuReg          psValA;
     CpuReg          psValB;
     CpuReg          psValX;
@@ -694,6 +689,7 @@ public:
     uint8_t         regIdForValB;
     uint8_t         regIdForValX;
     
+    uint32_t        instrPrivLevel;
     uint32_t        trapsRaised;
  
 private:
@@ -742,9 +738,9 @@ public:
                                        uint32_t p2 = 0,
                                        uint32_t p3 = 0 );
     
+    CpuReg          psPstate0;
+    CpuReg          psPstate1;
     CpuReg          psInstr;
-    CpuReg          psInstrSeg;
-    CpuReg          psInstrOfs;
     CpuReg          psValA;
     CpuReg          psValB;
     CpuReg          psValX;

@@ -27,6 +27,33 @@
 #include "VCPU32-PipeLine.hpp"
 
 //------------------------------------------------------------------------------------------------------------
+// File local declarations. There are constants and routines used internally and not visible outside of this
+// file. Most of the routines are inline functions.
+//
+//------------------------------------------------------------------------------------------------------------
+namespace {
+
+bool getBit( uint32_t arg, int pos ) {
+    
+    return( arg & ( 1U << ( 31 - ( pos % 32 ))));
+}
+
+uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    uint32_t tmpA = arg >> ( 31 - pos );
+    
+    if ( sign ) return( tmpA | ( ~ tmpM ));
+    else        return( tmpA & tmpM );
+}
+
+}; // namespace
+
+
+//------------------------------------------------------------------------------------------------------------
 // The CPU24Core object constructor. Based on the cpu descriptor, we initilaize the registers and create the
 // memory objects and the pipeline stages.
 //
@@ -217,8 +244,8 @@ void CpuCore::instrStep( uint32_t numOfInstr ) {
     
     while ( numOfInstr > 0 ) {
         
-        previousIaSeg = fdStage -> psInstrSeg.get( );
-        previousIaOfs = fdStage -> psInstrOfs.get( );
+        previousIaSeg = getBitField( fdStage -> psPstate0.get( ), 31, 16 );
+        previousIaOfs = fdStage -> psPstate1.get( );
         
         do {
             
@@ -226,8 +253,8 @@ void CpuCore::instrStep( uint32_t numOfInstr ) {
             cycleCount ++;
         }
         while (( cycleCount < MAX_CYCLE_PER_INSTR ) &&
-               ( fdStage -> psInstrOfs.get( ) == previousIaOfs) &&
-               ( fdStage -> psInstrSeg.get( ) == previousIaSeg ));
+               ( fdStage -> psPstate1.get( ) == previousIaOfs) &&
+               ( getBitField( fdStage -> psPstate0.get( ), 31, 16 ) == previousIaSeg ));
         
         stats.instrCntr++;
         
@@ -263,10 +290,8 @@ uint32_t CpuCore::getReg( RegClass regClass, uint8_t regNum ) {
        
         case RC_PROG_STATE: {
             
-            // *** fix ....
-            if      ( regNum == PS_REG_PSW_0 ) return( fdStage -> psInstrSeg.get( ));
-            else if ( regNum == PS_REG_PSW_1 ) return( fdStage -> psInstrOfs.get( ));
-            else if ( regNum == PS_REG_PSW_0 ) return( stReg.get( ));
+            if      ( regNum == PS_REG_PSW_0 ) return( fdStage -> psPstate0.get( ));
+            else if ( regNum == PS_REG_PSW_1 ) return( fdStage -> psPstate1.get( ));
             else return( 0 );
             
         } break;
@@ -296,10 +321,8 @@ void CpuCore::setReg( RegClass regClass, uint8_t regNum, uint32_t val ) {
        
         case RC_PROG_STATE: {
         
-            // *** fix ...
-            if      ( regNum == PS_REG_PSW_0 ) fdStage -> psInstrSeg.load( val );
-            else if ( regNum == PS_REG_PSW_1 ) fdStage -> psInstrOfs.load( val );
-            else if ( regNum == PS_REG_PSW_0 ) stReg.load( val );
+            if      ( regNum == PS_REG_PSW_0 ) fdStage -> psPstate0.load( val );
+            else if ( regNum == PS_REG_PSW_1 ) fdStage -> psPstate1.load( val );
             
         } break;
         
@@ -332,11 +355,9 @@ void CpuCore::setReg( RegClass regClass, uint8_t regNum, uint32_t val ) {
 //------------------------------------------------------------------------------------------------------------
 void CpuCore::handleTraps( ) {
     
-    // ??? fix ... PSW0 also contains status bits which we do not need ... ?
-    
     if (( cReg[ CR_TEMP_1 ].get( ) != NO_TRAP ) &&
-        ( cReg[ CR_TRAP_PSW_0 ].get( ) == exStage -> psInstrSeg.get( )) &&
-        ( cReg[ CR_TRAP_PSW_1 ].get( ) == exStage -> psInstrOfs.get( ))) {
+        ( cReg[ CR_TRAP_PSW_0 ].get( ) == exStage -> psPstate0.get( )) &&
+        ( cReg[ CR_TRAP_PSW_1 ].get( ) == exStage -> psPstate1.get( ))) {
         
         uint32_t trapHandlerOfs = 0;
         
@@ -346,8 +367,8 @@ void CpuCore::handleTraps( ) {
         }
         
         stReg.set( 0 );
-        fdStage -> psInstrSeg.set( 0 );
-        fdStage -> psInstrOfs.set( trapHandlerOfs );
+        fdStage -> psPstate0.set( 0 ); // ??? also set all status bits to zero ?
+        fdStage -> psPstate0.set( trapHandlerOfs );
         fdStage -> setStalled( false );
         maStage -> psInstr.set( 0 );  // ??? what to really set ...
         maStage -> setStalled ( false );

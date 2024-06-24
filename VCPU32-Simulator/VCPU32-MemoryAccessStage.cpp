@@ -84,8 +84,8 @@ MemoryAccessStage::MemoryAccessStage( CpuCore *core ) {
 void MemoryAccessStage::reset( )  {
     
     stalled = false;
-    psInstrSeg.reset( );
-    psInstrOfs.reset( );
+    psPstate0.reset( );
+    psPstate1.reset( );
     psInstr.reset( );
     psValA.reset( );
     psValB.reset( );
@@ -96,8 +96,8 @@ void MemoryAccessStage::tick( ) {
     
     if ( ! stalled ) {
         
-        psInstrSeg.tick( );
-        psInstrOfs.tick( );
+        psPstate0.tick( );
+        psPstate1.tick( );
         psInstr.tick( );
         psValA.tick( );
         psValB.tick( );
@@ -119,8 +119,8 @@ void MemoryAccessStage::stallPipeLine( ) {
     setStalled( true );
     core -> fdStage -> setStalled( true );
     
-    core -> exStage -> psInstrSeg.set( instrSeg );
-    core -> exStage -> psInstrOfs.set( instrOfs );
+    core -> exStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
+    core -> exStage -> psPstate1.set( instrOfs );
     core -> exStage -> psInstr.set( NOP_INSTR );
     core -> exStage -> psValA.set( 0 );
     core -> exStage -> psValB.set( 0 );
@@ -157,8 +157,8 @@ void MemoryAccessStage::setStalled( bool arg ) {
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::flushPipeLine( ) {
     
-    psInstrSeg.set( instrSeg );
-    psInstrOfs.set( instrOfs );
+    psPstate0.set( instrSeg );
+    psPstate1.set( instrOfs );
     psInstr.set( NOP_INSTR );
     psValA.set( 0 );
     psValB.set( 0 );
@@ -218,8 +218,8 @@ uint32_t MemoryAccessStage::getPipeLineReg( uint8_t pReg ) {
     switch ( pReg ) {
             
         case PSTAGE_REG_STALLED:    return( stalled ? 1 : 0 );
-        case PSTAGE_REG_ID_IA_OFS:  return( psInstrOfs.get( ));
-        case PSTAGE_REG_ID_IA_SEG:  return( psInstrSeg.get( ));
+        case PSTAGE_REG_ID_PSW_0:   return( psPstate0.get( ));
+        case PSTAGE_REG_ID_PSW_1:   return( psPstate1.get( ));
         case PSTAGE_REG_ID_INSTR:   return( psInstr.get( ));
         case PSTAGE_REG_ID_VAL_A:   return( psValA.get( ));
         case PSTAGE_REG_ID_VAL_B:   return( psValB.get( ));
@@ -235,9 +235,8 @@ void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
     
     switch ( pReg ) {
             
-        case PSTAGE_REG_ID_IA_OFS:   psInstrOfs.load( val );        break;
-        case PSTAGE_REG_ID_IA_SEG:   psInstrSeg.load( val );        break;
-        case PSTAGE_REG_ID_INSTR:    psInstr.load( val );           break;
+        case PSTAGE_REG_ID_PSW_0:    psPstate0.load( val );         break;
+        case PSTAGE_REG_ID_PSW_1:    psPstate1.load( val );         break;
         case PSTAGE_REG_ID_VAL_A:    psValA.load( val );            break;
         case PSTAGE_REG_ID_VAL_B:    psValB.load( val );            break;
         case PSTAGE_REG_ID_RID_A:    psRegIdForValA.load( val );    break;
@@ -292,8 +291,8 @@ void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::process( ) {
     
-    instrSeg        = psInstrSeg.get( );
-    instrOfs        = psInstrOfs.get( );
+    instrSeg        = getBitField( psPstate0.get( ), 31, 16 );
+    instrOfs        = psPstate1.get( );
     instr           = psInstr.get( );
     instrPrivLevel  = core -> stReg.get( ) & ST_EXECUTION_LEVEL;  
     regIdForValA    = psRegIdForValA.get( );
@@ -362,8 +361,8 @@ void MemoryAccessStage::process( ) {
         case OP_BV:
         case OP_GATE: {
             
-            core -> fdStage -> psInstrSeg.set( instrSeg );
-            core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
+            core -> fdStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
+            core -> fdStage -> psPstate1.set( add32( valB, valX ));
             
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
@@ -375,8 +374,9 @@ void MemoryAccessStage::process( ) {
             
         case OP_BE: {
            
-            core -> fdStage -> psInstrSeg.set( core -> sReg[ getBitField( instr, 27, 4 ) ].get( ));
-            core -> fdStage -> psInstrOfs.set( add32( valB, valX ));
+            core -> fdStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) |
+                                             core -> sReg[ getBitField( instr, 27, 4 ) ].get( ));
+            core -> fdStage -> psPstate1.set( add32( valB, valX ));
             
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
@@ -601,8 +601,8 @@ void MemoryAccessStage::process( ) {
     //
     //--------------------------------------------------------------------------------------------------------
     core -> exStage -> psInstr.set( instr );
-    core -> exStage -> psInstrOfs.set( instrOfs );
-    core -> exStage -> psInstrSeg.set( instrSeg );
+    core -> exStage -> psPstate1.set( instrOfs );
+    core -> exStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
     core -> exStage -> psValA.set( valA );
     core -> exStage -> psValB.set( valB );
     core -> exStage -> psValX.set( valX );

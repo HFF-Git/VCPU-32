@@ -130,23 +130,24 @@ FetchDecodeStage::FetchDecodeStage( CpuCore *core ) {
 // "reset" and "tick" manage the pipeline register. A "tick" will only update the pipeline register when
 // there is no stall.
 //
+// ??? check teh reset vector. Seg and OFs are OK, what about the status bits ?
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::reset( )  {
     
     stalled = false;
-    psInstrSeg.reset( );
-    psInstrOfs.reset( );
+    psPstate0.reset( );
+    psPstate1.reset( );
     
-    psInstrSeg.load( 0 );
-    psInstrOfs.load( 0xF0000000 );
+    psPstate0.load( 0 );
+    psPstate1.load( 0xF0000000 );
 }
 
 void FetchDecodeStage::tick( ) {
     
     if ( ! stalled ) {
         
-        psInstrSeg.tick( );
-        psInstrOfs.tick( );
+        psPstate0.tick( );
+        psPstate1.tick( );
     }
 }
 
@@ -159,8 +160,8 @@ void FetchDecodeStage::stallPipeLine( ) {
     
     setStalled( true );
     
-    core -> maStage -> psInstrSeg.set( instrSeg );
-    core -> maStage -> psInstrOfs.set( instrOfs );
+    core -> maStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
+    core -> maStage -> psPstate1.set( instrOfs );
     core -> maStage -> psInstr.set( NOP_INSTR );
     core -> maStage -> psRegIdForValA.set( MAX_GREGS );
     core -> maStage -> psRegIdForValB.set( MAX_GREGS );
@@ -188,9 +189,9 @@ uint32_t FetchDecodeStage::getPipeLineReg( uint8_t pReg ) {
     
     switch ( pReg ) {
             
-        case PSTAGE_REG_STALLED:     return( stalled ? 1 : 0 );
-        case PSTAGE_REG_ID_IA_OFS:   return( psInstrOfs.get( ));
-        case PSTAGE_REG_ID_IA_SEG:   return( psInstrSeg.get( ));
+        case PSTAGE_REG_STALLED:    return( stalled ? 1 : 0 );
+        case PSTAGE_REG_ID_PSW_0:   return( psPstate0.get( ));
+        case PSTAGE_REG_ID_PSW_1:   return( psPstate1.get( ));
         default: return( 0 );
     }
 }
@@ -199,8 +200,8 @@ void FetchDecodeStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
     
     switch ( pReg ) {
             
-        case PSTAGE_REG_ID_IA_OFS:   psInstrOfs.load( val );  break;
-        case PSTAGE_REG_ID_IA_SEG:   psInstrSeg.load( val );  break;
+        case PSTAGE_REG_ID_PSW_0:   psPstate0.load( val );  break;
+        case PSTAGE_REG_ID_PSW_1:   psPstate1.load( val );  break;
     }
 }
 
@@ -308,10 +309,10 @@ void FetchDecodeStage::setupTrapData( uint32_t trapId,
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::process( ) {
     
-    instrSeg        = psInstrSeg.get( );
-    instrOfs        = psInstrOfs.get( );
+    instrSeg        = getBitField( psPstate0.get( ), 31, 16 );
+    instrOfs        = psPstate1.get( );
     instr           = NOP_INSTR;
-    instrPrivLevel  = core -> stReg.get( ) & ST_EXECUTION_LEVEL;;
+    instrPrivLevel  = core -> stReg.get( ) & ST_EXECUTION_LEVEL;
     valA            = 0;
     valB            = 0;
     valX            = 0;
@@ -750,8 +751,8 @@ void FetchDecodeStage::process( ) {
     // Pass the data to the MA stage pipeline.
     //
     //--------------------------------------------------------------------------------------------------------
-    core -> maStage -> psInstrSeg.set( instrSeg );
-    core -> maStage -> psInstrOfs.set( instrOfs );
+    core -> maStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
+    core -> maStage -> psPstate1.set( instrOfs );
     core -> maStage -> psInstr.set( instr );
     core -> maStage -> psValA.set( valA );
     core -> maStage -> psValB.set( valB );
@@ -768,21 +769,22 @@ void FetchDecodeStage::process( ) {
     //
     // ??? what exactly is the instruction offset arithmetic ?
     // ??? we add a signed value to an unsigned value ....
+    // ??? we should use a bitFieldSet routine...
     //--------------------------------------------------------------------------------------------------------
-    psInstrSeg.set( instrSeg );
+    psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
     
     if (( opCode == OP_CBR ) || ( opCode == OP_CBRU )) {
         
         if ( getBit( instr, 23 )) {
             
-            psInstrOfs.set( add32( instrOfs, immGenLowSign( instr, 31, 22 )));
+            psPstate1.set( add32( instrOfs, immGenLowSign( instr, 31, 22 )));
             core -> maStage -> psValX.set( 1 );
         }
         else {
             
-            psInstrOfs.set( instrOfs + 4 );
+            psPstate1.set( instrOfs + 4 );
             core -> maStage -> psValX.set( immGenLowSign( instr, 31, 22 ));
         }
     }
-    else psInstrOfs.set( instrOfs + 4 );
+    else psPstate1.set( instrOfs + 4 );
 }

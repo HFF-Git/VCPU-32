@@ -180,6 +180,22 @@ DrvWin         *windowList[ MAX_WINDOWS ];
 DrvWinCommands *cmdWin;
 
 //-----------------------------------------------------------------------------------------------------------
+//
+//
+//-----------------------------------------------------------------------------------------------------------
+uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    uint32_t tmpA = arg >> ( 31 - pos );
+    
+    if ( sign ) return( tmpA | ( ~ tmpM ));
+    else        return( tmpA & tmpM );
+}
+
+//-----------------------------------------------------------------------------------------------------------
 // All fprintf calls are routed through this routine. I want to see if any of the fprintf function calls
 // returns an error, which may be the clue to why sometimes the screen hangs. We use snprintf to produce
 // the string. This can be done many times without loosing or doubling any data. If the print operation is
@@ -879,7 +895,7 @@ void DrvWinProgState::drawBanner( ) {
     
     
     printTextField((char *) "Seg:", fmtDesc, 5 );
-    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_0 ) & 0xFFFF, fmtDesc | FMT_HALF_WORD, 6 );
+    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_0 ) & 0xFFFF, fmtDesc | FMT_HALF_WORD, 8 );
     printTextField((char *) "Ofs:", fmtDesc, 5 );
     printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_1 ), fmtDesc, 12 );
     printTextField((char *) "ST:", fmtDesc, 4 );
@@ -1187,9 +1203,10 @@ void DrvWinPipeLineRegs::drawBody( ) {
         printTextField((char *) "FD:   ", ( fmtDesc | FMT_ALIGN_LFT | FMT_BOLD ), 8 );
     
     printTextField(( char *) "IA:", ( fmtDesc | FMT_ALIGN_LFT ), 4 );
-    printNumericField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_IA_SEG ) );
+    printNumericField( getBitField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0 ), 31, 16 ),
+                      ( fmtDesc | FMT_HALF_WORD ));
     printTextField(( char *) "." );
-    printNumericField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_IA_OFS ) );
+    printNumericField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ) );
     padLine( fmtDesc );
     
     setWinCursor( 3, 1 );
@@ -1201,9 +1218,10 @@ void DrvWinPipeLineRegs::drawBody( ) {
         printTextField((char *) "MA:   ", ( fmtDesc | FMT_ALIGN_LFT | FMT_BOLD ), 8 );
     
     printTextField(( char *) "IA: ", ( fmtDesc | FMT_ALIGN_LFT ), 4 );
-    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_IA_SEG ));
+    printNumericField( getBitField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_0 ), 31, 16 ),
+                      ( fmtDesc | FMT_HALF_WORD ));
     printTextField(( char *) "." );
-    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_IA_OFS ));
+    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_1 ));
     printTextField(( char *) "  I: " );
     printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_INSTR ));
     printTextField(( char *) "  A: " );
@@ -1222,9 +1240,10 @@ void DrvWinPipeLineRegs::drawBody( ) {
         printTextField((char *) "EX:   ", ( fmtDesc | FMT_ALIGN_LFT | FMT_BOLD ), 8 );
     
     printTextField(( char *) "IA: ", ( fmtDesc | FMT_ALIGN_LFT ), 4 );
-    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_IA_SEG ));
+    printNumericField( getBitField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_0 ), 31, 16 ),
+                      ( fmtDesc | FMT_HALF_WORD ));
     printTextField(( char *) ".");
-    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_IA_OFS ));
+    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_1 ));
     printTextField(( char *) "  I: " );
     printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_INSTR ));
     printTextField(( char *) "  A: " );
