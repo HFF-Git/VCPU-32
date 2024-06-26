@@ -60,6 +60,18 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     else        return( tmpA & tmpM );
 }
 
+void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    
+    val = ( val & tmpM ) << ( 31 - pos );
+    
+    *arg = ( *arg & ( ~tmpM )) | val;
+}
+
 uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
     
     return ( arg1 + arg2 );
@@ -246,6 +258,24 @@ void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Access to a segment may be subject to protection checking. The little helper routine will compare the
+// target segment Id with the segments stored in the protection control registers. The function returns a
+// value of true when one field maztches.
+//
+//------------------------------------------------------------------------------------------------------------
+bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
+    
+    return((( segId  == getBitField( core -> cReg[ CR_SEG_ID_0_1 ].get( ), 15, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_0_1 ].get( ), 31, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_2_3 ].get( ), 15, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_2_3 ].get( ), 31, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_4_5 ].get( ), 15, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_4_5 ].get( ), 31, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_6_7 ].get( ), 15, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_6_7 ].get( ), 31, 16 ))));
+}
+
+//------------------------------------------------------------------------------------------------------------
 // The memory access stage is primarily responsible for accessing memory data used by load and store type
 // instructions. It will take the B and X value and compute the address offset for the memory data access.
 // This the stage where any segment or control register is accessed.
@@ -291,7 +321,10 @@ void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::process( ) {
     
-    instrSeg        = getBitField( psPstate0.get( ), 31, 16 );
+    // ??? use the bit fields
+    // ??? add the status register 
+    
+    instrSeg        = psPstate0.getBitField( 31, 16 );
     instrOfs        = psPstate1.get( );
     instr           = psInstr.get( );
     instrPrivLevel  = core -> stReg.get( ) & ST_EXECUTION_LEVEL;  
@@ -531,12 +564,7 @@ void MemoryAccessStage::process( ) {
             
             if ( core -> stReg.get( ) & ST_PROTECT_ID_CHECK_ENABLE ) {
                 
-                // ??? factor out into a function "checkSegId" ?
-                
-                if (( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_0_1 ].get( )) &&
-                    ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_2_3 ].get( )) &&
-                    ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_4_5 ].get( )) &&
-                    ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_6_7 ].get( ))) {
+                if ( ! checkProtectId( tlbEntryPtr -> tSegId( ))) {
                     
                     setupTrapData( DTLB_PROTECT_ID_TRAP, valS, valX, core -> stReg.get( ));
                     stallPipeLine( );

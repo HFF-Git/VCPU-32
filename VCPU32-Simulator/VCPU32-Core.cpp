@@ -62,7 +62,9 @@ CpuCore::CpuCore( CpuCoreDesc *cfg ) {
     
     memcpy( &cpuDesc, cfg, sizeof( CpuCoreDesc ));
   
-    stReg.init( 0, false );
+    stReg.init( 0, false );  // this is PSW0 and PSW1 ?
+    
+    
     for ( uint8_t i = 0; i < 8; i++  )  gReg[ i ].init( 0, false );
     for ( uint8_t i = 0; i < 3; i++  )  sReg[ i ].init( 0, false );
     for ( uint8_t i = 4; i < 7; i++  )  sReg[ i ].init( 0, true );

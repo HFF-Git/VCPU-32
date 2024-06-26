@@ -59,6 +59,18 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     else        return( tmpA & tmpM );
 }
 
+void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    
+    val = ( val & tmpM ) << ( 31 - pos );
+    
+    *arg = ( *arg & ( ~tmpM )) | val;
+}
+
 uint32_t lowSignExtend32( uint32_t arg, int len ) {
     
     len = len % 32;
@@ -92,7 +104,6 @@ uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
 // instruction currently decoded for being one that depends on the latest register content. In general these
 // are all instructions that do address arithmetic using the B and X pipeline fields, or the A field for some
 // branch instructions.
-//
 //
 // ??? Explain ... better .... Has to do with MA stage consuimng B and X and we need to wait for the correct
 // B and X tgo arrive if needed...
@@ -160,7 +171,7 @@ void FetchDecodeStage::stallPipeLine( ) {
     
     setStalled( true );
     
-    core -> maStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
+    core -> maStage -> psPstate0.set( getBitField( psPstate0.get( ), 15, 16 ) | instrSeg );
     core -> maStage -> psPstate1.set( instrOfs );
     core -> maStage -> psInstr.set( NOP_INSTR );
     core -> maStage -> psRegIdForValA.set( MAX_GREGS );
@@ -237,6 +248,24 @@ void FetchDecodeStage::setupTrapData( uint32_t trapId,
     core -> cReg[ CR_TRAP_PARM_2 ].set( p2 );
     core -> cReg[ CR_TRAP_PARM_3 ].set( p3 );
     core -> cReg[ CR_TEMP_1 ].set( trapId );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Access to a segment may be subject to protection checking. The little helper routine will compare the
+// target segment Id with the segments stored in the protection control registers. The function returns a
+// value of true when one field maztches.
+//
+//------------------------------------------------------------------------------------------------------------
+bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
+    
+    return((( segId  == getBitField( core -> cReg[ CR_SEG_ID_0_1 ].get( ), 15, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_0_1 ].get( ), 31, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_2_3 ].get( ), 15, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_2_3 ].get( ), 31, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_4_5 ].get( ), 15, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_4_5 ].get( ), 31, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_6_7 ].get( ), 15, 16 )) ||
+            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_6_7 ].get( ), 31, 16 ))));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -350,10 +379,7 @@ void FetchDecodeStage::process( ) {
         
         if ( core -> stReg.get( ) & ST_PROTECT_ID_CHECK_ENABLE ) {
             
-            if (( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_0_1 ].get( )) &&
-                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_2_3 ].get( )) &&
-                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_4_5 ].get( )) &&
-                ( tlbEntryPtr -> tSegId( ) != core -> cReg[ CR_SEG_ID_6_7 ].get( ))) {
+            if ( ! checkProtectId( tlbEntryPtr -> tSegId( ))) {
                 
                 setupTrapData( ITLB_PROTECT_ID_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
                 stallPipeLine( );

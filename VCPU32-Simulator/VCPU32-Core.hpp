@@ -250,6 +250,13 @@ public:
     void        load( uint32_t val );
     void        set( uint32_t val );
     uint32_t    get( );
+    
+    uint32_t    getBit( int pos );
+    void        setBit( bool val, int pos );
+    
+    uint32_t    getBitField( int pos, int len, bool sign = false );
+    void        setBitField( uint32_t val, int pos, int len );
+    
     bool        isPrivReg( );
     
 private:
@@ -604,6 +611,8 @@ public:
     
     uint32_t        getPipeLineReg( uint8_t pReg );
     void            setPipeLineReg( uint8_t pReg, uint32_t val );
+    
+    bool            checkProtectId( uint16_t segId );
    
     CpuReg          psPstate0;
     CpuReg          psPstate1;
@@ -674,6 +683,8 @@ public:
     
     uint32_t        getPipeLineReg( uint8_t pReg );
     void            setPipeLineReg( uint8_t pReg, uint32_t val );
+    
+    bool            checkProtectId( uint16_t segId );
     
     CpuReg          psPstate0;
     CpuReg          psPstate1;
@@ -817,10 +828,12 @@ private:
     //--------------------------------------------------------------------------------------------------------
     CpuCoreDesc     cpuDesc;
     
+    CpuReg          stReg; // phase out  ... it becomes part of pState0 in fetchDecode Stage...
+   
     CpuReg          gReg[ MAX_GREGS ];
     CpuReg          sReg[ MAX_SREGS ];
     CpuReg          cReg[ MAX_CREGS ];
-    CpuReg          stReg;
+  
     
     //--------------------------------------------------------------------------------------------------------
     // Utility routines.
@@ -830,7 +843,7 @@ private:
     
     //--------------------------------------------------------------------------------------------------------
     // References to other classes. The core needs to have access to the pipeline stages, the virtual and
-    // physical memory. In addition, these objects need to access each other too. We delcare them as "friends"
+    // physical memory. In addition, these objects need to access each other too. We declare them as "friends"
     // to each other.
     //
     //--------------------------------------------------------------------------------------------------------
