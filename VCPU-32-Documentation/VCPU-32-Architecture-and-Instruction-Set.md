@@ -496,16 +496,20 @@ The previous section depicted the virtual address translation process. While the
 
 ### Translation Lookaside Buffer
 
-For performance reasons, the virtual address translation result is stored in a translation look-aside buffer. The TLB is essentially a copy of the page table entry information that represents the virtual page currently loaded at the physical address. Depending on the hardware implementation, there can be a combined TLB or a separate instruction TLB and data TLB. 
+For performance reasons, the virtual address translation result is stored in a translation look-aside buffer. The TLB is essentially a copy of the page table entry information that represents the virtual page currently loaded at the physical address. Depending on the hardware implementation, there can be a combined TLB or a separate instruction TLB and data TLB. A TLB is essentially a cache for address translations. The virtual page number, VPN, is stored along with attributes and the physical page number, PPN, in the TLB hardware. The architecture allows for a physical address range that is larger than the 4Gb main memory described before. For example, a virtual page can map to a physical page beyond the 4Gb range that is directly addressable with absolute addressing modes. However, physical pages beyond the 4Gb range can only be reached with address translation enabled. The current architecture allows for a 44-bit physical address space, which is a 16TB memory space.
 
 ```
-TLB fields (example):
+TLB fields (conceptual example):
 
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   :V :T :D :B :P : 0      : AR        : VPN-H                                                     :
+   :V :T :D :B :P : 0      : AR        : 0         : VPN-H                                         :
    :-----------------------------------------------------------------------------------------------:
-   : VPN-L                                   : PPN                                                 :
+   : VPN-L                                               : 0                                       :
+   :-----------------------------------------------------------------------------------------------:
+   : 0                                                         : PPN-H                             :
+   :-----------------------------------------------------------------------------------------------:
+   : PPN-L                                               : 0                                       :
    :-----------------------------------------------------------------------------------------------:
 ```
 
@@ -1826,20 +1830,22 @@ Inserts a translation into the instruction or data TLB.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : ITLB    ( 0x3B ): r         :T : 0                                    : a         : b         :
+   : ITLB    ( 0x3B ): r         :T :A :                                   : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The ITLB instruction inserts a translation into the instruction or data TLB. The virtual address is encoded in "a" for the segment register and "b" for the offset. The "T" bit specifies whether the instruction or the data TLB is addressed. A value of zero references the instruction TLB, a value of one refers to the data TLB. The "r" register contains the TLB information data.
+The ITLB instruction inserts a translation into the instruction or data TLB. The virtual address is encoded in "a" for the segment register and "b" for the offset. The "T" bit specifies whether the instruction or the data TLB is addressed. A value of zero references the instruction TLB, a value of one refers to the data TLB. The "r" register contains the TLB information data. The "A" bit selects among the two words needed to fill in the data for the TLB. A value of one will fill in a part of the physical page number. A value of zero will fill in the remaining address portion and the protection and access rights information. With the second instruction, i.e. A being zero, the entry is also marked valid.
 
 #### Argument Word Layout
 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   :V :T :D :B :P : 0      : AR        : 0   : PPN                                                 :
+   :V :T :D :B :P : 0      : AR        : 0                     : PPN-H                             : A = 0
+   :-----------------------------------------------------------------------------------------------:
+   : PPN-L                                               : 0                                       : A = 1
    :-----------------------------------------------------------------------------------------------:
 ```
 
@@ -1852,13 +1858,20 @@ The ITLB instruction inserts a translation into the instruction or data TLB. The
       if ( ! searchDataTlbEntry( SR[a], GR[b], &entry )) allocateDataTlbEntry( SR[a], GR[b], &entry );
    else
       if ( ! searchInstructionTlbEntry( SR[a], GR[b], &entry )) allocateInstructionTlbEntry( SR[a], GR[b], &entry );
+
+   if instr.[A] {
+
+      entry.[PPN-L]  <- GR[r].[PPN-L];
+      entry.[V]      <- 0;
+   }
    
-   entry.[T] <- GR[r].[T];
-   entry.[D] <- GR[r].[D];
-   entry.[B] <- GR[r].[B];
-   entry.[P] <- GR[r].[P];
-   entry.AR  <- GR[r].AR;
-   entry.[V] <- 1; 
+   entry.[T]      <- GR[r].[T];
+   entry.[D]      <- GR[r].[D];
+   entry.[B]      <- GR[r].[B];
+   entry.[P]      <- GR[r].[P];
+   entry.AR       <- GR[r].AR;
+   entry.[PPN-H]  <- GR[r].[PPN-H];
+   entry.[V]      <- 1; 
 ```
 
 #### Exceptions
@@ -1905,7 +1918,7 @@ The load instruction will load the operand into the general register "r". The of
 ```
    if ( instr.[10] ) {
 
-      if ( instr.[M] ) {
+      if ( instr.[11] ) {
 
          if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + GR[a];
          else                                offset = GR[b];
@@ -1929,8 +1942,11 @@ The load instruction will load the operand into the general register "r". The of
    
    GR[r] <- zeroExtend( memLoad( SR[seg], offset, len ), len );
 
-   if ( instr.[10] ) GR[b] <- GR[b] + GR[a];
-   else              GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
+   if ( instr.[10] ) {
+   
+      if ( instr.[10] ) GR[b] <- GR[b] + GR[a];
+      else              GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
+   }
 ```
 
 #### Exceptions
@@ -2490,23 +2506,37 @@ Flush and / or remove cache lines from the cache.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : PCA     ( 0x3D ): 0         :T :F : 0                                 : a         : b         :
+   : PCA     ( 0x3D ): 0         :T :M : seg :F : 0                        : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The PCA instruction flushes or purges a cache line from the instruction or data cache. The virtual address is encoded in "a" for the segment register and "b" for the offset. The "T" bit indicates whether the instruction or the data cache is addressed. A value of zero references the instruction cache. An instruction cache line can only be purged, a data cache line can also be written back to memory when dirty and then optionally purged. The "F" bit will indicate whether the data cache is to be purged without flushing it first to memory. If "F" is one, the entry is first flushed and then purged, else just purged. The "F" bit has no meaning for an instruction cache.
+The PCA instruction flushes or purges a cache line from the instruction or data cache. The "seg" field selects the segment register for forming the virtual address. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. 
+
+The "T" bit indicates whether the instruction or the data cache is addressed. A value of zero references the instruction cache. An instruction cache line can only be purged, a data cache line can also be written back to memory when dirty and then optionally purged. 
+
+The "M" bit indicates base register increment. If set, a negative value in general register "a" will form the address by adding the content to the base register "b" before the cache operation, otherwise after the cache operation. 
+
+The "F" bit will indicate whether the data cache is to be purged without flushing it first to memory. If "F" is one, the entry is first flushed and then purged, else just purged. The "F" bit has no meaning for an instruction cache.
 
 #### Operation
 
-```  
+``` 
+   if ( instr.[12..13] == 0 ) seg = segSelect( offset );
+   else                       seg = instr.[12..13];
+
+   if ( instr.[11] ) offset = GR[b] + GR[a]; 
+   else              offset = GR[b];
+
+   GR[b] = GR[b] + GR[a];
+   
    if ( instr.[T] ) {
 
-      if ( instr.[F] ) flushDataCache( SR[a], GR[b] );
-      purgeDataCache( SR[a], GR[b] );
+      if ( instr.[F] ) flushDataCache( seg, offset );
+      purgeDataCache( seg, offset );
    
-   } else purgeInstructionCache( SR[a], GR[b] );
+   } else purgeInstructionCache( seg, offset );
 ```
 
 #### Exceptions
@@ -2600,18 +2630,31 @@ Removes a translation entry from the TLB.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : PTLB    ( 0x3C ): 0         :T : 0                                    : a         : b         :
+   : PTLB    ( 0x3C ): 0         :T :M : seg : 0                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
 
-The DTLB instruction removes a translation from the instruction or data TLB by marking the entry invalid. The virtual address is encoded in "a" for the segment register and "b" for the offset. The "T" bit indicates whether the instruction or the data TLB is addressed. A value of zero references the instruction TLB, a value of one refers to the data TLB. 
+The PTLB instruction removes a translation from the instruction or data TLB by marking the entry invalid. The "seg" field selects the segment register for forming the virtual address. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. 
+
+The "T" bit indicates whether the instruction or the data TLB is addressed. A value of zero references the instruction TLB, a value of one refers to the data TLB. 
+
+The "M" bit indicates base register increment. If set, a negative value in general register "a" will form the address by adding the content to the base register "b" before the TLB operation, otherwise after the TLB operation. 
+
 
 #### Operation
 
 ```
    if ( ! ST.[ PRIV ] ) privilegedOperationTrap( );
+
+   if ( instr.[12..13] == 0 ) seg = segSelect( offset );
+   else                       seg = instr.[12..13];
+
+   if ( instr.[11] ) offset = GR[b] + GR[a]; 
+   else              offset = GR[b];
+
+   GR[b] = GR[b] + GR[a];
 
    if ( instr.[T] )
       if ( searchDataTlbEntry( SR[a], GR[b], &entry )) purgeDataTlbEntry( SR[a], GR[b], &entry );
@@ -4044,11 +4087,11 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : PRB     ( 0x3A ): r         :W :I : seg : 0                           : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-   : ITLB    ( 0x3B ): r         :T : 0                                    : a         : b         :
+   : ITLB    ( 0x3B ): r         :T :A :                                   : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : PTLB    ( 0x3C ): 0         :T : 0                                    : a         : b         :      
+   : PTLB    ( 0x3C ): 0         :T :M : seg : 0                           : a         : b         :    
    :-----------------:-----------------------------------------------------------------------------:
-   : PCA     ( 0x3D ): 0         :T :F : 0                                 : a         : b         :     
+   : PCA     ( 0x3D ): 0         :T :M : seg :F : 0                        : a         : b         :     
    :-----------------:-----------------------------------------------------------------------------:
    : DIAG    ( 0x3E ): r         : info      : 0                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
