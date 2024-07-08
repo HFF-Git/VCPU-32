@@ -507,9 +507,7 @@ TLB fields (conceptual example):
    :-----------------------------------------------------------------------------------------------:
    : VPN-L                                               : 0                                       :
    :-----------------------------------------------------------------------------------------------:
-   : 0                                                         : PPN-H                             :
-   :-----------------------------------------------------------------------------------------------:
-   : PPN-L                                               : 0                                       :
+   : PPN                                                                                           :
    :-----------------------------------------------------------------------------------------------:
 ```
 
@@ -521,7 +519,7 @@ TLB fields (conceptual example):
 | **B** | data reference trap. If the bit is set, data access raises a trap. |
 | **P** | Segment Id checking enabled for the page. |
 | **AR** | The access rights data for the page. |
-| **VPN** | the virtual page number in the segment. |
+| **VPN** | the virtual page number. |
 | **PPN** | the physical page number. |
 |||
 
@@ -2500,7 +2498,8 @@ Flush and / or remove cache lines from the cache.
 #### Format
 
 ```
-   PCA [.<opt>] (a, b)
+   PCA [.<opt>] a (b)
+   PCA [.<opt>] a (s, b)
 ```
 
 ```
@@ -2624,7 +2623,8 @@ Removes a translation entry from the TLB.
 #### Format
 
 ```
-   PTLB [.<opt>] (a, b)
+   PTLB [.<opt>] a (b)
+   PTLB [.<opt>] a (s, b)
 ```
 
 ```
