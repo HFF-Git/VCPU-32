@@ -75,16 +75,16 @@ const uint8_t   TRAP_CODE_BLOCK_SIZE    = 32;
 //
 // ??? note: under construction .... always cross check with the document.
 //------------------------------------------------------------------------------------------------------------
-enum StatusRegFields : uint32_t {
+enum StatusRegBits : uint32_t {
     
-    ST_MACHINE_CHECK                = ( 1U << 31 ),
-    ST_EXECUTION_LEVEL              = ( 1U << 20 ),
-    ST_CODE_TRANSLATION_ENABLE      = ( 1U << 29 ),
-    ST_CARRY                        = ( 1U << 27 ),
+    ST_MACHINE_CHECK                = 0,
+    ST_EXECUTION_LEVEL              = 1,
+    ST_CODE_TRANSLATION_ENABLE      = 2,
+    ST_CARRY                        = 4,
     
-    ST_DATA_TRANSLATION_ENABLE      = ( 1U << 18 ),
-    ST_PROTECT_ID_CHECK_ENABLE      = ( 1U << 17 ),
-    ST_INTERRUPT_ENABLE             = ( 1U << 16 )
+    ST_DATA_TRANSLATION_ENABLE      = 13,
+    ST_PROTECT_ID_CHECK_ENABLE      = 14,
+    ST_INTERRUPT_ENABLE             = 15
 };
 
 //------------------------------------------------------------------------------------------------------------

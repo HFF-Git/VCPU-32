@@ -47,6 +47,11 @@ bool getBit( uint32_t arg, int pos ) {
     return( arg & ( 1U << ( 31 - ( pos % 32 ))));
 }
 
+void setBit( uint32_t *arg, int pos ) {
+   
+    *arg |= ( 1U << ( 31 - ( pos % 32 )));
+}
+
 uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     
     pos = pos % 32;
@@ -109,6 +114,8 @@ uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
 // B and X tgo arrive if needed...
 //
 // ??? anything special to do for REG 0 ?
+//
+// ??? what about the status register bits ? Same issue ?
 //------------------------------------------------------------------------------------------------------------
 bool maStageConsumesRegValBorX( uint32_t instr ) {
     
@@ -141,7 +148,7 @@ FetchDecodeStage::FetchDecodeStage( CpuCore *core ) {
 // "reset" and "tick" manage the pipeline register. A "tick" will only update the pipeline register when
 // there is no stall.
 //
-// ??? check teh reset vector. Seg and OFs are OK, what about the status bits ?
+// ??? check the reset vector. Seg and OFs are OK, what about the status bits ?
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::reset( )  {
     
@@ -171,8 +178,8 @@ void FetchDecodeStage::stallPipeLine( ) {
     
     setStalled( true );
     
-    core -> maStage -> psPstate0.set( getBitField( psPstate0.get( ), 15, 16 ) | instrSeg );
-    core -> maStage -> psPstate1.set( instrOfs );
+    core -> maStage -> psPstate0.set( psPstate0.get( ));
+    core -> maStage -> psPstate1.set( psPstate1.get( ));
     core -> maStage -> psInstr.set( NOP_INSTR );
     core -> maStage -> psRegIdForValA.set( MAX_GREGS );
     core -> maStage -> psRegIdForValB.set( MAX_GREGS );
@@ -232,18 +239,14 @@ void FetchDecodeStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 // flush the pipeline.
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::setupTrapData( uint32_t trapId,
-                                      uint32_t iaSeg,
-                                      uint32_t iaOfs,
-                                      uint32_t pStat,
+                                      uint32_t psw0,
+                                      uint32_t psw1,
                                       uint32_t p1,
                                       uint32_t p2,
                                       uint32_t p3 ) {
     
-    // ??? fix PSW=0 ...
-    
-    core -> cReg[ CR_TRAP_PSW_0 ].set( iaSeg );
-    core -> cReg[ CR_TRAP_PSW_1 ].set( iaOfs );
-    core -> cReg[ CR_TRAP_STAT ].set( pStat );
+    core -> cReg[ CR_TRAP_PSW_0 ].set( psw0 );
+    core -> cReg[ CR_TRAP_PSW_1 ].set( psw1 );
     core -> cReg[ CR_TRAP_PARM_1 ].set( p1 );
     core -> cReg[ CR_TRAP_PARM_2 ].set( p2 );
     core -> cReg[ CR_TRAP_PARM_3 ].set( p3 );
@@ -338,10 +341,9 @@ bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::process( ) {
     
-    instrSeg        = getBitField( psPstate0.get( ), 31, 16 );
-    instrOfs        = psPstate1.get( );
+    instrPsw0       = psPstate0.get( );
+    instrPsw1       = psPstate1.get( );
     instr           = NOP_INSTR;
-    instrPrivLevel  = core -> stReg.get( ) & ST_EXECUTION_LEVEL;
     valA            = 0;
     valB            = 0;
     valX            = 0;
@@ -349,8 +351,9 @@ void FetchDecodeStage::process( ) {
     regIdForValB    = MAX_GREGS;
     regIdForValX    = MAX_GREGS;
     
-    uint32_t    pAdr            = instrOfs;
-    uint32_t    pOfs            = instrOfs & PAGE_BIT_MASK;
+    uint32_t    pAdr            = instrPsw1;
+    uint32_t    pOfs            = instrPsw1 & PAGE_BIT_MASK;
+    uint32_t    instrSeg        = psPstate0.getBitField( 15, 16 );
     TlbEntry    *tlbEntryPtr    = nullptr;
     
     setStalled( false );
@@ -360,28 +363,28 @@ void FetchDecodeStage::process( ) {
     // are bypassed. The offset is the physical memory address. We also must be privileged.
     //
     //--------------------------------------------------------------------------------------------------------
-    if ( core -> stReg.get( ) & ST_CODE_TRANSLATION_ENABLE ) {
+    if ( getBit( psPstate0.get( ), ST_CODE_TRANSLATION_ENABLE )) {
    
-        tlbEntryPtr = core -> iTlb -> lookupTlbEntry( instrSeg, instrOfs );
+        tlbEntryPtr = core -> iTlb -> lookupTlbEntry( getBitField( instrPsw0, 31, 16 ), instrPsw1 );
         if ( tlbEntryPtr == nullptr ) {
             
-            setupTrapData( ITLB_MISS_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+            setupTrapData( ITLB_MISS_TRAP, instrPsw0, instrPsw1, instr );
             stallPipeLine( );
             return;
         }
         
         if ( tlbEntryPtr -> tPageType( ) != ACC_EXECUTE ) {
             
-            setupTrapData( ITLB_ACC_RIGHTS_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+            setupTrapData( ITLB_ACC_RIGHTS_TRAP, instrPsw0, instrPsw1, instr );
             stallPipeLine( );
             return;
         }
         
-        if ( core -> stReg.get( ) & ST_PROTECT_ID_CHECK_ENABLE ) {
+        if ( psPstate0.get( ) & ST_PROTECT_ID_CHECK_ENABLE ) {
             
             if ( ! checkProtectId( tlbEntryPtr -> tSegId( ))) {
                 
-                setupTrapData( ITLB_PROTECT_ID_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                setupTrapData( ITLB_PROTECT_ID_TRAP, instrPsw0, instrPsw1, instr );
                 stallPipeLine( );
                 return;
             }
@@ -391,9 +394,9 @@ void FetchDecodeStage::process( ) {
     }
     else {
     
-         if ( core -> stReg.get( ) & ST_EXECUTION_LEVEL ) {
+         if ( psPstate0.get( ) & ST_EXECUTION_LEVEL ) {
              
-             setupTrapData( INSTR_MEM_PROTECT_TRAP, instrSeg, instrOfs, core -> stReg.get( ));
+             setupTrapData( INSTR_MEM_PROTECT_TRAP, instrPsw0, instrPsw1, instr );
              stallPipeLine( );
              return;
          }
@@ -410,7 +413,7 @@ void FetchDecodeStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     if ( pAdr <= core -> physMem -> getEndAdr( ) - 4 ) {
         
-        if ( ! core -> iCacheL1 -> readWord( instrSeg, instrOfs, pAdr, 4, &instr )) {
+        if ( ! core -> iCacheL1 -> readWord( instrSeg, instrPsw1, pAdr, 4, &instr )) {
             
             stallPipeLine( );
             return;
@@ -440,12 +443,12 @@ void FetchDecodeStage::process( ) {
     // Instruction execution privilege check.
     //
     //--------------------------------------------------------------------------------------------------------
-    if ( core -> stReg.get( ) & ST_CODE_TRANSLATION_ENABLE ) {
+    if ( psPstate0.getBit( ST_CODE_TRANSLATION_ENABLE )) {
         
-        if ( ! (( tlbEntryPtr -> tPrivL2( ) <= instrPrivLevel ) && 
-                ( instrPrivLevel <= tlbEntryPtr -> tPrivL1( )))) {
+        if ( ! (( tlbEntryPtr -> tPrivL2( ) <= getBit( instrPsw0, ST_EXECUTION_LEVEL )) &&
+                ( getBit( instrPsw0, ST_EXECUTION_LEVEL ) <= tlbEntryPtr -> tPrivL1( )))) {
                 
-            setupTrapData( INSTR_MEM_PROTECT_TRAP, instrSeg, instrOfs, core -> stReg.get( ));
+            setupTrapData( INSTR_MEM_PROTECT_TRAP, instrPsw0, instrPsw1, instr );
             stallPipeLine( );
             return;
         }
@@ -457,9 +460,9 @@ void FetchDecodeStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ opCode ].flags & PRIV_INSTR ) {
         
-        if ( instrPrivLevel > 0 ) {
+        if ( getBit( instrPsw0, ST_EXECUTION_LEVEL ) > 0 ) {
             
-            setupTrapData( PRIV_OPERATION_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+            setupTrapData( PRIV_OPERATION_TRAP, instrPsw0, instrPsw1, instr );
             return;
         }
     }
@@ -477,13 +480,13 @@ void FetchDecodeStage::process( ) {
            
             if (( opMode < 2 ) && ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR ))) {
                 
-                setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                setupTrapData( ILLEGAL_INSTR_TRAP, instrPsw0, instrPsw1, instr );
                 return;
             }
             
             if (( opMode == 2 ) && ( opCodeTab[ opCode ].flags & STORE_INSTR )) {
                 
-                setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                setupTrapData( ILLEGAL_INSTR_TRAP, instrPsw0, instrPsw1, instr );
                 return;
             }
             
@@ -625,7 +628,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_B: {
           
-            valB = instrOfs;
+            valB = instrPsw1;
             valX = immGenLowSign( instr, 31, 22 ) << 2;
             
         } break;
@@ -634,7 +637,7 @@ void FetchDecodeStage::process( ) {
             
             regIdForValB    = getBitField( instr, 31, 4 );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = instrOfs << 2;
+            valX            = instrPsw1 << 2;
             
         } break;
             
@@ -642,7 +645,7 @@ void FetchDecodeStage::process( ) {
             
             regIdForValB    = getBitField( instr, 31, 4 );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = instrOfs << 2;
+            valX            = instrPsw1 << 2;
             
         } break;
             
@@ -662,7 +665,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_GATE: {
            
-            valB            = instrOfs;
+            valB            = instrPsw1;
             valX            = immGenLowSign( instr, 31, 22 ) << 2;
             
             // ??? when do we exactly set the execution level in the status reg ? There are two instructions ahead
@@ -670,16 +673,18 @@ void FetchDecodeStage::process( ) {
             
             // ??? should we just get the TLB priv level and pass it onto the EX stage ?
             
-            if ( core -> stReg.get( ) & ST_CODE_TRANSLATION_ENABLE ) {
+            if ( getBit( instrPsw0, ST_CODE_TRANSLATION_ENABLE )) {
                
                 if ( tlbEntryPtr -> tPageType( ) == 3 ) {
                     
-                    if ( tlbEntryPtr -> tPrivL1( )) core -> stReg.set( core -> stReg.get( ) | ST_EXECUTION_LEVEL );
-                    else core -> stReg.set( core -> stReg.get( ) & ( ~ ST_EXECUTION_LEVEL ));
+                    
+                    
+                    psPstate0.setBit( tlbEntryPtr -> tPrivL1( ), ST_EXECUTION_LEVEL );
                 }
             }
-            else core -> stReg.set( core -> stReg.get( ) | ST_EXECUTION_LEVEL );
-                
+            
+            psPstate0.setBit( 1, ST_EXECUTION_LEVEL );
+            
         } break;
             
         case OP_CBR: {
@@ -729,7 +734,7 @@ void FetchDecodeStage::process( ) {
                     
                 default: {
                     
-                    setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ));
+                    setupTrapData( ILLEGAL_INSTR_TRAP, instrPsw0, instrPsw1, instr );
                     return;
                 }
             }
@@ -749,7 +754,7 @@ void FetchDecodeStage::process( ) {
             
         default: {
             
-            setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+            setupTrapData( ILLEGAL_INSTR_TRAP, instrPsw0, instrPsw1, instr );
             return;
         }
     }
@@ -777,8 +782,8 @@ void FetchDecodeStage::process( ) {
     // Pass the data to the MA stage pipeline.
     //
     //--------------------------------------------------------------------------------------------------------
-    core -> maStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
-    core -> maStage -> psPstate1.set( instrOfs );
+    core -> maStage -> psPstate0.set( instrPsw0 );
+    core -> maStage -> psPstate1.set( instrPsw1 );
     core -> maStage -> psInstr.set( instr );
     core -> maStage -> psValA.set( valA );
     core -> maStage -> psValB.set( valB );
@@ -803,14 +808,14 @@ void FetchDecodeStage::process( ) {
         
         if ( getBit( instr, 23 )) {
             
-            psPstate1.set( add32( instrOfs, immGenLowSign( instr, 31, 22 )));
+            psPstate1.set( add32( instrPsw1, immGenLowSign( instr, 31, 22 )));
             core -> maStage -> psValX.set( 1 );
         }
         else {
             
-            psPstate1.set( instrOfs + 4 );
+            psPstate1.set( instrPsw1 + 4 );
             core -> maStage -> psValX.set( immGenLowSign( instr, 31, 22 ));
         }
     }
-    else psPstate1.set( instrOfs + 4 );
+    else psPstate1.set( instrPsw1 + 4 );
 }

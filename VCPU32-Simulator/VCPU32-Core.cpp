@@ -61,9 +61,6 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
 CpuCore::CpuCore( CpuCoreDesc *cfg ) {
     
     memcpy( &cpuDesc, cfg, sizeof( CpuCoreDesc ));
-  
-    stReg.init( 0, false );  // this is PSW0 and PSW1 ?
-    
     
     for ( uint8_t i = 0; i < 8; i++  )  gReg[ i ].init( 0, false );
     for ( uint8_t i = 0; i < 3; i++  )  sReg[ i ].init( 0, false );
@@ -131,7 +128,6 @@ void  CpuCore::clearStats( ) {
 //------------------------------------------------------------------------------------------------------------
 void CpuCore::reset( ) {
     
-    stReg.reset( );
     for ( uint8_t i = 0; i < 8; i++  )  gReg[ i ].reset( );
     for ( uint8_t i = 0; i < 8; i++  )  sReg[ i ].reset( );
     for ( uint8_t i = 0; i < 32; i++  ) cReg[ i ].reset( );
@@ -199,7 +195,6 @@ void CpuCore::clockStep( uint32_t numOfSteps ) {
         if ( pdcMem != nullptr )    pdcMem      -> process( );
         if ( ioMem != nullptr )     ioMem       -> process( );
         
-        stReg.tick( );
         for ( uint8_t i = 0; i < 8; i++  ) gReg[ i ].tick( );
         for ( uint8_t i = 0; i < 8; i++  ) sReg[ i ].tick( );
         for ( uint8_t i = 0; i < 32; i++ ) cReg[ i ].tick( );
@@ -368,7 +363,6 @@ void CpuCore::handleTraps( ) {
             trapHandlerOfs = cReg[ CR_TRAP_VECTOR_ADR ].get( ) + cReg[ CR_TEMP_1 ].get( ) * TRAP_CODE_BLOCK_SIZE;
         }
         
-        stReg.set( 0 );
         fdStage -> psPstate0.set( 0 ); // ??? also set all status bits to zero ?
         fdStage -> psPstate0.set( trapHandlerOfs );
         fdStage -> setStalled( false );

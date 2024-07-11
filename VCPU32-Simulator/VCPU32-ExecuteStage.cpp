@@ -202,8 +202,8 @@ void ExecuteStage::setStalled( bool arg ) {
 //------------------------------------------------------------------------------------------------------------
 void ExecuteStage::flushPipeLine( ) {
     
-    psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
-    psPstate1.set( instrOfs );
+    psPstate0.set( instrPsw0 );
+    psPstate1.set( instrPsw1 );
     psInstr.set( NOP_INSTR );
     psValA.set( 0 );
     psValB.set( 0 );
@@ -221,16 +221,14 @@ void ExecuteStage::flushPipeLine( ) {
 // return and the CPU24 core will analyze the trap and flush the pipeline.
 //------------------------------------------------------------------------------------------------------------
 void ExecuteStage::setupTrapData( uint32_t trapId,
-                                 uint32_t iaSeg,
-                                 uint32_t iaOfs,
-                                 uint32_t pStat,
+                                 uint32_t psw0,
+                                 uint32_t psw1,
                                  uint32_t p1,
                                  uint32_t p2,
                                  uint32_t p3 ) {
     
-    core -> cReg[ CR_TRAP_PSW_0 ].set( iaSeg );
-    core -> cReg[ CR_TRAP_PSW_1 ].set( iaOfs );
-    core -> cReg[ CR_TRAP_STAT ].set( pStat );
+    core -> cReg[ CR_TRAP_PSW_0 ].set( psw0 );
+    core -> cReg[ CR_TRAP_PSW_1 ].set( psw1 );
     core -> cReg[ CR_TRAP_PARM_1 ].set( p1 );
     core -> cReg[ CR_TRAP_PARM_2 ].set( p2 );
     core -> cReg[ CR_TRAP_PARM_3 ].set( p3 );
@@ -333,8 +331,8 @@ bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessMode
 //------------------------------------------------------------------------------------------------------------
 void ExecuteStage::process( ) {
     
-    instrSeg        = getBitField( psPstate0.get( ), 31, 16 );
-    instrOfs        = psPstate1.get( );
+    instrPsw0       = psPstate0.get( );
+    instrPsw1       = psPstate1.get( );
     instr           = psInstr.get( );
     valA            = psValA.get( );
     valB            = psValB.get( );
@@ -355,7 +353,7 @@ void ExecuteStage::process( ) {
         case OP_ADD: {
             
             valR = valA + valB;
-            if (( getBit( instr, 10 )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
+            if (( getBit( instr, 10 )) && ( getBit( psPstate0.get( ), ST_CARRY ))) valR ++;
             
             valCarry = ( UINT32_MAX - valA > valB );
             
@@ -363,7 +361,7 @@ void ExecuteStage::process( ) {
                 
                 if (( valCarry ) && ( getBit( instr, 12 ))) {
                     
-                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                    setupTrapData( OVERFLOW_TRAP, instrPsw0, instrPsw1, instr );
                     return;
                 }
                 
@@ -373,7 +371,7 @@ void ExecuteStage::process( ) {
                     
                     if (( valR ^ valA ) & ( valR ^ valB ) & 0x80000000 ) {
                         
-                        setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
+                        setupTrapData( OVERFLOW_TRAP, instrPsw0, instrPsw1, instr );
                         return;
                     }
                 }
@@ -384,7 +382,7 @@ void ExecuteStage::process( ) {
         case OP_SUB: {
             
             valR = valA + ( ~ valB  ) + 1;
-            if (( getBit( instr, 10 )) && ( core -> stReg.get( ) & ST_CARRY )) valR ++;
+            if (( getBit( instr, 10 )) && ( getBit( psPstate0.get( ), ST_CARRY ))) valR ++;
             
             valCarry = ( valB > valA );
             
@@ -392,7 +390,7 @@ void ExecuteStage::process( ) {
                 
                 if (( valCarry ) && ( getBit( instr, 12 ))) {
                     
-                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+                    setupTrapData( OVERFLOW_TRAP, instrPsw0, instrPsw1, instr );
                     return;
                 }
                 
@@ -402,7 +400,7 @@ void ExecuteStage::process( ) {
                     
                     if (( valR ^ valA ) & ( valR ^ valB ) & 0x80000000 ) {
                         
-                        setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
+                        setupTrapData( OVERFLOW_TRAP, instrPsw0, instrPsw1, instr );
                         return;
                     }
                 }
@@ -493,14 +491,14 @@ void ExecuteStage::process( ) {
                 
                 if (( shAmt == 1 ) & (( valA & 0x80000000 ) != ( valA & 0x40000000 ))) {
                     
-                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
+                    setupTrapData( OVERFLOW_TRAP, instrPsw0, instrPsw1, instr );
                     return;
                 }
                 
                 else if (( shAmt == 2 ) & ((( valA & 0x80000000 ) != ( valA & 0x40000000 )) ||
                                            (( valA & 0x80000000 ) != ( valA & 0x20000000 )))) {
                     
-                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
+                    setupTrapData( OVERFLOW_TRAP, instrPsw0, instrPsw1, instr );
                     return;
                 }
                 
@@ -508,7 +506,7 @@ void ExecuteStage::process( ) {
                                            (( valA & 0x80000000 ) != ( valA & 0x20000000 )) ||
                                            (( valA & 0x80000000 ) != ( valA & 0x10000000 )))) {
                     
-                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
+                    setupTrapData( OVERFLOW_TRAP, instrPsw0, instrPsw1, instr );
                     return;
                 }
             }
@@ -519,7 +517,7 @@ void ExecuteStage::process( ) {
                 
                 if (( valR ^ valA ) & ( valR ^ valB ) & 0x80000000 ) {
                     
-                    setupTrapData( OVERFLOW_TRAP, instrSeg, instrOfs, instr );
+                    setupTrapData( OVERFLOW_TRAP, instrPsw0, instrPsw1, instr );
                     return;
                 }
             }
@@ -544,7 +542,7 @@ void ExecuteStage::process( ) {
             
         case OP_B: {
             
-            valR = instrOfs + 4;
+            valR = instrPsw1 + 4;
             
         } break;
             
@@ -559,8 +557,8 @@ void ExecuteStage::process( ) {
             
         case OP_BE: {
             
-            core -> sReg[ 0 ].set( instrSeg );
-            valR = instrOfs + 4;
+            core -> sReg[ 0 ].set( getBitField( instrPsw0, 31, 16 ));
+            valR = instrPsw1 + 4;
             
         } break;
             
@@ -568,7 +566,7 @@ void ExecuteStage::process( ) {
             
             if (( compareCond( instr, valA, valB )) != ( branchTaken )) {
                 
-                core -> fdStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
+                core -> fdStage -> psPstate0.set( instrPsw0 );
                 core -> fdStage -> psPstate1.set( valX );
                 flushPipeLine( );
             }
@@ -579,7 +577,7 @@ void ExecuteStage::process( ) {
             
             if (( compareCondU( instr, valA, valB )) != ( branchTaken )) {
                 
-                core -> fdStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
+                core -> fdStage -> psPstate0.set( instrPsw0 );
                 core -> fdStage -> psPstate1.set( valX );
                 flushPipeLine( );
             }
@@ -599,8 +597,9 @@ void ExecuteStage::process( ) {
             
         case OP_MST: {
             
-            valR = core -> stReg.get( ) & 0x3F;
+            valR = getBitField( psPstate0.get( ), 15, 4 );
             
+            /*  ??? FIX .....
             switch ( getBitField( instr, 11, 2 )) {
                     
                 case 0: core -> stReg.set(( core -> stReg.get( ) & 0xFFFFFFC0 ) | ( valB & 0x3F ));
@@ -608,6 +607,7 @@ void ExecuteStage::process( ) {
                 case 2: core -> stReg.set( core -> stReg.get( ) & (( ~ valB ) & 0x3F )); break;
                 default: ;
             }
+             */
             
         } break;
             
@@ -629,7 +629,6 @@ void ExecuteStage::process( ) {
             
             core -> fdStage -> psPstate0.set( core -> cReg[ CR_TRAP_PSW_0 ].get( ));
             core -> fdStage -> psPstate1.set( core -> cReg[ CR_TRAP_PSW_1 ].get( ));
-            core -> stReg.set( core -> cReg[ CR_TRAP_STAT ].get( ));
             
         } break;
             
@@ -637,7 +636,7 @@ void ExecuteStage::process( ) {
             
             if (( valA != 0 ) || ( valB != 0 )) {
                 
-                setupTrapData( BREAK_TRAP, instrSeg, instrOfs, instr );
+                setupTrapData( BREAK_TRAP, instrPsw0, instrPsw1, instr );
                 return;
             }
             
@@ -645,13 +644,13 @@ void ExecuteStage::process( ) {
             
         default: {
             
-            setupTrapData( ILLEGAL_INSTR_TRAP, instrSeg, instrOfs, core -> stReg.get( ), instr );
+            setupTrapData( ILLEGAL_INSTR_TRAP, instrPsw0, instrPsw1, instr );
             return;
         }
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Comitt stage.
+    // Commit stage.
     //
     //--------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {
@@ -667,11 +666,7 @@ void ExecuteStage::process( ) {
             
             core -> gReg[ regIdForValR ].set( valR );
             
-            if (( opCode == OP_ADD ) || ( opCode == OP_SUB )) {
-                
-                if ( valCarry ) core -> stReg.set( core -> stReg.get( ) | ST_CARRY );
-                else  core -> stReg.set( core -> stReg.get( ) & ( ~ ST_CARRY ));
-            }
+            if (( opCode == OP_ADD ) || ( opCode == OP_SUB )) setBit( &instrPsw1, ST_CARRY );
         }
     }
     else if ( opCode == OP_MR ) {

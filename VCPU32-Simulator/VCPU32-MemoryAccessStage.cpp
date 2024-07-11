@@ -48,6 +48,11 @@ bool getBit( uint32_t arg, int pos ) {
     return( arg & ( 1U << ( 31 - ( pos % 32 ))));
 }
 
+void setBit( uint32_t *arg, int pos ) {
+   
+    *arg |= ( 1U << ( 31 - ( pos % 32 )));
+}
+
 uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     
     pos = pos % 32;
@@ -131,8 +136,8 @@ void MemoryAccessStage::stallPipeLine( ) {
     setStalled( true );
     core -> fdStage -> setStalled( true );
     
-    core -> exStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
-    core -> exStage -> psPstate1.set( instrOfs );
+    core -> exStage -> psPstate0.set( psPstate0.get( ));
+    core -> exStage -> psPstate1.set( psPstate1.get( ));
     core -> exStage -> psInstr.set( NOP_INSTR );
     core -> exStage -> psValA.set( 0 );
     core -> exStage -> psValB.set( 0 );
@@ -169,8 +174,8 @@ void MemoryAccessStage::setStalled( bool arg ) {
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::flushPipeLine( ) {
     
-    psPstate0.set( instrSeg );
-    psPstate1.set( instrOfs );
+    psPstate0.set( instrPsw0 );
+    psPstate1.set( instrPsw1 );
     psInstr.set( NOP_INSTR );
     psValA.set( 0 );
     psValB.set( 0 );
@@ -203,18 +208,14 @@ void MemoryAccessStage::flushPipeLine( ) {
 // encountering the trap simply flush the pipeline.
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::setupTrapData( uint32_t trapId,
-                                       uint32_t iaSeg,
-                                       uint32_t iaOfs,
-                                       uint32_t pStat,
+                                       uint32_t psw0,
+                                       uint32_t psw1,
                                        uint32_t p1,
                                        uint32_t p2,
                                        uint32_t p3 ) {
     
-    // ??? fix ...
-    
-    core -> cReg[ CR_TRAP_PSW_0 ].set( iaSeg );
-    core -> cReg[ CR_TRAP_PSW_1 ].set( iaOfs );
-    core -> cReg[ CR_TRAP_STAT ].set( pStat );
+    core -> cReg[ CR_TRAP_PSW_0 ].set( psw0 );
+    core -> cReg[ CR_TRAP_PSW_1 ].set( psw1 );
     core -> cReg[ CR_TRAP_PARM_1 ].set( p1 );
     core -> cReg[ CR_TRAP_PARM_2 ].set( p2 );
     core -> cReg[ CR_TRAP_PARM_3 ].set( p3 );
@@ -265,14 +266,14 @@ void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 //------------------------------------------------------------------------------------------------------------
 bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
     
-    return((( segId  == getBitField( core -> cReg[ CR_SEG_ID_0_1 ].get( ), 15, 16 )) ||
-            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_0_1 ].get( ), 31, 16 )) ||
-            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_2_3 ].get( ), 15, 16 )) ||
-            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_2_3 ].get( ), 31, 16 )) ||
-            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_4_5 ].get( ), 15, 16 )) ||
-            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_4_5 ].get( ), 31, 16 )) ||
-            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_6_7 ].get( ), 15, 16 )) ||
-            ( segId  == getBitField( core -> cReg[ CR_SEG_ID_6_7 ].get( ), 31, 16 ))));
+    return((( segId  == core -> cReg[ CR_SEG_ID_0_1 ].getBitField( 15, 16 )) ||
+            ( segId  == core -> cReg[ CR_SEG_ID_0_1 ].getBitField( 31, 16 )) ||
+            ( segId  == core -> cReg[ CR_SEG_ID_2_3 ].getBitField( 15, 16 )) ||
+            ( segId  == core -> cReg[ CR_SEG_ID_2_3 ].getBitField( 31, 16 )) ||
+            ( segId  == core -> cReg[ CR_SEG_ID_4_5 ].getBitField( 15, 16 )) ||
+            ( segId  == core -> cReg[ CR_SEG_ID_4_5 ].getBitField( 31, 16 )) ||
+            ( segId  == core -> cReg[ CR_SEG_ID_6_7 ].getBitField( 15, 16 )) ||
+            ( segId  == core -> cReg[ CR_SEG_ID_6_7 ].getBitField( 31, 16 ))));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -321,13 +322,9 @@ bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::process( ) {
     
-    // ??? use the bit fields
-    // ??? add the status register 
-    
-    instrSeg        = psPstate0.getBitField( 31, 16 );
-    instrOfs        = psPstate1.get( );
+    instrPsw0       = psPstate0.get( );
+    instrPsw1       = psPstate1.get( );
     instr           = psInstr.get( );
-    instrPrivLevel  = core -> stReg.get( ) & ST_EXECUTION_LEVEL;  
     regIdForValA    = psRegIdForValA.get( );
     regIdForValB    = psRegIdForValB.get( );
     regIdForValX    = psRegIdForValX.get( );
@@ -394,7 +391,7 @@ void MemoryAccessStage::process( ) {
         case OP_BV:
         case OP_GATE: {
             
-            core -> fdStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
+            core -> fdStage -> psPstate0.set( instrPsw0 );
             core -> fdStage -> psPstate1.set( add32( valB, valX ));
             
             regIdForValX    = MAX_GREGS;
@@ -407,8 +404,9 @@ void MemoryAccessStage::process( ) {
             
         case OP_BE: {
            
-            core -> fdStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) |
-                                             core -> sReg[ getBitField( instr, 27, 4 ) ].get( ));
+            core -> fdStage -> psPstate0.setBitField( getBitField( instrPsw0, 15, 16 ), 15, 16 );
+            core -> fdStage -> psPstate0.setBitField(
+                    core -> sReg[ getBitField( instr, 27, 4 ) ].getBitField( 31, 16 ), 31, 16  );
             core -> fdStage -> psPstate1.set( add32( valB, valX ));
             
             regIdForValX    = MAX_GREGS;
@@ -428,7 +426,7 @@ void MemoryAccessStage::process( ) {
         case OP_CBR: {
             
             regIdForValX    = MAX_GREGS;
-            valX            = add32( instrOfs, valX );
+            valX            = add32( instrPsw1, valX );
             
         } break;
             
@@ -490,7 +488,7 @@ void MemoryAccessStage::process( ) {
             if ( tlbEntryPtr == nullptr ) {
                 
                 setupTrapData(( getBit( instr, 11 ) ? ITLB_NON_ACCESS_TRAP : DTLB_NON_ACCESS_TRAP ),
-                              seg, ofs, core -> stReg.get( ));
+                              seg, ofs, psPstate0.get( ));
                 flushPipeLine( );
                 return;
             }
@@ -513,12 +511,12 @@ void MemoryAccessStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ opCode ].flags & ( READ_INSTR | WRITE_INSTR )) {
         
-        if ( core -> stReg.get( ) & ST_DATA_TRANSLATION_ENABLE ) {
+        if ( psPstate0.get( ) & ST_DATA_TRANSLATION_ENABLE ) {
        
             TlbEntry   *tlbEntryPtr = core -> dTlb -> lookupTlbEntry( valS, valX );
             if ( tlbEntryPtr == nullptr ) {
                 
-                setupTrapData( DTLB_MISS_TRAP, valS, valX, core -> stReg.get( ));
+                setupTrapData( DTLB_MISS_TRAP, valS, valX, psPstate0.get( ));
                 stallPipeLine( );
                 return;
             }
@@ -528,14 +526,14 @@ void MemoryAccessStage::process( ) {
                 if (( tlbEntryPtr -> tPageType( ) != ACC_READ_WRITE ) &&
                     ( tlbEntryPtr -> tPageType( ) != ACC_READ_ONLY )) {
                     
-                    setupTrapData( DTLB_ACC_RIGHTS_TRAP, valS, valX, core -> stReg.get( ));
+                    setupTrapData( DTLB_ACC_RIGHTS_TRAP, valS, valX, psPstate0.get( ));
                     stallPipeLine( );
                     return;
                 }
                 
                 if ( instrPrivLevel > tlbEntryPtr -> tPrivL1( )) {
                     
-                    setupTrapData( DATA_MEM_PROTECT_TRAP, valS, valX, core -> stReg.get( ));
+                    setupTrapData( DATA_MEM_PROTECT_TRAP, valS, valX, psPstate0.get( ));
                     stallPipeLine( );
                     return;
                 }
@@ -556,17 +554,17 @@ void MemoryAccessStage::process( ) {
                 
                 if ( instrPrivLevel > tlbEntryPtr -> tPrivL2( )) {
                     
-                    setupTrapData( DATA_MEM_PROTECT_TRAP, valS, valX, core -> stReg.get( ));
+                    setupTrapData( DATA_MEM_PROTECT_TRAP, valS, valX, psPstate0.get( ));
                     stallPipeLine( );
                     return;
                 }
             }
             
-            if ( core -> stReg.get( ) & ST_PROTECT_ID_CHECK_ENABLE ) {
+            if ( psPstate0.get( ) & ST_PROTECT_ID_CHECK_ENABLE ) {
                 
                 if ( ! checkProtectId( tlbEntryPtr -> tSegId( ))) {
                     
-                    setupTrapData( DTLB_PROTECT_ID_TRAP, valS, valX, core -> stReg.get( ));
+                    setupTrapData( DTLB_PROTECT_ID_TRAP, valS, valX, psPstate0.get( ));
                     stallPipeLine( );
                     return;
                 }
@@ -576,9 +574,9 @@ void MemoryAccessStage::process( ) {
         }
         else {
             
-             if ( core -> stReg.get( ) & ST_EXECUTION_LEVEL ) {
+             if ( psPstate0.get( ) & ST_EXECUTION_LEVEL ) {
                  
-                 setupTrapData( DATA_MEM_PROTECT_TRAP, instrSeg, instrOfs, core -> stReg.get( ));
+                 setupTrapData( DATA_MEM_PROTECT_TRAP, instrPsw0, instrPsw1, instr );
                  stallPipeLine( );
                  return;
              }
@@ -629,8 +627,8 @@ void MemoryAccessStage::process( ) {
     //
     //--------------------------------------------------------------------------------------------------------
     core -> exStage -> psInstr.set( instr );
-    core -> exStage -> psPstate1.set( instrOfs );
-    core -> exStage -> psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
+    core -> exStage -> psPstate0.set( instrPsw0 );
+    core -> exStage -> psPstate1.set( instrPsw1 );
     core -> exStage -> psValA.set( valA );
     core -> exStage -> psValB.set( valB );
     core -> exStage -> psValX.set( valX );

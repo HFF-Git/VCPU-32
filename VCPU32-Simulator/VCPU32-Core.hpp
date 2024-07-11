@@ -599,9 +599,8 @@ public:
     void            stallPipeLine( );
     
     void            setupTrapData( uint32_t trapId,
-                                  uint32_t iaSeg,
-                                  uint32_t iaOfs,
-                                  uint32_t pStat,
+                                  uint32_t psw0,
+                                  uint32_t psw1,
                                   uint32_t p1 = 0,
                                   uint32_t p2 = 0,
                                   uint32_t p3 = 0 );
@@ -633,10 +632,9 @@ private:
     struct CpuCore  *core   = nullptr;
     bool            stalled = false;
     
-    uint32_t        instrSeg;
-    uint32_t        instrOfs;
+    uint32_t        instrPsw0;
+    uint32_t        instrPsw1;
     uint32_t        instr;
-    uint32_t        instrPrivLevel;
     uint32_t        valA;
     uint32_t        valB;
     uint32_t        valX;
@@ -669,14 +667,13 @@ public:
     void            process( );
     void            stallPipeLine( );
     void            flushPipeLine( );
-   
+    
     void            setupTrapData( uint32_t trapId,
-                                       uint32_t iaSeg,
-                                       uint32_t iaOfs,
-                                       uint32_t pStat,
-                                       uint32_t p1 = 0,
-                                       uint32_t p2 = 0,
-                                       uint32_t p3 = 0 );
+                                  uint32_t psw0,
+                                  uint32_t psw1,
+                                  uint32_t p1 = 0,
+                                  uint32_t p2 = 0,
+                                  uint32_t p3 = 0 );
     
     bool            isStalled( );
     void            setStalled( bool arg );
@@ -708,8 +705,8 @@ private:
     struct CpuCore  *core       = nullptr;
     bool            stalled     = false;
     
-    uint32_t        instrSeg;
-    uint32_t        instrOfs;
+    uint32_t        instrPsw0;
+    uint32_t        instrPsw1;
     uint32_t        instr;
     uint32_t        valA;
     uint32_t        valB;
@@ -742,12 +739,11 @@ public:
     void            setPipeLineReg( uint32_t pReg, uint32_t val );
     
     void            setupTrapData( uint32_t trapId,
-                                       uint32_t iaSeg,
-                                       uint32_t iaOfs,
-                                       uint32_t pStat,
-                                       uint32_t p1 = 0,
-                                       uint32_t p2 = 0,
-                                       uint32_t p3 = 0 );
+                                  uint32_t psw0,
+                                  uint32_t psw1,
+                                  uint32_t p1 = 0,
+                                  uint32_t p2 = 0,
+                                  uint32_t p3 = 0 );
     
     CpuReg          psPstate0;
     CpuReg          psPstate1;
@@ -769,8 +765,8 @@ private:
     CpuCore         *core       = nullptr;
     bool            stalled     = false;
     
-    uint32_t        instrSeg;
-    uint32_t        instrOfs;
+    uint32_t        instrPsw0;
+    uint32_t        instrPsw1;
     uint32_t        instr;
     uint32_t        valA;
     uint32_t        valB;
@@ -828,7 +824,7 @@ private:
     //--------------------------------------------------------------------------------------------------------
     CpuCoreDesc     cpuDesc;
     
-    CpuReg          stReg; // phase out  ... it becomes part of pState0 in fetchDecode Stage...
+    // CpuReg          stReg; // phase out  ... it becomes part of pState0 in fetchDecode Stage...
    
     CpuReg          gReg[ MAX_GREGS ];
     CpuReg          sReg[ MAX_SREGS ];
