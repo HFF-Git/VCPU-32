@@ -543,8 +543,6 @@ void FetchDecodeStage::process( ) {
             
         } break;
             
-            
-            
         case OP_LD:     case OP_ST:     case OP_LDR:   case OP_STC:
         case OP_LDO:    case OP_PRB:    case OP_LDPA: {
             

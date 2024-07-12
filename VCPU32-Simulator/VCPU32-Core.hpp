@@ -823,14 +823,11 @@ private:
     //
     //--------------------------------------------------------------------------------------------------------
     CpuCoreDesc     cpuDesc;
-    
-    // CpuReg          stReg; // phase out  ... it becomes part of pState0 in fetchDecode Stage...
    
     CpuReg          gReg[ MAX_GREGS ];
     CpuReg          sReg[ MAX_SREGS ];
     CpuReg          cReg[ MAX_CREGS ];
   
-    
     //--------------------------------------------------------------------------------------------------------
     // Utility routines.
     //

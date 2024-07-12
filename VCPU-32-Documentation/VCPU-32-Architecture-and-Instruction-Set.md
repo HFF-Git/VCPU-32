@@ -54,6 +54,8 @@
          text-align: justify;
          height: auto;
          font-size: 14pt;
+         orphans:3;
+         widows:3; 
       }
       h1, h2, h3, h4, h5, h6 { 
          page-break-after:avoid; 
@@ -99,12 +101,12 @@ June, 2024
   - [Introduction](#introduction)
   - [Architecture Overview](#architecture-overview)
     - [A Register Memory Architecture.](#a-register-memory-architecture)
-    - [Memory and IO Address Model](#memory-and-io-address-model)
     - [Data Types](#data-types)
+    - [Memory and IO Address Model](#memory-and-io-address-model)
     - [General Register Model](#general-register-model)
     - [Processor State](#processor-state)
     - [Control Registers](#control-registers)
-    PSW.[seg]mented Memory ModelPSW.[seg]mented-memory-model)
+    - [Segmented Memory Model](#segmented-memory-model)
     - [Address Translation](#address-translation)
     - [Protection Model](#protection-model)
     - [Adress translation and caching](#adress-translation-and-caching)
@@ -316,7 +318,7 @@ The I/O address space dedicates a 1/16th of the space to an area that contains t
 VCPU-32 features a set of registers. They are grouped in **general registers**, **segment registers** and **control registers**. There are sixteen general registers, labeled GR0 to GR15, and eight segment registers, labeled SR0 to SR7. All general registers can do arithmetic and logical operations. The eight segment registers hold the segment part of the virtual address. The control registers, labelled CR0 to CR31, contain system level information such as protection registers and interrupt and trap data registers.
 
 ```
-   PSW.[seg]ment                      General                           Control
+          Segment                      General                           Control
        0           15          0                     31          0                     31
       :--------------:        :------------------------:       :------------------------:
       :     SR0      :        :        GR0             :       :        CR0             :
@@ -337,11 +339,11 @@ VCPU-32 features a set of registers. They are grouped in **general registers**, 
                                                                :                        :
                                                                :                        :
       :--------------:        :------------------------:       :                        :
-      :   PSW.[seg]     :        :          IA Ofs        :       :                        :
+      : PSW.[seg]    :        :       PSW.[ofs]        :       :                        :
       :--------------:        :------------------------:       :                        :
                                                                :                        :
       :--------------:                                         :------------------------:
-      :   Status     :                                         :        CR31            :
+      : PSW.[status] :                                         :        CR31            :
       :--------------:                                         :------------------------:
 ```
 
@@ -354,13 +356,13 @@ VCPU-32 features two registers to hold the processor state. The **instruction ad
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   :M :X :C :0 :CB: reserved           :0 :D :P :E : PSW.[seg]ment Id                                 :  PSW-0
+   :M :X :C :0 :CB: reserved           :0 :D :P :E : PSW.[seg]                                     :  PSW-0
    :-----------------------------------------------------------------------------------------------:
-   : IA offset                                                                               : 0   :  PSW-1
+   : PSW.[ofs]                                                                               : 0   :  PSW-1
    :-----------------------------------------------------------------------------------------------:
 ```
 
-Bits 12 .. 15 of the processor status represent the bit set that can be modified by the privileged MST instruction. Setting the other status bits requires the usage of the privileged RFI instruction.
+Bits 12 .. 15 of the processor status represent the bit that can be modified by the privileged MST instruction. Setting the other status bits requires the usage of the privileged RFI instruction.
 
 | Flag | Name | Purpose |
 |:---|:---|:---|
@@ -401,7 +403,7 @@ The VCPU-32 memory model features a segmented memory model**. The address space 
 ```
                        0                     15     0                        18              31
                       :------------------------:   :-------------------------------------------:
-                     PSW.[seg]ment Id             :   : page number            : page offset      :
+                      : Segment Id             :   : page number            : page offset      :
                       :------------------------:   :-------------------------------------------:
                                  |                                      |
                                  |                                      |
@@ -567,14 +569,14 @@ Locating a virtual page in the page table requires to first index into the page 
 ```cpp
   Hash function ( Example ):
 
-  const uiPSW.[seg]Shift         = 4;      // the number of bits to shift tPSW.[seg]ment part. This specifies how many
+  const uint segShift        = 4;      // the number of bits to shift the segment part. This specifies how many
                                         // consecutive pages will result in consecutive hash values.
   const uint pageOffsetBits  = 14;      // number of bits for page offset, page size of 16K
   const uint hashTableMask   = 0x3FF;   // a hash table size, memory size dependent, must be a power of two.
 
-  uint hash_index ( uint32PSW.[seg]ment, uint32_t offset ) {
+  uint hash_index ( uint16_t segment, uint32_t offset ) {
 
-     return(PSW.[seg]ment PSW.[seg]Shift ) ^ ( offset >> pageOffsetBits )) & hashTableMask );
+     return((( segment << segShift ) ^ ( offset >> pageOffsetBits )) & hashTableMask );
   }
 ```
 
@@ -625,13 +627,13 @@ The control register I-BASE-ADR holds the absolute address of the interrupt vect
 | 9 | **Instruction TLB miss** | IA of the current instruction | - | - | - |
 | 10 | **Non-access instruction TLB miss** | IA of the current instruction | - | - | - |
 | 11 | **Instruction memory protection trap** | IA of the current instruction | - | - | - |
-| 12 | **Data TLB miss** | IA of the current instruction | instr | data aPSW.[seg]Id | data adr ofs|
+| 12 | **Data TLB miss** | IA of the current instruction | instr | data adr segId | data adr ofs|
 | 13 | **Non-access data TLB miss** | IA of the current instruction | - | - | - |
-| 14 | **Data memory access rights trap** | IA of the current instruction | instr | data aPSW.[seg]Id | data adr ofs|
-| 15 | **Data memory protection trap** | IA of the current instruction | instr | data aPSW.[seg]Id | data adr ofs|
-| 16 | **Page reference trap** | IA of the current instruction | instr | data aPSW.[seg]Id | data adr ofs|
-| 17 | **Alignment trap** | IA of the current instruction | instr | data aPSW.[seg]Id | data adr ofs|
-| 18 | **Break instruction trap** | IA of the current instruction | instr | data aPSW.[seg]Id | data adr ofs|
+| 14 | **Data memory access rights trap** | IA of the current instruction | instr | data adr segId | data adr ofs|
+| 15 | **Data memory protection trap** | IA of the current instruction | instr | data adr segId | data adr ofs|
+| 16 | **Page reference trap** | IA of the current instruction | instr | data adr segId | data adr ofs|
+| 17 | **Alignment trap** | IA of the current instruction | instr | data data adr segId | data adr ofs|
+| 18 | **Break instruction trap** | IA of the current instruction | instr | data data adr segId | data adr ofs|
 | 19 .. 31 | reserved | | | | | |
 |||||||
 
@@ -751,7 +753,7 @@ The **DIAG** instruction is a control instructions to issue hardware specific im
 
 ## Instruction Set Reference
 
-The instructions described in this chapter contains the instruction word layout, a short description of the instruction and also a high level pseudo code of what the instruction does. Each instruction operation is described in a C-style pseudo code operation. The pseudo code uses a register notation describing by their class and index. For example, GR[5] labels general register 5, SR[2] represents tPSW.[seg]ment register number 2 and CR[1] the control register number 1. In addition, some control register also have dedicated names, such as for example the shift amount control register, labelled "shamt". A subfield of the instruction is selected by adding a "." and the field name. For example the carry bit in the PSW register is described as "PSW.[C]". The pseudo code routines are listed in the appendix.
+The instructions described in this chapter contains the instruction word layout, a short description of the instruction and also a high level pseudo code of what the instruction does. Each instruction operation is described in a C-style pseudo code operation. The pseudo code uses a register notation describing by their class and index. For example, GR[5] labels general register 5, SR[2] represents the segment register number 2 and CR[1] the control register number 1. In addition, some control register also have dedicated names, such as for example the shift amount control register, labelled "shamt". A subfield of the instruction is selected by adding a "." and the field name. For example the carry bit in the PSW register is described as "PSW.[C]". The pseudo code routines are listed in the appendix.
 
 Additional options for an instruction will be specified by a "." followed by a sequence of characters. Each character is one of the defined options for the instruction. As an example, the AND instruction can negate the result. The assembler notation would be "AND.N ...". The order of the individual characters does not matter. The defined options are listed as a list of characters.
 
@@ -799,12 +801,12 @@ The **ADD** instruction fetches the operand and adds it to the general register 
       case 2: 
       case 3: {
 
-PSW.[seg] <- operandPSW.[seg]( instr );
+         seg <- operandAdrSeg( instr );
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
          tmpA <- GR[r];
-         tmpB <- zeroExtend( memLoaPSW.[seg], ofs, len ), len ); 
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
    }
@@ -872,12 +874,12 @@ The **ADC** instruction fetches the operand and adds it along with the carry bit
       case 2: 
       case 3: {
 
-PSW.[seg] <- operandPSW.[seg]( instr );
+         seg <- operandAdrSeg( instr );
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
          tmpA <- GR[r];
-         tmpB <- zeroExtend( memLoaPSW.[seg], ofs, len ), len ); 
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
    }
@@ -992,12 +994,12 @@ The instruction fetches the data specified by the operand and performs a bitwise
       case 2: 
       case 3: {
 
-PSW.[seg] <- operandPSW.[seg]( instr );
+         seg <- operandAdrSeg( instr );
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
          tmpA <- GR[r];
-         tmpB <- zeroExtend( memLoaPSW.[seg], ofs, len ), len ); 
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
    }
@@ -1100,7 +1102,7 @@ Since the BE instruction is a segment base relative branch, a branch to page wit
    SR[0] <- PSW.[seg];
    GR[r] <- PSW.[ofs] + 4;
 
-   PSW.[seg] <- GR[a];
+   PSW.[seg] <- GR[a].[16..31];
    PSW.[ofs] <- GR[b] + lowSignExt(( ofs << 2 ), 16 );
 ```
 
@@ -1407,12 +1409,12 @@ The compare condition are encoded as follows.
       case 2: 
       case 3: {
 
-PSW.[seg] <- operandPSW.[seg]( instr );
+         seg <- operandAdrSeg( instr );
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
          tmpA <- GR[r];
-         tmpB <- zeroExtend( memLoaPSW.[seg], ofs, len ), len ); 
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
    }
@@ -2146,7 +2148,7 @@ Loads the operand into the target register from the address and marks that addre
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDR     ( 0x34 ): r         : 0  PSW.[seg] : 2   : ofs                               : b         :
+   : LDR     ( 0x34 ): r         : 0   : seg : 2   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2400,12 +2402,12 @@ The instruction fetches the data specified by the operand and performs a bitwise
       case 2: 
       case 3: {
 
-         seg <- operandPSW.[seg]( instr );
+         seg <- operandAdrSeg( instr );
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
          tmpA <- GR[r];
-         tmpB <- zeroExtend( memLoaPSW.[seg], ofs, len ), len ); 
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
    }
@@ -2578,7 +2580,7 @@ Removes a translation entry from the TLB.
 
 #### Description
 
-The PTLB instruction removes a translation from the instruction or data TLB by marking the entry invalid. ThPSW.[seg]" field selects tPSW.[seg]ment register for forming the virtual address. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. 
+The PTLB instruction removes a translation from the instruction or data TLB by marking the entry invalid. The "seg" field selects the segment register for forming the virtual address. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. 
 
 The "T" bit indicates whether the instruction or the data TLB is addressed. A value of zero references the instruction TLB, a value of one refers to the data TLB. 
 
@@ -2638,7 +2640,7 @@ Restore the processor state and restart execution.
 
 #### Description
 
-The RFI instruction restores the instruction addrePSW.[seg]ment, instruction address offset and the processor status register from the control registers I-PSW-0 and I-PSW-1.
+The RFI instruction restores the instruction address segment, instruction address offset and the processor status register from the control registers I-PSW-0 and I-PSW-1.
 
 #### Operation
 
@@ -2699,12 +2701,12 @@ The instruction fetches the operand and subtracts it along with the carry bit fr
       case 2: 
       case 3: {
 
-PSW.[seg] <- operandPSW.[seg]( instr );
+         seg <- operandAdrSeg( instr );
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
          tmpA <- GR[r];
-         tmpB <- zeroExtend( memLoaPSW.[seg], ofs, len ), len ); 
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
    }
@@ -2796,7 +2798,7 @@ Stores a general register value into memory using a logical address.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : STw     ( 0x31 ): r         :X :MPSW.[seg] : dw  : ofs                               : b         :
+   : STw     ( 0x31 ): r         :X :M : seg : dw  : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2917,7 +2919,7 @@ Conditionally store a value to memory.
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : STC     ( 0x35 ): r         : 0  PSW.[seg] : 2   : ofs                               : b         :
+   : STC     ( 0x35 ): r         : 0   : seg : 2   : ofs                               : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2994,7 +2996,7 @@ The instruction fetches the operand and subtracts it from the general register "
       case 2: 
       case 3: {
 
-PSW.[seg] <- operandPSW.[seg]( instr );
+         seg <- operandAdrSeg( instr );
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
@@ -3028,7 +3030,7 @@ PSW.[seg] <- operandPSW.[seg]( instr );
 None.
 
 
-<!--------------------------------------------------------------------------------------------------------->
+<!------------------------------------------------------------------------------------------------------->
 
 <div style="page-break-before: always;"></div>
 
@@ -3067,12 +3069,12 @@ The instruction fetches the data specified by the operand and performs a bitwise
       case 2: 
       case 3: {
 
-         seg <- operandPSW.[seg]( instr );
+         seg <- operandAdrSeg( instr );
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
          tmpA <- GR[r];
-         tmpB <- zeroExtend( memLoaPSW.[seg], ofs, len ), len ); 
+         tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
    }
@@ -3447,9 +3449,9 @@ All stack frame locations are addressed relative to the current stack pointer. S
 To the programmer general registers and segment registers are the primary registers to work with. Although the registers have with few exceptions no special hardware meaning, the runtime convention assigns to some of the registers a dedicated purpose. The registers are further divided into caller save and callee save registers. A register that needs to be preserved across a procedure call is either saved by the caller or the callee.
 
 ```
-            General registers                        PSW.[seg]ment registers
+            General registers                            Segment registers
          :-----------------------------:                :---------------------------------:
-      0  :  Zero                       :             0  : RetuPSW.[seg]ment Link             :
+      0  :  Zero                       :             0  : Return segment Link             :
          :-----------------------------:                :---------------------------------:
       1  :  Scratch                    :             1  : Caller save, general purpose    :
          :-----------------------------:                :---------------------------------:
@@ -3459,11 +3461,11 @@ To the programmer general registers and segment registers are the primary regist
          :-----------------------------:                :---------------------------------:
       4  :  Callee Save                :             4  : Caller Save, general purpose    :
          :-----------------------------:                :---------------------------------:
-      5  :  Callee Save                :             5  : TaPSW.[seg]ment ( stack )          :
+      5  :  Callee Save                :             5  : Task segment ( stack )          :
          :-----------------------------:                :---------------------------------:
-      6  :  Callee Save                :             6  : JPSW.[seg]ment                     :
+      6  :  Callee Save                :             6  : Job segment                     :
          :-----------------------------:                :---------------------------------:
-      7  :  Callee Save                :             7  : SystPSW.[seg]ment                  :
+      7  :  Callee Save                :             7  : System segment                  :
          :-----------------------------:                :---------------------------------:
       8  :  Caller Save, ARG3, RET3    :                
          :-----------------------------:           
@@ -3697,9 +3699,8 @@ The following code snippet shows an intermodule call within the same compilation
       func1:   LDI  ARG0, 500
                LDI  ARG1, 300
                LDIL R1,   L%func2
-               BE   RL,   R%func2 ( SR4, R1 )   ---------->   func2: ; load DP
-               into R11 ... to do ... 
-
+               BE   RL,   R%func2 ( SR4, R1 )   ---------->   func2:    ...    ;load DP into R11 ... to do ... 
+               
                                                                         LDW R3, 0( R11 )
                                                                         ADD R2, ACRG0, ARG1
                                                                         ADD RET0, R2, R3

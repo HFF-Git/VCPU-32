@@ -677,6 +677,7 @@ void ExecuteStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     // Bypass logic.
     //
+    // ??? what about the status bits ?
     //--------------------------------------------------------------------------------------------------------
     FetchDecodeStage *fdStage   = core -> fdStage;
     MemoryAccessStage *maStage  = core -> maStage;
