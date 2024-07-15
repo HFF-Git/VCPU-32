@@ -1496,6 +1496,8 @@ The conditional move instruction will test register "b" for the condition. If th
       case 6: res <- ( GR[instr.[b]] >U  0 ); break;
       case 7: res <- ( GR[instr.[b]] >=U 0 ); break;
 
+      ... add more cases ...
+
       default: illegalInstrTrap( );
    }
 
