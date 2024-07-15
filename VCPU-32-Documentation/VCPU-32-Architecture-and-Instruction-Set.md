@@ -83,8 +83,8 @@
 # VCPU-32 System Architecture and Instruction Set Reference
 
 Helmut Fieres
-Version B.00.05
-June, 2024
+Version B.00.06
+July, 2024
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
@@ -170,6 +170,7 @@ June, 2024
     - [Immediate Operations](#immediate-operations)
     - [Register Operations](#register-operations)
     - [Shift and Rotate Operations](#shift-and-rotate-operations)
+    - [System Type Instructions](#system-type-instructions)
   - [TLB and Cache Models](#tlb-and-cache-models)
     - [Instruction and Data Caches](#instruction-and-data-caches)
     - [Instructions to manage caches](#instructions-to-manage-caches)
@@ -495,7 +496,7 @@ The previous section depicted the virtual address translation process. While the
 
 ### Translation Lookaside Buffer
 
-For performance reasons, the virtual address translation result is stored in a translation look-aside buffer. The TLB is essentially a copy of the page table entry information that represents the virtual page currently loaded at the physical address. Depending on the hardware implementation, there can be a combined TLB or a separate instruction TLB and data TLB. A TLB is essentially a cache for address translations. The virtual page number, VPN, is stored along with attributes and the physical page number, PPN, in the TLB hardware. The architecture allows for a physical address range that is larger than the 4Gb main memory described before. For example, a virtual page can map to a physical page beyond the 4Gb range that is directly addressable with absolute addressing modes. However, physical pages beyond the 4Gb range can only be reached with address translation enabled. The current architecture allows for a 44-bit physical address space, which is a 16TB memory space.
+For performance reasons, the virtual address translation result is stored in a translation look-aside buffer. The TLB is essentially a copy of the page table entry information that represents the virtual page currently loaded at the physical address. Depending on the hardware implementation, there can be a combined TLB or a separate instruction TLB and data TLB. A TLB is essentially a cache for address translations. The virtual page number, VPN, is stored along with attributes and the physical page number, PPN, in the TLB hardware. The architecture allows for a physical address range that is larger than the 4Gb main memory described before. For example, a virtual page can map to a physical page beyond the 4Gb range that is however not directly addressable with absolute addressing modes. Physical pages beyond the 4Gb range can therefore only be reached with address translation enabled. The current architecture allows for a 34-bit physical address space, which is a 16GB memory space.
 
 ```
 TLB fields (conceptual example):
@@ -753,13 +754,13 @@ The **DIAG** instruction is a control instructions to issue hardware specific im
 
 ## Instruction Set Reference
 
-The instructions described in this chapter contains the instruction word layout, a short description of the instruction and also a high level pseudo code of what the instruction does. Each instruction operation is described in a C-style pseudo code operation. The pseudo code uses a register notation describing by their class and index. For example, GR[5] labels general register 5, SR[2] represents the segment register number 2 and CR[1] the control register number 1. In addition, some control register also have dedicated names, such as for example the shift amount control register, labelled "shamt". A subfield of the instruction is selected by adding a "." and the field name. For example the carry bit in the PSW register is described as "PSW.[C]". The pseudo code routines are listed in the appendix.
+The instructions described in this chapter contains the instruction word layout, a short description of the instruction and also a high level pseudo code of what the instruction does. Each instruction operation is described in a C-style pseudo code operation. The pseudo code uses a register notation describing by their class and index. For example, GR[5] labels general register 5, SR[2] represents the segment register number 2 and CR[1] the control register number 1. 
+
+In addition, some register also have dedicated names, such as for example the shift amount control register, labelled "shamt". A subfield of the instruction is selected by adding a "." and the field name in brackets. For example the carry bit in the PSW register is described as "PSW.[C]". The pseudo code routines used in the instruction descriptions are listed in the appendix.
 
 Additional options for an instruction will be specified by a "." followed by a sequence of characters. Each character is one of the defined options for the instruction. As an example, the AND instruction can negate the result. The assembler notation would be "AND.N ...". The order of the individual characters does not matter. The defined options are listed as a list of characters.
 
-Reserved fields in an instruction word should be filled with a zero. The instruction explicitly shows the numeric value of these fields. Any other value at that place will result in an illegal instruction trap.
-
-Throughout the remainder of this document numbers are shown in three numeric formats. A decimal number is a number starting with the digits 1 .. 9. An octal number starts with the number 0, and a hex number starts with the "0x" prefix. The instruct7ions are listed in alphabetical order.
+Reserved fields in an instruction word are future enhancements and should be filled with a zero. The instruction explicitly shows the numeric value of these fields. Any other value at that place will result in an undefined behavior.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -794,9 +795,9 @@ The **ADD** instruction fetches the operand and adds it to the general register 
 ```
    switch( opMode ) {
 
-      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 18 ); break;
+      case 0: tmpA <- GR[instr.[r]]; tmpB <- lowSignExtend( opArg, 18 ); break;
       
-      case 1: tmpA <- GR[a]; tmpB <- GR[b]; break;
+      case 1: tmpA <- GR[instr.[a]]; tmpB <- GR[instr.[b]]; break;
 
       case 2: 
       case 3: {
@@ -805,7 +806,7 @@ The **ADD** instruction fetches the operand and adds it to the general register 
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
-         tmpA <- GR[r];
+         tmpA <- GR[instr.[r]];
          tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
@@ -816,7 +817,7 @@ The **ADD** instruction fetches the operand and adds it to the general register 
    if ( instr.[O] && overflow ) overflowTrap( );
    else {
 
-      GR[r] <- res;
+      GR[instr.[r]] <- res;
       if ( ! instr.[L] ) PSW[C/B] <- carry/borrow Bits;
    }
 ```
@@ -867,9 +868,9 @@ The **ADC** instruction fetches the operand and adds it along with the carry bit
 ```
    switch( opMode ) {
 
-      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 18 ); break;
+      case 0: tmpA <- GR[instr.[r]]; tmpB <- lowSignExtend( opArg, 18 ); break;
       
-      case 1: tmpA <- GR[a]; tmpB <- GR[b]; break;
+      case 1: tmpA <- GR[instr.[a]]; tmpB <- GR[instr.[b]]; break;
 
       case 2: 
       case 3: {
@@ -878,18 +879,18 @@ The **ADC** instruction fetches the operand and adds it along with the carry bit
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
-         tmpA <- GR[r];
+         tmpA <- GR[instr.[r]];
          tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
    }
 
-   res <- tmpA + tmpB + instr.[C];
+   res <- tmpA + tmpB + PWS.[C/B];
 
    if ( instr.[O] && overflow ) overflowTrap( );
    else {
 
-      GR[r] <- res;
+      GR[instr.[r]] <- res;
       if ( ! instr.[L] ) PSW[C/B] <- carry/borrow Bits;
    }
 ```
@@ -933,12 +934,12 @@ Adds an immediate value left aligned into the target register.
 
 #### Description
 
-The add immediate left instruction loads a 22-bit immediate value padded with zeroes on the right left aligned to the general register "r" and place the result in general register zero. Any potential overflows are ignored.
+The add immediate left instruction loads a 22-bit immediate value padded with zeroes on the right left aligned to the general register "r" and place the result in general register one. Any potential overflows are ignored.
 
 #### Operation
 
 ```
-   GR[0] = GR[r] + ( val << 10 );
+   GR[0] = GR[instr.[r]] + ( instr.[val] << 10 );
 ```
 
 #### Exceptions
@@ -987,9 +988,9 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
    switch( opMode ) {
 
-      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 18 ); break;
+      case 0: tmpA <- GR[instr.[r]]; tmpB <- lowSignExtend( opArg, 18 ); break;
       
-      case 1: tmpA <- GR[a]; tmpB <- GR[b]; break;
+      case 1: tmpA <- GR[instr.[a]]; tmpB <- GR[instr.[b]]; break;
 
       case 2: 
       case 3: {
@@ -998,17 +999,17 @@ The instruction fetches the data specified by the operand and performs a bitwise
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
-         tmpA <- GR[r];
+         tmpA <- GR[instr.[r]];
          tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
    }
 
-   if (( instr.[C]) && ( ~  ( instr.[C]))) tmpB <- ~ tmpB;
+   if (( instr.[C]) && ( ~ ( instr.[C]))) tmpB <- ~ tmpB;
    res <- tmpA & tmpB;
 
    if ( instr.[N]) res <- ~ res;
-   GR[r] <- res;
+   GR[instr.[r]] <- res;
 ```
 
 #### Exceptions
@@ -1054,8 +1055,8 @@ The branch instruction performs a branch to an instruction address relative loca
 #### Operation
 
 ```
-   GR[r]     <- PSW.[ofs] + 4;
-   PSW.[ofs] <- PSW.[ofs] + lowSignExt(( ofs << 2 ), 24 );
+   GR[instr.[r]]  <- PSW.[ofs] + 4;
+   PSW.[ofs]      <- PSW.[ofs] + lowSignExt(( instr.[ofs] << 2 ), 24 );
 ```
 
 #### Exceptions
@@ -1099,11 +1100,11 @@ Since the BE instruction is a segment base relative branch, a branch to page wit
 #### Operation
 
 ```
-   SR[0] <- PSW.[seg];
-   GR[r] <- PSW.[ofs] + 4;
+   SR[0]          <- PSW.[seg];
+   GR[instr.[r]]  <- PSW.[ofs] + 4;
 
-   PSW.[seg] <- GR[a].[16..31];
-   PSW.[ofs] <- GR[b] + lowSignExt(( ofs << 2 ), 16 );
+   PSW.[seg] <- GR[instr.[a]].[16..31];
+   PSW.[ofs] <- GR[instr.[b]] + lowSignExt(( instr.[ofs] << 2 ), 16 );
 ```
 
 #### Exceptions
@@ -1146,8 +1147,8 @@ The branch register instruction performs an unconditional IA-relative branch. Th
 #### Operation
 
 ```
-   GR[r]     <- PSW.[ofs] + 4;
-   PSW.[ofs] <- PSW.[ofs] + ( GR[b] << 2 );
+   GR[instr.[r]]  <- PSW.[ofs] + 4;
+   PSW.[ofs]      <- PSW.[ofs] + ( GR[instr.[b]] << 2 );
 ```
 
 #### Exceptions
@@ -1189,7 +1190,7 @@ The BRK instruction raises a debug breakpoint trap and enters the debug trap han
 #### Operation
 
 ```
-   debugBreakpointTrap( info1, info2 );
+   debugBreakpointTrap( instr.[info1], instr.[info2] );
 ```
 
 #### Exceptions
@@ -1234,8 +1235,8 @@ Since the BV instruction is a segment base relative branch, a branch to page wit
 #### Operation
 
 ```
-   GR[r]     <- PSW.[ofs] + 4;
-   PSW.[ofs] <- GR[a];
+   GR[instr.[r]]   <- PSW.[ofs] + 4;
+   PSW.[ofs]       <- GR[instr.[b]];
 ```
 
 #### Exceptions
@@ -1245,7 +1246,7 @@ Since the BV instruction is a segment base relative branch, a branch to page wit
 
 #### Notes
 
-The **BV** instruction is typically used as a procedure return. The **B** instruction with a return link left in a general register, which can directly be used by this instruction to return to the location after the **B** instruction.
+The **BV** instruction is typically used as a procedure return. The **B** instruction can leave a return link in a general register, which can directly be used by this instruction to return to the location after the **B** instruction.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1280,10 +1281,10 @@ Since the BVE instruction is a segment base relative branch, a branch to page wi
 #### Operation
 
 ```
-   SR[0] <- PSW.[seg];
-   GR[r] <- PSW.[ofs] + 4;
+   SR[0]          <- PSW.[seg];
+   GR[instr.[r]]  <- PSW.[ofs] + 4;
 
-   PSW.[ofs] <- GR[b] + GR[a];
+   PSW.[ofs] <- GR[instr.[b]] + GR[instr.[a]];
    PSW.[seg] <- segSelect( PSW.[ofs] );
    
 ```
@@ -1339,13 +1340,13 @@ The condition field is encoded as follows:
 ```
    switch( cond ) {
 
-      case 0: res <- ( GR[a] ==  GR[b]);  break;
-      case 1: res <- ( GR[a] <   GR[b]);  break;
-      case 2: res <- ( GR[a] !=  GR[b]);  break;
-      case 3: res <- ( GR[a] <=  GR[b]);  break;
+      case 0: res <- ( GR[instr.[a]] ==  GR[instr.[b]]);  break;
+      case 1: res <- ( GR[instr.[a]] <   GR[instr.[b]]);  break;
+      case 2: res <- ( GR[instr.[a]] !=  GR[instr.[b]]);  break;
+      case 3: res <- ( GR[instr.[a]] <=  GR[instr.[b]]);  break;
    }
 
-   if ( res ) PSW.[ofs] <- PSW.[ofs] + lowSignExt(( ofs << 2 ), 18 );
+   if ( res ) PSW.[ofs] <- PSW.[ofs] + lowSignExt(( instr.[ofs] << 2 ), 18 );
    else       PSW.[ofs] <- PSW.[ofs] + 4;
 ```
 
@@ -1402,9 +1403,9 @@ The compare condition are encoded as follows.
 ```
    switch( opMode ) {
 
-      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 18 ); break;
+      case 0: tmpA <- GR[instr.[r]]; tmpB <- lowSignExtend( opArg, 18 ); break;
       
-      case 1: tmpA <- GR[a]; tmpB <- GR[b]; break;
+      case 1: tmpA <- GR[instr.[a]]; tmpB <- GR[instr.[b]]; break;
 
       case 2: 
       case 3: {
@@ -1413,7 +1414,7 @@ The compare condition are encoded as follows.
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
-         tmpA <- GR[r];
+         tmpA <- GR[instr.[r]];
          tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
@@ -1427,7 +1428,7 @@ The compare condition are encoded as follows.
       case 3: res <- tmpA <=  tmpB; break;
    }
 
-   GR[r] <- res;
+   GR[instr.[r]] <- res;
 ```
 
 #### Exceptions
@@ -1462,7 +1463,7 @@ Test a general register for a condition and conditionally move a register value 
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : CMR     ( 0x09 ): r         :cond : 0                                 : a         : b         :
+   : CMR     ( 0x09 ): r         :cond       : 0                           : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1473,22 +1474,32 @@ The conditional move instruction will test register "b" for the condition. If th
 #### Comparison condition codes
 
 ```
-   0 : EQ ( b == 0 )                               2 : NE  ( b != 0 )
-   1 : LT ( b < 0, Signed )                        3 : LE ( b <= 0, Signed )
+   0 : EQ ( b == 0 )                               2 : NE ( b != 0 )
+   1 : LT ( b < 0, Signed )                        3 : LE ( b <= 0, Signed ) 
+   4 : GT ( b > 0, Signed )                        5 : GE ( b >= 0, Signed )
+   6 : HI ( b > 0, Unsigned )                      7 : HE ( b >= 0, Unsigned )
+   
+   ... 8 .. 15 to be defined: w.g. ODE, EVEN, Left half zero, right hald zero, etc.
 ```
 
 #### Operation
 
 ```
-   switch( cond ) {
+   switch( instr.[cond] ) {
 
-      case 0: res <- ( GR[b] == 0 ); break;
-      case 1: res <- ( GR[b] <  0 ); break;
-      case 2: res <- ( GR[b] != 0 ); break;
-      case 3: res <- ( GR[b] <= 0 ); break;
+      case 0: res <- ( GR[instr.[b]] ==  0 ); break;
+      case 1: res <- ( GR[instr.[b]] <   0 ); break;
+      case 2: res <- ( GR[instr.[b]] !=  0 ); break;
+      case 3: res <- ( GR[instr.[b]] <=  0 ); break;
+      case 4: res <- ( GR[instr.[b]] >   0  ); break;
+      case 5: res <- ( GR[instr.[b]] >=  0 ); break;
+      case 6: res <- ( GR[instr.[b]] >U  0 ); break;
+      case 7: res <- ( GR[instr.[b]] >=U 0 ); break;
+
+      default: illegalInstrTrap( );
    }
 
-   if ( res ) GR[r] <- GR[a];
+   if ( res ) GR[instr.[r]] <- GR[instr.[a]];
 ```
 
 #### Exceptions
@@ -1510,9 +1521,7 @@ In combination with the CMP instruction, simple instruction sequences such as "i
    CMR    R1,R4,R1  ; test R1 and store R4 when condition is met
 ```
 
-The CMR instruction is a rather specialized instruction. It highly depends on a good peephole optimizer to detect such a situation. The instruction sequence might also be a candidate for a compare and move instruction.
-
-// ??? **note** what do we do about unsigned cases ? What about tests such as ODD or EVEN ? Since we have bits left, would other condition cases be useful ? 
+The CMR instruction is a rather specialized instruction. It highly depends on a good peephole optimizer to detect such a situation. The instruction sequence might also be a candidate for a compare and move instruction
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1545,15 +1554,15 @@ The instruction deposits the bit field of length "len" in general register "b" i
 #### Operation
 
 ```
-   if ( instr.[Z] ) GR[r] <- 0;
+   if ( instr.[Z] ) GR[instr.[r]] <- 0;
 
    if ( instr.[A] ) tmpPos <- SHAMT.[27..31];
    else             tmpPos <- instr.[pos];
 
    if ( instr.[I] ) tmpB <- instr.[28..31];
-   else             tmpB <- GR[b];
+   else             tmpB <- GR[instr.[b]];
 
-   deposit( GR[r], tmpB, tmpPos, instr.[len] );
+   deposit( GR[instr.[r]], tmpB, tmpPos, instr.[len] );
 ```
 
 #### Exceptions
@@ -1597,7 +1606,7 @@ The DIAG instruction sends a command to an implementation hardware specific comp
 ```
    if ( ! PSW.[P] ) privilegedOperationTrap( );
 
-   ... perform the requested operation
+   ... perform the requested operation using instr.[info], GR[instr.[a]] and  GR[instr.[b]] 
 ```
 
 #### Exceptions
@@ -1642,7 +1651,7 @@ The double shift right instruction concatenates the general registers specified 
    if ( instr.[A] )  tmpShAmt <- SHAMT.[27..31];
    else              tmpShAmt <- instr.[shamt];
 
-   GR[r] <- rshift( cat( GR[b], tmp ), shamt );
+   GR[instr.[r]] <- rshift( cat( GR[instr.[b]], tmp ), tmpShamt );
 ```
 
 #### Exceptions
@@ -1687,10 +1696,10 @@ The instruction performs a bit field extract specified by the position and lengt
    if ( instr.[A] ) tmpPos <- SHAMT.[27..31];
    else             tmpPos <- instr.[pos];
 
-   GR[r] <= extract( GR[b], tmpPos, len );
+   GR[instr.[r]] <= extract( GR[instr.[b]], tmpPos, instr.[len] );
 
-   if ( instr.[S] ) signExtend( GR[r], instr.[len] );
-   else             zeroExtend( GR[r], instr.[len] );
+   if ( instr.[S] ) signExtend( GR[instr.[r]], instr.[len] );
+   else             zeroExtend( GR[instr.[r]], instr.[len] );
 ```
 
 #### Exceptions
@@ -1732,18 +1741,18 @@ The GATE instruction computes the target address by shifting the low sign extend
 #### Operation
 
 ```
+   tmpOfs = PSW.[ofs] + lowSignExt(( instr.[ofs] << 2 ), 24 );
+   
    if ( PSW.[C] ) {
 
-      tmp = PSW.[ofs] + lowSignExt(( ofs << 2 ), 24 );
-
-      searchInstructionTlbEntry( PSW.[seg], PSW.[ofs], &entry );
+      searchInstructionTlbEntry( PSW.[seg], tmpOfs, &entry );
 
       if ( entry.[PageType] == 3 ) PSW.[P] <- entry.[PL1];
    
    } else ST.[P] <- 0;
 
-   PSW.[ofs] <- PSW.[ofs] + lowSignExt(( ofs << 2 ), 24 );
-   GR[r]  <- entry.[PL1];
+   PSW.[ofs]      <- tmpOfs;
+   GR[instr.[r]]  <- entry.[PL1];
 ```
 
 #### Exceptions
@@ -1789,7 +1798,9 @@ Inserts a translation into the instruction or data TLB.
 
 #### Description
 
-The ITLB instruction inserts a translation into the instruction or data TLB. The virtual address is encoded in "a" for the segment register and "b" for the offset. The "T" bit specifies whether the instruction or the data TLB is addressed. A value of zero references the instruction TLB, a value of one refers to the data TLB. The "r" register contains the TLB information data. The "A" bit selects among the two words needed to fill in the data for the TLB. A value of one will fill in a part of the physical page number. A value of zero will fill in the remaining address portion and the protection and access rights information. With the second instruction, i.e. A being zero, the entry is also marked valid.
+The ITLB instruction inserts a translation into the instruction or data TLB. The virtual address is encoded in "a" for the segment register and "b" for the offset. 
+
+The "T" bit specifies whether the instruction or the data TLB is addressed. A value of zero references the instruction TLB, a value of one refers to the data TLB. The "r" register contains the TLB information data. 
 
 #### Argument Word Layout
 
@@ -1805,17 +1816,23 @@ The ITLB instruction inserts a translation into the instruction or data TLB. The
 ```
    if ( ! PSW.[P] ) privilegedOperationTrap( );
 
-   if ( instr.[T] )
-      if ( ! searchDataTlbEntry( SR[a], GR[b], &entry )) allocateDataTlbEntry( SR[a], GR[b], &entry );
-   else
-      if ( ! searchInstructionTlbEntry( SR[a], GR[b], &entry )) allocateInstructionTlbEntry( SR[a], GR[b], &entry );
+   if ( instr.[T] ) { 
+      
+      if ( ! searchDataTlbEntry( SR[a], GR[instr.[b]], &entry )) 
+         allocateDataTlbEntry( SR[a], GR[instr.[b]], &entry );
+   }
+   else {
 
-   entry.[T]      <- GR[r].[T];
-   entry.[D]      <- GR[r].[D];
-   entry.[B]      <- GR[r].[B];
-   entry.[P]      <- GR[r].[P];
-   entry.AR       <- GR[r].AR;
-   entry.[PPN]    <- GR[r].[PPN];
+      if ( ! searchInstructionTlbEntry( SR[a], GR[instr.[b]], &entry )) 
+         allocateInstructionTlbEntry( SR[a], GR[instr.[b]], &entry );
+   }
+
+   entry.[T]      <- GR[instr.[r]].[T];
+   entry.[D]      <- GR[instr.[r]].[D];
+   entry.[B]      <- GR[instr.[r]].[B];
+   entry.[P]      <- GR[instr.[r]].[P];
+   entry.AR       <- GR[instr.[r]].AR;
+   entry.[PPN]    <- GR[instr.[r]].[PPN];
    entry.[V]      <- 1; 
 ```
 
@@ -1863,34 +1880,34 @@ The load instruction will load the operand into the general register "r". The of
 ```
    if ( instr.[10] ) {
 
-      if ( instr.[11] ) {
+      if ( instr.[M] ) {
 
-         if ( lowSignExtend( ofs, 12 ) < 0 ) tmpOfs = GR[b] + GR[a];
-         else                                tmpOfs = GR[b];
+         if ( GR[instr.[a]] < 0 ) tmpOfs = GR[instr.[b]] + GR[instr.[a]];
+         else                     tmpOfs = GR[instr.[b]];
       }
-      else tmpOfs = GR[b] + GR[a];
+      else tmpOfs = GR[instr.[b]] + GR[instr.[a]];
    }
    else {
 
-      if ( instr.[11] ) {
+      if ( instr.[M] ) {
 
-         if ( lowSignExtend( ofs, 12 ) < 0 ) tmpOfs = GR[b] + lowSignExtend( ofs, 12 );
-         else                                tmpOfs = GR[b];
+         if ( lowSignExtend( ofs, 12 ) < 0 ) tmpOfs = GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
+         else                                tmpOfs = GR[instr.[b]];
       }
-      else tmpOfs = GR[b] + lowSignExtend( ofs, 12 );
+      else tmpOfs = GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
    }
 
-   len = dataLen( instr.[12..13] );
+   len = dataLen( instr.[seg] );
 
-   if ( instr.[12..13] == 0 ) seg = segSelect( offset );
-   else                       seg = instr.[12..13];
+   if ( instr.[seg] == 0 ) seg = segSelect( tmpOfs );
+   else                    seg = instr.[seg];
    
-   GR[r] <- zeroExtend( memLoad( seg, tmpOfs, len ), len );
+   GR[instr.[r]] <- zeroExtend( memLoad( seg, tmpOfs, len ), len );
 
    if ( instr.[10] ) {
    
-      if ( instr.[10] ) GR[b] <- GR[b] + GR[a];
-      else              GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
+      if ( instr.[10] ) GR[instr.[b]] <- GR[instr.[b]] + GR[instr.[a]];
+      else              GR[instr.[b]] <- GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
    }
 ```
 
@@ -1952,26 +1969,26 @@ The load absolute instruction will load the content of the physical memory addre
 
       if ( instr.[M] ) {
 
-         if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + GR[a];
-         else                                offset = GR[b];
+         if ( GR[instr.[a]] ) offset = GR[instr.[b]] + GR[instr.[a]];
+         else                 offset = GR[instr.[b]];
       }
-      else offset = GR[b] + GR[a];
+      else offset = GR[instr.[b]] + GR[instr.[a]];
    }
    else {
 
       if ( instr.[M] ) {
 
-         if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
-         else                                offset = GR[b];
+         if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[instr.[b]] + lowSignExtend( ofs, 12 );
+         else                                offset = GR[instr.[b]];
       }
-      else offset = GR[b] + lowSignExtend( ofs, 12 );
+      else offset = GR[instr.[b]] + lowSignExtend( inatr.[ofs], 12 );
    }
 
   
-   GR[r] <- memLoad( 0, offset, 32 );
+   GR[instr.[r]] <- memLoad( 0, offset, 32 );
 
-   if ( instr.[10] ) GR[b] <- GR[b] + GR[a];
-   else              GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
+   if ( instr.[10] ) GR[instr.[b]] <- GR[instr.[b]] + GR[instr.[a]];
+   else              GR[instr.[b]] <- GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
 ```
 
 #### Exceptions
@@ -2014,7 +2031,7 @@ The load immediate left instruction loads a 22-bit immediate value left aligned 
 #### Operation
 
 ```
-   GR[r] = val << 10;
+   GR[instr.[r]] = val << 10;
 ```
 
 #### Exceptions
@@ -2063,7 +2080,7 @@ The LDO instruction loads an offset into general register "r". The offset is com
 #### Operation
 
 ```
-   GR[r] <- GR[b] + lowSignExt( ofs, 18 );
+   GR[instr.[r]] <- GR[instr.[b]] + lowSignExt( instr.[ofs], 18 );
 ```
 
 #### Exceptions
@@ -2111,12 +2128,12 @@ The LDPA instruction returns the physical address for a logical or virtual addre
 ```
    if ( ! PSW.[P] ) privilegedOperationTrap( );
 
-   ofs <- GR[b] + GR[a];
+   tmpOfs <- GR[instr.[b]] + GR[instr.[a]];
 
-   if ( instr.[12..13] == 0 ) seg = segSelect( ofs );
-   else                       seg = instr.[12..13];
+   if ( instr.[seg] == 0 ) seg = segSelect( tmpOfs );
+   else                    seg = instr.[seg];
 
-   GR[r] <- loadPhysAdr( seg, ofs );
+   GR[instr.[r]] <- loadPhysAdr( seg, tmpOfs );
 ```
 
 #### Exceptions
@@ -2159,16 +2176,17 @@ The LDR instruction is used for implementing semaphore type operations. The firs
 #### Operation
 
 ```
-   if ( instr.[10] ) ofs = GR[b] + GR[a];
-   else              ofs = GR[b] + lowSignExtend( ofs, 12 );
+   tmpOfs = GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
 
-   if ( instr.[12..13] == 0 ) seg = segSelect( ofs );
-   else                       seg = instr.[12..13];
+   if ( tmpOfs.[30.31] != 0 ) dataAlignmentTrap( );
+
+   if ( instr.[seg] == 0 ) seg = segSelect( tmpOfs );
+   else                    seg = instr.[seg];
   
-   GR[r] <- memLoad( seg, offset, 32 );
+   GR[instr.[r]] <- memLoad( seg, tmpOfs, 32 );
       
    lrValid = true;
-   lrArg   = GR[r];
+   lrArg   = GR[instr.[r]];
 ```
 
 #### Exceptions
@@ -2215,7 +2233,7 @@ The LSID instruction returns the segment identifier of the segment encoded in th
 #### Operation
 
 ```
-   GR[r] <- SR[ segSelect( GR[b] ) ];
+   GR[instr.[r]] <- SR[ segSelect( GR[instr.[b]] ) ];
 ```
 
 #### Exceptions
@@ -2260,13 +2278,13 @@ The move register instructions copy data from segment or control register "s" to
 ```
    if ( instr.[D] ) {
 
-      if ( instr.[M] )  CR[ instr.[27..31]] <- GR[r];
-      else              SR[ instr.[29..31]] <- GR[r];
+      if ( instr.[M] )  CR[ instr.[27..31]] <- GR[instr.[r]];
+      else              SR[ instr.[29..31]] <- GR[instr.[r]];
    
    } else {
 
-      if ( instr.[M] )  GR[r] <- CR[ instr.[27..31]];
-      else              GR[r] <- SR[ instr.[29..31]];
+      if ( instr.[M] )  GR[instr.[r]] <- CR[ instr.[27..31]];
+      else              GR[instr.[r]] <- SR[ instr.[29..31]];
    }
 ```
 
@@ -2312,8 +2330,8 @@ The MST instruction sets the status bits 28.. 31 of the processor status word. T
 
 ```
    0 - copy status bits using general register "b" ( bits 28..31 )
-   1 - set status bits using the bits in "val" ( bits 28..31 )
-   2 - clears status bits using the bits in "val" ( bits 28..31 )
+   1 - set status bits using the bits in "b" ( bits 28..31 )
+   2 - clears status bits using the bits in "b" ( bits 28..31 )
    3 - undefined.
 ```
 
@@ -2322,31 +2340,31 @@ The MST instruction sets the status bits 28.. 31 of the processor status word. T
 ```
    if ( ! PSW.[P] ) privilegedOperationTrap( );
 
-   GR[r] <- cat( 0.[0..27], ST.[28..31] );
+   GR[instr.[r]] <- cat( 0.[0..27], ST.[28..31] );
 
    switch( mode ) {
 
       case 0: {
 
-	      ST.[28..31] <- GR[b].[28..31];
+	      ST.[28..31] <- GR[instr.[b]].[28..31];
 
       } break;
 
       case 1: {
 
-         if ( instr.[28] ) ST.[28] <- 1;
-         if ( instr.[29] ) ST.[29] <- 1;
-         if ( instr.[30] ) ST.[30] <- 1;
-         if ( instr.[31] ) ST.[31] <- 1;
+         if ( instr.[28] ) PSW.[12] <- 1;
+         if ( instr.[29] ) PSW.[13] <- 1;
+         if ( instr.[30] ) PSW.[14] <- 1;
+         if ( instr.[31] ) PSW.[15] <- 1;
 
       } break;
 
       case 2: {
 
-         if ( instr.[28] ) ST.[28] <- 0;
-         if ( instr.[29] ) ST.[29] <- 0;
-         if ( instr.[30] ) ST.[30] <- 0;
-         if ( instr.[31] ) ST.[31] <- 0;
+         if ( instr.[28] ) PSW.[12] <- 0;
+         if ( instr.[29] ) PSW.[13] <- 0;
+         if ( instr.[30] ) PSW.[14] <- 0;
+         if ( instr.[31] ) PSW.[15] <- 0;
 
 	   } break;
 
@@ -2395,9 +2413,9 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
    switch( opMode ) {
 
-      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 18 ); break;
+      case 0: tmpA <- GR[instr.[r]]; tmpB <- lowSignExtend( opArg, 18 ); break;
       
-      case 1: tmpA <- GR[a]; tmpB <- GR[b]; break;
+      case 1: tmpA <- GR[instr.[a]]; tmpB <- GR[instr.[b]]; break;
 
       case 2: 
       case 3: {
@@ -2406,17 +2424,17 @@ The instruction fetches the data specified by the operand and performs a bitwise
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
-         tmpA <- GR[r];
+         tmpA <- GR[instr.[r]];
          tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
    }
 
-   if (( instr.[C]) && ( ~  ( instr.[C]))) tmpB <- ~ tmpB;
+   if (( instr.[C]) && ( ~ ( instr.[C]))) tmpB <- ~ tmpB;
    res <- tmpA | tmpB;
 
    if ( instr.[N]) res <- ~ res;
-   GR[r] <- res;
+   GR[instr.[r]] <- res;
 ```
 
 #### Exceptions
@@ -2469,17 +2487,24 @@ The "F" bit will indicate whether the data cache is to be purged without flushin
 #### Operation
 
 ``` 
-   GR[b] = GR[b] + GR[a];
-   
-   if ( instr.[12..13] == 0 ) seg = segSelect( ofs );
-   else                       seg = instr.[12..13];
+   if ( instr.[M] ) {
 
-   if ( instr.[T] ) {
-
-      if ( instr.[F] ) flushDataCache( seg, offset );
-      purgeDataCache( seg, offset );
+      if ( GR[instr.[a]] < 0 ) tmpOfs = GR[instr.[b]] + GR[instr.[a]];
+      else                     tmpOfs = GR[instr.[b]];
+   }
+   else tmpOfs = GR[instr.[b]] + GR[instr.[a]];
    
-   } else purgeInstructionCache( seg, offset );
+   if ( instr.[seg] == 0 ) seg = segSelect( tmpOfs );
+   else                    seg = instr.[seg];
+   
+  if ( instr.[T] ) {
+
+      if ( instr.[F] ) flushDataCache( seg, tmpOfs );
+      purgeDataCache( seg, tmpOfs );
+   
+   } else purgeInstructionCache( seg, tmpOfs );
+  
+   if ( instr.[M] ) GR[instr.[b]] <- GR[instr.[b]] + GR[instr.[a]];   
 ```
 
 #### Exceptions
@@ -2519,27 +2544,33 @@ Probe data access to a virtual address.
 
 #### Description
 
-The PRB instruction determines whether data access at the requested privilege level. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "W" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. The "I" bit designates the privilege level to use for the probe operation. A value of zero specifies that the privilege level is stored register  "a". A value of one interprets bit 27 as the privilege level. The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. If protection checking is enabled, the protection Id is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
+The PRB instruction determines whether data access at the requested privilege level. If the probe operation succeeds, a value of one is returned in "r", otherwise a zero is returned. The "seg" field selects the segment register for forming the virtual address. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. 
+
+The "W" bit specifies whether a read or write access is requested. A value of zero is a read access, a value of one a read/write access. 
+
+The "I" bit designates the privilege level to use for the probe operation. A value of zero specifies that the privilege level is stored register  "a". A value of one interprets bit 27 as the privilege level. 
+
+If protection checking is enabled, the protection Id is checked as well. The instruction performs the necessary virtual to physical data translation regardless of the processor status bit for data translation.
 
 #### Operation
 
 ```
-   if ( instr.[12..13] == 0 ) seg = segSelect( offset );
-   else                       seg = instr.[12..13];
+   if ( instr.[seg] == 0 ) seg = segSelect( GR[instr.[b]] );
+   else                    seg = instr.[seg];
 
    if ( ! searchDataTlbEntry( SR[seg], ofs, &entry )) {
 
       if ( instr.[I] ) {
 
-         if      ((   instr.[W] ) && ( writeAccessAllowed( entry, GR[a] )))      GR[r] <- 1;
-         else if (( ! instr.[W] ) && ( readAccessAllowed( entry, GR[a] )))       GR[r] <- 1;
-         else                                                                    GR[r] <- 0;
+         if      ((   instr.[W] ) && ( writeAccessAllowed( entry, instr.[27] )))  GR[instr.[r]] <- 1;
+         else if (( ! instr.[w] ) && ( readAccessAllowed( entry, instr.[27] )))   GR[instr.[r]] <- 1;
+         else                                                                     GR[instr.[r]] <- 0;
 
       } else {
 
-         if      ((   instr.[W] ) && ( writeAccessAllowed( entry, instr.[27] )))  GR[r] <- 1;
-         else if (( ! instr.[w] ) && ( readAccessAllowed( entry, instr.[27] )))   GR[r] <- 1;
-         else                                                                     GR[r] <- 0;
+         if      ((   instr.[W] ) && ( writeAccessAllowed( entry, GR[instr.[a]] )))    GR[instr.[r]] <- 1;
+         else if (( ! instr.[W] ) && ( readAccessAllowed( entry, GR[instr.[a]] )))     GR[instr.[r]] <- 1;
+         else                                                                          GR[instr.[r]] <- 0;
       }
       
    } else nonAccessDataTlbMiss( );
@@ -2592,18 +2623,28 @@ The "M" bit indicates base register increment. If set, a negative value in gener
 ```
    if ( ! PSW.[P] ) privilegedOperationTrap( );
 
-   if ( instr.[11] ) offset = GR[b] + GR[a]; 
-   else              offset = GR[b];
+   if ( instr.[M] ) {
 
-   if ( instr.[12..13] == 0 ) seg = segSelect( offset );
-   else                       seg = instr.[12..13];
+      if ( GR[instr.[a]] < 0 ) tmpOfs = GR[instr.[b]] + GR[instr.[a]];
+      else                     tmpOfs = GR[instr.[b]];
+   }
+   else tmpOfs = GR[instr.[b]] + GR[instr.[a]];
+   
+   if ( instr.[seg] == 0 ) seg = segSelect( tmpOfs );
+   else                    seg = instr.[seg];
+   
+   if ( instr.[T] ) {
+         
+      if ( searchDataTlbEntry( SR[seg], tmpOfs, &entry )) 
+         purgeDataTlbEntry( SR[seg], tmpOfs, &entry );
+   }
+   else {
+      
+      if ( searchInstructionTlbEntry( SR[seg], tmpOfs, &entry ))
+         purgeInstructionTlbEntry( SR[seg], tmpOfs, &entry );
+      }
 
-   GR[b] = GR[b] + GR[a];
-
-   if ( instr.[T] )
-      if ( searchDataTlbEntry( SR[seg], GR[b], &entry )) purgeDataTlbEntry( SR[seg], GR[b], &entry );
-   else
-      if ( searchInstructionTlbEntry( SR[seg], GR[b], &entry )) purgeInstructionTlbEntry( SR[seg], GR[b], &entry );
+   if ( instr.[M] ) GR[instr.[b]] <- GR[instr.[b]] + GR[instr.[a]];   
 ```
 
 #### Exceptions
@@ -2692,11 +2733,11 @@ The instruction fetches the operand and subtracts it along with the carry bit fr
 #### Operation
 
 ```
-     switch( opMode ) {
+   switch( opMode ) {
 
-      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 18 ); break;
+      case 0: tmpA <- GR[instr.[r]]; tmpB <- lowSignExtend( opArg, 18 ); break;
       
-      case 1: tmpA <- GR[a]; tmpB <- GR[b]; break;
+      case 1: tmpA <- GR[instr.[a]]; tmpB <- GR[instr.[b]]; break;
 
       case 2: 
       case 3: {
@@ -2705,18 +2746,18 @@ The instruction fetches the operand and subtracts it along with the carry bit fr
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
-         tmpA <- GR[r];
+         tmpA <- GR[instr.[r]];
          tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
    }
 
-   res <- tmpA - tmpB + instr.[C];
+   res <- tmpA - tmpB + PSW.[C/B];
   
    if ( instr.[O] && overflow ) overflowTrap( );
    else {
 
-      GR[r] <- res;
+      GR[instr.[r]] <- res;
       PSW[C/B] <- carry/borrow Bits;
    }
 ```
@@ -2760,12 +2801,16 @@ Performs a combined shift left and add operation and stores the result into the 
 
 #### Description
 
-The shift left and add instruction will shift general register "a" left by the bits specified in the "shamt" field, add the content of general register "b" to it and store the result in general register "r". This combined operation allows for an efficient multiplication operation for multiplying a value with a small integer value. The "L" bit indicates that this is an operation on unsigned quantities. The "O" bit is set to raise a trap if the instruction either shifts beyond the number range of general register "r" or when the addition of the shifted general register "a" plus the value in general register "b" results in an overflow.
+The shift left and add instruction will shift general register "a" left by the bits specified in the "shamt" field, add the content of general register "b" to it and store the result in general register "r". This combined operation allows for an efficient multiplication operation for multiplying a value with a small integer value. 
+
+The "L" bit indicates that this is an operation on unsigned quantities. 
+
+The "O" bit is set to raise a trap if the instruction either shifts beyond the number range of general register "r" or when the addition of the shifted general register "a" plus the value in general register "b" results in an overflow.
 
 #### Operation
 
 ```
-   GR[r] <- ( GR[a] << sa ) + GR[b];
+   GR[instr.[r]] <- ( GR[instr.[a]] << instr.[sa] ) + GR[instr.[b]];
 
    if ( instr.[O] ) && ( ovl ) overflowTrap( );
 ```
@@ -2804,31 +2849,37 @@ Stores a general register value into memory using a logical address.
 
 #### Description
 
-The store instruction will store the data in general register "r" to memory. The offset is computed by adding the sign extended offset to "b". The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. The "dw" field specifies the data length. From 0 to 3 the data length is byte, half word, word and double. The double option is reserved for future use. The computed offset must match the alignment size of the data to fetch. The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. The "X" field will check "r" that the signed value to store will fit into the target memory length.
+The store instruction will store the data in general register "r" to memory. The offset is computed by adding the sign extended offset to "b". The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. 
+
+The "dw" field specifies the data length. From 0 to 3 the data length is byte, half word, word and double. The double option is reserved for future use. The computed offset must match the alignment size of the data to fetch. 
+
+The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. 
+
+The "X" field will check "r" that the signed value to store will fit into the target memory length.
 
 #### Operation
 
 ```
     if ( instr.[M] ) {
 
-      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
-      else                                offset = GR[b];
+      if ( lowSignExtend( ofs, 12 ) < 0 ) tmpOfs = GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
+      else                                tmpOfs = GR[instr.[b]];
    }
-   else offset = GR[b] + lowSignExtend( ofs, 12 );
+   else tmpOfs = GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
 
    if ( instr.[X] ) {
 
-      if ( checkForDataTruncation( GR[r] )) overflowTrap( );
+      if ( checkForDataTruncation( GR[instr.[r]] )) overflowTrap( );
    }
 
-   len = dataLen( instr.[12..13] );
+   len = dataLen( instr.[len] );
 
-   if ( instr.[12..13] == 0 ) seg =  segSelect( offset );
-   else                       seg = instr.[12..13];
+   if ( instr.[seg] == 0 ) seg = segSelect( tmpOfs );
+   else                    seg = instr.[seg];
 
-   memStore( SR[seg], GR[b] + lowSignExtend( ofs, 12 ), GR[r], len );
+   memStore( SR[seg], GR[instr.[b]] + lowSignExtend( ofs, 12 ), GR[instr.[r]], len );
 
-    GR[b] = GR[b] + lowSignExtend( ofs, 12 );
+   GR[instr.[b]] = GR[instr.[b]] + lowSignExtend( ofs, 12 );
 ```
 
 #### Exceptions
@@ -2880,14 +2931,14 @@ The store absolute instruction will store the target register into memory using 
 
    if ( instr.[M] ) {
 
-      if ( lowSignExtend( ofs, 12 ) < 0 ) offset = GR[b] + lowSignExtend( ofs, 12 );
-      else                                offset = GR[b];
+      if ( lowSignExtend( ofs, 12 ) < 0 ) tmpOfs = GR[instr.[b]] + lowSignExtend( instzr.[ofs], 12 );
+      else                                tmpOfs = GR[instr.[b]];
    }
-   else offset = GR[b] + lowSignExtend( ofs, 12 );
+   else tmpOfs = GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
 
-   memStore( 0, GR[b] + lowSignExtend( ofs, 12 ), GR[r], 32 );
+   memStore( 0, tmpOfs, GR[instr.[r]], 32 );
 
-   GR[b] <- GR[b] + lowSignExtend( ofs, 12 );
+   GR[instr.[b]] <- GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
 ```
 
 #### Exceptions
@@ -2930,17 +2981,19 @@ The STC conditional instruction will store a value in "r" to the memory location
 #### Operation
 
 ```
-   if (( lrValid ) && ( lrVal == GR[r])) {
+   if (( lrValid ) && ( lrVal == GR[instr.[r]])) {
 
-      ofs = GR[b] + lowSignExtend( ofs, 12 );
+      tmpOfs = GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
 
-      if ( instr.[12..13] == 0 ) seg = segSelect( ofs );
-      else                       seg = instr.[12..13];
+      if ( tmpOfs.[30.31] != 0 ) dataAlignmentTrap( );
+
+      if ( instr.[seg] == 0 ) seg = segSelect( tmpOfs );
+      else                    seg = instr.[seg];
       
-      memStore( SR[seg], ofs, GR[r], 32 );
-      GR[r] <- 0;
+      memStore( SR[seg], tmpOfs, GR[instr.[r]], 32 );
+      GR[instr.[r]] <- 0;
 
-   } else GR[r] <- 1;
+   } else GR[instr.[r]] <- 1;
 ```
 
 #### Exceptions
@@ -2989,9 +3042,9 @@ The instruction fetches the operand and subtracts it from the general register "
 ```
      switch( opMode ) {
 
-      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 18 ); break;
+      case 0: tmpA <- GR[instr.[r]]; tmpB <- lowSignExtend( opArg, 18 ); break;
       
-      case 1: tmpA <- GR[a]; tmpB <- GR[b]; break;
+      case 1: tmpA <- GR[instr.[a]]; tmpB <- GR[instr.[b]]; break;
 
       case 2: 
       case 3: {
@@ -3000,7 +3053,7 @@ The instruction fetches the operand and subtracts it from the general register "
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
-         tmpA <- GR[r];
+         tmpA <- GR[instr.[r]];
          tmpB <- zeroExtend( memLoad( SR[seg], ofs, len ), len ); 
       
       } break;     
@@ -3011,7 +3064,7 @@ The instruction fetches the operand and subtracts it from the general register "
    if ( instr.[O] && overflow ) overflowTrap( );
    else {
 
-      GR[r] <- res;
+      GR[instr.[r]] <- res;
       PSW[C/B] <- carry/borrow Bits;
    }
 ```
@@ -3062,9 +3115,9 @@ The instruction fetches the data specified by the operand and performs a bitwise
 ```
    switch( opMode ) {
 
-      case 0: tmpA <- GR[r]; tmpB <- lowSignExtend( opArg, 18 ); break;
+      case 0: tmpA <- GR[instr.[r]]; tmpB <- lowSignExtend( opArg, 18 ); break;
       
-      case 1: tmpA <- GR[a]; tmpB <- GR[b]; break;
+      case 1: tmpA <- GR[instr.[a]]; tmpB <- GR[instr.[b]]; break;
 
       case 2: 
       case 3: {
@@ -3073,7 +3126,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
          ofs <- operandAdrOfs( instr );
          len <- operandBitLen( instr );
 
-         tmpA <- GR[r];
+         tmpA <- GR[instr.[r]];
          tmpB <- zeroExtend( memLoad( seg, ofs, len ), len ); 
       
       } break;     
@@ -3082,7 +3135,7 @@ The instruction fetches the data specified by the operand and performs a bitwise
    res <- tmpA ^ tmpB;
    
    if ( instr.[N]) res <- ~ res;
-   GR[r] <- res;
+   GR[instr.[r]] <- res;
 ```
 
 #### Exceptions
@@ -3128,8 +3181,6 @@ VCPU-32 offers an immediate field in the immediate instructions and some computa
 
 ### Register Operations
 
-
-
 | Synthetic Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
 | **NOP** | NOP | OR  GR0, GR0 | There are many instructions that can be used for a NOP. The idea is to pick one that does not affect the program state. |
@@ -3157,6 +3208,24 @@ VCPU-32 does not offer instructions for shift and rotate operations. They can ea
 | **ROR** | ROR GRx, GRy, shamt | DSR Rx, Rx, 32 - shamt | |
 |||||
 
+### System Type Instructions
+
+| Synthetic Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
+|:---|:---|:---|:---|
+| MFSR| | | Move from Segment register |
+| MTSR| | | Move to Segment register |
+| MFCR| | | Move from Segment register |
+| MTCR| | | Move to Segment register |
+| MFSAR| | | Move from Shift Amount register |
+| MTSAR| | | Move to Shift Amount register |
+| PICA | | | Purge from instruction cache |
+| FDCA | | | Flush instruction cache |
+| PDCA | | | Purge from data cache |
+| IITLB | | |Insert in Instruction TLB |
+| PITLB | | |Purge from Instruction TLB |
+| IDTLB | | |Insert in Data TLB |
+| PDTLB | | |Purge from Data TLB |
+||||
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
@@ -3216,6 +3285,23 @@ While cache flushes and deletions are under software control, cache insertions a
 ### Instruction and Data TLBs
 
 Computers with virtual addressing simply cannot work without a form of **translation look-aside buffer** (TLB). For each instruction using a virtual address for instruction fetch and data access a translation to the physical memory address needs to be performed. The TLB is a kind of cache for translations and comparable to the data caches, separate instruction and data TLBs are the common implementation.
+
+```
+      :---------------------------------------------------------------------------------:        \
+      :                                                                                 :        |
+      :                         Processor                                               :        |
+      :                                                                                 :        |
+      :---------------------------------------------------------------------------------:        |
+                ^                                      ^                                         |
+                |                                      |                                         |      CPU Core
+                |                                      v                                         |
+      :----------------------:               :----------------------:                            |
+      :                      :               :                      :                            |
+      : Instruction TLB      :               : Data TLB             :                            |
+      :                      :               :                      :                            |
+      :----------------------:               :----------------------:                            /
+
+```
 
 TLBs are indexed by a portion of the virtual address. There is the option of a simple direct mapped TLB, set associative TLBs and a fully associative TLBs. Because of the high hardware cost, a fully associative TLB has only few entries versus the mapped models, which typically have a few hundreds of entries.
 
@@ -3380,7 +3466,7 @@ During program execution functions call other functions. Upon entry, a function 
       :  : Frame Marker                 :  :
       :  :                              :  :
       :  :------------------------------:  :
-      :====================================: <------- Previous tack Pointer ( PSP )
+      :====================================: <------- Previous Stack Pointer ( PSP )
       :  :------------------------------:  :
       :  : Local data area              :  :
       :  :                              :  :
@@ -3767,7 +3853,7 @@ There are two data structures used for an external call. The first is the stack 
 
 #### Linkage Table
 
-The linkage table is a memory structure built by the load operation. It contains the information necessary to locate the external routine to call. Each loaded module has a set of entries in this table. An entry describes where to find the external routine. There is one table for a running task. 
+The linkage table is a memory structure built by the program load operation. It contains the information necessary to locate the external routine to call. Each loaded module has a set of entries in this table. An entry describes where to find the external routine. There is one table for a running task. 
 
 
 ```
@@ -3818,12 +3904,26 @@ The linkage table is a memory structure built by the load operation. It contains
 
 ### External Interrupt handling
 
+<!--------------------------------------------------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+<!-- Chapter -  Processor Dependent Code ------------------------------------------------------------------>
+<!--------------------------------------------------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
 
 ### Debug Subsystem
 
 // essentially a trap
 // support for sigle stepping ?
 
+<!--------------------------------------------------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+<!-- Chapter -  Processor Dependent Code ------------------------------------------------------------------>
+<!--------------------------------------------------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
 
 ### System Startup sequence
 
@@ -3954,7 +4054,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : SHLA    ( 0x08 ): r         :I :L :O : 0                  : sa  : 0   : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-   : CMR     ( 0x09 ): r         :cond : 0                                 : a         : b         : 
+   : CMR     ( 0x09 ): r         :cond       : 0                           : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -4030,7 +4130,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : PRB     ( 0x3A ): r         :W :I : seg : 0                           : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
-   : ITLB    ( 0x3B ): r         :T :A :                                   : a         : b         :
+   : ITLB    ( 0x3B ): r         :T : 0                                    : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : PTLB    ( 0x3C ): 0         :T :M : seg : 0                           : a         : b         :    
    :-----------------:-----------------------------------------------------------------------------:
@@ -4097,7 +4197,7 @@ Instruction operations are described in a pseudo C style language using assignme
 
 The VCPU-32 instruction set and runtime architecture has been designed with a pipeline CPU in mind. In general, pipeline operations such as stalling or flushing a CPU pipeline are in terms of performance costly and should be avoided where possible. Also, accessing data memory twice or any indirection level of data access would also affect the pipeline performance in a negative way. This chapter presents a simple pipeline reference model of a VCPU32 implementation for discussing architecture and instruction design rationales.
 
-The VCPU-32 reference implementation that can be found in the simulator uses a three stage pipeline model. There stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
+The VCPU-32 pipelined reference implementation also can be found in the simulator, which uses a three stage pipeline model. The stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
 
 - **Instruction fetch and decode**. The first stage will fetch the instruction word from memory and decode it. There are two parts. The first part of the stage will use the instruction address and attempt to fetch the instruction word from the instruction cache. At the same time the translation look-aside buffer will be checked whether the virtual to physical translation is available and if so whether the access rights match. The second part of the stage will decode the instruction and also read the general registers from the register file.
 
