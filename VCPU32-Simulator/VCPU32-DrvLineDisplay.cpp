@@ -156,9 +156,9 @@ void DrvLineDisplay::displayPStateRegSet( TokId fmt ) {
 void DrvLineDisplay::displayPlIFetchDecodeRegSet( TokId fmt ) {
     
     if ( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
-        fprintf( stdout, "FD(S): IA=" );
+        fprintf( stdout, "FD(S): PSW=" );
     else
-        fprintf( stdout, "FD:    IA=" );
+        fprintf( stdout, "FD:    PSW=" );
     
     displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0), fmt );
     fprintf( stdout, "." );
@@ -169,9 +169,9 @@ void DrvLineDisplay::displayPlIFetchDecodeRegSet( TokId fmt ) {
 void DrvLineDisplay::displayPlMemoryAccessRegSet( TokId fmt ) {
     
     if ( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
-        fprintf( stdout, "MA(S): IA=" );
+        fprintf( stdout, "MA(S): PSW=" );
     else
-        fprintf( stdout, "MA:    IA=" );
+        fprintf( stdout, "MA:    PSW=" );
     
     displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_0 ), fmt );
     fprintf( stdout, "." );
@@ -190,9 +190,9 @@ void DrvLineDisplay::displayPlMemoryAccessRegSet( TokId fmt ) {
 void DrvLineDisplay::displayPlExecuteRegSet( TokId fmt ) {
     
     if ( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
-        fprintf( stdout, "EX(S): IA=" );
+        fprintf( stdout, "EX(S): PSW=" );
     else
-        fprintf( stdout, "EX:    IA=" );
+        fprintf( stdout, "EX:    PSW=" );
     
     displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_0 ), fmt );
     fprintf( stdout, "." );

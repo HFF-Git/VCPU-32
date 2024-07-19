@@ -632,8 +632,8 @@ private:
     struct CpuCore  *core   = nullptr;
     bool            stalled = false;
     
-    uint32_t        instrPsw0;
-    uint32_t        instrPsw1;
+   // uint32_t        instrPsw0;
+   // uint32_t        instrPsw1;
     uint32_t        instr;
     uint32_t        valA;
     uint32_t        valB;

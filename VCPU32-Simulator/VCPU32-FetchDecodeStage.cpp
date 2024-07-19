@@ -110,7 +110,7 @@ uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
 // are all instructions that do address arithmetic using the B and X pipeline fields, or the A field for some
 // branch instructions.
 //
-// ??? Explain ... better .... Has to do with MA stage consuimng B and X and we need to wait for the correct
+// ??? Explain ... better .... Has to do with MA stage consuming B and X and we need to wait for the correct
 // B and X tgo arrive if needed...
 //
 // ??? anything special to do for REG 0 ?
@@ -341,8 +341,6 @@ bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::process( ) {
     
-    instrPsw0       = psPstate0.get( );
-    instrPsw1       = psPstate1.get( );
     instr           = NOP_INSTR;
     valA            = 0;
     valB            = 0;
@@ -351,9 +349,9 @@ void FetchDecodeStage::process( ) {
     regIdForValB    = MAX_GREGS;
     regIdForValX    = MAX_GREGS;
     
-    uint32_t    pAdr            = instrPsw1;
-    uint32_t    pOfs            = instrPsw1 & PAGE_BIT_MASK;
-    uint32_t    instrSeg        = psPstate0.getBitField( 15, 16 );
+    uint32_t    pAdr            = psPstate1.get( );
+    uint32_t    pOfs            = psPstate1.getBitField( 31, PAGE_SIZE_BITS );
+    
     TlbEntry    *tlbEntryPtr    = nullptr;
     
     setStalled( false );
@@ -365,26 +363,26 @@ void FetchDecodeStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     if ( getBit( psPstate0.get( ), ST_CODE_TRANSLATION_ENABLE )) {
    
-        tlbEntryPtr = core -> iTlb -> lookupTlbEntry( getBitField( instrPsw0, 31, 16 ), instrPsw1 );
+        tlbEntryPtr = core -> iTlb -> lookupTlbEntry( psPstate1.getBitField( 31, 16 ), psPstate1.get( ));
         if ( tlbEntryPtr == nullptr ) {
             
-            setupTrapData( ITLB_MISS_TRAP, instrPsw0, instrPsw1, instr );
+            setupTrapData( ITLB_MISS_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
             stallPipeLine( );
             return;
         }
         
         if ( tlbEntryPtr -> tPageType( ) != ACC_EXECUTE ) {
             
-            setupTrapData( ITLB_ACC_RIGHTS_TRAP, instrPsw0, instrPsw1, instr );
+            setupTrapData( ITLB_ACC_RIGHTS_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
             stallPipeLine( );
             return;
         }
         
-        if ( psPstate0.get( ) & ST_PROTECT_ID_CHECK_ENABLE ) {
+        if ( getBit( psPstate0.get( ), ST_PROTECT_ID_CHECK_ENABLE )) {
             
             if ( ! checkProtectId( tlbEntryPtr -> tSegId( ))) {
                 
-                setupTrapData( ITLB_PROTECT_ID_TRAP, instrPsw0, instrPsw1, instr );
+                setupTrapData( ITLB_PROTECT_ID_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
                 stallPipeLine( );
                 return;
             }
@@ -394,9 +392,9 @@ void FetchDecodeStage::process( ) {
     }
     else {
     
-         if ( psPstate0.get( ) & ST_EXECUTION_LEVEL ) {
+         if ( getBit( psPstate0.get( ), ST_EXECUTION_LEVEL )) {
              
-             setupTrapData( INSTR_MEM_PROTECT_TRAP, instrPsw0, instrPsw1, instr );
+             setupTrapData( INSTR_MEM_PROTECT_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
              stallPipeLine( );
              return;
          }
@@ -408,12 +406,13 @@ void FetchDecodeStage::process( ) {
     // the routine to the instruction cache. The caches will use the "seg.ofs" to locate the cache lines,
     // the "pAdr" passed is the tag from the TLB which will be compared by the cache controller for a match.
     // If the address range is in the PDC address range, we invoke the PDC handler. The PDC is kind of a
-    // ROM with processor dependent code. We cannot fetch data fro IO memory space.
+    // ROM with processor dependent code. We cannot fetch data from IO memory space.
     //
     //--------------------------------------------------------------------------------------------------------
     if ( pAdr <= core -> physMem -> getEndAdr( ) - 4 ) {
         
-        if ( ! core -> iCacheL1 -> readWord( instrSeg, instrPsw1, pAdr, 4, &instr )) {
+        if ( ! core -> iCacheL1 -> readWord( psPstate0.getBitField( 15, 16 ), 
+                                             psPstate1.get( ), pAdr, 4, &instr )) {
             
             stallPipeLine( );
             return;
@@ -445,10 +444,10 @@ void FetchDecodeStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     if ( psPstate0.getBit( ST_CODE_TRANSLATION_ENABLE )) {
         
-        if ( ! (( tlbEntryPtr -> tPrivL2( ) <= getBit( instrPsw0, ST_EXECUTION_LEVEL )) &&
-                ( getBit( instrPsw0, ST_EXECUTION_LEVEL ) <= tlbEntryPtr -> tPrivL1( )))) {
+        if ( ! (( tlbEntryPtr -> tPrivL2( ) <= getBit( psPstate0.get( ), ST_EXECUTION_LEVEL )) &&
+                ( getBit( psPstate0.get( ), ST_EXECUTION_LEVEL ) <= tlbEntryPtr -> tPrivL1( )))) {
                 
-            setupTrapData( INSTR_MEM_PROTECT_TRAP, instrPsw0, instrPsw1, instr );
+            setupTrapData( INSTR_MEM_PROTECT_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
             stallPipeLine( );
             return;
         }
@@ -460,9 +459,9 @@ void FetchDecodeStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ opCode ].flags & PRIV_INSTR ) {
         
-        if ( getBit( instrPsw0, ST_EXECUTION_LEVEL ) > 0 ) {
+        if ( getBit( psPstate0.get( ), ST_EXECUTION_LEVEL ) > 0 ) {
             
-            setupTrapData( PRIV_OPERATION_TRAP, instrPsw0, instrPsw1, instr );
+            setupTrapData( PRIV_OPERATION_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
             return;
         }
     }
@@ -480,13 +479,13 @@ void FetchDecodeStage::process( ) {
            
             if (( opMode < 2 ) && ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR ))) {
                 
-                setupTrapData( ILLEGAL_INSTR_TRAP, instrPsw0, instrPsw1, instr );
+                setupTrapData( ILLEGAL_INSTR_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
                 return;
             }
             
             if (( opMode == 2 ) && ( opCodeTab[ opCode ].flags & STORE_INSTR )) {
                 
-                setupTrapData( ILLEGAL_INSTR_TRAP, instrPsw0, instrPsw1, instr );
+                setupTrapData( ILLEGAL_INSTR_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
                 return;
             }
             
@@ -494,7 +493,7 @@ void FetchDecodeStage::process( ) {
                     
                 case OP_MODE_IMM: {
                    
-                    valB    = immGenLowSign( instr, 31, 17 );
+                    valB    = immGenLowSign( instr, 31, 18 );
                     
                 } break;
                     
@@ -514,15 +513,15 @@ void FetchDecodeStage::process( ) {
                
                 case OP_MODE_REG_INDX: {
                     
-                    if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
-                        
-                        regIdForValA    = getBitField( instr, 9, 4 );
-                        valA            = core -> gReg[ regIdForValA ].get( );
-                    }
+                    // ??? do we implement a 3-read, 1-write register file ?
+                 
+                    regIdForValA    = getBitField( instr, 9, 4 );
+                    regIdForValB    = getBitField( instr, 31, 4 );
+                    regIdForValX    = getBitField( instr, 27,4 );
                     
                     valA            = core -> gReg[ regIdForValA ].get( );
                     valB            = core -> gReg[ regIdForValB ].get( );
-                    valX            = immGenLowSign( instr, 31, 12 );
+                    valX            = core -> gReg[ regIdForValX ].get( );
                     
                 } break;
                     
@@ -626,7 +625,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_B: {
           
-            valB = instrPsw1;
+            valB = psPstate1.get( );
             valX = immGenLowSign( instr, 31, 22 ) << 2;
             
         } break;
@@ -635,7 +634,7 @@ void FetchDecodeStage::process( ) {
             
             regIdForValB    = getBitField( instr, 31, 4 );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = instrPsw1 << 2;
+            valX            = psPstate1.get( ) << 2;
             
         } break;
             
@@ -643,7 +642,7 @@ void FetchDecodeStage::process( ) {
             
             regIdForValB    = getBitField( instr, 31, 4 );
             valB            = core -> gReg[ regIdForValB ].get( );
-            valX            = instrPsw1 << 2;
+            valX            = psPstate1.get( ) << 2;
             
         } break;
             
@@ -663,7 +662,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_GATE: {
            
-            valB            = instrPsw1;
+            valB            = psPstate1.get( );
             valX            = immGenLowSign( instr, 31, 22 ) << 2;
             
             // ??? when do we exactly set the execution level in the status reg ? There are two instructions ahead
@@ -671,7 +670,7 @@ void FetchDecodeStage::process( ) {
             
             // ??? should we just get the TLB priv level and pass it onto the EX stage ?
             
-            if ( getBit( instrPsw0, ST_CODE_TRANSLATION_ENABLE )) {
+            if ( psPstate0.getBit( ST_CODE_TRANSLATION_ENABLE )) {
                
                 if ( tlbEntryPtr -> tPageType( ) == 3 ) {
                     
@@ -732,7 +731,7 @@ void FetchDecodeStage::process( ) {
                     
                 default: {
                     
-                    setupTrapData( ILLEGAL_INSTR_TRAP, instrPsw0, instrPsw1, instr );
+                    setupTrapData( ILLEGAL_INSTR_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
                     return;
                 }
             }
@@ -752,7 +751,7 @@ void FetchDecodeStage::process( ) {
             
         default: {
             
-            setupTrapData( ILLEGAL_INSTR_TRAP, instrPsw0, instrPsw1, instr );
+            setupTrapData( ILLEGAL_INSTR_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
             return;
         }
     }
@@ -780,8 +779,8 @@ void FetchDecodeStage::process( ) {
     // Pass the data to the MA stage pipeline.
     //
     //--------------------------------------------------------------------------------------------------------
-    core -> maStage -> psPstate0.set( instrPsw0 );
-    core -> maStage -> psPstate1.set( instrPsw1 );
+    core -> maStage -> psPstate0.set( psPstate0.get( ));
+    core -> maStage -> psPstate1.set( psPstate1.get( ));
     core -> maStage -> psInstr.set( instr );
     core -> maStage -> psValA.set( valA );
     core -> maStage -> psValB.set( valB );
@@ -800,20 +799,20 @@ void FetchDecodeStage::process( ) {
     // ??? we add a signed value to an unsigned value ....
     // ??? we should use a bitFieldSet routine...
     //--------------------------------------------------------------------------------------------------------
-    psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | instrSeg );
+    psPstate0.set(( psPstate0.get( ) & 0xFFFF0000 ) | psPstate0.getBitField( 15, 16 ) );
     
     if (( opCode == OP_CBR ) || ( opCode == OP_CBRU )) {
         
         if ( getBit( instr, 23 )) {
             
-            psPstate1.set( add32( instrPsw1, immGenLowSign( instr, 31, 22 )));
+            psPstate1.set( add32( psPstate1.get( ), immGenLowSign( instr, 31, 22 )));
             core -> maStage -> psValX.set( 1 );
         }
         else {
             
-            psPstate1.set( instrPsw1 + 4 );
+            psPstate1.set( psPstate1.get( ) + 4 );
             core -> maStage -> psValX.set( immGenLowSign( instr, 31, 22 ));
         }
     }
-    else psPstate1.set( instrPsw1 + 4 );
+    else psPstate1.set( psPstate1.get( ) + 4 );
 }
