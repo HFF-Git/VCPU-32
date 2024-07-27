@@ -156,6 +156,7 @@ void ExecuteStage::reset( )  {
     psValA.reset( );
     psValB.reset( );
     psValX.reset( );
+    psValS.reset( );
 }
 
 void ExecuteStage::tick( ) {
@@ -168,6 +169,7 @@ void ExecuteStage::tick( ) {
         psValA.tick( );
         psValB.tick( );
         psValX.tick( );
+        psValS.tick( );
     }
 }
 
@@ -208,6 +210,7 @@ void ExecuteStage::flushPipeLine( ) {
     psValA.set( 0 );
     psValB.set( 0 );
     psValX.set( 0 );
+    psValS.set( 0 );
     core -> maStage -> flushPipeLine( );
 }
 
@@ -250,6 +253,7 @@ uint32_t ExecuteStage::getPipeLineReg( uint32_t pReg ) {
         case PSTAGE_REG_ID_VAL_A:   return( psValA.get( ));
         case PSTAGE_REG_ID_VAL_B:   return( psValB.get( ));
         case PSTAGE_REG_ID_VAL_X:   return( psValX.get( ));
+        case PSTAGE_REG_ID_VAL_S:   return( psValS.get( ));
         default: return( 0 );
     }
 }
@@ -263,7 +267,8 @@ void ExecuteStage::setPipeLineReg( uint32_t pReg, uint32_t val ) {
         case PSTAGE_REG_ID_INSTR:    psInstr.load( val );        break;
         case PSTAGE_REG_ID_VAL_A:    psValA.load( val );         break;
         case PSTAGE_REG_ID_VAL_B:    psValB.load( val );         break;
-        case PSTAGE_REG_ID_VAL_X:    psValB.load( val );         break;
+        case PSTAGE_REG_ID_VAL_X:    psValX.load( val );         break;
+        case PSTAGE_REG_ID_VAL_S:    psValS.load( val );         break;
     }
 }
 
@@ -678,6 +683,9 @@ void ExecuteStage::process( ) {
     // Bypass logic.
     //
     // ??? what about the status bits ?
+    //
+    // ??? can we write a routine that detects the potetntial bypass need from the instruction vs. passing
+    // register IDs ?
     //--------------------------------------------------------------------------------------------------------
     FetchDecodeStage *fdStage   = core -> fdStage;
     MemoryAccessStage *maStage  = core -> maStage;

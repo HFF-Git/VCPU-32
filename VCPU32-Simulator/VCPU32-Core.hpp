@@ -632,12 +632,7 @@ private:
     struct CpuCore  *core   = nullptr;
     bool            stalled = false;
     
-   // uint32_t        instrPsw0;
-   // uint32_t        instrPsw1;
     uint32_t        instr;
-    uint32_t        valA;
-    uint32_t        valB;
-    uint32_t        valX;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -689,6 +684,7 @@ public:
     CpuReg          psValA;
     CpuReg          psValB;
     CpuReg          psValX;
+    
     CpuReg          psRegIdForValA;
     CpuReg          psRegIdForValB;
     CpuReg          psRegIdForValX;
@@ -704,14 +700,6 @@ private:
     
     struct CpuCore  *core       = nullptr;
     bool            stalled     = false;
-    
-    uint32_t        instrPsw0;
-    uint32_t        instrPsw1;
-    uint32_t        instr;
-    uint32_t        valA;
-    uint32_t        valB;
-    uint32_t        valX;
-    uint32_t        valS;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -751,6 +739,7 @@ public:
     CpuReg          psValA;
     CpuReg          psValB;
     CpuReg          psValX;
+    CpuReg          psValS;
     
     uint8_t         regIdForValR;
     uint32_t        valR;

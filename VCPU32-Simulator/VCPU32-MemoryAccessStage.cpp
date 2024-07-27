@@ -174,8 +174,6 @@ void MemoryAccessStage::setStalled( bool arg ) {
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::flushPipeLine( ) {
     
-    psPstate0.set( instrPsw0 );
-    psPstate1.set( instrPsw1 );
     psInstr.set( NOP_INSTR );
     psValA.set( 0 );
     psValB.set( 0 );
@@ -322,22 +320,25 @@ bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::process( ) {
     
-    instrPsw0       = psPstate0.get( );
-    instrPsw1       = psPstate1.get( );
-    instr           = psInstr.get( );
+    
+    
     regIdForValA    = psRegIdForValA.get( );
     regIdForValB    = psRegIdForValB.get( );
     regIdForValX    = psRegIdForValX.get( );
-    valA            = psValA.get( );
-    valB            = psValB.get( );
-    valX            = psValX.get( );
-    valS            = 0;
     
-    uint8_t     opCode      = getBitField( instr, 5, 6 );
-    uint8_t     opMode      = getBitField( instr, 14, 2 );
-    uint32_t    pOfs        = psValX.get( ) % PAGE_SIZE;
-    uint32_t    pAdr        = 0;
-    uint32_t    dLen        = 4;
+   
+    uint32_t            instr        = psInstr.get( );
+    uint8_t             opCode      = getBitField( instr, 5, 6 );
+    uint8_t             opMode      = getBitField( instr, 13, 2 );
+    uint32_t            pOfs        = psValX.get( ) % PAGE_SIZE;
+    uint32_t            pAdr        = 0;
+    uint32_t            dLen        = 4;
+    
+    uint32_t            valX        = psValX.get( );
+    uint32_t            valS        = 0;
+    
+    ExecuteStage        *exStage    = core -> exStage;
+    FetchDecodeStage    *fdStage    = core -> fdStage;
    
     setStalled( false );
     
@@ -347,14 +348,15 @@ void MemoryAccessStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     switch( opCode ) {
             
-        case OP_ADD:    case OP_SUB:    case OP_AND:    case OP_OR:     case OP_XOR:
+        case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:
+        case OP_AND:    case OP_OR:     case OP_XOR:
         case OP_CMP:    case OP_CMPU: {
             
             if ( opMode >= 2 ) {
             
                     dLen            = getBitField( instr, 18, 2 );
-                    valS            = core -> sReg[ getBitField( valB, 1, 2 ) ].get( );
-                    valX            = add32( valB, valX );
+                    valS            = core -> sReg[ getBitField( psValB.get( ), 1, 2 ) ].get( );
+                    valX            = add32( psValB.get( ), valX );
                     regIdForValX    = MAX_GREGS;
                     regIdForValB    = MAX_GREGS;
             }
@@ -364,17 +366,16 @@ void MemoryAccessStage::process( ) {
        case OP_LD:     case OP_ST:     case OP_LDR:     case OP_STC: {
             
             dLen            = getBitField( instr, 18, 2 );
-            valS            = core -> sReg[ getBitField( valB, 1, 2 ) ].get( );
-            valX            = add32( valB, valX );
+            valS            = core -> sReg[ getBitField( psValB.get( ), 1, 2 ) ].get( );
+            valX            = add32( psValB.get( ), valX );
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             
         } break;
             
-        case OP_LDA:
-        case OP_STA: {
+        case OP_LDA:    case OP_STA: {
             
-            valX            = add32( valB, valX );
+            valX            = add32( psValB.get( ), valX );
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
             
@@ -391,12 +392,13 @@ void MemoryAccessStage::process( ) {
         case OP_BV:
         case OP_GATE: {
             
-            core -> fdStage -> psPstate0.set( instrPsw0 );
-            core -> fdStage -> psPstate1.set( add32( valB, valX ));
+            core -> fdStage -> psPstate0.set( psPstate0.get( ));
+            core -> fdStage -> psPstate1.set( add32( psValB.get( ), valX ));
             
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
-            valB            = 0;
+            
+            exStage -> psValB.set( 0 );
             valX            = 0;
             flushPipeLine( );
             
@@ -404,14 +406,14 @@ void MemoryAccessStage::process( ) {
             
         case OP_BE: {
            
-            core -> fdStage -> psPstate0.setBitField( getBitField( instrPsw0, 15, 16 ), 15, 16 );
+            core -> fdStage -> psPstate0.setBitField( getBitField( psPstate0.get( ), 15, 16 ), 15, 16 );
             core -> fdStage -> psPstate0.setBitField(
                     core -> sReg[ getBitField( instr, 27, 4 ) ].getBitField( 31, 16 ), 31, 16  );
-            core -> fdStage -> psPstate1.set( add32( valB, valX ));
+            core -> fdStage -> psPstate1.set( add32( psValB.get( ), valX ));
             
             regIdForValX    = MAX_GREGS;
             regIdForValB    = MAX_GREGS;
-            valB            = 0;
+            exStage -> psValB.set( 0 );
             valX            = 0;
             flushPipeLine( );
             
@@ -425,8 +427,10 @@ void MemoryAccessStage::process( ) {
             
         case OP_CBR: {
             
+            // ??? check this ....
+            
             regIdForValX    = MAX_GREGS;
-            valX            = add32( instrPsw1, valX );
+            valX            = add32( psPstate1.get( ), valX );
             
         } break;
             
@@ -434,8 +438,8 @@ void MemoryAccessStage::process( ) {
            
             if ( ! getBit( instr, 11 )) {
                 
-                if ( getBit( instr, 12 ))  valB = core -> cReg[ instr & 0x3C ].get( );
-                else valB = core -> sReg[ getBitField( instr, 31, 4 ) ].get( );
+                if ( getBit( instr, 12 ))  exStage -> psValB.set( core -> cReg[ instr & 0x3C ].get( ));
+                else exStage -> psValB.set( core -> sReg[ getBitField( instr, 31, 4 ) ].get( ));
             }
             
         } break;
@@ -449,9 +453,9 @@ void MemoryAccessStage::process( ) {
             
             if (getBit( instr, 12 ))
                 
-                rStat = tlbPtr -> insertTlbEntryProt( tlbSeg, getBitField( valB, 31, 30 ), valA );
+                rStat = tlbPtr -> insertTlbEntryProt( tlbSeg, getBitField( psValB.get( ), 31, 30 ),psValA.get( ) );
             else
-                rStat = tlbPtr -> insertTlbEntryAdr( tlbSeg, getBitField( valB, 31, 30 ), valA );
+                rStat = tlbPtr -> insertTlbEntryAdr( tlbSeg, getBitField( psValB.get( ), 31, 30 ), psValA.get( ) );
             
             if ( ! rStat ) {
                 
@@ -466,7 +470,7 @@ void MemoryAccessStage::process( ) {
             CpuTlb   *  tlbPtr = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
             uint32_t    tlbSeg = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
            
-            if ( ! tlbPtr -> purgeTlbEntry( tlbSeg, getBitField( valB, 31, 30 ))) {
+            if ( ! tlbPtr -> purgeTlbEntry( tlbSeg, getBitField( psValB.get( ), 31, 30 ))) {
                 
                 stallPipeLine( );
                 return;
@@ -480,7 +484,7 @@ void MemoryAccessStage::process( ) {
             L1CacheMem  *cPtr   = ( getBit( instr, 11 )) ?  core -> dCacheL1 : core -> iCacheL1;
             
             uint32_t    seg     = core -> sReg[ getBitField( instr, 27, 4 ) ].get( );
-            uint32_t    ofs     = valB;
+            uint32_t    ofs     = psValB.get( );
             
             // ??? simplify ... this is quite complex to do in one cycle ... perhaps spread over MA and EX stage
             
@@ -504,7 +508,7 @@ void MemoryAccessStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     // Data load or store. This is the second half for instructions that read or write to memory. There are
     // a couple of cases. If the segment is zero, we must be privileged. The address is "0.ofs". Otherwise
-    // we look up teh physical address via the TLB and perform the access right checks. If the physical
+    // we look up the physical address via the TLB and perform the access right checks. If the physical
     // address is in the physical memory range, we will access the cache data. The PDC memory range can only
     // be read. A write attempt is a trap. The IO range is passed to IO handler.
     //
@@ -576,7 +580,7 @@ void MemoryAccessStage::process( ) {
             
              if ( psPstate0.get( ) & ST_EXECUTION_LEVEL ) {
                  
-                 setupTrapData( DATA_MEM_PROTECT_TRAP, instrPsw0, instrPsw1, instr );
+                 setupTrapData( DATA_MEM_PROTECT_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
                  stallPipeLine( );
                  return;
              }
@@ -588,15 +592,27 @@ void MemoryAccessStage::process( ) {
         
         if ( pAdr <= core -> physMem -> getEndAdr(  )) {
             
-            if ( opCodeTab[ opCode ].flags & READ_INSTR )
-                rStat = core -> dCacheL1 -> readWord( valS, valX, pAdr, dLen, &valB );
-            else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
-                rStat = core -> dCacheL1 -> writeWord( valS, valX, pAdr, dLen, valA );
+            if ( opCodeTab[ opCode ].flags & READ_INSTR ) {
+                
+                uint32_t dataWord;
+                rStat = core -> dCacheL1 -> readWord( valS, valX, pAdr, dLen, &dataWord );
+                
+                if ( rStat ) exStage -> psValB.set( dataWord );
+            }
+            else if ( opCodeTab[ opCode ].flags & WRITE_INSTR ) {
+                
+                rStat = core -> dCacheL1 -> writeWord( valS, valX, pAdr, dLen, psValA.get( ));
+            }
         }
         else if (( pAdr >= core -> pdcMem -> getStartAdr( )) && ( pAdr <= core -> pdcMem -> getEndAdr( ))) {
             
-            if ( opCodeTab[ opCode ].flags & READ_INSTR )
-                rStat = core -> pdcMem -> readWord( 0, pAdr, 0, dLen, &valB );
+            if ( opCodeTab[ opCode ].flags & READ_INSTR ) {
+                
+                uint32_t dataWord;
+                rStat = core -> pdcMem -> readWord( 0, pAdr, 0, dLen, &dataWord );
+                
+                if ( rStat ) exStage -> psValB.set( dataWord );
+            }
             else {
                 
                 // ??? cannot write to PDC, raise a trap or HPMC ?
@@ -604,10 +620,17 @@ void MemoryAccessStage::process( ) {
         }
         else if (( pAdr >= core -> ioMem -> getStartAdr( )) && ( pAdr <= core -> ioMem -> getEndAdr( ))) {
             
-            if ( opCodeTab[ opCode ].flags & READ_INSTR )
-                rStat = core -> ioMem -> readWord( 0, pAdr, 0, dLen, &valB );
-            else if ( opCodeTab[ opCode ].flags & WRITE_INSTR )
-                rStat = core -> dCacheL1 -> writeWord( 0, pAdr, 0, dLen, valA );
+            if ( opCodeTab[ opCode ].flags & READ_INSTR ) {
+                
+                uint32_t dataWord;
+                rStat = core -> ioMem -> readWord( 0, pAdr, 0, dLen, &dataWord );
+                
+                if ( rStat ) exStage -> psValB.set( dataWord );
+            }
+            else if ( opCodeTab[ opCode ].flags & WRITE_INSTR ) {
+                
+                rStat = core -> dCacheL1 -> writeWord( 0, pAdr, 0, dLen, psValA.get( ));
+            }
         }
         else {
             
@@ -626,10 +649,11 @@ void MemoryAccessStage::process( ) {
     // Pass the data to the EX stage pipeline.
     //
     //--------------------------------------------------------------------------------------------------------
-    core -> exStage -> psInstr.set( instr );
-    core -> exStage -> psPstate0.set( instrPsw0 );
-    core -> exStage -> psPstate1.set( instrPsw1 );
-    core -> exStage -> psValA.set( valA );
-    core -> exStage -> psValB.set( valB );
+    exStage -> psInstr.set( psInstr.get( ));
+    exStage -> psPstate0.set( psPstate0.get( ));
+    exStage -> psPstate1.set( psPstate1.get( ));
+  
+   
+    core -> exStage -> psValS.set( valS );
     core -> exStage -> psValX.set( valX );
 }
