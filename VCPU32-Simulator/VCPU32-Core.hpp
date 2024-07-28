@@ -251,12 +251,18 @@ public:
     void        set( uint32_t val );
     uint32_t    get( );
     
-    uint32_t    getBit( int pos );
+    bool        getBit( int pos );
+    void        setBit( int pos );
     void        setBit( bool val, int pos );
+    void        clearBit( int pos );
     
     uint32_t    getBitField( int pos, int len, bool sign = false );
     void        setBitField( uint32_t val, int pos, int len );
-    
+    void        setBitField( int pos, int len );
+    void        clearBitField( int pos, int len );
+    void        orBitField( uint32_t val, int pos, int len  );
+    void        andBitField( uint32_t val, int pos, int len  );
+   
     bool        isPrivReg( );
     
 private:

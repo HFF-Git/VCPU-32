@@ -1221,13 +1221,13 @@ void DrvWinPipeLineRegs::drawBody( ) {
         printTextField((char *) "MA:   ", ( fmtDesc | FMT_ALIGN_LFT | FMT_BOLD ), 8 );
     
     printTextField((char *) "PSW:",  ( fmtDesc | FMT_ALIGN_LFT ), 5 );
-    printNumericField( getBitField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0 ), 15, 16 ),
+    printNumericField( getBitField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_0 ), 15, 16 ),
                       ( fmtDesc | FMT_HALF_WORD ));
     printTextField(( char *) ":", ( fmtDesc | FMT_ALIGN_LFT ));
-    printNumericField( getBitField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0 ), 31, 16 ),
+    printNumericField( getBitField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_0 ), 31, 16 ),
                       ( fmtDesc | FMT_HALF_WORD ));
     printTextField(( char *) "." );
-    printNumericField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ) );
+    printNumericField( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_1 ) );
     padLine( fmtDesc );
     
     printTextField(( char *) "  I: " );
@@ -1248,13 +1248,13 @@ void DrvWinPipeLineRegs::drawBody( ) {
         printTextField((char *) "EX:   ", ( fmtDesc | FMT_ALIGN_LFT | FMT_BOLD ), 8 );
     
     printTextField((char *) "PSW:",  ( fmtDesc | FMT_ALIGN_LFT ), 5 );
-    printNumericField( getBitField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0 ), 15, 16 ),
+    printNumericField( getBitField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_0 ), 15, 16 ),
                       ( fmtDesc | FMT_HALF_WORD ));
     printTextField(( char *) ":", ( fmtDesc | FMT_ALIGN_LFT ));
-    printNumericField( getBitField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0 ), 31, 16 ),
+    printNumericField( getBitField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_0 ), 31, 16 ),
                       ( fmtDesc | FMT_HALF_WORD ));
     printTextField(( char *) "." );
-    printNumericField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ) );
+    printNumericField( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_1 ) );
     padLine( fmtDesc );
     
     printTextField(( char *) "  I: " );

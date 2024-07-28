@@ -183,6 +183,11 @@ bool FetchDecodeStage::dependencyValA( uint32_t instr, uint32_t regId ) {
             return((( mode == 1 ) || ( mode == 2 )) && ( getBitField( instr, 27, 4 ) == regId ));
         }
             
+        case OP_DEP: {
+            
+            return(( ! getBit( instr, 10 )) ? ( getBitField( instr, 9, 4 ) == regId ) : false );
+        }
+            
         case OP_DSR:    case OP_SHLA:   case OP_CMR:    case OP_BVE:    case OP_CBR:    case OP_CBRU:
         case OP_LDPA:   case OP_PRB:    case OP_PTLB:   case OP_PCA:    case OP_DIAG: {
         
@@ -702,7 +707,7 @@ void FetchDecodeStage::process( ) {
                 }
             }
             
-            psPstate0.setBit( 1, ST_EXECUTION_LEVEL );
+            psPstate0.setBit( ST_EXECUTION_LEVEL );
             
         } break;
             

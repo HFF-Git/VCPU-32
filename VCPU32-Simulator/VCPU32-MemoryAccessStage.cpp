@@ -430,6 +430,12 @@ void MemoryAccessStage::process( ) {
             
         } break;
             
+        case OP_LSID: {
+            
+            exStage -> psValB.set( core -> sReg[ getBitField( instr, 31, 3 ) ].get( ));
+            
+        } break;
+            
         case OP_GATE: {
             
             core -> fdStage -> psPstate0.set( psPstate0.get( ));

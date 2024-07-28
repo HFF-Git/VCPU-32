@@ -72,7 +72,7 @@ uint32_t CpuReg::get( ) {
     return( regOut );
 }
 
-uint32_t CpuReg::getBit( int pos ) {
+bool CpuReg::getBit( int pos ) {
     
    return( getBitField( pos, 1 ));
 }
@@ -82,16 +82,14 @@ void CpuReg::setBit( bool val, int pos ) {
     setBitField( val, pos, 1 );
 }
 
-uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
+void CpuReg::setBit( int pos ) {
     
-    pos = pos % 32;
-    len = len % 32;
+    setBitField( 1, pos, 1 );
+}
+
+void CpuReg::clearBit( int pos ) {
     
-    uint32_t tmpM = ( 1U << len ) - 1;
-    uint32_t tmpA = arg >> ( 31 - pos );
-    
-    if ( sign ) return( tmpA | ( ~ tmpM ));
-    else        return( tmpA & tmpM );
+    setBitField( 0, pos, 1 );
 }
 
 uint32_t CpuReg::getBitField( int pos, int len, bool sign ) {
@@ -116,6 +114,40 @@ void CpuReg::setBitField( uint32_t val, int pos, int len ) {
     val = ( val & tmpM ) << ( 31 - pos );
     
     regIn = ( regIn & ( ~tmpM )) | val;
+}
+
+void  CpuReg::setBitField( int pos, int len ) {
+    
+    setBitField( 1, pos, len );
+}
+
+void  CpuReg::clearBitField( int pos, int len ) {
+    
+    setBitField( 0, pos, len );
+}
+
+void CpuReg::orBitField( uint32_t val, int pos, int len ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    
+    val = ( val & tmpM ) << ( 31 - pos );
+    
+    regIn = regIn | val;
+}
+
+void  CpuReg::andBitField( uint32_t val, int pos, int len  ) {
+    
+    pos = pos % 32;
+    len = len % 32;
+    
+    uint32_t tmpM = ( 1U << len ) - 1;
+    
+    val = ( val & tmpM ) << ( 31 - pos );
+    
+    regIn = regIn & ( ~ val );
 }
 
 bool CpuReg::isPrivReg( ) {
