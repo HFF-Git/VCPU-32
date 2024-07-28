@@ -204,8 +204,6 @@ void ExecuteStage::setStalled( bool arg ) {
 //------------------------------------------------------------------------------------------------------------
 void ExecuteStage::flushPipeLine( ) {
     
-    psPstate0.set( instrPsw0 );
-    psPstate1.set( instrPsw1 );
     psInstr.set( NOP_INSTR );
     psValA.set( 0 );
     psValB.set( 0 );
@@ -321,10 +319,10 @@ bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessMode
 // stages to do our work here. The MA stage receives the register IDs via the pipeline register update and
 // also stores the in local fields to be examined for hazard detection.
 //
-// For the TBR and CBR conditional branch instructions, we need to evaluate the condition and then compare
-// the result to the branch prediction decision taken in the FD stage. If we mispredicted the pipeline needs
-// to be flushed and instruction fetching continues from the alternate address passed forward through the
-// X register.
+// For the CBR conditional branch instruction, we need to evaluate the condition and then compare the result
+// to the branch prediction decision taken in the FD stage. If we mispredicted the pipeline needs to be
+// flushed and instruction fetching continues from the alternate address passed forward through the pipleine
+// "X" register.
 //
 // This routine will so far not stall the pipeline but certainly it can trap. When a trap occurs, the pipeline
 // is flushed and the procedure returns rightaway. This is consistent with the other stages. The "clockStep"
@@ -336,16 +334,16 @@ bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessMode
 //------------------------------------------------------------------------------------------------------------
 void ExecuteStage::process( ) {
     
-    instrPsw0       = psPstate0.get( );
-    instrPsw1       = psPstate1.get( );
-    instr           = psInstr.get( );
-    valA            = psValA.get( );
-    valB            = psValB.get( );
-    valX            = psValX.get( );
-    valR            = 0;
-    regIdForValR    = MAX_GREGS;
-    
-    uint8_t opCode  = getBitField( psInstr.get( ), 5, 6 );
+    uint32_t    instrPsw0       = psPstate0.get( );
+    uint32_t    instrPsw1       = psPstate1.get( );
+    uint32_t    instr           = psInstr.get( );
+    uint8_t     opCode          = getBitField( psInstr.get( ), 5, 6 );
+    uint32_t    valA            = psValA.get( );
+    uint32_t    valB            = psValB.get( );
+    uint32_t    valX            = psValX.get( );
+    uint8_t     regIdForValR    = MAX_GREGS;
+    uint32_t    valR            = 0;
+    bool        valCarry        = false;
     
     setStalled( false );
     
@@ -569,6 +567,8 @@ void ExecuteStage::process( ) {
             
         case OP_CBR: {
             
+            // ??? where do we get "branchtaken" from ? from the instruction ?
+            
             if (( compareCond( instr, valA, valB )) != ( branchTaken )) {
                 
                 core -> fdStage -> psPstate0.set( instrPsw0 );
@@ -657,6 +657,7 @@ void ExecuteStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     // Commit stage.
     //
+    // ??? what about the status bits ?
     //--------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {
         
@@ -682,20 +683,17 @@ void ExecuteStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     // Bypass logic.
     //
-    // ??? what about the status bits ?
-    //
-    // ??? can we write a routine that detects the potetntial bypass need from the instruction vs. passing
-    // register IDs ?
     //--------------------------------------------------------------------------------------------------------
-    FetchDecodeStage *fdStage   = core -> fdStage;
-    MemoryAccessStage *maStage  = core -> maStage;
-    
     if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {
         
-        if ( fdStage -> regIdForValA == regIdForValR ) maStage -> psValA.set( valR );
-        if ( fdStage -> regIdForValB == regIdForValR ) maStage -> psValB.set( valR );
-        if ( fdStage -> regIdForValX == regIdForValR ) maStage -> psValX.set( valR );
-        if ( maStage -> regIdForValA == regIdForValR ) psValA.set( valR );
-        if ( maStage -> regIdForValB == regIdForValR ) psValB.set( valR );
+        FetchDecodeStage *fdStage   = core -> fdStage;
+        MemoryAccessStage *maStage  = core -> maStage;
+        
+        if ( fdStage -> dependencyValA( instr, regIdForValR )) maStage -> psValA.set( valR );
+        if ( fdStage -> dependencyValB( instr, regIdForValR )) maStage -> psValB.set( valR );
+        if ( fdStage -> dependencyValX( instr, regIdForValR )) maStage -> psValX.set( valR );
+        
+        if ( maStage -> dependencyValA( instr, regIdForValR )) psValA.set( valR );
+        if ( maStage -> dependencyValB( instr, regIdForValR )) psValB.set( valR );
     }
 }

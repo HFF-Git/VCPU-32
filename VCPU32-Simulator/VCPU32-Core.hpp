@@ -612,14 +612,14 @@ public:
     void            setPipeLineReg( uint8_t pReg, uint32_t val );
     
     bool            checkProtectId( uint16_t segId );
-   
+    
+    bool            dependencyValA( uint32_t instr, uint32_t regId );
+    bool            dependencyValB( uint32_t instr, uint32_t regId );
+    bool            dependencyValX( uint32_t instr, uint32_t regId );
+    
     CpuReg          psPstate0;
     CpuReg          psPstate1;
-    
-    uint8_t         regIdForValA;
-    uint8_t         regIdForValB;
-    uint8_t         regIdForValX;
- 
+   
     uint32_t        instrFetched;
     uint32_t        instrLoad;
     uint32_t        instrLoadViaOpMode;
@@ -631,8 +631,6 @@ private:
     
     struct CpuCore  *core   = nullptr;
     bool            stalled = false;
-    
-    uint32_t        instr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -678,20 +676,15 @@ public:
     
     bool            checkProtectId( uint16_t segId );
     
+    bool            dependencyValA( uint32_t instr, uint32_t regId );
+    bool            dependencyValB( uint32_t instr, uint32_t regId );
+    
     CpuReg          psPstate0;
     CpuReg          psPstate1;
     CpuReg          psInstr;
     CpuReg          psValA;
     CpuReg          psValB;
     CpuReg          psValX;
-    
-    CpuReg          psRegIdForValA;
-    CpuReg          psRegIdForValB;
-    CpuReg          psRegIdForValX;
-    
-    uint8_t         regIdForValA;
-    uint8_t         regIdForValB;
-    uint8_t         regIdForValX;
     
     uint32_t        instrPrivLevel;
     uint32_t        trapsRaised;
@@ -727,11 +720,11 @@ public:
     void            setPipeLineReg( uint32_t pReg, uint32_t val );
     
     void            setupTrapData( uint32_t trapId,
-                                  uint32_t psw0,
-                                  uint32_t psw1,
-                                  uint32_t p1 = 0,
-                                  uint32_t p2 = 0,
-                                  uint32_t p3 = 0 );
+                                  uint32_t  psw0,
+                                  uint32_t  psw1,
+                                  uint32_t  p1 = 0,
+                                  uint32_t  p2 = 0,
+                                  uint32_t  p3 = 0 );
     
     CpuReg          psPstate0;
     CpuReg          psPstate1;
@@ -740,10 +733,7 @@ public:
     CpuReg          psValB;
     CpuReg          psValX;
     CpuReg          psValS;
-    
-    uint8_t         regIdForValR;
-    uint32_t        valR;
-    
+
     uint32_t        instrExecuted;
     uint32_t        branchesTaken;
     uint32_t        branchesNotTaken;
@@ -753,16 +743,7 @@ private:
     
     CpuCore         *core       = nullptr;
     bool            stalled     = false;
-    
-    uint32_t        instrPsw0;
-    uint32_t        instrPsw1;
-    uint32_t        instr;
-    uint32_t        valA;
-    uint32_t        valB;
-    uint32_t        valX;
     uint32_t        branchTaken;
-    bool            valCarry;
-    
 };
 
 //------------------------------------------------------------------------------------------------------------

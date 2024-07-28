@@ -155,25 +155,19 @@ void CpuCore::reset( ) {
 // For example, the FD stage will take as inputs the instruction address registers and writes its instrcution
 // decoding results to the FD/MA pipeline registers.
 //
-// On the next "tick" all latched inputs in the registers then become the regioster output and thus the input
+// On the next "tick" all latched inputs in the registers then become the register output and thus the input
 // for the next round of component "process". In our example, the FD/MA pipelne registers are the input to
 // the MA pipeline stage.
 //
-// Note: we could have done also first the "ticks" group and then the "process" group. It is just a matter of
-// what the step will mean. Since the simulator does show the ouput of any register in the display commands,
-// it is better to define a step as "take the ouputs of the previous stage register for processing, do the
-// processing and store any result in the latch input of the registers and then do the tick to make the
-// results visible".
-//
-// Finally there is the order processing. Although it should not matter, it infortunately does for the
-// simulator. We cannot easily model selection and arbritation. For example, if the two L1 caches make a
+// Finally there is the order of processing itself. Although it should not matter, it unfortunately does for
+// the simulator. We cannot easily model selection and arbitation. For example, if the two L1 caches make a
 // request to the IDLE L2 cache, there needs to be an order. The L1 caches have a priority number which
 // decides which request will be passed the L2 cache. If the L2 cache however is "processed" before the
 // L1 caches, the request will only be recognized in the next clock cycle. This is not what we want to
 // model with respect to latency. So, the order mshould be: pipeline, L1, L2, MEM types. The "tick" order
 // does not matter. It will just update all registers in teh components, just as intended.
 //
-// ??? not sure if the "handle traps" should come right after the pripelines ?
+// ??? not sure if the "handle traps" should come right after the pipelines ?
 //------------------------------------------------------------------------------------------------------------
 void CpuCore::clockStep( uint32_t numOfSteps ) {
  
@@ -215,6 +209,52 @@ void CpuCore::clockStep( uint32_t numOfSteps ) {
         stats.clockCntr++;
         
         numOfSteps = numOfSteps - 1;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Trap handling. This routine is called after the processing of the EX pipeline stage. Any trap that occured
+// in the pipeline will set the trap data in the control registers. The trapping instruction itself will
+// be changed to a NOP and work its way through the pipelines as a NOP. Any trap that is caused by an earlier
+// instruction will overwrite the trap data. In the end we will have the traps in the right order showing up
+// after the EX stage. This scheme works because the stages are called in the order FD, MA and EX. For
+// example: a trap in FD stage will set the data. At the same clock cycle the MA stage of the previous
+// instruction will also raise a trap and just overwrite the trap data. And finally, suppose there is
+// also a trap in the EX stage. Then the EX stage will just overwrite. Either case we end up with the trap
+// to handle first. In other words we implement the precise trap handling model.
+//
+// The trap handler will first detect that there is a trap to handle. This is done by checking the trap ID.
+// Next, the address of the trapped instruction is compared with the instruction address of the address in
+// the EX stage. If they match, the trapping instruction has passed the EX stage. We compute the trap handler
+// instruction address and set the IA registers of the FD pipeline register to it. Also, the program status
+// word is cleared. We are now running in absolute mode and privileged with translation disabled. What is left
+// to do is to flush the pipeline. The instructions that entered the pipeline after the trapping instruction
+// are "bubbled" by setting the instruction field of the MA and EX stage to NOP. There could be the case the
+// pipeline as stalled when the trap is detected in an instruction that still is ahead of the stall. Just in
+// case, we resume all stages. Phew.
+//
+// Note: one day we may expand to handle external interrupts... this would follow the same logic.
+//------------------------------------------------------------------------------------------------------------
+void CpuCore::handleTraps( ) {
+    
+    if (( cReg[ CR_TEMP_1 ].get( ) != NO_TRAP ) &&
+        ( cReg[ CR_TRAP_PSW_0 ].get( ) == exStage -> psPstate0.get( )) &&
+        ( cReg[ CR_TRAP_PSW_1 ].get( ) == exStage -> psPstate1.get( ))) {
+        
+        uint32_t trapHandlerOfs = 0;
+        
+        if ( cReg[ CR_TEMP_1 ].get( ) < MAX_TRAP_ID ) {
+            
+            trapHandlerOfs = cReg[ CR_TRAP_VECTOR_ADR ].get( ) + cReg[ CR_TEMP_1 ].get( ) * TRAP_CODE_BLOCK_SIZE;
+        }
+        
+        fdStage -> psPstate0.set( 0 ); // ??? also set all status bits to zero ?
+        fdStage -> psPstate0.set( trapHandlerOfs );
+        fdStage -> setStalled( false );
+        maStage -> psInstr.set( 0 );  // ??? what to really set ...
+        maStage -> setStalled ( false );
+        exStage -> psInstr.set( 0 );  // ??? what to really set ...
+        exStage -> setStalled( false );
     }
 }
 
@@ -327,48 +367,3 @@ void CpuCore::setReg( RegClass regClass, uint8_t regNum, uint32_t val ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
-// Trap handling. This routine is called after the processing of the EX pipeline stage. Any trap that occured
-// in the pipeline will set the trap data in the control registers. The trapping instruction itself will
-// be changed to a NOP and work its way through the pipelines as a NOP. Any trap that is caused by an earlier
-// instruction will overwrite the trap data. In the end we will have the traps in the right order showing up
-// after the EX stage. This scheme works because the stages are called in the order FD, MA and EX. For
-// example: a trap in FD stage will set the data. At the same clock cycle the MA stage of the previous
-// instruction will also raise a trap and just overwrite the trap data. And finally, suppose there is
-// also a trap in the EX stage. Then the EX stage will just overwrite. Either case we end up with the trap
-// to handle first. In other words we implement the precise trap handling model.
-//
-// The trap handler will first detect that there is a trap to handle. This is done by checking the trap ID.
-// Next, the address of the trapped instruction is compared with the instruction address of the address in
-// the EX stage. If they match, the trapping instruction has passed the EX stage. We compute the trap handler
-// instruction address and set the IA registers of the FD pipeline register to it. Also, the program status
-// word is cleared. We are now running in absolute mode and privileged with translation disabled. What is left
-// to do is to flush the pipeline. The instructions that entered the pipeline after the trapping instruction
-// are "bubbled" by setting the instruction field of the MA and EX stage to NOP. There could be the case the
-// pipeline as stalled when the trap is detected in an instruction that still is ahead of the stall. Just in
-// case, we resume all stages. Phew.
-//
-// Note: one day we may expand to handle external interrupts... this would follow the same logic.
-//------------------------------------------------------------------------------------------------------------
-void CpuCore::handleTraps( ) {
-    
-    if (( cReg[ CR_TEMP_1 ].get( ) != NO_TRAP ) &&
-        ( cReg[ CR_TRAP_PSW_0 ].get( ) == exStage -> psPstate0.get( )) &&
-        ( cReg[ CR_TRAP_PSW_1 ].get( ) == exStage -> psPstate1.get( ))) {
-        
-        uint32_t trapHandlerOfs = 0;
-        
-        if ( cReg[ CR_TEMP_1 ].get( ) < MAX_TRAP_ID ) {
-            
-            trapHandlerOfs = cReg[ CR_TRAP_VECTOR_ADR ].get( ) + cReg[ CR_TEMP_1 ].get( ) * TRAP_CODE_BLOCK_SIZE;
-        }
-        
-        fdStage -> psPstate0.set( 0 ); // ??? also set all status bits to zero ?
-        fdStage -> psPstate0.set( trapHandlerOfs );
-        fdStage -> setStalled( false );
-        maStage -> psInstr.set( 0 );  // ??? what to really set ...
-        maStage -> setStalled ( false );
-        exStage -> psInstr.set( 0 );  // ??? what to really set ...
-        exStage -> setStalled( false );
-    }
-}

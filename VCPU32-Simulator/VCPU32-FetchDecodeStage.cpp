@@ -102,34 +102,6 @@ uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
     return ( arg1 + arg2 );
 }
 
-//------------------------------------------------------------------------------------------------------------
-// Instructions that will do computation in the MA stage may run into the case that the register content is
-// just produced by the preceeding instruction. This value has not been written back and hence we cannot
-// continue until the result is in reach via a simple bypass from the EX stage. This routine will test our
-// instruction currently decoded for being one that depends on the latest register content. In general these
-// are all instructions that do address arithmetic using the B and X pipeline fields, or the A field for some
-// branch instructions.
-//
-// ??? Explain ... better .... Has to do with MA stage consuming B and X and we need to wait for the correct
-// B and X to arrive if needed...
-//
-// ??? anything special to do for REG 0 ?
-//
-// ??? what about the status register bits ? Same issue ?
-//------------------------------------------------------------------------------------------------------------
-bool maStageConsumesRegValBorX( uint32_t instr ) {
-    
-    uint8_t opCode = getBitField( instr, 5, 6 );
-    uint8_t opMode = getBitField( instr, 13, 2 );
-    
-    return (( opCode == OP_B )      ||  ( opCode == OP_BR )     ||  ( opCode == OP_BV )     ||
-            ( opCode == OP_BE )     ||  ( opCode == OP_LD )     ||  ( opCode == OP_LDA )    ||
-            ( opCode == OP_LDR )    ||  ( opCode == OP_ST )     || ( opCode == OP_STC )     ||
-            ( opCode == OP_STA )    ||  ( opCode == OP_ITLB )   || ( opCode == OP_PTLB )    ||
-            ( opCode == OP_PCA )    ||
-            (( opCodeTab[ opCode ].flags & OP_MODE_INSTR ) && ( opMode > 0 )));
-}
-
 }; // namespace
 
 //------------------------------------------------------------------------------------------------------------
@@ -178,9 +150,6 @@ void FetchDecodeStage::stallPipeLine( ) {
     core -> maStage -> psPstate0.set( psPstate0.get( ));
     core -> maStage -> psPstate1.set( psPstate1.get( ));
     core -> maStage -> psInstr.set( NOP_INSTR );
-    core -> maStage -> psRegIdForValA.set( MAX_GREGS );
-    core -> maStage -> psRegIdForValB.set( MAX_GREGS );
-    core -> maStage -> psRegIdForValX.set( MAX_GREGS );
     core -> maStage -> psValA.set( 0 );
     core -> maStage -> psValB.set( 0 );
     core -> maStage -> psValX.set( 0 );
@@ -194,6 +163,102 @@ bool FetchDecodeStage::isStalled( ) {
 void FetchDecodeStage::setStalled( bool arg ) {
     
     stalled = arg;
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "dependencyValA" checks if the instruction will fetch a value from the general register file intended to
+// be stored in pipeline register "A". If that is the case, the execute stage will store its computed value
+// to the pipeline register so that we have the correct value.
+//
+//------------------------------------------------------------------------------------------------------------
+bool FetchDecodeStage::dependencyValA( uint32_t instr, uint32_t regId ) {
+    
+    switch ( getBitField( instr, 5, 6 )) {
+            
+        case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
+        case OP_XOR:    case OP_CMP:    case OP_CMPU: {
+            
+            uint32_t mode = getBitField( instr, 13, 2 );
+            
+            return((( mode == 1 ) || ( mode == 2 )) && ( getBitField( instr, 27, 4 ) == regId ));
+        }
+            
+        case OP_DSR:    case OP_SHLA:   case OP_CMR:    case OP_BVE:    case OP_CBR:    case OP_CBRU:
+        case OP_LDPA:   case OP_PRB:    case OP_PTLB:   case OP_PCA:    case OP_DIAG: {
+        
+            return( getBitField( instr, 27, 4 ) == regId );
+        }
+            
+       case OP_ST:     case OP_STA: {
+            
+            return( getBitField( instr, 9, 4 ) == regId );
+        }
+            
+        default: return ( false );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "dependencyValB" checks if the instruction will fetch a value from the general register file intended to
+// be stored in pipeline register "B". If that is the case, the execute stage will store its computed value
+// to the pipeline register so that we have the correct value.
+//
+//------------------------------------------------------------------------------------------------------------
+bool FetchDecodeStage::dependencyValB( uint32_t instr, uint32_t regId ) {
+    
+    switch ( getBitField( instr, 5, 6 )) {
+            
+        case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
+        case OP_XOR:    case OP_CMP:    case OP_CMPU: {
+            
+            uint32_t mode = getBitField( instr, 13, 2 );
+            
+            return((( mode == 1 ) || ( mode == 2 )) && ( getBitField( instr, 31, 4 ) == regId ));
+        }
+            
+        case OP_LSID:   case OP_EXTR:   case OP_DEP:    case OP_DSR:    case OP_SHLA:   case OP_CMR:
+        case OP_LDO:    case OP_LD:     case OP_ST:     case OP_LDA:    case OP_STA:    case OP_LDR:
+        case OP_STC:    case OP_BV:     case OP_BE:     case OP_BVE:    case OP_CBR:    case OP_CBRU:
+        case OP_MST:    case OP_LDPA:   case OP_PRB:    case OP_ITLB:   case OP_PTLB:   case OP_PCA:
+        case OP_DIAG: {
+            
+            return( getBitField( instr, 31, 4 ) == regId );
+        }
+            
+        default: return ( false );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "dependencyValX" checks if the instruction will fetch a value from the general register file intended to
+// be stored in pipeline register "X". If that is the case, the execute stage will store its computed value
+// to the pipeline register so that we have the correct value.
+//
+//------------------------------------------------------------------------------------------------------------
+bool FetchDecodeStage::dependencyValX( uint32_t instr, uint32_t regId ) {
+    
+    switch ( getBitField( instr, 5, 6 )) {
+            
+        case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
+        case OP_XOR:    case OP_CMP:    case OP_CMPU: {
+            
+            uint32_t mode = getBitField( instr, 13, 2 );
+            
+            return(( mode == 2 ) && ( getBitField( instr, 27, 4 ) == regId ));
+        }
+            
+        case OP_BR: {
+            
+            return( getBitField( instr, 31, 4 ) == regId );
+        }
+            
+        case OP_BVE: {
+            
+            return( getBitField( instr, 27, 4 ) == regId );
+        }
+        
+        default: return ( false );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -342,11 +407,7 @@ void FetchDecodeStage::process( ) {
     uint32_t            pOfs            = psPstate1.getBitField( 31, PAGE_SIZE_BITS );
     TlbEntry            *tlbEntryPtr    = nullptr;
     MemoryAccessStage   *maStage        = core -> maStage;
-    
-    regIdForValA    = MAX_GREGS;
-    regIdForValB    = MAX_GREGS;
-    regIdForValX    = MAX_GREGS;
-    uint32_t instr           = NOP_INSTR;
+    uint32_t            instr           = NOP_INSTR;
     
     maStage -> psValA.set( 0 );
     maStage -> psValB.set( 0 );
@@ -497,23 +558,17 @@ void FetchDecodeStage::process( ) {
                     
                 case OP_MODE_REG: {
                     
-                    regIdForValA    = getBitField( instr, 27, 4 );
-                    regIdForValB = getBitField( instr, 31, 4 );
-                    maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
-                    maStage -> psValB.set(core -> gReg[ regIdForValB ].get( ));
+                    maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
+                    maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
                     
                 } break;
                     
                
                 case OP_MODE_REG_INDX: {
                     
-                    regIdForValA    = getBitField( instr, 9, 4 );
-                    regIdForValB    = getBitField( instr, 31, 4 );
-                    regIdForValX    = getBitField( instr, 27,4 );
-                    
-                    maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
-                    maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
-                    maStage -> psValX.set( core -> gReg[ regIdForValX ].get( ));
+                    maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
+                    maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+                    maStage -> psValX.set( core -> gReg[ getBitField( instr, 27,4 ) ].get( ));
                     
                 } break;
                     
@@ -521,13 +576,10 @@ void FetchDecodeStage::process( ) {
                     
                     if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
                         
-                        regIdForValA = getBitField( instr, 9, 4 );
-                        maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
+                        maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
                     }
                     
-                    regIdForValB = getBitField( instr, 31, 4 );
-                    maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
-                
+                    maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
                     maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
                     
                 } break;
@@ -536,78 +588,64 @@ void FetchDecodeStage::process( ) {
         } break;
             
         case OP_ADDIL: {
-            
-            regIdForValA = getBitField( instr, 9, 4 );
-            maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
-                                  
-            maStage -> psValA.set( getBitField( instr, 31, 22 ) << 10 );
+        
+            maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
+            maStage -> psValB.set( getBitField( instr, 31, 22 ) << 10 );
             
         } break;
             
         case OP_B: {
           
             maStage -> psValB.set( psPstate1.get( ));
-            maStage -> psValB.set( immGenLowSign( instr, 31, 22 ) << 2 );
+            maStage -> psValX.set( immGenLowSign( instr, 31, 22 ) << 2 );
             
         } break;
             
         case OP_BE: {
             
-            regIdForValB = getBitField( instr, 31, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( immGenLowSign( instr, 23, 14 ) << 2 );
             
         } break;
             
         case OP_BR: {
             
-            regIdForValB = getBitField( instr, 31, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
-            maStage -> psValB.set( psPstate1.get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( psPstate1.get( ));
             
         } break;
             
         case OP_BRK: {
             
             maStage -> psValA.set( getBitField( instr, 9, 4 ));
-            maStage -> psValA.set( getBitField( instr, 31, 16 ));
+            maStage -> psValB.set( getBitField( instr, 31, 16 ));
          
         } break;
             
         case OP_BV: {
             
-            regIdForValB = getBitField( instr, 31, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
         } break;
             
         case OP_BVE: {
-            
-            regIdForValB = getBitField( instr, 31, 4 );
-            regIdForValX = getBitField( instr, 27, 4 );
-            
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
-            maStage -> psValX.set( core -> gReg[ regIdForValX ].get( ));
+        
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
            
         } break;
             
         case OP_CBR:    case OP_CBRU: {
             
-            regIdForValA = getBitField( instr, 27, 4 );
-            regIdForValB = getBitField( instr, 31, 4 );
-           
-            maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
         } break;
             
         case OP_CMR: {
-            
-            regIdForValA = getBitField( instr, 27, 4 );
-            regIdForValB = getBitField( instr, 31, 4 );
-            
-            maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+       
+            maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
         } break;
             
@@ -615,14 +653,12 @@ void FetchDecodeStage::process( ) {
             
             if ( ! getBit( instr, 10 )) {
                 
-                regIdForValA = getBitField( instr, 9, 4 );
-                maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
+                maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
             }
             
             if ( ! getBit( instr, 12 )) {
                 
-                regIdForValB = getBitField( instr, 31, 4 );
-                maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+                maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             }
             else maStage -> psValB.set( getBitField( instr, 31, 4 ));
             
@@ -630,26 +666,21 @@ void FetchDecodeStage::process( ) {
             
         case OP_DIAG: {
             
-            regIdForValA = getBitField( instr, 27, 4 );
-            regIdForValB = getBitField( instr, 31, 4 );
-            maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
         } break;
             
         case OP_DSR: {
             
-            regIdForValA = getBitField( instr, 27, 4 );
-            regIdForValB = getBitField( instr, 31, 4 );
-            maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
         } break;
             
         case OP_EXTR: {
             
-            regIdForValB    = getBitField( instr, 31, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
         } break;
             
@@ -667,7 +698,6 @@ void FetchDecodeStage::process( ) {
                
                 if ( tlbEntryPtr -> tPageType( ) == 3 ) {
             
-                    
                     psPstate0.setBit( tlbEntryPtr -> tPrivL1( ), ST_EXECUTION_LEVEL );
                 }
             }
@@ -678,20 +708,17 @@ void FetchDecodeStage::process( ) {
             
         case OP_ITLB: {
             
-            regIdForValB = getBitField( instr, 31, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
            
         } break;
             
         case OP_LD: case OP_LDA: {
             
-            regIdForValB    = getBitField( instr, 31, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
             if ( getBit( instr, 10 )) {
-                
-                regIdForValX    = getBitField( instr, 27, 4 );
-                maStage -> psValX.set( core -> gReg[ regIdForValX ].get( ));
+            
+                maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             }
             else maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
             
@@ -705,35 +732,28 @@ void FetchDecodeStage::process( ) {
             
         case OP_LDO: {
             
-            regIdForValB = getBitField( instr, 31, 4 );
-          
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( immGenLowSign( instr, 27, 18 ));
             
         } break;
             
         case OP_LDPA: {
             
-            regIdForValB = getBitField( instr, 31, 4 );
-            regIdForValX = getBitField( instr, 27, 4 );
-          
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
-            maStage -> psValX.set( core -> gReg[ regIdForValX ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             
         } break;
             
         case OP_LDR: {
             
-            regIdForValB = getBitField( instr, 31, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
             
         } break;
             
         case OP_LSID: {
             
-            regIdForValB = getBitField( instr, 31, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
         } break;
             
@@ -741,8 +761,7 @@ void FetchDecodeStage::process( ) {
             
             if ( getBit( instr, 11 )) {
                 
-                regIdForValB = getBitField( instr, 9, 4 );
-                maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+                maStage -> psValB.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
             }
             
         } break;
@@ -753,8 +772,7 @@ void FetchDecodeStage::process( ) {
                     
                 case 0: {
                     
-                    regIdForValB = getBitField( instr, 9, 4 );
-                    maStage -> psValB.setBitField( core -> gReg[ regIdForValB ].get( ), 31, 6 );
+                    maStage -> psValB.setBitField( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ), 31, 6 );
                     
                 } break;
                     
@@ -776,22 +794,18 @@ void FetchDecodeStage::process( ) {
             
         case OP_PCA: {
             
-            regIdForValB    = getBitField( instr, 31, 4 );
-            regIdForValX    = getBitField( instr, 27, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
-            maStage -> psValX.set( core -> gReg[ regIdForValX ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
            
         } break;
             
         case OP_PRB: {
-            
-            regIdForValB = getBitField( instr, 31, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+    
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
             if ( ! getBit( instr, 11 )) {
                 
-                regIdForValA = getBitField( instr, 27, 4 );
-                maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
+                maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             }
             else maStage -> psValX.setBit( 31, getBit( instr, 27 ));
         
@@ -799,10 +813,8 @@ void FetchDecodeStage::process( ) {
             
         case OP_PTLB: {
             
-            regIdForValB    = getBitField( instr, 31, 4 );
-            regIdForValX    = getBitField( instr, 27, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
-            maStage -> psValX.set( core -> gReg[ regIdForValX ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
            
         } break;
             
@@ -813,27 +825,20 @@ void FetchDecodeStage::process( ) {
         } break;
           
         case OP_SHLA:{
-            
-            regIdForValA = getBitField( instr, 27, 4 );
-            regIdForValB = getBitField( instr, 31, 4 );
-            
-            maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+         
+            maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
         } break;
             
         case OP_ST: case OP_STA: {
             
-            regIdForValA = getBitField( instr, 9, 4 );
-            maStage -> psValA.set( core -> gReg[ regIdForValA ].get( ));
-            
-            regIdForValB    = getBitField( instr, 31, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
+            maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
             if ( getBit( instr, 10 )) {
                 
-                regIdForValX    = getBitField( instr, 27, 4 );
-                maStage -> psValX.set( core -> gReg[ regIdForValX ].get( ));
+                maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             }
             else maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
           
@@ -841,9 +846,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_STC: {
             
-            regIdForValB    = getBitField( instr, 31, 4 );
-            maStage -> psValB.set( core -> gReg[ regIdForValB ].get( ));
-            
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
             
         } break;
@@ -856,21 +859,26 @@ void FetchDecodeStage::process( ) {
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Stall for instructions that will modify a general register that we depend on in the next stage.
+    // Instructions that will do computation in the MA stage with the valB and ValX may run into the case that
+    // the register content is just produced by the preceeding instruction. In other words, the EX stage
+    // is about to compute the new value while we are in the fetch stage for the follow-on instruction.  This
+    // value has not been written back and hence we cannot continue until the result is in reach via a simple
+    // bypass from the EX stage. This routine will test our instruction currently decoded for being one that
+    // depends on the latest register content. In general these are all instructions that do address arithmetic
+    // using the B and X pipeline fields.
     //
-    // ??? explain a bit more ...
-    //--------------------------------------------------------------------------------------------------------
+    // ??? anything special to do for REG 0 ?
+    //
+    // ??? what about the status register bits ? Same issue ?
+    //---------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ getBitField( maStage -> psInstr.get( ), 5, 6 )].flags & REG_R_INSTR ) {
         
-        if ( maStageConsumesRegValBorX( instr )) {
+        uint32_t regIdR = maStage -> psInstr.getBitField( 9, 4 );
+        
+        if ( dependencyValB( instr, regIdR ) || dependencyValX( instr, regIdR )) {
             
-            if (( getBitField( maStage -> psInstr.get( ), 9, 4 ) == regIdForValA ) ||
-                ( getBitField( maStage -> psInstr.get( ), 9, 4 ) == regIdForValB ) ||
-                ( getBitField( maStage -> psInstr.get( ), 9, 4 ) == regIdForValX )) {
-                
-                stallPipeLine( );
-                return;
-            }
+            stallPipeLine( );
+            return;
         }
     }
     
@@ -882,10 +890,6 @@ void FetchDecodeStage::process( ) {
     core -> maStage -> psPstate1.set( psPstate1.get( ));
     core -> maStage -> psInstr.set( instr );
     
-    core -> maStage -> psRegIdForValA.set( regIdForValA );
-    core -> maStage -> psRegIdForValB.set( regIdForValB );
-    core -> maStage -> psRegIdForValX.set( regIdForValX );
-    
     //--------------------------------------------------------------------------------------------------------
     // Compute the next instruction address. Typically, this is the current instruction plus 4 bytes. For the
     // conditional branch we either increment by 4 or by the offset encoded in the instruction. In addition,
@@ -893,7 +897,6 @@ void FetchDecodeStage::process( ) {
     //
     // ??? what exactly is the instruction offset arithmetic ?
     // ??? we add a signed value to an unsigned value ....
-    // ??? we should use a bitFieldSet routine...
     //--------------------------------------------------------------------------------------------------------
     if (( opCode == OP_CBR ) || ( opCode == OP_CBRU )) {
         
