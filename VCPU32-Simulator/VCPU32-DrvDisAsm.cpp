@@ -26,9 +26,9 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#include "VCPU32-Types.hpp"
-#include "VCPU32-Driver.hpp"
-#include "VCPU32-Core.hpp"
+#include "VCPU32-Types.h"
+#include "VCPU32-Driver.h"
+#include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Local namespace. These routines are not visible otside this source file.

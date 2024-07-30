@@ -27,7 +27,7 @@
 #ifndef VCPU32Debug_hpp
 #define VCPU32Debug_hpp
 
-#include "VCPU32-Types.hpp"
+#include "VCPU32-Types.h"
 
 // ??? first ideas...
 

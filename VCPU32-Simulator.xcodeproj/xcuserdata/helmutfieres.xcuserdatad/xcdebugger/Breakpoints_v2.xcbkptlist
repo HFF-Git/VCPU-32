@@ -30,8 +30,8 @@
             filePath = "VCPU32-Simulator/VCPU32-Core.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "61"
-            endingLineNumber = "61"
+            startingLineNumber = "55"
+            endingLineNumber = "55"
             landmarkName = "CpuCore::CpuCore(cfg)"
             landmarkType = "7">
          </BreakpointContent>

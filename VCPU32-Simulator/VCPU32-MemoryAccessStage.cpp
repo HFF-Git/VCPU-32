@@ -31,9 +31,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#include "VCPU32-Types.hpp"
-#include "VCPU32-Core.hpp"
-#include "VCPU32-PipeLine.hpp"
+#include "VCPU32-Types.h"
+#include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
 // File local declarations. There are constants and routines used internally and not visible outside of this
@@ -45,12 +44,7 @@ namespace {
 
 bool getBit( uint32_t arg, int pos ) {
     
-    return( arg & ( 1U << ( 31 - ( pos % 32 ))));
-}
-
-void setBit( uint32_t *arg, int pos ) {
-    
-    *arg |= ( 1U << ( 31 - ( pos % 32 )));
+    return(( arg & ( 1U << ( 31 - ( pos % 32 )))) ? 1 : 0 );
 }
 
 uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
@@ -63,18 +57,6 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     
     if ( sign ) return( tmpA | ( ~ tmpM ));
     else        return( tmpA & tmpM );
-}
-
-void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
-    
-    pos = pos % 32;
-    len = len % 32;
-    
-    uint32_t tmpM = ( 1U << len ) - 1;
-    
-    val = ( val & tmpM ) << ( 31 - pos );
-    
-    *arg = ( *arg & ( ~tmpM )) | val;
 }
 
 uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
@@ -91,6 +73,34 @@ uint32_t mapDataLen( uint32_t instr ) {
         case 2:     return( 4 );
         case 3:     return( 8 );
         default:    return( 0 );
+    }
+}
+
+bool isReadIstr( uint32_t instr ) {
+    
+    switch ( getBitField( instr, 5, 6 )) {
+            
+        case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:
+        case OP_OR:     case OP_XOR:    case OP_CMP:    case OP_CMPU:   case OP_LD:
+        case OP_LDA:    case OP_LDR:    {
+            
+            return( true );
+        }
+    
+        default: return( false );
+    }
+}
+
+bool isWriteInstr( uint32_t instr ) {
+    
+    switch ( getBitField( instr, 5, 6 )) {
+            
+        case OP_ST:    case OP_STA:    case OP_STC:  {
+            
+            return( true );
+        }
+    
+        default: return( false );
     }
 }
 
@@ -239,7 +249,7 @@ bool MemoryAccessStage::dependencyValA( uint32_t instr, uint32_t regId ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "dependencyValA" checks if the instruction fetched a value from the general register file in the FD stage
+// "dependencyValB" checks if the instruction fetched a value from the general register file in the FD stage
 // that we would just pass on to the EX stage. If that is the case, the execute stage will store its computed
 // value to the pipeline register so that we have the correct value. Note that several instruction produce a
 // new valB. For example, the load instruction will load a new value and store this to the "valB" pipeline
@@ -326,19 +336,19 @@ bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The memory access stage is primarily responsible for accessing memory data used by load and store type
-// instructions. It will take the B and X value and compute the address offset for the memory data access.
-// This the stage where any segment or control register is accessed.
+// instructions, branch type instructions and several system contrl instructions. This the stage where any
+// segment or control register is accessed.
 //
-// In addition, unconditional branches are further processed at this stage. The target branch offset is
-// computed using the adder of the MA stage. For branches that do not save a return link, we are done and
-// the EX stage is "bubbled". Otherwise, the instruction continues to the execute stage where the return
+// For any instruction that need an adddress, the MA stage will take the B and X value and compute the address
+// offset for the memory data access or branch target. For branches that do not save a return link, we are
+// done and the EX stage is "bubbled". Otherwise, the instruction continues to the EX stage where the return
 // address is computed using the EX stage ALU and stored in a general register.
 //
 // For the conditional branch instruction, the predicted branch target based in the offset was already
 // processed in the FD stage. In this stage, the branch target address for the alternative target will
 // be computed by adding B and X, which were set accordingly in the FD stage. When the EX stage evaluates
 // the branch condition and determines that the branch was mispredicted, this adress will be used to
-// continue the instruction stream after flushing instructions fetched wrongly from the pipeline.
+// continue the instruction stream and flushing instructions fetched wrongly from the pipeline.
 //
 // In general, the stall logic will always inhibit the update of the current and any previous pipeline
 // register as well as flushing the next stage. Flushing is done by passing on a NOP instead of the current
@@ -346,23 +356,20 @@ bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
 // the "ticks" executed, each time the stall is cleared but perhaps set again when the condition still exists.
 //
 // For instructions that access memory we will access memory data in the second part of this stage. The
-// data fetched will be stored in B. This stage is also the starting point for a TLB or CACHE control
+// data fetched will be stored in "B". This stage is also the starting point for a TLB or CACHE control
 // instruction. If the TLB or Cache is busy, we stall in this stage until we have access to these resources.
 // All other instructions just pass the pipeline data for A,B and X as well as the instruction address
 // and the instruction itself to the next stage.
 //
-// The MA stage is using valB and valX and valA, all of which may have been read from the general register
-// file during the FD stage. Certain instruction sequences can cause a RAW data hazard. In the case of the
-// FD stage, the EX stage will check its target register and may overwrite the valA and valB of the FD
-// pipeline register. For the MA stage, the situation is a bit more tricky. The valA value is simply passed
-// through and the EX stage can just correct the value before it reaches the EX stage for that instruction.
-// The valB and valX pipeline field of the FD stage is however used in address computations that result in
-// a new valB being passed to the EX stage. A simple bypass cannot bring back the changed values. We have
-// to repeat the instruction MA stage with the correct data. For all these cases, the MA stage therefore
-// needs to be stalled until the correct value is written back to the general register and then resumed.
-// The FD stage passed the register IDs for A, B and X for this check. Note that the checking is actually
-// done at the EX stage. For memory access type instructions, we need to clear the regIdForValB and
-// regIdForValX fields, as the register content was consumed in this stage.
+// The MA stage is using "A", "B" and "X", all of which may have been read from the general register file
+// during the FD stage. Certain instruction sequences can cause a RAW data hazard. In the case of the FD
+// stage, the EX stage will check its target register and may overwrite the valA and valB of the FD pipeline
+// register. For the MA stage, the situation is a bit more tricky. The valA value is simply passed through
+// and the EX stage can just correct the value before it reaches the EX stage for that instruction.
+// The "B" and "X" pipeline fields of the FD stage are however used in address computations and for the load
+// type instructions produce a new "B". A simple bypass cannot replace this data fetch. We have to repeat the
+// instruction MA stage with the correct data. For all these cases, the MA stage therefore needs to be stalled
+// until the correct value for "B" and "X" are written back to the general register and then resumed.
 //
 // Note: when a trap occurs, the pipeline is stalled and the procedure returns rightaway.
 //
@@ -372,9 +379,8 @@ void MemoryAccessStage::process( ) {
     
     uint32_t            instr       = psInstr.get( );
     uint8_t             opCode      = getBitField( instr, 5, 6 );
-    uint8_t             opMode      = getBitField( instr, 13, 2 );
-    uint32_t            pOfs        = psValX.get( ) % PAGE_SIZE;
-    uint32_t            pAdr        = 0;
+    uint32_t            pageOfs     = psValX.get( ) % PAGE_SIZE;
+    uint32_t            physAdr     = 0;
     
     uint32_t            segSelect   = 0;
     uint32_t            segAdr      = 0;
@@ -395,16 +401,76 @@ void MemoryAccessStage::process( ) {
         case OP_AND:    case OP_OR:     case OP_XOR:
         case OP_CMP:    case OP_CMPU: {
             
-            if ( opMode >= 2 ) {
+            if ( getBitField( instr, 13, 2 ) >= 2 ) {
                 
                 dLen    = mapDataLen( instr );
                 ofsAdr  = add32( psValB.get( ), psValX.get( ));
                 segAdr  = core -> sReg[ getBitField( ofsAdr, 1, 2 ) ].get( );
             }
+            else {
+                
+                exStage -> psValA.set( psValA.get( ));
+                exStage -> psValB.set( psValB.get( ));
+            }
             
         } break;
             
-        case OP_LD:     case OP_ST:     case OP_LDR:    case OP_STC:
+        case OP_EXTR:   case OP_DEP:    case OP_SHLA:   case OP_CMR:    case OP_LDIL:
+        case OP_ADDIL:  case OP_MST:    {
+            
+            exStage -> psValA.set( psValA.get( ));
+            exStage -> psValB.set( psValB.get( ));
+            exStage -> psValX.set( psValX.get( ));
+            
+        } break;
+            
+        case OP_LD:    case OP_LDR: {
+            
+            dLen        = mapDataLen( instr );
+            ofsAdr      = add32( psValB.get( ), psValX.get( ));
+            segSelect   = getBitField( instr, 13, 2 );
+         
+            if ( segSelect == 0 ) segSelect += 4;
+            segAdr = core -> sReg[ segSelect ].get( );
+            
+            exStage -> psValA.set( psValA.get( ));
+            exStage -> psValX.set( ofsAdr );
+            
+        } break;
+            
+        case OP_ST:     case OP_STC: {
+            
+            dLen        = mapDataLen( instr );
+            ofsAdr      = add32( psValB.get( ), psValX.get( ));
+            segSelect   = getBitField( instr, 13, 2 );
+         
+            if ( segSelect == 0 ) segSelect += 4;
+            segAdr = core -> sReg[ segSelect ].get( );
+            
+            exStage -> psValA.set( psValA.get( ));
+            exStage -> psValX.set( ofsAdr );
+            
+        } break;
+            
+        case OP_LDA:    case OP_STA: {
+            
+            dLen    = 4;
+            segAdr  = 0;
+            ofsAdr  = add32( psValB.get( ), psValX.get( ));
+                
+            exStage -> psValA.set( psValA.get( ));
+            exStage -> psValX.set( ofsAdr );
+          
+        } break;
+            
+        case OP_LDO: {
+            
+            exStage -> psValA.set( psValA.get( ));
+            exStage -> psValB.set( add32( psValB.get( ), psValX.get( )));
+            exStage -> psValX.set( 0 );
+            
+        } break;
+            
         case OP_LDPA:   case OP_PRB:  {
             
             dLen        = mapDataLen( instr );
@@ -416,23 +482,11 @@ void MemoryAccessStage::process( ) {
             
         } break;
             
-        case OP_LDA:    case OP_STA: {
-            
-            dLen    = 4;
-            segAdr  = 0;
-            ofsAdr  = add32( psValB.get( ), psValX.get( ));
-          
-        } break;
-            
-        case OP_LDO:    {
-            
-            // ??? to do ... do it here or in EX ?
-            
-        } break;
-            
         case OP_LSID: {
             
+            exStage -> psValA.set( psValA.get( ));
             exStage -> psValB.set( core -> sReg[ getBitField( instr, 31, 3 ) ].get( ));
+            exStage -> psValX.set( 0 );
             
         } break;
             
@@ -476,12 +530,11 @@ void MemoryAccessStage::process( ) {
             
             core -> fdStage -> psPstate0.setBitField( segAdr, 31, 16  );
             core -> fdStage -> psPstate1.set( ofsAdr );
-        
             flushPipeLine( );
             
         } break;
             
-        case OP_CBR: {
+        case OP_CBR: case OP_CBRU: {
             
             ofsAdr = add32( psPstate1.get( ), psValX.get( ));
             exStage -> psValX.set( ofsAdr );
@@ -493,8 +546,18 @@ void MemoryAccessStage::process( ) {
             if ( ! getBit( instr, 11 )) {
                 
                 if ( getBit( instr, 12 ))  exStage -> psValB.set( core -> cReg[ instr & 0x3C ].get( ));
-                else exStage -> psValB.set( core -> sReg[ getBitField( instr, 31, 4 ) ].get( ));
+                else                       exStage -> psValB.set( core -> sReg[ getBitField( instr, 31, 4 ) ].get( ));
             }
+            
+        } break;
+            
+        case OP_DIAG: {
+            
+            
+        } break;
+            
+        case OP_BRK: {
+            
             
         } break;
             
@@ -568,24 +631,29 @@ void MemoryAccessStage::process( ) {
                 cPtr -> purgeBlock( segAdr, ofsAdr, ( tlbEntryPtr -> tPhysPage( ) << PAGE_SIZE_BITS ));
             
         } break;
+            
+        default: {
+            
+            // ??? should we tap if we missed one ?
+        }
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Data load or store. This is the second half for instructions that read or write to memory. There are
-    // a couple of cases. If the segment is zero, we must be privileged. The address is "0.ofs". Otherwise
-    // we look up the physical address via the TLB and perform the access right checks. If the physical
-    // address is in the physical memory range, we will access the cache data. The PDC memory range can only
-    // be read. A write attempt is a trap. The IO range is passed to IO handler.
+    // Data load or store section. This is the second half for instructions that read or write to memory.
+    // There are a couple of cases. If the segment is zero, we must be privileged. The address is "0.ofs".
+    // Otherwise we look up the physical address via the TLB and perform the access right checks. If the
+    // physical address is in the physical memory range, we will access the cache data. The PDC memory range
+    // can only be read. A write attempt is a trap. The IO range is passed to IO handler.
     //
     //--------------------------------------------------------------------------------------------------------
-    if ( opCodeTab[ opCode ].flags & ( READ_INSTR | WRITE_INSTR )) {
-        
+    if (( isReadIstr( instr ) || ( isWriteInstr( instr )))) {
+  
         if ( psPstate0.get( ) & ST_DATA_TRANSLATION_ENABLE ) {
             
             TlbEntry   *tlbEntryPtr = core -> dTlb -> lookupTlbEntry( segAdr, ofsAdr );
             if ( tlbEntryPtr == nullptr ) {
                 
-                setupTrapData( DTLB_MISS_TRAP, segAdr, ofsAdr, psPstate0.get( ));
+                setupTrapData( DTLB_MISS_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                 stallPipeLine( );
                 return;
             }
@@ -595,35 +663,30 @@ void MemoryAccessStage::process( ) {
                 if (( tlbEntryPtr -> tPageType( ) != ACC_READ_WRITE ) &&
                     ( tlbEntryPtr -> tPageType( ) != ACC_READ_ONLY )) {
                     
-                    setupTrapData( DTLB_ACC_RIGHTS_TRAP, segAdr, ofsAdr, psPstate0.get( ));
+                    setupTrapData( DTLB_ACC_RIGHTS_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                     stallPipeLine( );
                     return;
                 }
                 
                 if ( instrPrivLevel > tlbEntryPtr -> tPrivL1( )) {
                     
-                    setupTrapData( DATA_MEM_PROTECT_TRAP, segAdr, ofsAdr, psPstate0.get( ));
+                    setupTrapData( DATA_MEM_PROTECT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                     stallPipeLine( );
                     return;
                 }
             }
             else if ( opCodeTab[ opCode ].flags & WRITE_INSTR ) {
                 
-                /* change: if access type ... and not privilged...
+                 if (( tlbEntryPtr -> tPageType( ) != ACC_READ_WRITE )) {
                  
-                 if (( tlbEntryPtr -> tPageType( ) != ACC_READ_WRITE ) &&
-                 (( tlbEntryPtr -> tPageType( ) == ACC_EXECUTE ) && ( ! tlbEntryPtr -> tModifyExPage( ))) &&
-                 (( tlbEntryPtr -> tPageType( ) == ACC_GATEWAY ) && ( ! tlbEntryPtr -> tModifyExPage( )))) {
-                 
-                 setupTrapData( DTLB_ACC_RIGHTS_TRAP, valS, valX, core -> stReg.get( ));
-                 stallPipeLine( );
-                 return;
+                     setupTrapData( DTLB_ACC_RIGHTS_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
+                     stallPipeLine( );
+                     return;
                  }
-                 */
                 
                 if ( instrPrivLevel > tlbEntryPtr -> tPrivL2( )) {
                     
-                    setupTrapData( DATA_MEM_PROTECT_TRAP, segAdr, ofsAdr, psPstate0.get( ));
+                    setupTrapData( DATA_MEM_PROTECT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                     stallPipeLine( );
                     return;
                 }
@@ -633,48 +696,50 @@ void MemoryAccessStage::process( ) {
                 
                 if ( ! checkProtectId( tlbEntryPtr -> tSegId( ))) {
                     
-                    setupTrapData( DTLB_PROTECT_ID_TRAP, segAdr, ofsAdr, psPstate0.get( ));
+                    setupTrapData( DTLB_PROTECT_ID_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                     stallPipeLine( );
                     return;
                 }
             }
             
-            pAdr = tlbEntryPtr -> tPhysPage( ) | pOfs;
+            physAdr = tlbEntryPtr -> tPhysPage( ) | pageOfs;
         }
         else {
             
             if ( psPstate0.get( ) & ST_EXECUTION_LEVEL ) {
                 
-                setupTrapData( DATA_MEM_PROTECT_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
+                setupTrapData( DATA_MEM_PROTECT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                 stallPipeLine( );
                 return;
             }
             
-            pAdr = ofsAdr;
+            physAdr = ofsAdr;
         }
+        
+        // ??? data alignment traps ??????
         
         bool rStat = false;
         
-        if ( pAdr <= core -> physMem -> getEndAdr(  )) {
+        if ( physAdr <= core -> physMem -> getEndAdr(  )) {
             
-            if ( opCodeTab[ opCode ].flags & READ_INSTR ) {
+            if ( isReadIstr( instr )) {
                 
                 uint32_t dataWord;
-                rStat = core -> dCacheL1 -> readWord( segAdr, ofsAdr, pAdr, dLen, &dataWord );
+                rStat = core -> dCacheL1 -> readWord( segAdr, ofsAdr, physAdr, dLen, &dataWord );
                 
                 if ( rStat ) exStage -> psValB.set( dataWord );
             }
-            else if ( opCodeTab[ opCode ].flags & WRITE_INSTR ) {
+            else if ( isWriteInstr( instr )) {
                 
-                rStat = core -> dCacheL1 -> writeWord( segAdr, ofsAdr, pAdr, dLen, psValA.get( ));
+                rStat = core -> dCacheL1 -> writeWord( segAdr, ofsAdr, physAdr, dLen, psValA.get( ));
             }
         }
-        else if (( pAdr >= core -> pdcMem -> getStartAdr( )) && ( pAdr <= core -> pdcMem -> getEndAdr( ))) {
+        else if (( physAdr >= core -> pdcMem -> getStartAdr( )) && ( physAdr <= core -> pdcMem -> getEndAdr( ))) {
             
-            if ( opCodeTab[ opCode ].flags & READ_INSTR ) {
+            if ( isReadIstr( instr )) {
                 
                 uint32_t dataWord;
-                rStat = core -> pdcMem -> readWord( 0, pAdr, 0, dLen, &dataWord );
+                rStat = core -> pdcMem -> readWord( 0, physAdr, 0, dLen, &dataWord );
                 
                 if ( rStat ) exStage -> psValB.set( dataWord );
             }
@@ -683,24 +748,24 @@ void MemoryAccessStage::process( ) {
                 // ??? cannot write to PDC, raise a trap or HPMC ?
             }
         }
-        else if (( pAdr >= core -> ioMem -> getStartAdr( )) && ( pAdr <= core -> ioMem -> getEndAdr( ))) {
+        else if (( physAdr >= core -> ioMem -> getStartAdr( )) && ( physAdr <= core -> ioMem -> getEndAdr( ))) {
             
             if ( opCodeTab[ opCode ].flags & READ_INSTR ) {
                 
                 uint32_t dataWord;
-                rStat = core -> ioMem -> readWord( 0, pAdr, 0, dLen, &dataWord );
+                rStat = core -> ioMem -> readWord( 0, physAdr, 0, dLen, &dataWord );
                 
                 if ( rStat ) exStage -> psValB.set( dataWord );
             }
-            else if ( opCodeTab[ opCode ].flags & WRITE_INSTR ) {
+            else if ( isWriteInstr( instr )) {
                 
-                rStat = core -> dCacheL1 -> writeWord( 0, pAdr, 0, dLen, psValA.get( ));
+                rStat = core -> dCacheL1 -> writeWord( 0, physAdr, 0, dLen, psValA.get( ));
             }
         }
         else {
             
             // ??? invalid address. Should we raise a HPMC ?
-            fprintf( stdout, "Invalid physical address in D-Access adr: %x \n", pAdr );
+            fprintf( stdout, "Invalid physical address in D-Access adr: %x \n", physAdr );
         }
         
         if ( ! rStat ) {
@@ -717,8 +782,4 @@ void MemoryAccessStage::process( ) {
     exStage -> psInstr.set( psInstr.get( ));
     exStage -> psPstate0.set( psPstate0.get( ));
     exStage -> psPstate1.set( psPstate1.get( ));
-    
-    // ??? do rather at the respective case ?
-    core -> exStage -> psValS.set( segAdr );
-    core -> exStage -> psValX.set( ofsAdr );
 }

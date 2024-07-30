@@ -31,9 +31,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#include "VCPU32-Types.hpp"
-#include "VCPU32-Core.hpp"
-#include "VCPU32-PipeLine.hpp"
+#include "VCPU32-Types.h"
+#include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
 // File local declarations. There are constants and routines used internally and not visible outside of this
@@ -45,7 +44,7 @@ namespace {
 
 bool getBit( uint32_t arg, int pos ) {
     
-    return( arg & ( 1U << ( 31 - ( pos % 32 ))));
+    return(( arg & ( 1U << ( 31 - ( pos % 32 )))) ? 1 : 0 );
 }
 
 void setBit( uint32_t *arg, int pos ) {
@@ -297,10 +296,10 @@ bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessMode
 #endif
 
 //------------------------------------------------------------------------------------------------------------
-// Execute Stage processing. This stage will primarily do the computational work using the A and B output from
-// the MA stage. The computational result will be written back to the registers on the next "tick". For branch
-// and link type instructions the ALU is used to compute the return address and store it into the specified
-// general register. For the BE and BLE instruction GR0 and SR0 are used to save the return address.
+// Execute Stage processing. This stage will primarily do the computational work using the "A" and "B" output
+// from the MA stage. The computational result will be written back to the registers on the next "tick". For
+// branch and link type instructions the ALU is used to compute the return address and store it into the
+// specified general register. For the BE and BLE instruction GR0 and SR0 are used to save the return address.
 //
 // We need to pass the computation result to the FD and MA stage in case there is a RAW data hazard. For
 // example, an instruction will store to R3 and the follow-on instruction is using R3. In this case the wrong
@@ -308,30 +307,31 @@ bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessMode
 // it into the pipeline register of the FD stage, so that the MA stage will work with the expected value. This
 // is generally called "bypassing".
 //
-// For the EX to FD case, it is a matter of patching the MA stage pipeline register where the FD stage put
-// the old value of the register file. We check for A and for B if the FD stage indicates that it used the
-// regID "R" of the EX stage in "A" or "B" in the FD stage. The data we correct is for the instruction two
-// instructions behind the instruction that is currently finishing in the EX stage. In hardware you would
-// have a path from the ALU output to the multipleyer before the input to the FD pipeline stage register.
+// For the EX to FD case, it is simply a matter of patching the MA stage pipeline register where the FD stage
+// put the old value of the register file. We check the instruction for fields that fetch a general and
+// compare the registr Id with the target register ID value of the current instruction in the EX stage. The
+// data we correct is for the instruction two instructions behind the instruction that is currently finishing
+// in the EX stage. In hardware you would have a path from the ALU output to the multipleyer before the input
+// to the FD pipeline stage register.
 //
-// For the MA stage, we patch the EX stage pipeline for the A and B input. Like the previous scenario, this
-// covers all the cases where the data is needed in the EX stage but of course not written back yet. All
-// the cases where the MA stage would have computed with wrong values, are handled by a pipeline stall
-// in the FD stage.
+// For the MA stage, we patch the EX stage pipeline for the "A" and "B" input. Like the previous scenario,
+// this covers all the cases where the data is needed in the EX stage but of course not written back yet. All
+// the cases where the MA stage would have computed an address with wrong general register values are handled
+// by a pipeline stall in the FD stage.
 //
 // For the CBR conditional branch instruction, we need to evaluate the condition and then compare the result
 // to the branch prediction decision taken in the FD stage. If we mispredicted the pipeline needs to be
 // flushed and instruction fetching continues from the alternate address passed forward through the pipleine
 // "X" register.
 //
-// This routine will so far not stall the pipeline but certainly it can trap. When a trap occurs, the pipeline
-// is flushed and the procedure returns rightaway. This is consistent with the other stages. The "clockStep"
-// method in the CPU core, which drives the stages, will actually check for traps and handle them.
+// This routine will so far not cause a stall the pipeline but certainly it can trap. When a trap occurs, the
+// pipeline is flushed and the procedure returns rightaway. This is consistent with the other stages. The
+// "clockStep" method in the CPU core, which drives the stages, will actually check for traps and handle them.
 //
 //
-// ??? what would we do about segment and control registers hazards, if at all ?
+// ??? what would we do about status, segment and control registers hazards, if at all ?
 //
-// ??? note: this is a long routine. Perhaps we should split this into smaller portions.
+// ??? note: this is a rather long routine. Perhaps we should split this into smaller portions.
 //------------------------------------------------------------------------------------------------------------
 void ExecuteStage::process( ) {
     
@@ -342,10 +342,14 @@ void ExecuteStage::process( ) {
     MemoryAccessStage   *maStage    = core -> maStage;
     FetchDecodeStage    *fdStage    = core -> fdStage;
    
+    //--------------------------------------------------------------------------------------------------------
+    // Assume we are not stalled.
+    //
+    //--------------------------------------------------------------------------------------------------------
     setStalled( false );
     
     //--------------------------------------------------------------------------------------------------------
-    // Switch to the instruction and do the EX stage work. We will all teh necessary work directly in the
+    // Switch to the instruction and do the EX stage work. We will all the necessary work directly in the
     // respective instruction case.
     //
     //--------------------------------------------------------------------------------------------------------
@@ -590,6 +594,12 @@ void ExecuteStage::process( ) {
             
         } break;
             
+        case OP_ADDIL: {
+            
+            core -> gReg[ 1 ].set( psValA.get( ) + psValB.get( ));
+            
+        } break;
+            
         case OP_LD:
         case OP_LDA: {
           
@@ -601,12 +611,6 @@ void ExecuteStage::process( ) {
         case OP_ST:     case OP_STA:    {
             
             if ( getBit( instr, 11 )) core -> gReg[ getBitField( instr, 31, 4 ) ].set( psValX.get( ));
-            
-        } break;
-            
-        case OP_ADDIL: {
-            
-            core -> gReg[ 1 ].set( psValA.get( ) + psValB.get( ));
             
         } break;
             
@@ -684,6 +688,10 @@ void ExecuteStage::process( ) {
             
         case OP_PCA: {
       
+        } break;
+            
+        case OP_DIAG: {
+            
         } break;
             
         case OP_RFI: {

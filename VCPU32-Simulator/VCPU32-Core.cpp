@@ -22,9 +22,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#include "VCPU32-Types.hpp"
-#include "VCPU32-Core.hpp"
-#include "VCPU32-PipeLine.hpp"
+#include "VCPU32-Types.h"
+#include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
 // File local declarations. There are constants and routines used internally and not visible outside of this
@@ -32,11 +31,6 @@
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
-
-bool getBit( uint32_t arg, int pos ) {
-    
-    return( arg & ( 1U << ( 31 - ( pos % 32 ))));
-}
 
 uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     

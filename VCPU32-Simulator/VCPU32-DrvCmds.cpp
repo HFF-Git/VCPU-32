@@ -21,10 +21,10 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#include "VCPU32-Version.hpp"
-#include "VCPU32-Types.hpp"
-#include "VCPU32-Driver.hpp"
-#include "VCPU32-Core.hpp"
+#include "VCPU32-Version.h"
+#include "VCPU32-Types.h"
+#include "VCPU32-Driver.h"
+#include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Local name space. We try to keep utility functions local to the file.

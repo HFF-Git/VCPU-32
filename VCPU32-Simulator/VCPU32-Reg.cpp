@@ -23,8 +23,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#include "VCPU32-Types.hpp"
-#include "VCPU32-Core.hpp"
+#include "VCPU32-Types.h"
+#include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Methods. Straighforward. There is a "load" method which will set both register portions. This is primarily

@@ -31,9 +31,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#include "VCPU32-Types.hpp"
-#include "VCPU32-Core.hpp"
-#include "VCPU32-PipeLine.hpp"
+#include "VCPU32-Types.h"
+#include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
 // File local declarations. There are constants and routines used internally and not visible outside of this
@@ -42,14 +41,9 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-bool getBit( uint32_t arg, int pos ) {
+uint32_t getBit( uint32_t arg, int pos ) {
     
-    return( arg & ( 1U << ( 31 - ( pos % 32 ))));
-}
-
-void setBit( uint32_t *arg, int pos ) {
-   
-    *arg |= ( 1U << ( 31 - ( pos % 32 )));
+    return(( arg & ( 1U << ( 31 - ( pos % 32 )))) ? 1 : 0 );
 }
 
 uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
@@ -62,18 +56,6 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     
     if ( sign ) return( tmpA | ( ~ tmpM ));
     else        return( tmpA & tmpM );
-}
-
-void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
-    
-    pos = pos % 32;
-    len = len % 32;
-    
-    uint32_t tmpM = ( 1U << len ) - 1;
-    
-    val = ( val & tmpM ) << ( 31 - pos );
-    
-    *arg = ( *arg & ( ~tmpM )) | val;
 }
 
 uint32_t lowSignExtend32( uint32_t arg, int len ) {
@@ -339,11 +321,10 @@ bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Instruction fetch and decode stage processing. First, we get the current instruction address from the IA
+// Instruction fetch and decode stage processing. First, we get the current instruction address from the PSW
 // register. If code translation is enabled, the TLB needs to map the virtual address to a physical address.
-// This can cause several traps and the TLB access itself can cause a stall of the pipeline depending on the
-// TLB delay configuration value. If the entry is not found, a ITLB_MISS_TRAP is recorded. Next the access
-// rights are validated. The access is a code page (execute) access with a sufficient priviledge level.
+// This can cause several traps. If the entry is not found, a ITLB_MISS_TRAP is recorded. Next the access
+// rights are validated. The access is a code page (execute) access with a sufficient privilege level.
 // Invalid access results in a ITLB_ACC_RIGHTS_TRAP. Finally, if protection checking is enabled, the TLB
 // protection info is checked against the protection ID control registers. If there is no match, an
 // ITLB_PROTECT_ID_TRAP is recorded. If all worked out, we have the physical address. Also, if code
@@ -354,11 +335,11 @@ bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
 // request issued on each clockcycle completes successfully and we can get the instruction word.
 //
 // In general, the stall logic will always inhibit the update of the current and any previous pipeline reg
-// and flush the next stage. Flushing is done by passing on a NOP instead of the current instruction.
-// Initially, the processing assumes a non-stalled pipeline, a stall will set the flags. During the "ticks"
-// executed, each time the stall is cleared but perhaps set again when the condition still exists.
+// and stall the next stage too. Pipeline Flushing is done by passing on a NOP instead of the current
+// instruction. Initially, the processing assumes a non-stalled pipeline, a stall will set the flags. During
+// the "ticks" executed, each time the stall is cleared but perhaps set again when the condition still exists.
 //
-// The instruction decode part tne analyzes the instruction. The imaginary instruction decode hardware is
+// The instruction decode part then analyzes the instruction. The imaginary instruction decode hardware is
 // essentially a big combinatorial network to set the pipeline register fields A, B and X with known values
 // that can be derived from the instruction fields or the general register set. The idea is also to perform
 // computations that solely depend on the instruction word information right in this stage.
@@ -369,18 +350,23 @@ bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
 // We will in this case just copy the "R"" field register content to the "A" pipeline register. For the other
 // non-regular fields an additional instruction specific decode is necessary.
 //
-// For instructions that use an adress, "B" is designated as the base register and "X" as the offset value.
-// The address generation stage exepcts these two pipeline registers to have the appropriate values for any
-// address computation. There is one instrcution, BVR, that requires to store a register content in X. In
-// hardware not a big issue, as we propbaly will use 4-four way multiplexers and can afford to store
-// a reg value in X. Likewise, there are cases where we store an immediate value in B.
+// The "B" register is typically used for a base address. It also holds an immediate value for the IMM type
+// instructions. For instructions that use an address, "B" is designated as the base register and "X" as the
+// offset value. The address generation stage exepcts these two pipeline registers to have the appropriate
+// values for any address computation. Exception are instructions that use "A" and "B" and also need an
+// address. The ony instruction is CBR, which will compare "A" and "B" and then do a PSW relative branch.
+// In this case, only "X" is passed the offset. Note that in this case we read 3 general registers. In
+// hardware this is either a 3-port read registr file or we spread the read into the next pipeline stage.
+// The simulator assumes a 3-port read register file. Siilar, for the ST and STA instruction, the argument
+// to store is in "A", "B" and "X" form the address.
 //
-// For the CBR and TBR instruction a static branch prediction scheme is implemented. A backward branch
-// address is considered as a branch taken a positive address is considered as a branch not taken. When we
-// actually evaluate the condition in teh EX stage, the branch decision needs to be corrected when
-// mispredicted. For this to work, the decision and the alternative address offset for a wrong decision
-// taken need to make it to the EX stage. The MA stage will actually create the branch target address using
-// the instruction adrdess and the offset passed in X.
+// The CBR instruction uses a static branch prediction scheme. A backward branch address is considered as a
+// branch taken a positive address is considered as a branch not taken. When we actually evaluate the
+// condition in the EX stage, the branch decision needs to be corrected when mispredicted. For this to work,
+// the alternate branch address needs to make its way to the EX stage. The MA stage will actually create
+// the alternate branch target address and pass in "X" to the EX stage. Since a backward branch has a negative
+// offset and is predicted as branch taken, the sign bit of the effect os used in the EX stage to figure out
+// whether we mispredicted.
 //
 // For instructiosn that will do arithmetic in the MA stage, we will check if the previous instruction is
 // an instruction that sets a general register. If the register matches one of our just fetched registers,
@@ -396,28 +382,21 @@ bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
 // pending flag is checked and if set, we will set the next instruction address to that of the respective
 // trap handler. When a trap occurs, the pipeline is stalled and the procedure returns rightaway.
 //
-// There are three fields for supporting the register bypass implementation. For each assignment of a general
-// register to valA, valB or valX, we record the register number the value came from. At the EX stage where
-// the register writeback is handled, this information is used to determine whether a bypass is required.
-// Since general register numbers range fron 0 to N, a value greater than N is used to indicated that the
-// valA, valB or valX field was not set from a general register. All this is rather easy in hardware, it is
-// just multiplexers selecting, in software we need to make sure we overwrite the correct pipeline registers
-// with the value produced in stage EX.
 //
-// ??? note: this is a long routine. Perhaps we should split this into smaller portions.
+// ??? note: this is a rather long routine. Perhaps we should split this into smaller portions.
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::process( ) {
     
-    uint32_t            pAdr            = psPstate1.get( );
-    uint32_t            pOfs            = psPstate1.getBitField( 31, PAGE_SIZE_BITS );
     TlbEntry            *tlbEntryPtr    = nullptr;
     MemoryAccessStage   *maStage        = core -> maStage;
     uint32_t            instr           = NOP_INSTR;
+    uint32_t            physAdr         = 0;
+   
     
-    maStage -> psValA.set( 0 );
-    maStage -> psValB.set( 0 );
-    maStage -> psValX.set( 0 );
-    
+    //--------------------------------------------------------------------------------------------------------
+    // Assume, we are not stalled.
+    //
+    //--------------------------------------------------------------------------------------------------------
     setStalled( false );
     
     //--------------------------------------------------------------------------------------------------------
@@ -452,7 +431,7 @@ void FetchDecodeStage::process( ) {
             }
         }
        
-        pAdr = tlbEntryPtr -> tPhysPage( ) | pOfs;
+        physAdr = tlbEntryPtr -> tPhysPage( ) | psPstate1.getBitField( 31, PAGE_SIZE_BITS );
     }
     else {
     
@@ -462,6 +441,8 @@ void FetchDecodeStage::process( ) {
              stallPipeLine( );
              return;
          }
+        
+        physAdr = psPstate1.get( );
      }
     
     //--------------------------------------------------------------------------------------------------------
@@ -473,18 +454,18 @@ void FetchDecodeStage::process( ) {
     // ROM with processor dependent code. We cannot fetch data from IO memory space.
     //
     //--------------------------------------------------------------------------------------------------------
-    if ( pAdr <= core -> physMem -> getEndAdr( ) - 4 ) {
+    if ( physAdr <= core -> physMem -> getEndAdr( ) - 4 ) {
         
         if ( ! core -> iCacheL1 -> readWord( psPstate0.getBitField( 15, 16 ), 
-                                             psPstate1.get( ), pAdr, 4, &instr )) {
+                                             psPstate1.get( ), physAdr, 4, &instr )) {
             
             stallPipeLine( );
             return;
         }
     } 
-    else if (( pAdr >= core -> pdcMem -> getStartAdr( )) && ( pAdr <= core -> pdcMem -> getEndAdr( ))) {
+    else if (( physAdr >= core -> pdcMem -> getStartAdr( )) && ( physAdr <= core -> pdcMem -> getEndAdr( ))) {
        
-        if ( ! core -> pdcMem -> readWord( 0, pAdr, pAdr, 4, &instr )) {
+        if ( ! core -> pdcMem -> readWord( 0, physAdr, physAdr, 4, &instr )) {
             
             stallPipeLine( );
             return;
@@ -493,7 +474,7 @@ void FetchDecodeStage::process( ) {
     else {
         
         // ??? invalid address. Should we raise a HPMC ?
-        fprintf( stdout, "Invalid physical address in I-Fetch adr: %x \n", pAdr );
+        fprintf( stdout, "Invalid physical address in I-Fetch adr: %x \n", physAdr );
     }
     
     //--------------------------------------------------------------------------------------------------------
@@ -557,7 +538,9 @@ void FetchDecodeStage::process( ) {
                     
                 case OP_MODE_IMM: {
                    
+                    maStage -> psValA.set( 0 );
                     maStage -> psValB.set( immGenLowSign( instr, 31, 18 ));
+                    maStage -> psValX.set( 0 );
                    
                 } break;
                     
@@ -565,6 +548,7 @@ void FetchDecodeStage::process( ) {
                     
                     maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
                     maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+                    maStage -> psValX.set( 0 );
                     
                 } break;
                     
@@ -583,6 +567,7 @@ void FetchDecodeStage::process( ) {
                         
                         maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
                     }
+                    else maStage -> psValA.set( 0 );
                     
                     maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
                     maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
@@ -596,11 +581,13 @@ void FetchDecodeStage::process( ) {
         
             maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
             maStage -> psValB.set( getBitField( instr, 31, 22 ) << 10 );
+            maStage -> psValX.set( 0 );
             
         } break;
             
         case OP_B: {
           
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( psPstate1.get( ));
             maStage -> psValX.set( immGenLowSign( instr, 31, 22 ) << 2 );
             
@@ -608,6 +595,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_BE: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( immGenLowSign( instr, 23, 14 ) << 2 );
             
@@ -615,6 +603,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_BR: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( psPstate1.get( ));
             
@@ -624,17 +613,21 @@ void FetchDecodeStage::process( ) {
             
             maStage -> psValA.set( getBitField( instr, 9, 4 ));
             maStage -> psValB.set( getBitField( instr, 31, 16 ));
+            maStage -> psValX.set( 0 );
          
         } break;
             
         case OP_BV: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( 0 );
             
         } break;
             
         case OP_BVE: {
         
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
            
@@ -644,6 +637,7 @@ void FetchDecodeStage::process( ) {
             
             maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( 0 );
             
         } break;
             
@@ -651,6 +645,7 @@ void FetchDecodeStage::process( ) {
        
             maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( 0 );
             
         } break;
             
@@ -660,6 +655,7 @@ void FetchDecodeStage::process( ) {
                 
                 maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
             }
+            else maStage -> psValA.set( 0 );
             
             if ( ! getBit( instr, 12 )) {
                 
@@ -667,12 +663,15 @@ void FetchDecodeStage::process( ) {
             }
             else maStage -> psValB.set( getBitField( instr, 31, 4 ));
             
+            maStage -> psValX.set( 0 );
+            
         } break;
             
         case OP_DIAG: {
             
             maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( 0 );
             
         } break;
             
@@ -680,19 +679,23 @@ void FetchDecodeStage::process( ) {
             
             maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( 0 );
             
         } break;
             
         case OP_EXTR: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( 0 );
             
         } break;
             
         case OP_GATE: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( psPstate1.get( ));
-            maStage -> psValB.set( immGenLowSign( instr, 31, 22 ) << 2 );
+            maStage -> psValX.set( immGenLowSign( instr, 31, 22 ) << 2 );
            
             // ??? when do we exactly set the execution level in the status reg ? There are
             // two instructions ahead of us which should NOT benefit from the potential priv change....
@@ -713,12 +716,15 @@ void FetchDecodeStage::process( ) {
             
         case OP_ITLB: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
-           
+            maStage -> psValX.set( 0 );
+            
         } break;
             
         case OP_LD: case OP_LDA: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
             if ( getBit( instr, 10 )) {
@@ -731,12 +737,15 @@ void FetchDecodeStage::process( ) {
             
         case OP_LDIL: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( immGenLowSign( instr, 31, 22 ));
-        
+            maStage -> psValX.set( 0 );
+            
         } break;
             
         case OP_LDO: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( immGenLowSign( instr, 27, 18 ));
             
@@ -744,6 +753,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_LDPA: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             
@@ -751,6 +761,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_LDR: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
             
@@ -758,27 +769,36 @@ void FetchDecodeStage::process( ) {
             
         case OP_LSID: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( 0 );
             
         } break;
             
         case OP_MR: {
             
+            maStage -> psValA.set( 0 );
+            maStage -> psValX.set( 0 );
+            
             if ( getBit( instr, 11 )) {
                 
                 maStage -> psValB.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
             }
+            else maStage -> psValB.set( 0 );
             
         } break;
             
         case OP_MST: {
+            
+            maStage -> psValA.set( 0 );
+            maStage -> psValX.set( 0 );
             
             switch( getBitField( instr, 11, 2 )) {
                     
                 case 0: {
                     
                     maStage -> psValB.setBitField( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ), 31, 6 );
-                    
+                 
                 } break;
                     
                 case 1:
@@ -799,6 +819,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_PCA: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
            
@@ -806,33 +827,34 @@ void FetchDecodeStage::process( ) {
             
         case OP_PRB: {
     
+            maStage -> psValX.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             
             if ( ! getBit( instr, 11 )) {
                 
                 maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             }
-            else maStage -> psValX.setBit( 31, getBit( instr, 27 ));
+            else maStage -> psValA.setBit( 31, getBit( instr, 27 ));
         
         } break;
             
         case OP_PTLB: {
             
+            maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
            
         } break;
             
         case OP_RFI: {
-            
-            // ??? to do ...
-            
+           
         } break;
           
         case OP_SHLA:{
          
             maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( 0 );
             
         } break;
             
@@ -851,6 +873,7 @@ void FetchDecodeStage::process( ) {
             
         case OP_STC: {
             
+            maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
             maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
             
@@ -864,17 +887,16 @@ void FetchDecodeStage::process( ) {
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Instructions that will do computation in the MA stage with the valB and ValX may run into the case that
-    // the register content is just produced by the preceeding instruction. In other words, the EX stage
-    // is about to compute the new value while we are in the fetch stage for the follow-on instruction.  This
+    // Instructions that will do computation in the MA stage with "B" and "X" may run into the case that the
+    // register content for them is just produced by the preceeding instruction. In other words, the EX stage
+    // is about to compute the new value while we are in the fetch stage for the follow-on instruction. This
     // value has not been written back and hence we cannot continue until the result is in reach via a simple
     // bypass from the EX stage. This routine will test our instruction currently decoded for being one that
     // depends on the latest register content. In general these are all instructions that do address arithmetic
     // using the B and X pipeline fields.
     //
     // ??? anything special to do for REG 0 ?
-    //
-    // ??? what about the status register bits ? Same issue ?
+    // ??? what about the status or segment register ?
     //---------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ getBitField( maStage -> psInstr.get( ), 5, 6 )].flags & REG_R_INSTR ) {
         

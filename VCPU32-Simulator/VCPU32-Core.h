@@ -25,8 +25,8 @@
 #ifndef CPU24Core_h
 #define CPU24Core_h
 
-#include "VCPU32-Types.hpp"
-#include "VCPU32-Core.hpp"
+#include "VCPU32-Types.h"
+#include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
 // High level options for the virtual functionality. The options describe the overall strucuture of the TLB

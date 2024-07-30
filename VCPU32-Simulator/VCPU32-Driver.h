@@ -38,8 +38,8 @@
 #define write  _write
 #endif
 
-#include "VCPU32-Types.hpp"
-#include "VCPU32-Core.hpp"
+#include "VCPU32-Types.h"
+#include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Tokens are the labels for reserved words recognized by the command input. They also serve as attribute
