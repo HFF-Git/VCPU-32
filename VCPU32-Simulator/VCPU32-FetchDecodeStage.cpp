@@ -84,6 +84,17 @@ uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
     return ( arg1 + arg2 );
 }
 
+bool isAligned( uint32_t adr, uint32_t align ) {
+    
+    switch( align ) {
+            
+        case 1: return( true );
+        case 2: return(( adr & 0x1 ) == 0 );
+        case 4: return(( adr & 0x3 ) == 0 );
+        default: return( false );
+    }
+}
+
 }; // namespace
 
 //------------------------------------------------------------------------------------------------------------

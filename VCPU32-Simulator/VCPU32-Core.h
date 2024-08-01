@@ -738,7 +738,6 @@ public:
     CpuReg          psValA;
     CpuReg          psValB;
     CpuReg          psValX;
-    CpuReg          psValS;
 
     uint32_t        instrExecuted;
     uint32_t        branchesTaken;
@@ -749,7 +748,6 @@ private:
     
     CpuCore         *core       = nullptr;
     bool            stalled     = false;
-    uint32_t        branchTaken;
 };
 
 //------------------------------------------------------------------------------------------------------------

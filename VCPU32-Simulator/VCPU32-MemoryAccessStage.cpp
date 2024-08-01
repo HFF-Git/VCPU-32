@@ -104,6 +104,17 @@ bool isWriteInstr( uint32_t instr ) {
     }
 }
 
+bool isAligned( uint32_t adr, uint32_t align ) {
+    
+    switch( align ) {
+            
+        case 1: return( true );
+        case 2: return(( adr & 0x1 ) == 0 );
+        case 4: return(( adr & 0x3 ) == 0 );
+        default: return( false );
+    }
+}
+
 }; // namespace
 
 //------------------------------------------------------------------------------------------------------------
@@ -429,6 +440,8 @@ void MemoryAccessStage::process( ) {
             dLen        = mapDataLen( instr );
             ofsAdr      = add32( psValB.get( ), psValX.get( ));
             segSelect   = getBitField( instr, 13, 2 );
+            
+            // ??? aligment
          
             if ( segSelect == 0 ) segSelect += 4;
             segAdr = core -> sReg[ segSelect ].get( );
@@ -443,6 +456,8 @@ void MemoryAccessStage::process( ) {
             dLen        = mapDataLen( instr );
             ofsAdr      = add32( psValB.get( ), psValX.get( ));
             segSelect   = getBitField( instr, 13, 2 );
+            
+            // ??? aligment
          
             if ( segSelect == 0 ) segSelect += 4;
             segAdr = core -> sReg[ segSelect ].get( );
@@ -457,6 +472,8 @@ void MemoryAccessStage::process( ) {
             dLen    = 4;
             segAdr  = 0;
             ofsAdr  = add32( psValB.get( ), psValX.get( ));
+            
+            // ??? aligment
                 
             exStage -> psValA.set( psValA.get( ));
             exStage -> psValX.set( ofsAdr );

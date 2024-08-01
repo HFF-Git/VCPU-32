@@ -82,8 +82,7 @@ void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
 }
 
 //‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-// A little helper function to compare two register values for the CBR instruction. This is a bit tricky as
-// we run on a 32-bit machine. First, we sign extend to a 32-bt value and then do teh requested comparison.
+// Two little helper functions to compare two register values for the CBR instruction. 
 // //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool compareCond( uint32_t instr, uint32_t valA, uint32_t valB ) {
    
@@ -161,7 +160,6 @@ void ExecuteStage::reset( )  {
     psValA.reset( );
     psValB.reset( );
     psValX.reset( );
-    psValS.reset( );
 }
 
 void ExecuteStage::tick( ) {
@@ -174,7 +172,6 @@ void ExecuteStage::tick( ) {
         psValA.tick( );
         psValB.tick( );
         psValX.tick( );
-        psValS.tick( );
     }
 }
 
@@ -213,7 +210,6 @@ void ExecuteStage::flushPipeLine( ) {
     psValA.set( 0 );
     psValB.set( 0 );
     psValX.set( 0 );
-    psValS.set( 0 );
     core -> maStage -> flushPipeLine( );
 }
 
@@ -256,7 +252,6 @@ uint32_t ExecuteStage::getPipeLineReg( uint32_t pReg ) {
         case PSTAGE_REG_ID_VAL_A:   return( psValA.get( ));
         case PSTAGE_REG_ID_VAL_B:   return( psValB.get( ));
         case PSTAGE_REG_ID_VAL_X:   return( psValX.get( ));
-        case PSTAGE_REG_ID_VAL_S:   return( psValS.get( ));
         default: return( 0 );
     }
 }
@@ -271,7 +266,6 @@ void ExecuteStage::setPipeLineReg( uint32_t pReg, uint32_t val ) {
         case PSTAGE_REG_ID_VAL_A:    psValA.load( val );         break;
         case PSTAGE_REG_ID_VAL_B:    psValB.load( val );         break;
         case PSTAGE_REG_ID_VAL_X:    psValX.load( val );         break;
-        case PSTAGE_REG_ID_VAL_S:    psValS.load( val );         break;
     }
 }
 
@@ -646,7 +640,9 @@ void ExecuteStage::process( ) {
             
             if ( branchPedict != branchTaken ) {
                 
-                core -> fdStage -> psPstate0.set( psPstate0.get( ) );
+                // ??? add branch address ?
+                
+                core -> fdStage -> psPstate0.set( psPstate0.get( ));
                 core -> fdStage -> psPstate1.set( psValX.get( ));
                 flushPipeLine( );
             }
