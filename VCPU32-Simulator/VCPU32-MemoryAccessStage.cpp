@@ -42,6 +42,9 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+// Bit field access.
+// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool getBit( uint32_t arg, int pos ) {
     
     return(( arg & ( 1U << ( 31 - ( pos % 32 )))) ? 1 : 0 );
@@ -59,11 +62,9 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     else        return( tmpA & tmpM );
 }
 
-uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
-    
-    return ( arg1 + arg2 );
-}
-
+//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+// Little helper function to return the data length in bytes as encoded in the 2dw" field.
+// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 uint32_t mapDataLen( uint32_t instr ) {
     
     switch( getBitField( instr, 15, 2 )) {
@@ -76,13 +77,20 @@ uint32_t mapDataLen( uint32_t instr ) {
     }
 }
 
+//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+// Two little helper functions that determine whethr an instrcution is reading from or writing to memory.
+// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool isReadIstr( uint32_t instr ) {
     
     switch ( getBitField( instr, 5, 6 )) {
             
         case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:
-        case OP_OR:     case OP_XOR:    case OP_CMP:    case OP_CMPU:   case OP_LD:
-        case OP_LDA:    case OP_LDR:    {
+        case OP_OR:     case OP_XOR:    case OP_CMP:    case OP_CMPU:  {
+                    
+            return( getBitField( instr, 13, 2 ) >= 2 );
+        }
+                
+        case OP_LD:     case OP_LDA:    case OP_LDR:    {
             
             return( true );
         }
@@ -104,6 +112,9 @@ bool isWriteInstr( uint32_t instr ) {
     }
 }
 
+//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+// A quick caddress alignment check.
+// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool isAligned( uint32_t adr, uint32_t align ) {
     
     switch( align ) {
@@ -415,13 +426,14 @@ void MemoryAccessStage::process( ) {
             if ( getBitField( instr, 13, 2 ) >= 2 ) {
                 
                 dLen    = mapDataLen( instr );
-                ofsAdr  = add32( psValB.get( ), psValX.get( ));
+                ofsAdr  = psValB.get( ) + psValX.get( );
                 segAdr  = core -> sReg[ getBitField( ofsAdr, 1, 2 ) ].get( );
             }
             else {
                 
                 exStage -> psValA.set( psValA.get( ));
                 exStage -> psValB.set( psValB.get( ));
+                exStage -> psValX.set( 0 );
             }
             
         } break;
@@ -438,7 +450,7 @@ void MemoryAccessStage::process( ) {
         case OP_LD:    case OP_LDR: {
             
             dLen        = mapDataLen( instr );
-            ofsAdr      = add32( psValB.get( ), psValX.get( ));
+            ofsAdr      = psValB.get( ) + psValX.get( );
             segSelect   = getBitField( instr, 13, 2 );
             
             // ??? aligment
@@ -454,7 +466,7 @@ void MemoryAccessStage::process( ) {
         case OP_ST:     case OP_STC: {
             
             dLen        = mapDataLen( instr );
-            ofsAdr      = add32( psValB.get( ), psValX.get( ));
+            ofsAdr      = psValB.get( ) + psValX.get( );
             segSelect   = getBitField( instr, 13, 2 );
             
             // ??? aligment
@@ -471,7 +483,7 @@ void MemoryAccessStage::process( ) {
             
             dLen    = 4;
             segAdr  = 0;
-            ofsAdr  = add32( psValB.get( ), psValX.get( ));
+            ofsAdr  = psValB.get( ) + psValX.get( );
             
             // ??? aligment
                 
@@ -483,7 +495,7 @@ void MemoryAccessStage::process( ) {
         case OP_LDO: {
             
             exStage -> psValA.set( psValA.get( ));
-            exStage -> psValB.set( add32( psValB.get( ), psValX.get( )));
+            exStage -> psValB.set( psValB.get( ) + psValX.get( ));
             exStage -> psValX.set( 0 );
             
         } break;
@@ -491,7 +503,7 @@ void MemoryAccessStage::process( ) {
         case OP_LDPA:   case OP_PRB:  {
             
             dLen        = mapDataLen( instr );
-            ofsAdr      = add32( psValB.get( ), psValX.get( ));
+            ofsAdr      = psValB.get( ) + psValX.get( );
             segSelect   = getBitField( instr, 13, 2 );
          
             if ( segSelect == 0 ) segSelect += 4;
@@ -510,7 +522,7 @@ void MemoryAccessStage::process( ) {
         case OP_GATE: {
             
             core -> fdStage -> psPstate0.set( psPstate0.get( ));
-            core -> fdStage -> psPstate1.set( add32( psValB.get( ), psValX.get( )));
+            core -> fdStage -> psPstate1.set( psValB.get( ) + psValX.get( ));
             
             // ??? what about the priv stuff ?
             
@@ -521,14 +533,14 @@ void MemoryAccessStage::process( ) {
         case OP_B:  case OP_BR:     case OP_BV: {
             
             core -> fdStage -> psPstate0.set( psPstate0.get( ));
-            core -> fdStage -> psPstate1.set( add32( psValB.get( ), psValX.get( )));
+            core -> fdStage -> psPstate1.set( psValB.get( ) + psValX.get( ));
             flushPipeLine( );
             
         } break;
             
         case OP_BVE: {
             
-            ofsAdr      = add32( psValB.get( ), psValX.get( ));
+            ofsAdr      = psValB.get( ) + psValX.get( );
             segSelect   = getBitField( instr, 13, 2 );
          
             if ( segSelect == 0 ) segSelect += 4;
@@ -542,7 +554,7 @@ void MemoryAccessStage::process( ) {
             
         case OP_BE: {
             
-            ofsAdr = add32( psValB.get( ), psValB.get( ));
+            ofsAdr = psValB.get( ) + psValB.get( );
             segAdr = core -> sReg[ getBitField( instr, 27, 4 ) ].getBitField( 31, 16 );
             
             core -> fdStage -> psPstate0.setBitField( segAdr, 31, 16  );
@@ -553,7 +565,7 @@ void MemoryAccessStage::process( ) {
             
         case OP_CBR: case OP_CBRU: {
             
-            ofsAdr = add32( psPstate1.get( ), psValX.get( ));
+            ofsAdr = psPstate1.get( ) + psValX.get( );
             exStage -> psValX.set( ofsAdr );
            
         } break;
@@ -602,7 +614,7 @@ void MemoryAccessStage::process( ) {
         case OP_PTLB: {
             
             dLen        = mapDataLen( instr );
-            ofsAdr      = add32( psValB.get( ), psValX.get( ));
+            ofsAdr      = psValB.get( ) + psValX.get( );
             segSelect   = getBitField( instr, 13, 2 );
          
             if ( segSelect == 0 ) segSelect += 4;
@@ -621,7 +633,7 @@ void MemoryAccessStage::process( ) {
         case OP_PCA: {
             
             dLen        = mapDataLen( instr );
-            ofsAdr      = add32( psValB.get( ), psValX.get( ));
+            ofsAdr      = psValB.get( ) + psValX.get( );
             segSelect   = getBitField( instr, 13, 2 );
          
             if ( segSelect == 0 ) segSelect += 4;

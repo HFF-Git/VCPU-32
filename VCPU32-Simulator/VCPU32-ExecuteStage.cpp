@@ -42,6 +42,9 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+// Bit field access.
+// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool getBit( uint32_t arg, int pos ) {
     
     return(( arg & ( 1U << ( 31 - ( pos % 32 )))) ? 1 : 0 );
@@ -331,8 +334,7 @@ void ExecuteStage::process( ) {
     
     uint32_t            instr       = psInstr.get( );
     uint8_t             opCode      = getBitField( psInstr.get( ), 5, 6 );
-    uint32_t            valR        = 0;
-  
+   
     MemoryAccessStage   *maStage    = core -> maStage;
     FetchDecodeStage    *fdStage    = core -> fdStage;
    
@@ -349,79 +351,105 @@ void ExecuteStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     switch ( opCode ) {
             
-        case OP_ADD:    case OP_ADC: {
+        case OP_ADD: case OP_ADC: {
             
-            uint32_t valR;
-            
-            if ( opCode == OP_ADC ) {
+            if ( getBit( instr, 10 )) {
                 
-                valR = psValA.get( ) + psValB.get( ) + ( getBit( psPstate0.get( ), ST_CARRY ) ? 1 : 0 );
-            }
-            else valR = psValA.get( ) + psValB.get( );
-            
-            bool valCarry = ( UINT32_MAX - psValA.get( ) > psValB.get( ));
-            
-            fdStage -> psPstate0.setBit( valCarry, ST_CARRY );
-            
-            if ( getBit( instr, 11 )) {
+                uint64_t tmpU = (uint64_t) psValA.get( ) + psValB.get( );
                 
-                if (( valCarry ) && ( getBit( instr, 10 ))) {
+                if ( opCode == OP_ADC ) {
                     
-                    setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
-                    return;
+                    tmpU += ( getBit( psPstate0.get( ), ST_CARRY ) ? 1 : 0 );
                 }
-            } 
-            else {
                 
-                if ( getBit( instr, 10 )) {
+                bool tmpC = ( tmpU > UINT32_MAX );
+                
+                if ( getBit( instr, 11 )) {
                     
-                    if (( valR ^ psValA.get( ) ) & ( valR ^ psValB.get( ) ) & 0x80000000 ) {
+                    if ( tmpC ) {
                         
                         setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
                         return;
                     }
                 }
+                
+                core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpU );
+                fdStage -> psPstate0.setBit( tmpC, ST_CARRY );
             }
-            
-            core -> gReg[ getBitField( instr, 9, 4 ) ].set( valR );
+            else {
+               
+                int64_t tmpS = (int64_t) psValA.get( ) + psValB.get( );
+                    
+                if ( opCode == OP_ADC ) {
+                        
+                    tmpS += ( psPstate0.getBit( ST_CARRY ) ? 1 : 0 );
+                }
+                
+                bool tmpC = ( tmpS > INT32_MAX ) || ( tmpS < INT32_MIN );
+                    
+                if ( getBit( instr, 11 )) {
+                    
+                    if ( tmpC ) {
+                        
+                        setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
+                        return;
+                    }
+                }
+                    
+                core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpS );
+                fdStage -> psPstate0.setBit( tmpC, ST_CARRY );
+            }
             
         } break;
             
         case OP_SUB:    case OP_SBC: {
             
-            uint32_t valR;
-            
-            if ( opCode == OP_SBC ) {
+            if ( getBit( instr, 10 )) {
                 
-                valR = psValA.get( ) + ( ~ psValB.get( )  ) + ( getBit( psPstate0.get( ), ST_CARRY ) ? 1 : 0 );
-            }
-            else valR = psValA.get( ) + ( ~ psValB.get( )  ) + 1;
-            
-            bool valCarry = ( psValB.get( ) > psValA.get( ));
-            
-            fdStage -> psPstate0.setBit( valCarry, ST_CARRY );
-            
-            if ( getBit( instr, 11 )) {
+                uint64_t tmpU = (uint64_t) psValA.get( ) - psValB.get( );
                 
-                if (( valCarry ) && ( getBit( instr, 10 ))) {
+                if ( opCode == OP_SBC ) {
                     
-                    setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
-                    return;
+                    tmpU -= ( getBit( psPstate0.get( ), ST_CARRY ) ? 1 : 0 );
                 }
-            } 
-            else {
                 
-                if ( getBit( instr, 10 )) {
+                bool tmpC =  ((int64_t) tmpU < 0 );
+                
+                if ( getBit( instr, 11 )) {
                     
-                    if (( valR ^ psValA.get( ) ) & ( valR ^ psValB.get( ) ) & 0x80000000 ) {
+                    if ( tmpC ) {
                         
                         setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
                         return;
                     }
                 }
+                
+                core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpU );
+                fdStage -> psPstate0.setBit( tmpC, ST_CARRY );
             }
-            
-            core -> gReg[ getBitField( instr, 9, 4 ) ].set( valR );
+            else {
+                
+                uint64_t tmpS = (int64_t) psValA.get( ) - psValB.get( );
+                
+                if ( opCode == OP_SBC ) {
+                    
+                    tmpS -= ( getBit( psPstate0.get( ), ST_CARRY ) ? 1 : 0 );
+                }
+                
+                bool tmpC = ( tmpS > INT32_MAX ) || ( tmpS < INT32_MIN );
+                
+                if ( getBit( instr, 11 )) {
+                    
+                    if ( tmpC ) {
+                        
+                        setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
+                        return;
+                    }
+                }
+                
+                core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpS );
+                fdStage -> psPstate0.setBit( tmpC, ST_CARRY );
+            }
             
         } break;
             
@@ -536,49 +564,38 @@ void ExecuteStage::process( ) {
         case OP_SHLA: {
             
             uint8_t  shAmt = getBitField( instr, 21, 2 );
-            uint32_t valR;
-            
-            // ??? works the same for signed and unsigned ?
             
             if ( getBit( instr, 12 )) {
                 
-                if (( shAmt == 1 ) & (( psValA.get( ) & 0x80000000 ) != ( psValA.get( ) & 0x40000000 ))) {
+                uint64_t tmpU = ( psValA.get( ) << shAmt ) + psValB.get( );
+                
+                if ( getBit( instr, 11 )) {
                     
-                    setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
-                    return;
+                    if ( tmpU > UINT32_MAX ) {
+                        
+                        setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
+                        return;
+                    }
                 }
                 
-                else if (( shAmt == 2 ) & ((( psValA.get( ) & 0x80000000 ) != ( psValA.get( ) & 0x40000000 )) ||
-                                           (( psValA.get( ) & 0x80000000 ) != ( psValA.get( ) & 0x20000000 )))) {
-                    
-                    setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
-                    return;
-                }
-                
-                else if (( shAmt == 3 ) & ((( psValA.get( ) & 0x80000000 ) != ( psValA.get( ) & 0x40000000 )) ||
-                                           (( psValA.get( ) & 0x80000000 ) != ( psValA.get( ) & 0x20000000 )) ||
-                                           (( psValA.get( ) & 0x80000000 ) != ( psValA.get( ) & 0x10000000 )))) {
-                    
-                    setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
-                    return;
-                }
+                core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpU );
             }
-            
-            valR = ( psValA.get( ) << shAmt ) + psValB.get( );
-            
-            // ??? works the same for signed and unsigned ?
-            
-            if ( getBit( instr, 12 )) {
+            else {
                 
-                if (( valR ^ psValA.get( ) ) & ( valR ^ psValB.get( )) & 0x80000000 ) {
+                uint64_t tmpS = ( psValA.get( ) << shAmt ) + ((int32_t) psValB.get( ));
+                
+                if ( getBit( instr, 11 )) {
                     
-                    setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
-                    return;
+                    if (( tmpS < INT32_MIN ) || ( tmpS > INT32_MAX )) {
+                        
+                        setupTrapData( OVERFLOW_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
+                        return;
+                    }
                 }
+                
+                core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpS );
             }
-            
-            core -> gReg[ getBitField( instr, 9, 4 ) ].set( valR );
-            
+         
         } break;
             
         case OP_LDIL: 
@@ -661,13 +678,11 @@ void ExecuteStage::process( ) {
         } break;
             
         case OP_MST: {
-            
-            valR = getBitField( psPstate0.get( ), 15, 4 );
-            
+           
             switch ( getBitField( instr, 11, 2 )) {
                     
-                case 0: fdStage -> psPstate0.setBitField(getBitField( instr, 31, 4 ), 15, 4 ); break;
-                case 1: fdStage -> psPstate0.orBitField( psValB.getBitField( 31, 4 ), 15, 4 ); break;
+                case 0: fdStage -> psPstate0.setBitField( getBitField( instr, 31, 4 ), 15, 4 ); break;
+                case 1: fdStage -> psPstate0.orBitField( psValB.getBitField( 31, 4 ), 15, 4 );  break;
                 case 2: fdStage -> psPstate0.andBitField( psValB.getBitField( 31, 4 ), 15, 4 ); break;
                 default: ;
             }
@@ -699,7 +714,7 @@ void ExecuteStage::process( ) {
             
         case OP_BRK: {
             
-            if (( psValA.get( ) != 0 ) || ( psValB.get( ) != 0 )) {
+            if (( getBitField( instr, 9, 4 ) != 0 ) || ( getBitField( instr, 31, 16 ) != 0 )) {
                 
                 setupTrapData( BREAK_TRAP, psPstate0.get( ), psPstate1.get( ), instr, psValA.get( ), psValB.get( ) );
                 return;
@@ -720,8 +735,10 @@ void ExecuteStage::process( ) {
     //--------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {
         
-        FetchDecodeStage    *fdStage     = core -> fdStage;
-        uint32_t            regIdForValR = getBitField( instr, 9, 4 );
+        FetchDecodeStage    *fdStage        = core -> fdStage;
+       
+        uint32_t            regIdForValR    = getBitField( instr, 9, 4 );
+        uint32_t            valR            = core -> gReg[ regIdForValR ].getLatched( );
       
         if ( fdStage -> dependencyValA( instr, regIdForValR )) maStage -> psValA.set( valR );
         if ( fdStage -> dependencyValB( instr, regIdForValR )) maStage -> psValB.set( valR );

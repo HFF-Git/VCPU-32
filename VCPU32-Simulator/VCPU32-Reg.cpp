@@ -72,6 +72,11 @@ uint32_t CpuReg::get( ) {
     return( regOut );
 }
 
+uint32_t CpuReg::getLatched( ) {
+    
+    return( regIn );
+}
+
 bool CpuReg::getBit( int pos ) {
     
    return( getBitField( pos, 1 ));

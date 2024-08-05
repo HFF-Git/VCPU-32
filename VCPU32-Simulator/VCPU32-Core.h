@@ -250,6 +250,7 @@ public:
     void        load( uint32_t val );
     void        set( uint32_t val );
     uint32_t    get( );
+    uint32_t    getLatched( );
     
     bool        getBit( int pos );
     void        setBit( int pos );

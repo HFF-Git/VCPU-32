@@ -531,7 +531,7 @@ void FetchDecodeStage::process( ) {
         case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:
         case OP_OR:     case OP_XOR:    case OP_CMP:    case OP_CMPU: {
             
-            uint32_t opMode = getBitField( instr, 14, 2 );
+            uint32_t opMode = getBitField( instr, 13, 2 );
            
             if (( opMode < 2 ) && ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR ))) {
                 
