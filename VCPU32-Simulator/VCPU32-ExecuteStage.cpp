@@ -582,7 +582,7 @@ void ExecuteStage::process( ) {
             }
             else {
                 
-                uint64_t tmpS = ( psValA.get( ) << shAmt ) + ((int32_t) psValB.get( ));
+                int64_t tmpS = ((int64_t) ( psValA.get( ) << shAmt )) + ((int32_t) psValB.get( ));
                 
                 if ( getBit( instr, 11 )) {
                     
