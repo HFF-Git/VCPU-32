@@ -265,9 +265,38 @@ void MemoryAccessStage::setupTrapData( uint32_t trapId,
 // data path, we just use the FD stage function.
 //
 //------------------------------------------------------------------------------------------------------------
-bool MemoryAccessStage::dependencyValA( uint32_t instr, uint32_t regId ) {
+bool MemoryAccessStage::dependencyValA( uint32_t regId ) {
+  
+    uint32_t instr = psInstr.get( );
     
-    return( core -> fdStage -> dependencyValA( instr, regId ));
+    switch ( getBitField( instr, 5, 6 )) {
+            
+        case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
+        case OP_XOR:    case OP_CMP:    case OP_CMPU: {
+            
+            uint32_t mode = getBitField( instr, 13, 2 );
+            
+            return(( mode > 0 ) && ( getBitField( instr, 27, 4 ) == regId ));
+        }
+            
+        case OP_DEP: {
+            
+            return(( ! getBit( instr, 10 )) ? ( getBitField( instr, 9, 4 ) == regId ) : false );
+        }
+            
+        case OP_DSR:    case OP_SHLA:   case OP_CMR:    case OP_BVE:    case OP_CBR:    case OP_CBRU:
+        case OP_LDPA:   case OP_PRB:    case OP_PTLB:   case OP_PCA:    case OP_DIAG: {
+        
+            return( getBitField( instr, 27, 4 ) == regId );
+        }
+            
+       case OP_ST:     case OP_STA: {
+            
+            return( getBitField( instr, 9, 4 ) == regId );
+        }
+            
+        default: return ( false );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -284,7 +313,9 @@ bool MemoryAccessStage::dependencyValA( uint32_t instr, uint32_t regId ) {
 // stage.
 //
 //------------------------------------------------------------------------------------------------------------
-bool MemoryAccessStage::dependencyValB( uint32_t instr, uint32_t regId ) {
+bool MemoryAccessStage::dependencyValB( uint32_t regId ) {
+    
+    uint32_t instr = psInstr.get( );
     
     switch ( getBitField( instr, 5, 6 )) {
             
@@ -293,13 +324,36 @@ bool MemoryAccessStage::dependencyValB( uint32_t instr, uint32_t regId ) {
             
             uint32_t mode = getBitField( instr, 13, 2 );
             
-            return((( mode == 1 ) || ( mode == 2 )) && ( getBitField( instr, 31, 4 ) == regId ));
+            return(( mode > 0 ) && ( getBitField( instr, 31, 4 ) == regId ));
         }
             
         case OP_LSID:   case OP_EXTR:   case OP_DEP:    case OP_DSR:    case OP_SHLA:   case OP_CMR:
         case OP_LDO:    case OP_CBR:    case OP_CBRU:   case OP_MST:    case OP_DIAG: {
             
             return( getBitField( instr, 31, 4 ) == regId );
+        }
+            
+        default: return ( false );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool MemoryAccessStage::dependencyValX( uint32_t regId ) {
+   
+    uint32_t instr = psInstr.get( );
+    
+    switch ( getBitField( instr, 5, 6 )) {
+            
+        case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
+        case OP_XOR:    case OP_CMP:    case OP_CMPU: {
+            
+            uint32_t mode = getBitField( instr, 13, 2 );
+            
+            return(( mode == 1 ) && ( getBitField( instr, 27, 4 ) == regId ));
         }
             
         default: return ( false );
@@ -587,6 +641,9 @@ void MemoryAccessStage::process( ) {
             
         case OP_BRK: {
             
+            exStage -> psValA.set( psValA.get( ));
+            exStage -> psValB.set( psValB.get( ));
+            exStage -> psValX.set( psValX.get( ));
             
         } break;
             

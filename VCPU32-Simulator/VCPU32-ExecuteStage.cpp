@@ -739,12 +739,21 @@ void ExecuteStage::process( ) {
        
         uint32_t            regIdForValR    = getBitField( instr, 9, 4 );
         uint32_t            valR            = core -> gReg[ regIdForValR ].getLatched( );
-    
-        if ( fdStage -> dependencyValA( fdStage -> instr, regIdForValR )) maStage -> psValA.set( valR );
-        if ( fdStage -> dependencyValB( fdStage -> instr, regIdForValR )) maStage -> psValB.set( valR );
-        if ( fdStage -> dependencyValX( fdStage -> instr, regIdForValR )) maStage -> psValX.set( valR );
         
-        if ( maStage -> dependencyValA( fdStage -> instr, regIdForValR )) psValA.set( valR );
-        if ( maStage -> dependencyValB( fdStage -> instr, regIdForValR )) psValB.set( valR );
+#if 0
+        printf( "FD bypass: Instr: 0x%x -> R%d, Val: 0x%x\n", instr, regIdForValR, valR );
+        printf( "FD - ValA: %d\n", fdStage -> dependencyValA( regIdForValR ));
+        printf( "FD - ValB: %d\n", fdStage -> dependencyValB( regIdForValR ));
+        printf( "FD - ValX: %d\n", fdStage -> dependencyValX( regIdForValR ));
+        printf( "MA - ValA: %d\n", maStage -> dependencyValA( regIdForValR ));
+        printf( "MA - ValB: %d\n", maStage -> dependencyValB( regIdForValR ));
+#endif
+        
+        if ( fdStage -> dependencyValA( regIdForValR )) maStage -> psValA.set( valR );
+        if ( fdStage -> dependencyValB( regIdForValR )) maStage -> psValB.set( valR );
+        if ( fdStage -> dependencyValX( regIdForValR )) maStage -> psValX.set( valR );
+        
+        if ( maStage -> dependencyValA( regIdForValR )) psValA.set( valR );
+        if ( maStage -> dependencyValB( regIdForValR )) psValB.set( valR );
     }
 }

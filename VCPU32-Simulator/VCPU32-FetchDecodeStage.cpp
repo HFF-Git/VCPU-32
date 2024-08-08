@@ -154,7 +154,7 @@ bool FetchDecodeStage::isStalled( ) {
 }
 
 void FetchDecodeStage::setStalled( bool arg ) {
-    
+   
     stalled = arg;
 }
 
@@ -164,7 +164,7 @@ void FetchDecodeStage::setStalled( bool arg ) {
 // to the pipeline register so that we have the correct value.
 //
 //------------------------------------------------------------------------------------------------------------
-bool FetchDecodeStage::dependencyValA( uint32_t instr, uint32_t regId ) {
+bool FetchDecodeStage::dependencyValA( uint32_t regId ) {
     
     switch ( getBitField( instr, 5, 6 )) {
             
@@ -202,8 +202,8 @@ bool FetchDecodeStage::dependencyValA( uint32_t instr, uint32_t regId ) {
 // to the pipeline register so that we have the correct value.
 //
 //------------------------------------------------------------------------------------------------------------
-bool FetchDecodeStage::dependencyValB( uint32_t instr, uint32_t regId ) {
-    
+bool FetchDecodeStage::dependencyValB( uint32_t regId ) {
+   
     switch ( getBitField( instr, 5, 6 )) {
             
         case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
@@ -211,7 +211,7 @@ bool FetchDecodeStage::dependencyValB( uint32_t instr, uint32_t regId ) {
             
             uint32_t mode = getBitField( instr, 13, 2 );
             
-            return((( mode == 1 ) || ( mode == 2 )) && ( getBitField( instr, 31, 4 ) == regId ));
+            return(( mode > 0 ) && ( getBitField( instr, 31, 4 ) == regId ));
         }
             
         case OP_LSID:   case OP_EXTR:   case OP_DEP:    case OP_DSR:    case OP_SHLA:   case OP_CMR:
@@ -233,8 +233,8 @@ bool FetchDecodeStage::dependencyValB( uint32_t instr, uint32_t regId ) {
 // to the pipeline register so that we have the correct value.
 //
 //------------------------------------------------------------------------------------------------------------
-bool FetchDecodeStage::dependencyValX( uint32_t instr, uint32_t regId ) {
-    
+bool FetchDecodeStage::dependencyValX( uint32_t regId ) {
+   
     switch ( getBitField( instr, 5, 6 )) {
             
         case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
@@ -402,7 +402,6 @@ void FetchDecodeStage::process( ) {
     MemoryAccessStage   *maStage        = core -> maStage;
     uint32_t            physAdr         = 0;
    
-    
     //--------------------------------------------------------------------------------------------------------
     // Assume, we are not stalled.
     //
@@ -910,9 +909,11 @@ void FetchDecodeStage::process( ) {
     //---------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ getBitField( maStage -> psInstr.get( ), 5, 6 )].flags & REG_R_INSTR ) {
         
+        printf( "FD Stage: MA Stage stall check, instr: 0x%x\n", maStage -> psInstr.get( ));
+        
         uint32_t regIdR = maStage -> psInstr.getBitField( 9, 4 );
         
-        if ( dependencyValB( instr, regIdR ) || dependencyValX( instr, regIdR )) {
+        if ( maStage -> dependencyValB( regIdR ) || maStage -> dependencyValX( regIdR )) {
             
             stallPipeLine( );
             return;

@@ -122,7 +122,7 @@ void  CpuCore::clearStats( ) {
 //------------------------------------------------------------------------------------------------------------
 void CpuCore::reset( ) {
     
-    for ( uint8_t i = 0; i < 8; i++  )  gReg[ i ].reset( );
+    for ( uint8_t i = 0; i < 16; i++  )  gReg[ i ].reset( );
     for ( uint8_t i = 0; i < 8; i++  )  sReg[ i ].reset( );
     for ( uint8_t i = 0; i < 32; i++  ) cReg[ i ].reset( );
     
@@ -183,7 +183,7 @@ void CpuCore::clockStep( uint32_t numOfSteps ) {
         if ( pdcMem != nullptr )    pdcMem      -> process( );
         if ( ioMem != nullptr )     ioMem       -> process( );
         
-        for ( uint8_t i = 0; i < 8; i++  ) gReg[ i ].tick( );
+        for ( uint8_t i = 0; i < 16; i++  ) gReg[ i ].tick( );
         for ( uint8_t i = 0; i < 8; i++  ) sReg[ i ].tick( );
         for ( uint8_t i = 0; i < 32; i++ ) cReg[ i ].tick( );
         

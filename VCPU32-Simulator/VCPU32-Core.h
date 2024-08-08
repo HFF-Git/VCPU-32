@@ -620,9 +620,9 @@ public:
     
     bool            checkProtectId( uint16_t segId );
     
-    bool            dependencyValA( uint32_t instr, uint32_t regId );
-    bool            dependencyValB( uint32_t instr, uint32_t regId );
-    bool            dependencyValX( uint32_t instr, uint32_t regId );
+    bool            dependencyValA( uint32_t regId );
+    bool            dependencyValB( uint32_t regId );
+    bool            dependencyValX( uint32_t regId );
     
     CpuReg          psPstate0;
     CpuReg          psPstate1;
@@ -684,8 +684,9 @@ public:
     
     bool            checkProtectId( uint16_t segId );
     
-    bool            dependencyValA( uint32_t instr, uint32_t regId );
-    bool            dependencyValB( uint32_t instr, uint32_t regId );
+    bool            dependencyValA( uint32_t regId );
+    bool            dependencyValB( uint32_t regId );
+    bool            dependencyValX( uint32_t regId );
     
     CpuReg          psPstate0;
     CpuReg          psPstate1;
