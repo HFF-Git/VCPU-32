@@ -739,12 +739,12 @@ void ExecuteStage::process( ) {
        
         uint32_t            regIdForValR    = getBitField( instr, 9, 4 );
         uint32_t            valR            = core -> gReg[ regIdForValR ].getLatched( );
-      
-        if ( fdStage -> dependencyValA( instr, regIdForValR )) maStage -> psValA.set( valR );
-        if ( fdStage -> dependencyValB( instr, regIdForValR )) maStage -> psValB.set( valR );
-        if ( fdStage -> dependencyValX( instr, regIdForValR )) maStage -> psValX.set( valR );
+    
+        if ( fdStage -> dependencyValA( fdStage -> instr, regIdForValR )) maStage -> psValA.set( valR );
+        if ( fdStage -> dependencyValB( fdStage -> instr, regIdForValR )) maStage -> psValB.set( valR );
+        if ( fdStage -> dependencyValX( fdStage -> instr, regIdForValR )) maStage -> psValX.set( valR );
         
-        if ( maStage -> dependencyValA( instr, regIdForValR )) psValA.set( valR );
-        if ( maStage -> dependencyValB( instr, regIdForValR )) psValB.set( valR );
+        if ( maStage -> dependencyValA( fdStage -> instr, regIdForValR )) psValA.set( valR );
+        if ( maStage -> dependencyValB( fdStage -> instr, regIdForValR )) psValB.set( valR );
     }
 }

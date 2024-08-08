@@ -400,7 +400,6 @@ void FetchDecodeStage::process( ) {
     
     TlbEntry            *tlbEntryPtr    = nullptr;
     MemoryAccessStage   *maStage        = core -> maStage;
-    uint32_t            instr           = NOP_INSTR;
     uint32_t            physAdr         = 0;
    
     

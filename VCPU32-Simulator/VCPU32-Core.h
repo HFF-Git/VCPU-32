@@ -626,6 +626,7 @@ public:
     
     CpuReg          psPstate0;
     CpuReg          psPstate1;
+    uint32_t        instr;
    
     uint32_t        instrFetched;
     uint32_t        instrLoad;
