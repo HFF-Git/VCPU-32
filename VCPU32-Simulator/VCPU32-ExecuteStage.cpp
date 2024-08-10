@@ -730,7 +730,9 @@ void ExecuteStage::process( ) {
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Bypass logic.
+    // Bypass logic. We check the instruction currently in the FD or MA stage and "patch" the pipeline
+    // register in the MA and EX stage if needed. Again, an instruction that would depend on computed
+    // results in the MA stage, has been stalled already until we can reach it via a bypass.
     //
     //--------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {

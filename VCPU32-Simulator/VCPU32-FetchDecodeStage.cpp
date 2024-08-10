@@ -160,11 +160,14 @@ void FetchDecodeStage::setStalled( bool arg ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "dependencyValA" checks if the instruction will fetch a value from the general register file intended to
-// be stored in pipeline register "A". If that is the case, the execute stage will store its computed value
-// to the pipeline register so that we have the correct value.
+// be stored in pipeline register "A". This routine is called from the execute stage to determine whether
+// the data fetched from the general register whoud be overwritten with the data computed in the EX stage
+// for that register. An execption is register zero for which there is by definition no dependency.
 //
 //------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::dependencyValA( uint32_t regId ) {
+    
+    if ( regId == 0 ) return( false );
     
     switch ( getBitField( instr, 5, 6 )) {
             
@@ -198,11 +201,17 @@ bool FetchDecodeStage::dependencyValA( uint32_t regId ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "dependencyValB" checks if the instruction will fetch a value from the general register file intended to
-// be stored in pipeline register "B". If that is the case, the execute stage will store its computed value
-// to the pipeline register so that we have the correct value.
+// be stored in pipeline register "B". This routine is called from the execute stage to determine whether
+// the data fetched from the general register whoud be overwritten with the data computed in the EX stage
+// for that register. The other use case is where an instruction needs to be stalled because it cannot
+// continue with put the correct value fetched in the FD stage. This is the case for all instructions that
+// will compute an address using the "B" and "X" values fetched from a register. An execption is register
+// zero for which there is by definition no dependency.
 //
 //------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::dependencyValB( uint32_t regId ) {
+    
+    if ( regId == 0 ) return( false );
    
     switch ( getBitField( instr, 5, 6 )) {
             
@@ -229,11 +238,17 @@ bool FetchDecodeStage::dependencyValB( uint32_t regId ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "dependencyValX" checks if the instruction will fetch a value from the general register file intended to
-// be stored in pipeline register "X". If that is the case, the execute stage will store its computed value
-// to the pipeline register so that we have the correct value.
+// be stored in pipeline register "X". This routine is called from the execute stage to determine whether
+// the data fetched from the general register whoud be overwritten with the data computed in the EX stage
+// for that register. The other use case is where an instruction needs to be stalled because it cannot
+// continue with put the correct value fetched in the FD stage. This is the case for all instructions that
+// will compute an address using the "B" and "X" values fetched from a register. An execption is register
+// zero for which there is by definition no dependency.
 //
 //------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::dependencyValX( uint32_t regId ) {
+    
+    if ( regId == 0 ) return( false );
    
     switch ( getBitField( instr, 5, 6 )) {
             
@@ -897,14 +912,16 @@ void FetchDecodeStage::process( ) {
     
     //--------------------------------------------------------------------------------------------------------
     // Instructions that will do computation in the MA stage with "B" and "X" may run into the case that the
-    // register content for them is just produced by the preceeding instruction. In other words, the EX stage
-    // is about to compute the new value while we are in the fetch stage for the follow-on instruction. This
-    // value has not been written back and hence we cannot continue until the result is in reach via a simple
-    // bypass from the EX stage. This routine will test our instruction currently decoded for being one that
-    // depends on the latest register content. In general these are all instructions that do address arithmetic
-    // using the B and X pipeline fields.
+    // register content for them is just produced by the preceeding instruction. The preceeding instruction
+    // is currently in the MA stage and will enter the EX stage, when this instruction will enter the MA
+    // stage. When the EX of preceeding instruction will be in the EX stage, computing a result intended
+    // for "B" and "X", it is too late to just bypass the address computation. So, we need to stall this
+    // instruction and wait at least one cycle so that the EX stage has a chance to bypass to the FD stage
+    // and we will use the correct values for the MA stage.
     //
-    // ??? anything special to do for REG 0 ?
+    // When the instruction in teh MA stage is one that will produce a register reuslt, we will test for a
+    // dependency of the "B" and "X" fields on that instruction.
+    //
     // ??? what about the status or segment register ?
     //---------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ getBitField( maStage -> psInstr.get( ), 5, 6 )].flags & REG_R_INSTR ) {
@@ -912,9 +929,9 @@ void FetchDecodeStage::process( ) {
         printf( "FD Stage: MA Stage stall check, instr: 0x%x\n", maStage -> psInstr.get( ));
         
         uint32_t regIdR = maStage -> psInstr.getBitField( 9, 4 );
-        
-        if ( maStage -> dependencyValB( regIdR ) || maStage -> dependencyValX( regIdR )) {
-            
+       
+        if ( dependencyValB( regIdR ) || dependencyValX( regIdR )) {
+                
             stallPipeLine( );
             return;
         }

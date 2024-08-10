@@ -262,10 +262,13 @@ void MemoryAccessStage::setupTrapData( uint32_t trapId,
 // "dependencyValA" checks if the instruction fetched a value from the general register file in the FD stage
 // that we would just pass on to the EX stage. If that is the case, the execute stage will store its computed
 // value to the pipeline register so that we have the correct value. Since nothing is changed on the "valA"
-// data path, we just use the FD stage function.
+// data path, we just use the FD stage function. An execption is register zero for which there is by
+// definition no dependency.
 //
 //------------------------------------------------------------------------------------------------------------
 bool MemoryAccessStage::dependencyValA( uint32_t regId ) {
+    
+    if ( regId == 0 ) return( false );
   
     uint32_t instr = psInstr.get( );
     
@@ -302,18 +305,19 @@ bool MemoryAccessStage::dependencyValA( uint32_t regId ) {
 //------------------------------------------------------------------------------------------------------------
 // "dependencyValB" checks if the instruction fetched a value from the general register file in the FD stage
 // that we would just pass on to the EX stage. If that is the case, the execute stage will store its computed
-// value to the pipeline register so that we have the correct value. Note that several instruction produce a
-// new valB. For example, the load instruction will load a new value and store this to the "valB" pipeline
-// register. We need only to cover the cases where a value was read in the FD stage and is intended to be
-// passed on to the MA stage.
+// value to the pipeline register so that we have the correct value. Note that several instruction that either
+// produce a new "valB" or have a dependcy on the result of the precedding instruction. These instructions
+// were already stalled in the FD stage,
 //
-// There are also several instructions that uses the "valB" field and compute an address to be used for
-// fetching data or branching. In that case we have to stall the pipeline to ensure that the address
-// address computation is done with teh correct "valB" fetched from the general register file during the FD
-// stage.
+// ??? all other cases have been stalled ?
+// ??? what about segemetn and control registers ?
+//
+// An execption is register zero for which there is by definition no dependency.
 //
 //------------------------------------------------------------------------------------------------------------
 bool MemoryAccessStage::dependencyValB( uint32_t regId ) {
+    
+    if ( regId == 0 ) return( false );
     
     uint32_t instr = psInstr.get( );
     
@@ -341,8 +345,13 @@ bool MemoryAccessStage::dependencyValB( uint32_t regId ) {
 //
 //
 //
+// An execption is register zero for which there is by definition no dependency.
+//
+// ??? do we have this case that "X" has a dependency to be checked in the MA stage ?
 //------------------------------------------------------------------------------------------------------------
 bool MemoryAccessStage::dependencyValX( uint32_t regId ) {
+    
+    if ( regId == 0 ) return( false );
    
     uint32_t instr = psInstr.get( );
     
