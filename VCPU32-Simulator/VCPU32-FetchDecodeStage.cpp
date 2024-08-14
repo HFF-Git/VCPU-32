@@ -260,6 +260,12 @@ bool FetchDecodeStage::dependencyValX( uint32_t regId ) {
             return(( mode == 2 ) && ( getBitField( instr, 27, 4 ) == regId ));
         }
             
+        case OP_LD:     case OP_LDA:    case OP_ST:     case OP_STA: {
+            
+            return(( getBit( instr, 10 ) && ( getBitField( instr, 27, 4 ) == regId )));
+            
+        } break;
+            
         case OP_BR: {
             
             return( getBitField( instr, 31, 4 ) == regId );
@@ -907,14 +913,12 @@ void FetchDecodeStage::process( ) {
     // instruction and wait at least one cycle so that the EX stage has a chance to bypass to the FD stage
     // and we will use the correct values for the MA stage.
     //
-    // When the instruction in teh MA stage is one that will produce a register reuslt, we will test for a
+    // When the instruction in the MA stage is one that will produce a register reuslt, we will test for a
     // dependency of the "B" and "X" fields on that instruction.
     //
     // ??? what about the status or segment register ?
     //---------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ getBitField( maStage -> psInstr.get( ), 5, 6 )].flags & REG_R_INSTR ) {
-        
-        printf( "FD Stage: MA Stage stall check, instr: 0x%x\n", maStage -> psInstr.get( ));
         
         uint32_t regIdR = maStage -> psInstr.getBitField( 9, 4 );
        
