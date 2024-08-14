@@ -494,17 +494,13 @@ struct L1CacheMem : CpuMem {
     
     L1CacheMem( CpuMemDesc *mDesc, CpuMem *lowerMem );
     
-    bool    readWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t len, uint32_t *data );
-    bool    writeWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t data );
+    bool    readWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t len, uint32_t *data, uint32_t pri = 0 );
+    bool    writeWord( uint32_t seg, uint32_t ofs, uint32_t len, uint32_t adrTag, uint32_t data, uint32_t pri = 0 );
     
-    bool    flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag );
-    bool    purgeBlock( uint32_t seg, uint32_t ofs, uint32_t tag );
+    bool    flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t pri = 0 );
+    bool    purgeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t pri = 0 );
 
     void    process( );    
-    
-private:
-    
-    
 };
 
 //------------------------------------------------------------------------------------------------------------

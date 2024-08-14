@@ -2087,10 +2087,12 @@ void DrvCmds::winNewWinCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// This command removes  a user defined window from the list of windows. A user definable window was asighned
+// This command removes  a user defined window from the list of windows. A user definable window was asigned
 // a number at creation time.
 //
 // WK [<winNum>]
+//
+// ??? would be nice to have an option to kill all user defined windows ...
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winKillWinCmd( char * cmdBuf ) {
     

@@ -546,23 +546,11 @@ void FetchDecodeStage::process( ) {
             
             uint32_t opMode = getBitField( instr, 13, 2 );
            
-            if (( opMode < 2 ) && ( opCodeTab[ opCode ].flags & ( LOAD_INSTR | STORE_INSTR ))) {
-                
-                setupTrapData( ILLEGAL_INSTR_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
-                return;
-            }
-            
-            if (( opMode == 2 ) && ( opCodeTab[ opCode ].flags & STORE_INSTR )) {
-                
-                setupTrapData( ILLEGAL_INSTR_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
-                return;
-            }
-            
             switch ( opMode ) {
                     
                 case OP_MODE_IMM: {
                    
-                    maStage -> psValA.set( 0 );
+                    maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
                     maStage -> psValB.set( immGenLowSign( instr, 31, 18 ));
                     maStage -> psValX.set( 0 );
                    

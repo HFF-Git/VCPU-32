@@ -56,7 +56,6 @@
 #include "VCPU32-Core.h"
 
 
-
 //------------------------------------------------------------------------------------------------------------
 // ??? what about a victim cache complement?
 //
@@ -70,8 +69,6 @@
 // Cache Miss, Victim Miss: The block is brought to cache from next level. The block evicted from the cache
 // gets stored in Victim cache.
 //------------------------------------------------------------------------------------------------------------
-
-
 
 
 
@@ -97,20 +94,14 @@ namespace {
 enum MemOpState : uint16_t {
     
     MO_IDLE                     = 0,
-    MO_ALLOCATE_BLOCK_VIRT      = 1,
-    MO_READ_BLOCK_VIRT          = 2,
-    MO_WRITE_BACK_BLOCK_VIRT    = 3,
-    MO_FLUSH_BLOCK_VIRT         = 4,
-    
-    MO_READ_BLOCK_PHYS          = 10,
-    MO_WRITE_BLOCK_PHYS         = 11,
-    MO_FLUSH_BLOCK_PHYS         = 12,
-    MO_PURGE_BLOCK_PHYS         = 13,
-    MO_ALLOCATE_BLOCK_PHYS      = 14,
-    MO_WRITE_BACK_BLOCK_PHYS    = 15,
-    
-    MO_READ_WORD_PHYS           = 20,
-    MO_WRITE_WORD_PHYS          = 21,
+    MO_READ_WORD                = 1,
+    MO_WRITE_WORD               = 2,
+    MO_ALLOCATE_BLOCK           = 3,
+    MO_READ_BLOCK               = 4,
+    MO_WRITE_BLOCK              = 5,
+    MO_WRITE_BACK_BLOCK         = 6,
+    MO_FLUSH_BLOCK              = 7,
+    MO_PURGE_BLOCK              = 8
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -299,10 +290,10 @@ uint16_t CpuMem::matchTag( uint32_t index, uint32_t tag ) {
 //
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::readWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, uint32_t *word, uint32_t pri ) {
-    
+   
     if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
-        opState.set( MO_READ_WORD_PHYS );
+        opState.set( MO_READ_WORD );
         reqSeg      = seg;
         reqOfs      = ofs;
         reqTag      = tag;
@@ -329,7 +320,7 @@ bool CpuMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, 
     
     if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
         
-        opState.set( MO_WRITE_BLOCK_PHYS );
+        opState.set( MO_WRITE_BLOCK );
         reqSeg      = seg;
         reqOfs      = ofs;
         reqTag      = tag;
@@ -356,9 +347,9 @@ bool CpuMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, 
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::readBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len, uint32_t pri ) {
     
-    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
+    if ( opState.get( ) == MO_IDLE ) {
         
-        opState.set( MO_READ_BLOCK_PHYS );
+        opState.set( MO_READ_BLOCK );
         reqSeg      = seg;
         reqOfs      = ofs;
         reqTag      = tag;
@@ -383,9 +374,9 @@ bool CpuMem::readBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, 
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::writeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf, uint32_t len, uint32_t pri ) {
     
-    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
+    if ( opState.get( ) == MO_IDLE ) {
         
-        opState.set( MO_WRITE_BLOCK_PHYS );
+        opState.set( MO_WRITE_BLOCK );
         reqSeg      = seg;
         reqOfs      = ofs;
         reqTag      = tag;
@@ -407,9 +398,9 @@ bool CpuMem::writeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf,
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t pri ) {
     
-    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
+    if ( opState.get( ) == MO_IDLE ) {
         
-        opState.set( MO_WRITE_BLOCK_PHYS );
+        opState.set( MO_WRITE_BLOCK );
         reqSeg      = seg;
         reqOfs      = ofs;
         reqTag      = tag;
@@ -431,9 +422,9 @@ bool CpuMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t pri 
 //------------------------------------------------------------------------------------------------------------
 bool CpuMem::purgeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t pri ) {
     
-    if (( opState.get( ) == MO_IDLE ) && ( pri > reqPri )) {
+    if ( opState.get( ) == MO_IDLE ) {
         
-        opState.set( MO_PURGE_BLOCK_PHYS );
+        opState.set( MO_PURGE_BLOCK );
         reqSeg      = seg;
         reqOfs      = ofs;
         reqTag      = tag;
@@ -495,20 +486,14 @@ char *CpuMem::getMemOpStr( uint32_t opArg ) {
     switch ( opArg  ) {
             
         case MO_IDLE:                   return((char *) "IDLE" );
-        case MO_ALLOCATE_BLOCK_VIRT:    return((char *) "ALLOCATE BLOCK VIRT" );
-        case MO_READ_BLOCK_VIRT:        return((char *) "READ BLOCK VIRT" );
-        case MO_WRITE_BACK_BLOCK_VIRT:  return((char *) "WRITE BACK BLOCK VIRT" );
-        case MO_FLUSH_BLOCK_VIRT:       return((char *) "FLUSH BLOCK VIRT" );
-            
-        case MO_READ_BLOCK_PHYS:        return((char *) "READ BLOCK PHYS" );
-        case MO_WRITE_BLOCK_PHYS:       return((char *) "WRITE BLOCK PHYS" );
-        case MO_FLUSH_BLOCK_PHYS:       return((char *) "FLUSH BLOCK PHYS" );
-        case MO_PURGE_BLOCK_PHYS:       return((char *) "PURGE BLOCK PHYS" );
-        case MO_ALLOCATE_BLOCK_PHYS:    return((char *) "ALLOCATE BLOCK PHYS" );
-        case MO_WRITE_BACK_BLOCK_PHYS:  return((char *) "WRITE BACK BLOCK PHYS" );
-            
-        case MO_READ_WORD_PHYS:         return((char *) "READ WORD PHYS" );
-        case MO_WRITE_WORD_PHYS:        return((char *) "WRITE WORD PHYS" );
+        case MO_READ_WORD:              return((char *) "READ WORD" );
+        case MO_WRITE_WORD:             return((char *) "WRITE WORD" );
+        case MO_ALLOCATE_BLOCK:         return((char *) "ALLOCATE BLOCK" );
+        case MO_READ_BLOCK:             return((char *) "READ BLOCK" );
+        case MO_WRITE_BLOCK:            return((char *) "WRITE BLOCK" );
+        case MO_WRITE_BACK_BLOCK:       return((char *) "WRITE BACK BLOCK" );
+        case MO_FLUSH_BLOCK:            return((char *) "FLUSH BLOCK" );
+        case MO_PURGE_BLOCK:            return((char *) "PURGE  BLOCK" );
             
         default:                        return((char *) "****" );
     }
@@ -667,7 +652,7 @@ L1CacheMem::L1CacheMem( CpuMemDesc *mDesc, CpuMem *lowerMem ) : CpuMem( mDesc, l
 // the operation is not completed, i.e. it is back to IDLE.
 //
 //------------------------------------------------------------------------------------------------------------
-bool L1CacheMem::readWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t len, uint32_t *word ) {
+bool L1CacheMem::readWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t len, uint32_t *word, uint32_t pri ) {
     
     if ( opState.get( ) == MO_IDLE ) {
        
@@ -687,13 +672,13 @@ bool L1CacheMem::readWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t
         }
         else {
             
-            opState.set( MO_ALLOCATE_BLOCK_VIRT );
+            opState.set( MO_ALLOCATE_BLOCK );
             reqSeg              = seg;
             reqOfs              = ofs;
             reqTag              = adrTag;
             reqPtr              = nullptr;
             reqLen              = 0;
-            reqPri              = cDesc.priority;
+            reqPri              = (( pri == 0 ) ? cDesc.priority : pri );
             reqLatency          = cDesc.latency;
             
             reqTargetSet        = matchSet;
@@ -714,7 +699,7 @@ bool L1CacheMem::readWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t
 // described for the read virtual data operation.
 //
 //------------------------------------------------------------------------------------------------------------
-bool L1CacheMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t len, uint32_t word ) {
+bool L1CacheMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t len, uint32_t word, uint32_t pri ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
@@ -734,13 +719,13 @@ bool L1CacheMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_
         }
         else {
             
-            opState.set( MO_ALLOCATE_BLOCK_VIRT );
+            opState.set( MO_ALLOCATE_BLOCK );
             reqSeg              = seg;
             reqOfs              = ofs;
             reqTag              = adrTag;
             reqPtr              = nullptr;
             reqLen              = 0;
-            reqPri              = cDesc.priority;
+            reqPri              = (( pri == 0 ) ? cDesc.priority : pri );
             reqLatency          = cDesc.latency;
             
             reqTargetSet        = matchSet;
@@ -757,7 +742,7 @@ bool L1CacheMem::writeWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_
 // state will be FLUSH_BLOCK_VIRT. Otherwise the request is ignored.
 //
 //------------------------------------------------------------------------------------------------------------
-bool L1CacheMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
+bool L1CacheMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t pri ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
@@ -770,13 +755,13 @@ bool L1CacheMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
             
             if ( tagPtr -> dirty ) {
                 
-                opState.set( MO_FLUSH_BLOCK_VIRT );
+                opState.set( MO_FLUSH_BLOCK );
                 reqSeg              = seg;
                 reqOfs              = ofs;
                 reqTag              = tagPtr -> tag;
                 reqPtr              = nullptr;
                 reqLen              = 0;
-                reqPri              = cDesc.priority;
+                reqPri              = (( pri == 0 ) ? cDesc.priority : pri );
                 reqLatency          = cDesc.latency;
                 
                 reqTargetSet        = matchSet;
@@ -793,7 +778,7 @@ bool L1CacheMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
 // slot. If there is a match, the entry will just be set to invalid, otherwise the request is ignored.
 //
 //------------------------------------------------------------------------------------------------------------
-bool L1CacheMem::purgeBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
+bool L1CacheMem::purgeBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t pri ) {
     
     if ( opState.get( ) == MO_IDLE ) {
         
@@ -808,7 +793,7 @@ bool L1CacheMem::purgeBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag ) {
             reqTag              = 0;
             reqPtr              = nullptr;
             reqLen              = 0;
-            reqPri              = cDesc.priority;
+            reqPri              = (( pri == 0 ) ? cDesc.priority : pri );
             reqLatency          = cDesc.latency;
             
             reqTargetSet        = matchSet;
@@ -857,7 +842,7 @@ void L1CacheMem::process( ) {
     
     switch( opState.get( )) {
             
-        case MO_ALLOCATE_BLOCK_VIRT: {
+        case MO_ALLOCATE_BLOCK: {
            
             for ( int i = 0; i < cDesc.blockSets; i++ ) {
                 
@@ -873,12 +858,12 @@ void L1CacheMem::process( ) {
             
             MemTagEntry *tagPtr = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
             
-            if (( tagPtr -> valid ) && ( tagPtr -> dirty )) opState.set( MO_WRITE_BACK_BLOCK_VIRT );
-            else                                            opState.set( MO_READ_BLOCK_VIRT );
+            if (( tagPtr -> valid ) && ( tagPtr -> dirty )) opState.set( MO_WRITE_BACK_BLOCK );
+            else                                            opState.set( MO_READ_BLOCK );
             
         } break;
             
-        case MO_READ_BLOCK_VIRT: {
+        case MO_READ_BLOCK: {
             
             MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
             uint8_t     *blockPtr  = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
@@ -894,7 +879,7 @@ void L1CacheMem::process( ) {
             
         } break;
             
-        case MO_WRITE_BACK_BLOCK_VIRT: {
+        case MO_WRITE_BACK_BLOCK: {
             
             MemTagEntry *tagPtr    = &tagArray[ reqTargetSet ] [ reqTargetBlockIndex ];
             uint8_t     *blockPtr  = &dataArray[ reqTargetSet ] [ reqTargetBlockIndex * cDesc.blockSize ];
@@ -903,13 +888,13 @@ void L1CacheMem::process( ) {
                 
                 tagPtr -> valid = false;
                 tagPtr -> dirty = false;
-                opState.set( MO_ALLOCATE_BLOCK_VIRT );
+                opState.set( MO_ALLOCATE_BLOCK );
             }
             else waitCyclesCnt ++;
             
         } break;
             
-        case MO_FLUSH_BLOCK_VIRT: {
+        case MO_FLUSH_BLOCK: {
             
             if ( reqTargetSet < cDesc.blockSets ) {
                 
@@ -996,7 +981,7 @@ void L2CacheMem::process( ) {
     
     switch( opState.get( )) {
             
-        case MO_READ_BLOCK_PHYS: {
+        case MO_READ_BLOCK: {
             
             if ( reqLatency == 0 ) {
                 
@@ -1005,7 +990,7 @@ void L2CacheMem::process( ) {
             
         } break;
             
-        case MO_WRITE_BLOCK_PHYS: {
+        case MO_WRITE_BLOCK: {
             
             if ( reqLatency == 0 ) {
                 
@@ -1014,7 +999,7 @@ void L2CacheMem::process( ) {
             
         } break;
             
-        case MO_FLUSH_BLOCK_PHYS: {
+        case MO_FLUSH_BLOCK: {
             
             if ( reqLatency == 0 ) {
                 
@@ -1023,7 +1008,7 @@ void L2CacheMem::process( ) {
             
         } break;
             
-        case MO_PURGE_BLOCK_PHYS: {
+        case MO_PURGE_BLOCK: {
             
             if ( reqLatency == 0 ) {
                 
@@ -1032,7 +1017,7 @@ void L2CacheMem::process( ) {
             
         } break;
             
-        case MO_ALLOCATE_BLOCK_PHYS: {
+        case MO_ALLOCATE_BLOCK: {
             
             if ( reqLatency == 0 ) {
                 
@@ -1041,7 +1026,7 @@ void L2CacheMem::process( ) {
             
         } break;
             
-        case MO_WRITE_BACK_BLOCK_PHYS: {
+        case MO_WRITE_BACK_BLOCK: {
             
             if ( reqLatency == 0 ) {
                 
@@ -1097,7 +1082,7 @@ void PhysMem::process( ) {
    
     switch( opState.get( )) {
             
-        case MO_READ_WORD_PHYS: {
+        case MO_READ_WORD: {
             
             if ( reqLatency == 0 ) {
                 
@@ -1111,7 +1096,7 @@ void PhysMem::process( ) {
             
         } break;
             
-        case MO_WRITE_WORD_PHYS: {
+        case MO_WRITE_WORD: {
             
             if ( reqLatency == 0 ) {
                 
@@ -1125,7 +1110,7 @@ void PhysMem::process( ) {
             
         } break;
             
-        case MO_READ_BLOCK_PHYS: {
+        case MO_READ_BLOCK: {
             
             if ( reqLatency == 0 ) {
                 
@@ -1139,7 +1124,7 @@ void PhysMem::process( ) {
             
         } break;
             
-        case MO_WRITE_BLOCK_PHYS: {
+        case MO_WRITE_BLOCK: {
             
             if ( reqLatency == 0 ) {
                 
@@ -1192,7 +1177,7 @@ void PdcMem::process( ) {
     
     switch( opState.get( )) {
             
-        case MO_READ_WORD_PHYS: {
+        case MO_READ_WORD: {
             
             if ( reqLatency == 0 ) {
                
@@ -1238,7 +1223,7 @@ void IoMem::process( ) {
     
     switch( opState.get( )) {
             
-        case MO_READ_WORD_PHYS: {
+        case MO_READ_WORD: {
             
             if ( reqLatency == 0 ) {
                 
@@ -1251,7 +1236,7 @@ void IoMem::process( ) {
             
         }  break;
             
-        case MO_WRITE_WORD_PHYS: {
+        case MO_WRITE_WORD: {
             
             if ( reqLatency == 0 ) {
                 
