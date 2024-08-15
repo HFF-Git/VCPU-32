@@ -365,6 +365,9 @@ VCPU-32 features two registers to hold the processor state. The **instruction ad
       :-----------------------------------------------------------------------------------------------:
 ```
 
+// ??? need a Z bit for single stepping debugging support....cleared after each instruction, when set causes aDebug trap.
+
+
 Bits 12 .. 15 of the processor status represent the bit that can be modified by the privileged MST instruction. Setting the other status bits requires the usage of the privileged RFI instruction.
 
 | Flag | Name | Purpose |

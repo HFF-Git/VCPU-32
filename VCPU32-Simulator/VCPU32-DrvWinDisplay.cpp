@@ -1542,11 +1542,22 @@ void DrvWinCode::drawLine( uint32_t itemAdr ) {
     
     uint32_t    instr           = glb -> cpu -> physMem -> getMemDataWord( itemAdr );
     uint32_t    fmtDesc         = FMT_DEF_ATTR;
-    uint32_t    currentIaOfs    = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_1  );
-    bool        isCurrentIaOfs  = ( itemAdr == currentIaOfs );
-    
+  
     printNumericField( itemAdr, fmtDesc | FMT_ALIGN_LFT, 12 );
-    printTextField(( isCurrentIaOfs ? (char *) ">" :  (char *) " " ), fmtDesc, 4 );
+    
+    if ( itemAdr == glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1  )) {
+        
+        printTextField( (char *) "(fd)>", fmtDesc, 5 );
+    }
+    else if ( itemAdr == glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_1  )) {
+            
+        printTextField( (char *) "(ma) ", fmtDesc, 5 );
+        }
+    else if ( itemAdr == glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_1  )) {
+                 
+        printTextField( (char *) "(ex) ", fmtDesc, 5 );
+    }
+    else printTextField((char *) "     ", fmtDesc, 5 );
     
     printNumericField( instr, fmtDesc | FMT_ALIGN_LFT, 12 );
     printTextField((char *) "", fmtDesc, 16 );

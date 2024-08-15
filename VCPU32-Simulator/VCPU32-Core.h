@@ -619,6 +619,8 @@ public:
     bool            dependencyValA( uint32_t regId );
     bool            dependencyValB( uint32_t regId );
     bool            dependencyValX( uint32_t regId );
+    bool            consumesValB( );
+    bool            consumesValX( );
     
     CpuReg          psPstate0;
     CpuReg          psPstate1;

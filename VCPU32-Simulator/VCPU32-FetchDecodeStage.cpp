@@ -174,24 +174,28 @@ bool FetchDecodeStage::dependencyValA( uint32_t regId ) {
         case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
         case OP_XOR:    case OP_CMP:    case OP_CMPU: {
             
-            uint32_t mode = getBitField( instr, 13, 2 );
+            if ( getBitField( instr, 27, 4 ) == 0 ) return( false );
             
+            uint32_t mode = getBitField( instr, 13, 2 );
             return((( mode == 1 ) || ( mode == 2 )) && ( getBitField( instr, 27, 4 ) == regId ));
         }
             
         case OP_DEP: {
             
+            if ( getBitField( instr, 9, 4 ) == 0 ) return( false );
             return(( ! getBit( instr, 10 )) ? ( getBitField( instr, 9, 4 ) == regId ) : false );
         }
             
         case OP_DSR:    case OP_SHLA:   case OP_CMR:    case OP_BVE:    case OP_CBR:    case OP_CBRU:
         case OP_LDPA:   case OP_PRB:    case OP_PTLB:   case OP_PCA:    case OP_DIAG: {
         
+            if ( getBitField( instr, 27, 4 ) == 0 ) return( false );
             return( getBitField( instr, 27, 4 ) == regId );
         }
             
        case OP_ST:     case OP_STA: {
             
+            if ( getBitField( instr, 9, 4 ) == 0 ) return( false );
             return( getBitField( instr, 9, 4 ) == regId );
         }
             
@@ -208,10 +212,12 @@ bool FetchDecodeStage::dependencyValA( uint32_t regId ) {
 // will compute an address using the "B" and "X" values fetched from a register. An execption is register
 // zero for which there is by definition no dependency.
 //
+// ??? what about R0 used in the X field ?
 //------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::dependencyValB( uint32_t regId ) {
     
     if ( regId == 0 ) return( false );
+    if ( getBitField( instr, 31, 4 ) == 0 ) return( false );
    
     switch ( getBitField( instr, 5, 6 )) {
             
@@ -219,7 +225,6 @@ bool FetchDecodeStage::dependencyValB( uint32_t regId ) {
         case OP_XOR:    case OP_CMP:    case OP_CMPU: {
             
             uint32_t mode = getBitField( instr, 13, 2 );
-            
             return(( mode > 0 ) && ( getBitField( instr, 31, 4 ) == regId ));
         }
             
@@ -245,6 +250,7 @@ bool FetchDecodeStage::dependencyValB( uint32_t regId ) {
 // will compute an address using the "B" and "X" values fetched from a register. An execption is register
 // zero for which there is by definition no dependency.
 //
+// ??? what about R0 used in the X field ?
 //------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::dependencyValX( uint32_t regId ) {
     
@@ -255,30 +261,80 @@ bool FetchDecodeStage::dependencyValX( uint32_t regId ) {
         case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
         case OP_XOR:    case OP_CMP:    case OP_CMPU: {
             
-            uint32_t mode = getBitField( instr, 13, 2 );
+            if ( getBitField( instr, 27, 4 ) == 0 ) return( false );
             
+            uint32_t mode = getBitField( instr, 13, 2 );
             return(( mode == 2 ) && ( getBitField( instr, 27, 4 ) == regId ));
         }
             
         case OP_LD:     case OP_LDA:    case OP_ST:     case OP_STA: {
             
+            if ( getBitField( instr, 27, 4 ) == 0 ) return( false );
             return(( getBit( instr, 10 ) && ( getBitField( instr, 27, 4 ) == regId )));
             
         } break;
             
         case OP_BR: {
             
+            if ( getBitField( instr, 31, 4 ) == 0 ) return( false );
             return( getBitField( instr, 31, 4 ) == regId );
         }
             
         case OP_BVE: {
             
+            if ( getBitField( instr, 27, 4 ) == 0 ) return( false );
             return( getBitField( instr, 27, 4 ) == regId );
         }
         
         default: return ( false );
     }
 }
+
+bool FetchDecodeStage::consumesValB( ) {
+    
+    if ( getBitField( instr, 31, 4 ) == 0 ) return( false );
+    
+    switch ( getBitField( instr, 5, 6 )) {
+     
+        case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
+        case OP_XOR:    case OP_CMP:    case OP_CMPU: {
+            
+            uint32_t mode = getBitField( instr, 13, 2 );
+            return(( mode == 2 ) || ( mode == 3 ));
+        }
+            
+        case OP_LD:     case OP_LDA:    case OP_ST:     case OP_STA: {
+         
+            return( true );
+        }
+            
+        // ??? branch type instructions using B...
+            
+        default: return( false );
+    }
+}
+
+bool FetchDecodeStage::consumesValX( ) {
+    
+    switch ( getBitField( instr, 5, 6 )) {
+     
+        case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
+        case OP_XOR:    case OP_CMP:    case OP_CMPU: {
+            
+            uint32_t mode = getBitField( instr, 13, 2 );
+            return(( mode == 2 ) && ( getBitField( instr, 27, 4 ) != 0 ));
+        }
+            
+        case OP_LD:     case OP_LDA:    case OP_ST:     case OP_STA: {
+            
+            return(( getBit( instr, 10 )) && ( getBitField( instr, 27, 4 ) != 0 ));
+        }
+                    
+        default: return( false );
+    }
+}
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // Utility function to set and get the the pipeline register data.
@@ -921,9 +977,15 @@ void FetchDecodeStage::process( ) {
     if ( opCodeTab[ getBitField( maStage -> psInstr.get( ), 5, 6 )].flags & REG_R_INSTR ) {
         
         uint32_t regIdR = maStage -> psInstr.getBitField( 9, 4 );
-       
-        if ( dependencyValB( regIdR ) || dependencyValX( regIdR )) {
-                
+        
+        if (( consumesValB( )) && ( dependencyValB( regIdR ))) {
+            
+            stallPipeLine( );
+            return;
+        }
+        
+        if (( consumesValX( )) && ( dependencyValX( regIdR ))) {
+            
             stallPipeLine( );
             return;
         }
