@@ -367,6 +367,14 @@ VCPU-32 features two registers to hold the processor state. The **instruction ad
 
 // ??? need a Z bit for single stepping debugging support....cleared after each instruction, when set causes aDebug trap.
 
+// ??? how would we support data breakpoints ? Would they need a separate mechanism ?
+
+// ??? how about taken branch traps ( taken, lower and higher : T H L )
+
+// ??? how about putting also a nullify bit for future enhancements for nullification ? ( N )
+
+// ??? we would also need a recovery counter enable bit ( R ) for the recovery counter
+
 
 Bits 12 .. 15 of the processor status represent the bit that can be modified by the privileged MST instruction. Setting the other status bits requires the usage of the privileged RFI instruction.
 

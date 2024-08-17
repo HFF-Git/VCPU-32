@@ -1542,23 +1542,24 @@ void DrvWinCode::drawLine( uint32_t itemAdr ) {
     
     uint32_t    instr           = glb -> cpu -> physMem -> getMemDataWord( itemAdr );
     uint32_t    fmtDesc         = FMT_DEF_ATTR;
-  
+    bool        plWinEnabled    = glb -> winDisplay -> isWinEnabled( PL_REG_WIN );
+
     printNumericField( itemAdr, fmtDesc | FMT_ALIGN_LFT, 12 );
-    
-    if ( itemAdr == glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1  )) {
-        
+  
+    if (( plWinEnabled ) && ( itemAdr == glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1  ))) {
+            
         printTextField( (char *) "(fd)>", fmtDesc, 5 );
     }
-    else if ( itemAdr == glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_1  )) {
+    else if (( plWinEnabled ) && ( itemAdr == glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_1  ))) {
             
         printTextField( (char *) "(ma) ", fmtDesc, 5 );
-        }
-    else if ( itemAdr == glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_1  )) {
-                 
+    }
+    else if (( plWinEnabled ) && ( itemAdr == glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_1  ))) {
+            
         printTextField( (char *) "(ex) ", fmtDesc, 5 );
     }
     else printTextField((char *) "     ", fmtDesc, 5 );
-    
+   
     printNumericField( instr, fmtDesc | FMT_ALIGN_LFT, 12 );
     printTextField((char *) "", fmtDesc, 16 );
     
@@ -2261,6 +2262,12 @@ bool DrvWinDisplay::validUserWindowType( TokId winType ) {
 bool DrvWinDisplay::isCurrentWin( int winNum ) {
     
     return(( validUserWindowNum( winNum ) && ( currentUserWinNum == winNum )));
+}
+
+bool DrvWinDisplay::isWinEnabled( int winNum ) {
+
+    return((( validWindowNum( winNum )) || ( validUserWindowNum( winNum )) ) &&
+           ( windowList[ winNum ]->isEnabled( )));
 }
 
 //-----------------------------------------------------------------------------------------------------------

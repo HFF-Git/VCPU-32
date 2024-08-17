@@ -76,6 +76,8 @@ struct EnvTabEntry {
         .envId = ENV_PROG_PATCH_LEVEL,  .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 0         },
     { .name = "STEP-IN-CLOCKS",
         .envId = ENV_STEP_IN_CLOCKS,    .envTyp = ENV_TYP_BOOL, .rOnly = false,  .bVal = false     },
+    { .name = "SHOW-PSTAGE-INFO",
+        .envId = ENV_SHOW_PSTAGE_INFO,  .envTyp = ENV_TYP_BOOL, .rOnly = false,  .bVal = false     },
     { .name = "PASS_CNT",
         .envId = ENV_PASS_CNT,          .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 0         },
     { .name = "FAIL_CNT",

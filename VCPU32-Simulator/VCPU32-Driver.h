@@ -93,10 +93,8 @@ enum TokId : uint16_t {
     ENV_EXIT_CODE           = 553,  ENV_WORDS_PER_LINE      = 554,
     
     ENV_PROG_VERSION        = 555,  ENV_GIT_BRANCH          = 556,  ENV_PROG_PATCH_LEVEL    = 557,
-    
-    ENV_STEP_IN_CLOCKS      = 558,  ENV_PASS_CNT            = 559,  ENV_FAIL_CNT            = 560,
-    
-    ENV_WIN_MIN_ROWS        = 561,  ENV_WIN_TX_WIDTH        = 562,
+    ENV_STEP_IN_CLOCKS      = 558,  ENV_SHOW_PSTAGE_INFO    = 559,  ENV_PASS_CNT            = 560,  
+    ENV_FAIL_CNT            = 561,  ENV_WIN_MIN_ROWS        = 562,  ENV_WIN_TX_WIDTH        = 563,
     
     //--------------------------------------------------------------------------------------------------------
     // Command Sets.
@@ -690,6 +688,7 @@ public:
     bool            validWindowStackNum( int num );
     bool            validUserWindowType( TokId winType );
     bool            isCurrentWin( int winNum );
+    bool            isWinEnabled( int winNum );
     
 private:
     
