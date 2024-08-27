@@ -2216,8 +2216,9 @@ DrvWinDisplay::DrvWinDisplay( VCPU32Globals *glb ) {
 
 //-----------------------------------------------------------------------------------------------------------
 // The current window number defines which user window is marked "current" and commands that omit the window
-// number in their command will use this number. There is a routrine to check that we have a valid window
-// number, which includes fixed and user numbers.
+// number in their command will use this number. There is a routine to check that we have a valid window
+// number, which includes fixed and user numbers. There are also a routines that returns the first and last
+// index valid for user windows.
 //
 //-----------------------------------------------------------------------------------------------------------
 int  DrvWinDisplay::getCurrentUserWindow( ) {
@@ -2228,6 +2229,16 @@ int  DrvWinDisplay::getCurrentUserWindow( ) {
 void DrvWinDisplay::setCurrentUserWindow( int winNum ) {
     
     currentUserWinNum = winNum;
+}
+
+int  DrvWinDisplay::getFirstUserWinIndex( ) {
+    
+    return( FIRST_UWIN );
+}
+
+int  DrvWinDisplay::getLastUserWinIndex( ) {
+    
+    return( LAST_UWIN );
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -2505,18 +2516,17 @@ void DrvWinDisplay::windowCurrent( TokId winCmd, int winNum ) {
 // window. They are always in the main window stack, which has the stack Id of zero. Theorethically we
 // could have many stacks, numbered 0 to MAX_STACKS - 1. Realistically, 3 to 4 stacks will fit on a screen.
 //
+// ??? would be nice to move a range of windows...
 //-----------------------------------------------------------------------------------------------------------
-void DrvWinDisplay::windowSetStack( int winNum, int winStack ) {
+void DrvWinDisplay::windowSetStack( int winStack, int winNumStart, int winNumEnd ) {
     
-    if ( winNum == 0 ) winNum = getCurrentUserWindow( );
+    if (( winNumStart < FIRST_UWIN ) || ( winNumEnd > LAST_UWIN ))  return;
+    if ( winStack >= MAX_WIN_STACKS ) return;
     
-    if ( validUserWindowNum( winNum )) {
+    for ( int i = winNumStart; i <= winNumEnd; i++ ) {
         
-        if ( winStack < MAX_WIN_STACKS ) {
-            
-            windowList[ winNum ] -> setWinStack( winStack );
-            setCurrentUserWindow( winNum );
-        }
+        windowList[ i ] -> setWinStack( winStack );
+        setCurrentUserWindow( i );
     }
 }
 
@@ -2586,7 +2596,6 @@ void DrvWinDisplay::windowDisable( TokId winCmd, int winNum ) {
 // windows for locating the window object. Changing the radix potetntially means tha the window layout needs
 // to change.
 //
-// ??? force redraw here ? All windows need to provide the "setRadix" if they change the column width.
 //-----------------------------------------------------------------------------------------------------------
 void DrvWinDisplay::windowRadix( TokId winCmd, TokId fmtId, int winNum ) {
     
@@ -2715,17 +2724,15 @@ void DrvWinDisplay::windowJump( TokId winCmd, int pos, int winNum ) {
 }
 
 //-----------------------------------------------------------------------------------------------------------
-// The current index can also directly be set to another location. The position meaning is window dependent
-// and the actual window will sort it out. We are passed an optional windows number, which is used when
-// there are user defined windows for locating the window object.
+// The current window index can also directly be set to another location. The position meaning is window
+// dependent and the actual window will sort it out. We are passed an optional windows number, which is used
+// when there are user defined windows for locating the window object.
 //
+// ??? a switch statement is perhaps an overkill, but one day we may also toggle fixed windows...
 //-----------------------------------------------------------------------------------------------------------
 void DrvWinDisplay::windowToggle( TokId winCmd, int winNum ) {
     
     switch( winCmd ) {
-            
-            // ??? perhaps we will have one day also toggles for the fixed windows...
-            // ??? e.g. GRT - general reg window toggle...
             
         case CMD_WT: {
             
@@ -2743,6 +2750,21 @@ void DrvWinDisplay::windowToggle( TokId winCmd, int winNum ) {
             
         default: ;
     }
+}
+
+//-----------------------------------------------------------------------------------------------------------
+// The display order of the windows is determined by the window index. It would howver be convenient to
+// modify the display order. The window exchange command will exchange the current window with the window
+// specified by the index of another window.
+//
+//-----------------------------------------------------------------------------------------------------------
+void DrvWinDisplay::windowExchangeOrder( TokId winCmd, int winNum ) {
+    
+    int currentWindow = getCurrentUserWindow( );
+    if ( winNum == currentWindow ) return;
+    if ( ! validUserWindowNum( winNum )) return;
+    
+    std::swap( windowList[ winNum ], windowList[ currentWindow ]);
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -2789,28 +2811,28 @@ void DrvWinDisplay::windowNew( TokId winCmd, TokId winType, char *argStr ) {
 }
 
 //-----------------------------------------------------------------------------------------------------------
-// "Window Kill" is the counter part to user windows creation and will remove the window identified by the
-// windows number permanently. When we kill a window that was the current window, we need to set a new one.
-// We just pick the first used entry in the user range.
+// "Window Kill" is the counter part to user windows creation and will remove a window. The method supports
+// removing a range of user windows. When we kill a window that was the current window, we need to set a
+// new one. We just pick the first used entry in the user range.
 //
 //-----------------------------------------------------------------------------------------------------------
-void DrvWinDisplay::windowKill( TokId winCmd, int winNum ) {
+void DrvWinDisplay::windowKill( TokId winCmd, int winNumStart, int winNumEnd ) {
     
-    if ( winNum == 0 ) winNum = getCurrentUserWindow( );
+    if (( winNumStart < FIRST_UWIN ) || ( winNumEnd > LAST_UWIN ))  return;
     
-    if (( validWindowNum( winNum )) && ( winNum >= FIRST_UWIN )) {
-        
-        delete ( DrvWin * ) windowList[ winNum ];
-        windowList[ winNum ] = nullptr;
-        
-        if ( getCurrentUserWindow( ) == winNum ) {
-            
-            setCurrentUserWindow( 0 );
-            
-            for ( int i = FIRST_UWIN; i <= LAST_UWIN; i++ ) {
+    for ( int i = winNumStart; i <= winNumEnd; i++ ) {
+         
+        delete ( DrvWin * ) windowList[ i ];
+        windowList[ i ] = nullptr;
                 
-                if ( validUserWindowNum( i )) {
+        if ( getCurrentUserWindow( ) == i ) {
                     
+            setCurrentUserWindow( 0 );
+                    
+            for ( int i = FIRST_UWIN; i <= LAST_UWIN; i++ ) {
+                        
+                if ( validUserWindowNum( i )) {
+                            
                     setCurrentUserWindow( i );
                     break;
                 }

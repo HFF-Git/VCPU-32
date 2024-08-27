@@ -120,6 +120,7 @@ struct {
     { "WC",                 "",         CMD_SET,            CMD_WC                  },
     { "WS",                 "",         CMD_SET,            CMD_WS                  },
     { "WT",                 "",         CMD_SET,            CMD_WT                  },
+    { "WX",                 "",         CMD_SET,            CMD_WX                  },
     
     { "TRUE",               "",         SET_NIL,            TOK_TRUE                },
     { "FALSE",              "",         SET_NIL,            TOK_FALSE               },
@@ -301,6 +302,7 @@ const int   TOK_TAB_SIZE  = sizeof( tokTab ) / sizeof( *tokTab );
 const char  FMT_STR_1S[ ]       = "%32s";
 const char  FMT_STR_1S_1D[ ]    = "%32s %i";
 const char  FMT_STR_1S_2D[ ]    = "%32s %i %i";
+const char  FMT_STR_1S_3D[ ]    = "%32s %i %i %i";
 const char  FMT_STR_1S_1D_1S[ ] = "%32s %i %32s";
 const char  FMT_STR_1S_1D_2S[ ] = "%32s %i %32s %32s";
 const char  FMT_STR_2S[ ]       = "%32s %32s";
@@ -730,9 +732,10 @@ void DrvCmds::winHelpCmd( char *cmdBuf ) {
     fprintf( stdout, FMT_STR, "R <radix> [<wNum>]", "Set window radix ( OCT, DEC, HEX )" );
     fprintf( stdout, FMT_STR, "C <wNum>", "set the window <wNum> as current window" );
     fprintf( stdout, FMT_STR, "T <wNum>", "toggle through alternate window content" );
+    fprintf( stdout, FMT_STR, "X <wNum>", "exchange current window with this window");
     fprintf( stdout, FMT_STR, "N <type> [<arg>]", "New user defined window ( PM, PC, IT, DT, IC, ICR, DCR, MCR, TX )" );
-    fprintf( stdout, FMT_STR, "K <wNum>", "Removes the user defined window" );
-    fprintf( stdout, FMT_STR, "S <wNum> <stackNum>", "put user window into stack <stackNum>" );
+    fprintf( stdout, FMT_STR, "K <wNumStart> [<wNumEnd>]", "Removes a range of user defined window" );
+    fprintf( stdout, FMT_STR, "S <stackNum> <wNumStart> [<wNumEnd>]", "moves a range of user windows into stack <stackNum>" );
     fprintf( stdout, "\n" );
     
     fprintf( stdout, "Example: SRE      -> show special register window\n" );
@@ -1892,7 +1895,8 @@ void DrvCmds::winSetRadixCmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 // Window scrolling. This command advances the item address of a scrollable window by the number of lines
 // multiplied by the number of items on a line forward or backward. The meaning of the item address and line
-// items is window dependent. The window number is optional, used for user definable windows.
+// items is window dependent. The window number is optional, used for user definable windows. If omitted,
+// we mean the current window.
 //
 // <win>F [<items> [<winNum>]]
 // <win>B [<items> [<winNum>]]
@@ -2087,18 +2091,18 @@ void DrvCmds::winNewWinCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// This command removes  a user defined window from the list of windows. A user definable window was asigned
-// a number at creation time.
+// This command removes  a user defined window or window range from the list of windows. A number of -1 will
+// kill all user defined windows.
 //
-// WK [<winNum>]
-//
-// ??? would be nice to have an option to kill all user defined windows ...
+// WK [<winNumStart> [<winNumEnd≤]] || ( -1 )
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winKillWinCmd( char * cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winNum                  = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_1D, cmdStr, &winNum );
+    int     winNumStart             = 0;
+    int     winNumEnd               = 0;
+    
+    int     args                    = sscanf( cmdBuf, FMT_STR_1S_2D, cmdStr, &winNumStart, &winNumEnd );
     
     if ( args == 0 ) return;
     
@@ -2108,13 +2112,38 @@ void DrvCmds::winKillWinCmd( char * cmdBuf ) {
         return;
     }
     
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
+    if ( winNumStart == -1 ) {
         
-        printErrMsg( INVALID_WIN_ID );
+        winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
+        winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
+        
+        glb -> winDisplay -> windowKill( lookupTokId( cmdStr ), winNumStart, winNumEnd );
+        glb -> winDisplay -> reDraw( true );
+        
         return;
     }
     
-    glb -> winDisplay -> windowKill( lookupTokId( cmdStr ), winNum );
+    if ( winNumStart != 0 ) {
+        
+        if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
+            
+            printErrMsg( INVALID_WIN_ID );
+            return;
+        }
+    }
+    else winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
+    
+    if ( winNumEnd != 0 ) {
+        
+        if ( ! glb -> winDisplay -> validWindowNum( winNumEnd )) {
+            
+            printErrMsg( INVALID_WIN_ID );
+            return;
+        }
+    }
+    else winNumEnd = glb -> winDisplay -> getCurrentUserWindow( );
+    
+    glb -> winDisplay -> windowKill( lookupTokId( cmdStr ), winNumStart, winNumEnd );
     glb -> winDisplay -> reDraw( true );
 }
 
@@ -2122,14 +2151,15 @@ void DrvCmds::winKillWinCmd( char * cmdBuf ) {
 // This command assigns a user window to a stack. User windows can be displayed in a separate stack of
 // windows. The first stack is always the main stack, where the predeinfed and command window can be found.
 //
-// WS <winNum> [ <stackNum> ]
+// WS <stackNum> [ <winNumStart> [ <winNumEnd ]]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winSetStackCmd( char *cmdBuf ) {
     
     char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winNum                  = 0;
+    int     winNumStart             = 0;
+    int     winNumEnd               = 0;
     int     stackNum                = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_2D, cmdStr, &winNum, &stackNum );
+    int     args                    = sscanf( cmdBuf, FMT_STR_1S_3D, cmdStr, &stackNum, &winNumStart, &winNumEnd );
     
     if ( ! winModeOn ) {
         
@@ -2143,19 +2173,33 @@ void DrvCmds::winSetStackCmd( char *cmdBuf ) {
         return;
     }
     
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
-        
-        printErrMsg( INVALID_WIN_ID );
-        return;
-    }
-    
     if ( ! glb -> winDisplay -> validWindowStackNum( stackNum )) {
         
         printErrMsg( INVALID_WIN_STACK_ID );
         return;
     }
     
-    glb -> winDisplay -> windowSetStack( winNum, stackNum );
+    if ( winNumStart != 0 ) {
+        
+        if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
+            
+            printErrMsg( INVALID_WIN_ID );
+            return;
+        }
+    }
+    else winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
+    
+    if ( winNumEnd != 0 ) {
+        
+        if ( ! glb -> winDisplay -> validWindowNum( winNumEnd )) {
+            
+            printErrMsg( INVALID_WIN_ID );
+            return;
+        }
+    }
+    else winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
+    
+    glb -> winDisplay -> windowSetStack( stackNum, winNumStart, winNumEnd );
     glb -> winDisplay -> reDraw( true );
 }
 
@@ -2191,6 +2235,39 @@ void  DrvCmds::winToggleCmd( char *cmdBuf ) {
     }
     
     glb -> winDisplay -> windowToggle( lookupTokId( cmdStr ), winNum );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// This command exchanges the current user window with the user window specified. It allows to change the
+// order of the user windows in a stacks.
+//
+// WX [ <winNum> ]
+//------------------------------------------------------------------------------------------------------------
+void  DrvCmds::winExchangeCmd( char *cmdBuf ) {
+    
+    char    cmdStr[ TOK_NAME_SIZE ] = "";
+    int     winNum                  = 0;
+    int     args                    = sscanf( cmdBuf, FMT_STR_1S_1D, cmdStr, &winNum );
+    
+    if ( ! winModeOn ) {
+        
+        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        return;
+    }
+    
+    if ( args < 1 ) {
+        
+        printErrMsg( EXPECTED_WIN_ID );
+        return;
+    }
+    
+    if ( ! glb -> winDisplay -> validUserWindowNum( winNum )) {
+        
+        printErrMsg( INVALID_WIN_ID );
+        return;
+    }
+    
+    glb -> winDisplay -> windowExchangeOrder( lookupTokId( cmdStr ), winNum );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2246,6 +2323,7 @@ void DrvCmds::dispatchCmd( char *cmdBuf ) {
                 case CMD_WK:            winKillWinCmd( cmdBuf );        break;
                 case CMD_WS:            winSetStackCmd( cmdBuf );       break;
                 case CMD_WT:            winToggleCmd( cmdBuf );         break;
+                case CMD_WX:            winExchangeCmd( cmdBuf );       break;
                     
                 case CMD_WF:            winForwardCmd( cmdBuf );        break;
                 case CMD_WB:            winBackwardCmd( cmdBuf );       break;

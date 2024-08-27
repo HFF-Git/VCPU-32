@@ -146,7 +146,7 @@ enum TokId : uint16_t {
     CMD_WF                  = 2053, CMD_WB                  = 2054, CMD_WH                  = 2055,
     CMD_WJ                  = 2056, CMD_WL                  = 2057, CMD_WN                  = 2058,
     CMD_WK                  = 2059, CMD_WS                  = 2060, CMD_WC                  = 2061,
-    CMD_WT                  = 2062,
+    CMD_WT                  = 2062, CMD_WX                  = 2063,
     
     //--------------------------------------------------------------------------------------------------------
     // General, Segment and Control Registers
@@ -209,6 +209,7 @@ enum TokId : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 // Our error messges IDs. There is a routine that maps the ID to a text.
 //
+// ??? need to put all error messages here.... do a little when there is time...
 //------------------------------------------------------------------------------------------------------------
 enum ErrMsgId : uint16_t {
     
@@ -224,7 +225,6 @@ enum ErrMsgId : uint16_t {
     EXPECTED_WIN_TYPE           = 9,
     EXPECTED_FMT_OPT            = 10,
     OUT_OF_WINDOWS_ERR          = 11
-    
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -676,13 +676,16 @@ public:
     void            windowBackward( TokId winCmd, int amt, int winNum = 0 );
     void            windowJump( TokId winCmd, int amt, int winNum = 0 );
     void            windowToggle( TokId winCmd, int winNum = 0 );
+    void            windowExchangeOrder( TokId winCmd, int winNum );
     
     void            windowNew( TokId winCmd, TokId winType = TOK_NIL, char *argStr = nullptr );
-    void            windowKill( TokId winCmd, int winNum );
-    void            windowSetStack( int winNum, int winStack );
+    void            windowKill( TokId winCmd, int winNumStart, int winNumEnd = 0  );
+    void            windowSetStack( int winStack, int winNumStart, int winNumEnd = 0 );
     
     int             getCurrentUserWindow( );
     void            setCurrentUserWindow( int num );
+    int             getFirstUserWinIndex( );
+    int             getLastUserWinIndex( );
     bool            validWindowNum( int num );
     bool            validUserWindowNum( int num );
     bool            validWindowStackNum( int num );
@@ -841,8 +844,9 @@ private:
     void            winKillWinCmd( char * cmdBuf );
     void            winSetStackCmd( char *cmdBuf );
     void            winToggleCmd( char *cmdBuf );
+    void            winExchangeCmd( char *cmdBuf );
     
-    VCPU32Globals    *glb       = nullptr;
+    VCPU32Globals   *glb       = nullptr;
     bool            winModeOn  = false;
     TokId           currentCmd = TOK_INV;
     
