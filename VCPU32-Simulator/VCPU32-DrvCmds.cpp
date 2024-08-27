@@ -2241,7 +2241,7 @@ void  DrvCmds::winToggleCmd( char *cmdBuf ) {
 // This command exchanges the current user window with the user window specified. It allows to change the
 // order of the user windows in a stacks.
 //
-// WX [ <winNum> ]
+// WX <winNum>
 //------------------------------------------------------------------------------------------------------------
 void  DrvCmds::winExchangeCmd( char *cmdBuf ) {
     
