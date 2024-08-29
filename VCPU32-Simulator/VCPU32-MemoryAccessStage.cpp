@@ -461,7 +461,6 @@ void MemoryAccessStage::process( ) {
     uint32_t            pageOfs     = psValX.get( ) % PAGE_SIZE;
     uint32_t            physAdr     = 0;
     
-    uint32_t            segSelect   = 0;
     uint32_t            segAdr      = 0;
     uint32_t            ofsAdr      = 0;
     uint32_t            dLen        = 0;
@@ -508,15 +507,20 @@ void MemoryAccessStage::process( ) {
             
             dLen        = mapDataLen( instr );
             ofsAdr      = psValB.get( ) + psValX.get( );
-            segSelect   = getBitField( instr, 13, 2 );
             
-            if ( segSelect == 0 ) {
+            if ( psPstate0.getBit( ST_DATA_TRANSLATION_ENABLE )) {
                 
-                segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+                uint8_t segSelect = getBitField( instr, 13, 2 );
+                
+                if ( segSelect == 0 ) {
+                    
+                    segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+                }
+                else segAdr = segAdr = core -> sReg[ segSelect ].get( );
             }
-            else segAdr = segAdr = core -> sReg[ segSelect ].get( );
+            else segAdr = 0;
             
-            if ( !checkAlignment( instr, ofsAdr )) {
+            if ( ! checkAlignment( instr, ofsAdr )) {
             
                 setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                 return;
@@ -529,17 +533,22 @@ void MemoryAccessStage::process( ) {
             
         case OP_ST:     case OP_STC: {
             
-            dLen        = mapDataLen( instr );
-            ofsAdr      = psValB.get( ) + psValX.get( );
-            segSelect   = getBitField( instr, 13, 2 );
-            
-            if ( segSelect == 0 ) {
+            dLen   = mapDataLen( instr );
+            ofsAdr = psValB.get( ) + psValX.get( );
+           
+            if ( psPstate0.getBit( ST_DATA_TRANSLATION_ENABLE )) {
                 
-                segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+                uint8_t segSelect = getBitField( instr, 13, 2 );
+                
+                if ( segSelect == 0 ) {
+                    
+                    segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+                }
+                else segAdr = segAdr = core -> sReg[ segSelect ].get( );
             }
-            else segAdr = segAdr = core -> sReg[ segSelect ].get( );
+            else segAdr = 0;
             
-            if ( !checkAlignment( instr, ofsAdr )) {
+            if ( ! checkAlignment( instr, ofsAdr )) {
             
                 setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                 return;
@@ -556,9 +565,7 @@ void MemoryAccessStage::process( ) {
             segAdr  = 0;
             ofsAdr  = psValB.get( ) + psValX.get( );
             
-            uint8_t align = getBitField( instr, 15, 2 );
-            
-            if ( !checkAlignment( instr, ofsAdr )) {
+            if ( ! checkAlignment( instr, ofsAdr )) {
             
                 setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                 return;
@@ -579,15 +586,20 @@ void MemoryAccessStage::process( ) {
             
         case OP_LDPA:   case OP_PRB:  {
             
-            dLen        = mapDataLen( instr );
-            ofsAdr      = psValB.get( ) + psValX.get( );
-            segSelect   = getBitField( instr, 13, 2 );
-         
-            if ( segSelect == 0 ) {
+            dLen    = mapDataLen( instr );
+            ofsAdr  = psValB.get( ) + psValX.get( );
+            
+            if ( psPstate0.getBit( ST_DATA_TRANSLATION_ENABLE )) {
                 
-                segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+                uint8_t segSelect = getBitField( instr, 13, 2 );
+                
+                if ( segSelect == 0 ) {
+                    
+                    segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+                }
+                else segAdr = segAdr = core -> sReg[ segSelect ].get( );
             }
-            else segAdr = segAdr = core -> sReg[ segSelect ].get( );
+            else segAdr = 0;
             
         } break;
             
@@ -620,14 +632,19 @@ void MemoryAccessStage::process( ) {
             
         case OP_BVE: {
             
-            ofsAdr      = psValB.get( ) + psValX.get( );
-            segSelect   = getBitField( instr, 13, 2 );
-         
-            if ( segSelect == 0 ) {
+            ofsAdr = psValB.get( ) + psValX.get( );
+            
+            if ( psPstate0.getBit( ST_DATA_TRANSLATION_ENABLE )) {
                 
-                segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+                uint8_t segSelect = getBitField( instr, 13, 2 );
+                
+                if ( segSelect == 0 ) {
+                    
+                    segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+                }
+                else segAdr = segAdr = core -> sReg[ segSelect ].get( );
             }
-            else segAdr = segAdr = core -> sReg[ segSelect ].get( );
+            else segAdr = 0;
             
             core -> fdStage -> psPstate1.set(  ofsAdr );
             core -> fdStage -> psPstate0.setBitField( segAdr, 31, 16 );
@@ -699,15 +716,20 @@ void MemoryAccessStage::process( ) {
             
         case OP_PTLB: {
             
-            dLen        = mapDataLen( instr );
-            ofsAdr      = psValB.get( ) + psValX.get( );
-            segSelect   = getBitField( instr, 13, 2 );
-         
-            if ( segSelect == 0 ) {
+            dLen    = mapDataLen( instr );
+            ofsAdr  = psValB.get( ) + psValX.get( );
+            
+            if ( psPstate0.getBit( ST_DATA_TRANSLATION_ENABLE )) {
                 
-                segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+                uint8_t segSelect = getBitField( instr, 13, 2 );
+                
+                if ( segSelect == 0 ) {
+                    
+                    segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+                }
+                else segAdr = segAdr = core -> sReg[ segSelect ].get( );
             }
-            else segAdr = segAdr = core -> sReg[ segSelect ].get( );
+            else segAdr = 0;
             
             CpuTlb *tlbPtr = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
           
@@ -723,10 +745,18 @@ void MemoryAccessStage::process( ) {
             
             dLen        = mapDataLen( instr );
             ofsAdr      = psValB.get( ) + psValX.get( );
-            segSelect   = getBitField( instr, 13, 2 );
-         
-            if ( segSelect == 0 ) segSelect += 4;
-            segAdr = core -> sReg[ segSelect ].get( );
+            
+            if ( psPstate0.getBit( ST_DATA_TRANSLATION_ENABLE )) {
+                
+                uint8_t segSelect = getBitField( instr, 13, 2 );
+                
+                if ( segSelect == 0 ) {
+                    
+                    segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+                }
+                else segAdr = segAdr = core -> sReg[ segSelect ].get( );
+            }
+            else segAdr = 0;
             
             CpuTlb      *tlbPtr = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
             L1CacheMem  *cPtr   = ( getBit( instr, 11 )) ?  core -> dCacheL1 : core -> iCacheL1;
