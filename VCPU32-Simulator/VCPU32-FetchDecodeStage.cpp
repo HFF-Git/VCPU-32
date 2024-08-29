@@ -91,6 +91,7 @@ bool isAligned( uint32_t adr, uint32_t align ) {
         case 1: return( true );
         case 2: return(( adr & 0x1 ) == 0 );
         case 4: return(( adr & 0x3 ) == 0 );
+        case 8: return(( adr & 0x7 ) == 0 );
         default: return( false );
     }
 }

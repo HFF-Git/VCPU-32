@@ -25,8 +25,8 @@
 #ifndef VCPU32_IoSubsys_hpp
 #define VCPU32_IoSubsys_hpp
 
-#include "VCPU32-Types.hpp"
-#include "VCPU32-Core.hpp"
+#include "VCPU32-Types.h"
+#include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
 // The IO module descriptor defines the IO devices that the simulator is configured with. The IO descriptor

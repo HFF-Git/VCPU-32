@@ -113,17 +113,15 @@ bool isWriteInstr( uint32_t instr ) {
 }
 
 //‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-// A quick caddress alignment check.
+// A quick address alignment check.
 // //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-bool isAligned( uint32_t adr, uint32_t align ) {
+bool checkAlignment( uint32_t instr, uint32_t adr ) {
     
-    switch( align ) {
-            
-        case 1: return( true );
-        case 2: return(( adr & 0x1 ) == 0 );
-        case 4: return(( adr & 0x3 ) == 0 );
-        default: return( false );
-    }
+    uint8_t align = getBitField( instr, 15, 2 );
+
+    return ((( align == 1 ) && (( adr & 0x1 ) == 0 )) ||
+            (( align == 2 ) && (( adr & 0x3 ) == 0 )) ||
+            (( align == 3 ) && (( adr & 0x7 ) == 0 )));
 }
 
 }; // namespace
@@ -310,9 +308,7 @@ bool MemoryAccessStage::dependencyValA( uint32_t regId ) {
 // were already stalled in the FD stage,
 //
 // ??? all other cases have been stalled ?
-// ??? what about segemetn and control registers ?
-//
-// An execption is register zero for which there is by definition no dependency.
+// ??? what about segment and control registers ?
 //
 //------------------------------------------------------------------------------------------------------------
 bool MemoryAccessStage::dependencyValB( uint32_t regId ) {
@@ -344,8 +340,6 @@ bool MemoryAccessStage::dependencyValB( uint32_t regId ) {
 //------------------------------------------------------------------------------------------------------------
 //
 //
-//
-// An execption is register zero for which there is by definition no dependency.
 //
 // ??? do we have this case that "X" has a dependency to be checked in the MA stage ?
 //------------------------------------------------------------------------------------------------------------
@@ -516,10 +510,17 @@ void MemoryAccessStage::process( ) {
             ofsAdr      = psValB.get( ) + psValX.get( );
             segSelect   = getBitField( instr, 13, 2 );
             
-            // ??? aligment
-         
-            if ( segSelect == 0 ) segSelect += 4;
-            segAdr = core -> sReg[ segSelect ].get( );
+            if ( segSelect == 0 ) {
+                
+                segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+            }
+            else segAdr = segAdr = core -> sReg[ segSelect ].get( );
+            
+            if ( !checkAlignment( instr, ofsAdr )) {
+            
+                setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
+                return;
+            }
             
             exStage -> psValA.set( psValA.get( ));
             exStage -> psValX.set( ofsAdr );
@@ -532,10 +533,17 @@ void MemoryAccessStage::process( ) {
             ofsAdr      = psValB.get( ) + psValX.get( );
             segSelect   = getBitField( instr, 13, 2 );
             
-            // ??? aligment
-         
-            if ( segSelect == 0 ) segSelect += 4;
-            segAdr = core -> sReg[ segSelect ].get( );
+            if ( segSelect == 0 ) {
+                
+                segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+            }
+            else segAdr = segAdr = core -> sReg[ segSelect ].get( );
+            
+            if ( !checkAlignment( instr, ofsAdr )) {
+            
+                setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
+                return;
+            }
             
             exStage -> psValA.set( psValA.get( ));
             exStage -> psValX.set( ofsAdr );
@@ -548,8 +556,14 @@ void MemoryAccessStage::process( ) {
             segAdr  = 0;
             ofsAdr  = psValB.get( ) + psValX.get( );
             
-            // ??? aligment
-                
+            uint8_t align = getBitField( instr, 15, 2 );
+            
+            if ( !checkAlignment( instr, ofsAdr )) {
+            
+                setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
+                return;
+            }
+            
             exStage -> psValA.set( psValA.get( ));
             exStage -> psValX.set( ofsAdr );
           
@@ -569,8 +583,11 @@ void MemoryAccessStage::process( ) {
             ofsAdr      = psValB.get( ) + psValX.get( );
             segSelect   = getBitField( instr, 13, 2 );
          
-            if ( segSelect == 0 ) segSelect += 4;
-            segAdr = core -> sReg[ segSelect ].get( );
+            if ( segSelect == 0 ) {
+                
+                segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+            }
+            else segAdr = segAdr = core -> sReg[ segSelect ].get( );
             
         } break;
             
@@ -606,8 +623,11 @@ void MemoryAccessStage::process( ) {
             ofsAdr      = psValB.get( ) + psValX.get( );
             segSelect   = getBitField( instr, 13, 2 );
          
-            if ( segSelect == 0 ) segSelect += 4;
-            segAdr = core -> sReg[ segSelect ].get( );
+            if ( segSelect == 0 ) {
+                
+                segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+            }
+            else segAdr = segAdr = core -> sReg[ segSelect ].get( );
             
             core -> fdStage -> psPstate1.set(  ofsAdr );
             core -> fdStage -> psPstate0.setBitField( segAdr, 31, 16 );
@@ -683,10 +703,13 @@ void MemoryAccessStage::process( ) {
             ofsAdr      = psValB.get( ) + psValX.get( );
             segSelect   = getBitField( instr, 13, 2 );
          
-            if ( segSelect == 0 ) segSelect += 4;
-            segAdr = core -> sReg[ segSelect ].get( );
+            if ( segSelect == 0 ) {
+                
+                segAdr = core -> sReg[ getBitField( ofsAdr, 1, 2 ) + 4 ].get( );
+            }
+            else segAdr = segAdr = core -> sReg[ segSelect ].get( );
             
-            CpuTlb   *  tlbPtr = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
+            CpuTlb *tlbPtr = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
           
             if ( ! tlbPtr -> purgeTlbEntry( segAdr, ofsAdr )) {
                 

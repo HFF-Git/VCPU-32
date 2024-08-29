@@ -62,8 +62,8 @@
             filePath = "VCPU32-Simulator/VCPU32-MemoryAccessStage.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "493"
-            endingLineNumber = "493"
+            startingLineNumber = "487"
+            endingLineNumber = "487"
             landmarkName = "MemoryAccessStage::process()"
             landmarkType = "7">
          </BreakpointContent>
