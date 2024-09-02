@@ -2523,6 +2523,13 @@ void DrvWinDisplay::windowSetStack( int winStack, int winNumStart, int winNumEnd
     if (( winNumStart < FIRST_UWIN ) || ( winNumEnd > LAST_UWIN ))  return;
     if ( winStack >= MAX_WIN_STACKS ) return;
     
+    if ( winNumStart > winNumEnd ) {
+        
+        int tmp = winNumStart;
+        winNumStart = winNumEnd;
+        winNumEnd = tmp;
+    }
+    
     for ( int i = winNumStart; i <= winNumEnd; i++ ) {
         
         windowList[ i ] -> setWinStack( winStack );
@@ -2819,6 +2826,13 @@ void DrvWinDisplay::windowNew( TokId winCmd, TokId winType, char *argStr ) {
 void DrvWinDisplay::windowKill( TokId winCmd, int winNumStart, int winNumEnd ) {
     
     if (( winNumStart < FIRST_UWIN ) || ( winNumEnd > LAST_UWIN ))  return;
+    
+    if ( winNumStart > winNumEnd ) {
+        
+        int tmp = winNumStart;
+        winNumStart = winNumEnd;
+        winNumEnd = tmp;
+    }
     
     for ( int i = winNumStart; i <= winNumEnd; i++ ) {
          

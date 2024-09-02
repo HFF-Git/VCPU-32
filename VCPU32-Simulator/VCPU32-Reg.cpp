@@ -82,7 +82,7 @@ bool CpuReg::getBit( int pos ) {
    return( getBitField( pos, 1 ));
 }
 
-void CpuReg::setBit( bool val, int pos ) {
+void CpuReg::setBit( int pos, bool val ) {
     
     setBitField( val, pos, 1 );
 }

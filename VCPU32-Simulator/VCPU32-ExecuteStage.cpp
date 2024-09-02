@@ -325,8 +325,14 @@ bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessMode
 // pipeline is flushed and the procedure returns rightaway. This is consistent with the other stages. The
 // "clockStep" method in the CPU core, which drives the stages, will actually check for traps and handle them.
 //
+// Some status bits must be bypassed in order for them to be available in the follow-on instructions. The
+// ADD, ADDC, SUB and SUBC innstructions for exampke generate a carry bit. This bit needs to be available
+// in the follow-on computational instruction. In addition to the FD and MA state we also set our own
+// pipeline processor state word accordingly.
 //
-// ??? what would we do about status, segment and control registers hazards, if at all ?
+// ??? do we need to set for ADD and friends the status bit also in teh MA stage or just FD and EX ?
+//
+// ??? what would we do about segment and control registers hazards, if at all ?
 //
 // ??? note: this is a rather long routine. Perhaps we should split this into smaller portions.
 //------------------------------------------------------------------------------------------------------------
@@ -359,7 +365,7 @@ void ExecuteStage::process( ) {
                 
                 if ( opCode == OP_ADC ) {
                     
-                    tmpU += ( getBit( psPstate0.get( ), ST_CARRY ) ? 1 : 0 );
+                    tmpU += ( psPstate0.getBit( ST_CARRY ) ? 1 : 0 );
                 }
                 
                 bool tmpC = ( tmpU > UINT32_MAX );
@@ -374,7 +380,9 @@ void ExecuteStage::process( ) {
                 }
                 
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpU );
-                fdStage -> psPstate0.setBit( tmpC, ST_CARRY );
+                fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                psPstate0.setBit( ST_CARRY, tmpC );
             }
             else {
                
@@ -397,7 +405,9 @@ void ExecuteStage::process( ) {
                 }
                     
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpS );
-                fdStage -> psPstate0.setBit( tmpC, ST_CARRY );
+                fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                psPstate0.setBit( ST_CARRY, tmpC );
             }
             
         } break;
@@ -425,7 +435,9 @@ void ExecuteStage::process( ) {
                 }
                 
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpU );
-                fdStage -> psPstate0.setBit( tmpC, ST_CARRY );
+                fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                psPstate0.setBit( ST_CARRY, tmpC );
             }
             else {
                 
@@ -448,7 +460,9 @@ void ExecuteStage::process( ) {
                 }
                 
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpS );
-                fdStage -> psPstate0.setBit( tmpC, ST_CARRY );
+                fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                psPstate0.setBit( ST_CARRY, tmpC );
             }
             
         } break;

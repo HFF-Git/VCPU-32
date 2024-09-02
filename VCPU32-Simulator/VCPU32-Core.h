@@ -254,7 +254,7 @@ public:
     
     bool        getBit( int pos );
     void        setBit( int pos );
-    void        setBit( bool val, int pos );
+    void        setBit( int pos, bool val );
     void        clearBit( int pos );
     
     uint32_t    getBitField( int pos, int len, bool sign = false );

@@ -214,6 +214,7 @@ July, 2024
   - [Instruction Operation Description Functions](#instruction-operation-description-functions)
   - [A pipelined CPU model](#a-pipelined-cpu-model)
   - [Notes](#notes-40)
+    - [Nullification](#nullification)
   - [References](#references)
 
 
@@ -366,6 +367,8 @@ VCPU-32 features two registers to hold the processor state. The **instruction ad
 ```
 
 // ??? need a Z bit for single stepping debugging support....cleared after each instruction, when set causes aDebug trap.
+
+// ??? perhaps need a "N" bit for nullification support.
 
 // ??? how would we support data breakpoints ? Would they need a separate mechanism ?
 
@@ -4303,7 +4306,63 @@ In a similar way, the TLB and Caches are spread over the pipeline. The instructi
 
 ## Notes
 
-None so far.
+### Nullification
+
+A concept found in RISC architectures for reducing pipeline unfrinedly branches is **nullification**. The idea is to "nullify" an instruction on the result of the previous instruction. For example, a test instruction sets the nullify bit in the status register to indicate that the follow-on instruction will have no effect on the proecessor state but rather treated as a NOP. For experimenting with the concept, the architecture needs a few changes:
+
+1.) the operand modes will feature for mode 1 a 4-bit field to store the nullifictaion options. There are at least two options: "never" and "always". A value of zero in the field is interpreted as "never". 
+
+```
+       <-- operation --> <-  res  -> <opt> <---------------- operand -------------------------------->
+       0                 6           10    12    14    16    18                24          28       31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      : opCode          : r         : opt : 0   : val                                                 :  immediate
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         : opt : 1   : 0   : n-cond    : 0         : a         : b         :  register
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         : opt : 2   : dw  : n-cond    : 0         : a         : b         :  register indexed
+      :-----------------:-----------------------------------------------------------------------------:
+      : opCode          : r         : opt : 3   : dw  : ofs                               : b         :  indexed
+      :-----------------:-----------------------------------------------------------------------------:
+```
+
+Mode 0 and 3 do not have room for the nullify condition field.
+
+2.) The procerrs state needs to have a bit  "N". 
+
+
+```
+       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+      :M :X :C :0 :CB:N : 0               :0 :D :P :E : PSW.[seg]                                     :  PSW-0
+      :-----------------------------------------------------------------------------------------------:
+      : PSW.[ofs]                                                                               : 0   :  PSW-1
+      :-----------------------------------------------------------------------------------------------:
+```
+
+The N bit is set when the nullification is evelauted to true. An instruction checks the N bit before committing its results.
+
+3.) Candidates for a nullicfication condition field. 
+
+All computational instrcutions with the aforementioned operand field are candidates for the nulification option. In addition, the EXTR, DEP and CMP have roo for the nullifcation field. 
+
+4.) Removal of the CMR instrcution.
+
+The CMR instruction could easily be replaced by a CMP instruction that conditionally nullifies the follon on instruction. 
+
+```
+   Example:
+
+   C-code:     if ( a < b ) c = d
+
+   Assumption: ( a -> R2, b -> R6,c -> R1, d -> R4 )
+
+    CMP.LT R1, R2, R6   ; compare R2 < R6 and store a zero or one in R1
+    ADD R1, R4, R0      ; move R4 to R1
+```
+
+5.) The assembler needs to come up with a way to specifiy nullification.
+
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
