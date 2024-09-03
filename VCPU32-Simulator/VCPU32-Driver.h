@@ -223,8 +223,9 @@ enum ErrMsgId : uint16_t {
     EXPECTED_WIN_ID             = 7,
     INVALID_WIN_TYPE            = 8,
     EXPECTED_WIN_TYPE           = 9,
-    EXPECTED_FMT_OPT            = 10,
-    OUT_OF_WINDOWS_ERR          = 11
+    EXPECTED_STACK_ID           = 10,
+    EXPECTED_FMT_OPT            = 11,
+    OUT_OF_WINDOWS_ERR          = 12
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -762,6 +763,10 @@ public:
     void displayInstr( uint32_t instr, TokId fmt );
     void displayOpCodeAndOptions( uint32_t instr );
     void displayTargetAndOperands( uint32_t instr, TokId fmt = TOK_DEF );
+    
+    int  getOpCodeOptionsFieldWidth( );
+    int  getTargetAndOperandsFieldWidth( );
+    
     
 private:
     

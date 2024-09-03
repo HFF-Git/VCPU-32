@@ -711,3 +711,13 @@ void DrvDisAsm::displayInstr( uint32_t instr, TokId fmt ) {
     displayTargetAndOperands( instr, fmt );
 }
 
+int DrvDisAsm::getOpCodeOptionsFieldWidth( ) {
+    
+    return( 12 );
+}
+
+int DrvDisAsm::getTargetAndOperandsFieldWidth( ) {
+    
+    return( 16 );
+}
+

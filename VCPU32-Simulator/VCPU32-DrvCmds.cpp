@@ -487,6 +487,7 @@ void DrvCmds::printErrMsg( ErrMsgId errNum, char *argStr ) {
         case EXPECTED_FILE_NAME_ERR:    fprintf( stdout, "Expected a file name\n" ); break;
         case INVALID_CMD_ERR:           fprintf( stdout, "Invalid command, use help or whelp\n "); break;
         case INVALID_WIN_STACK_ID:      fprintf( stdout, "Invalid window stack Id\n" ); break;
+        case EXPECTED_STACK_ID:         fprintf( stdout, "Expected stack Id\n" ); break;
         case INVALID_WIN_ID:            fprintf( stdout, "Invalid window Id\n" ); break;
         case EXPECTED_WIN_ID:           fprintf( stdout, "Expected a window Id\n" ); break;
         case EXPECTED_FMT_OPT:          fprintf( stdout, "Expected a format option\n" ); break;
@@ -2094,7 +2095,7 @@ void DrvCmds::winNewWinCmd( char *cmdBuf ) {
 // This command removes  a user defined window or window range from the list of windows. A number of -1 will
 // kill all user defined windows.
 //
-// WK [<winNumStart> [<winNumEnd≤]] || ( -1 )
+// WK [<winNumStart> [<winNumEnd]] || ( -1 )
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winKillWinCmd( char * cmdBuf ) {
     
@@ -2103,45 +2104,50 @@ void DrvCmds::winKillWinCmd( char * cmdBuf ) {
     int     winNumEnd               = 0;
     
     int     args                    = sscanf( cmdBuf, FMT_STR_1S_2D, cmdStr, &winNumStart, &winNumEnd );
-    
-    if ( args == 0 ) return;
-    
+  
     if ( ! winModeOn ) {
         
         printErrMsg( NOT_IN_WIN_MODE_ERR );
         return;
     }
     
-    if ( winNumStart == -1 ) {
+    if ( args == 1 ) {
         
-        winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
-        winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
+        winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
+        winNumEnd   = winNumStart;
+    }
+    else if ( args == 2 ) {
         
-        glb -> winDisplay -> windowKill( lookupTokId( cmdStr ), winNumStart, winNumEnd );
-        glb -> winDisplay -> reDraw( true );
+        if ( winNumStart == -1 ) {
+            
+            winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
+            winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
+        }
+        else {
+            
+            if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
+                    
+                printErrMsg( INVALID_WIN_ID );
+                return;
+            }
+            
+            winNumEnd = winNumStart;
+        }
+    }
+    else if ( args == 3 ) {
         
+        if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||
+            ( ! glb -> winDisplay -> validWindowNum( winNumEnd ))) {
+                
+            printErrMsg( INVALID_WIN_ID );
+            return;
+        }
+    }
+    else {
+        
+        printErrMsg( INVALID_WIN_ID );
         return;
     }
-    
-    if ( winNumStart != 0 ) {
-        
-        if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
-            
-            printErrMsg( INVALID_WIN_ID );
-            return;
-        }
-    }
-    else winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
-    
-    if ( winNumEnd != 0 ) {
-        
-        if ( ! glb -> winDisplay -> validWindowNum( winNumEnd )) {
-            
-            printErrMsg( INVALID_WIN_ID );
-            return;
-        }
-    }
-    else winNumEnd = glb -> winDisplay -> getCurrentUserWindow( );
     
     glb -> winDisplay -> windowKill( lookupTokId( cmdStr ), winNumStart, winNumEnd );
     glb -> winDisplay -> reDraw( true );
@@ -2149,7 +2155,7 @@ void DrvCmds::winKillWinCmd( char * cmdBuf ) {
 
 //------------------------------------------------------------------------------------------------------------
 // This command assigns a user window to a stack. User windows can be displayed in a separate stack of
-// windows. The first stack is always the main stack, where the predeinfed and command window can be found.
+// windows. The first stack is always the main stack, where the predefined and command window can be found.
 //
 // WS <stackNum> [ <winNumStart> [ <winNumEnd ]]
 //------------------------------------------------------------------------------------------------------------
@@ -2167,38 +2173,55 @@ void DrvCmds::winSetStackCmd( char *cmdBuf ) {
         return;
     }
     
-    if ( args < 2 ) {
+    if ( args == 1 ) {
         
-        printErrMsg( EXPECTED_WIN_ID );
-        return;
+        winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
+        winNumEnd   = winNumStart;
     }
-    
-    if ( ! glb -> winDisplay -> validWindowStackNum( stackNum )) {
+    else if ( args == 2 ) {
         
-        printErrMsg( INVALID_WIN_STACK_ID );
-        return;
+        winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
+        winNumEnd   = winNumStart;
     }
-    
-    if ( winNumStart != 0 ) {
+    else if ( args == 3 ) {
         
-        if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
+        if ( winNumStart == -1 ) {
             
+            winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
+            winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
+        }
+        else {
+            
+            if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
+                    
+                printErrMsg( INVALID_WIN_ID );
+                return;
+            }
+            
+            winNumEnd = winNumStart;
+        }
+    }
+    else if ( args == 4 ) {
+        
+        if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||
+            ( ! glb -> winDisplay -> validWindowNum( winNumEnd ))) {
+                
             printErrMsg( INVALID_WIN_ID );
             return;
         }
     }
-    else winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
-    
-    if ( winNumEnd != 0 ) {
+    else {
         
-        if ( ! glb -> winDisplay -> validWindowNum( winNumEnd )) {
-            
-            printErrMsg( INVALID_WIN_ID );
-            return;
-        }
+        printErrMsg( EXPECTED_STACK_ID );
+        return;
     }
-    else winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
     
+     if ( ! glb -> winDisplay -> validWindowStackNum( stackNum )) {
+         
+         printErrMsg( INVALID_WIN_STACK_ID );
+         return;
+     }
+     
     glb -> winDisplay -> windowSetStack( stackNum, winNumStart, winNumEnd );
     glb -> winDisplay -> reDraw( true );
 }

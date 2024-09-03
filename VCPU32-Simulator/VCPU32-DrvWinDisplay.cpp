@@ -183,6 +183,11 @@ DrvWinCommands *cmdWin;
 //
 //
 //-----------------------------------------------------------------------------------------------------------
+bool getBit( uint32_t arg, int pos ) {
+    
+    return(( arg & ( 1U << ( 31 - ( pos % 32 )))) ? 1 : 0 );
+}
+
 uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     
     pos = pos % 32;
@@ -902,12 +907,12 @@ void DrvWinProgState::drawBanner( ) {
     
     uint32_t stat = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_0 );
     
-    printTextField(( stat & ST_MACHINE_CHECK ) ? (char *) "M" : (char *) "m", fmtDesc );
-    printTextField(( stat & ST_CODE_TRANSLATION_ENABLE ) ? (char *) "I" : (char *) "i", fmtDesc );
-    printTextField(( stat & ST_CARRY ) ? (char *) "C" : (char *) "c", fmtDesc );
-    printTextField(( stat & ST_PROTECT_ID_CHECK_ENABLE ) ? (char *) "P" : (char *) "p", fmtDesc );
-    printTextField(( stat & ST_DATA_TRANSLATION_ENABLE ) ? (char *) "D" : (char *) "d", fmtDesc );
-    printTextField(( stat & ST_INTERRUPT_ENABLE ) ? (char *) "E" : (char *) "e", fmtDesc );
+    printTextField(( getBit( stat, ST_MACHINE_CHECK )) ? (char *) "M" : (char *) "m", fmtDesc );
+    printTextField(( getBit( stat, ST_CODE_TRANSLATION_ENABLE )) ? (char *) "I" : (char *) "i", fmtDesc );
+    printTextField(( getBit( stat, ST_CARRY )) ? (char *) "C" : (char *) "c", fmtDesc );
+    printTextField(( getBit( stat, ST_PROTECT_ID_CHECK_ENABLE )) ? (char *) "P" : (char *) "p", fmtDesc );
+    printTextField(( getBit( stat, ST_DATA_TRANSLATION_ENABLE )) ? (char *) "D" : (char *) "d", fmtDesc );
+    printTextField(( getBit( stat, ST_INTERRUPT_ENABLE )) ? (char *) "E" : (char *) "e", fmtDesc );
     
     padLine( fmtDesc );
     printRadixField( fmtDesc | FMT_LAST_FIELD );
@@ -1561,14 +1566,15 @@ void DrvWinCode::drawLine( uint32_t itemAdr ) {
     else printTextField((char *) "     ", fmtDesc, 5 );
    
     printNumericField( instr, fmtDesc | FMT_ALIGN_LFT, 12 );
-    printTextField((char *) "", fmtDesc, 16 );
     
-    int pos = getWinCursorCol( );
-    padLine( );
-    setWinCursor( 0, pos );
+    int pos          = getWinCursorCol( );
+    int opCodeField  = glb -> disAsm -> getOpCodeOptionsFieldWidth( );
+    int operandField = glb -> disAsm -> getOpCodeOptionsFieldWidth( );
+    
     glb -> disAsm -> displayOpCodeAndOptions( instr );
-    setWinCursor( 0, pos + 8 );
+    setWinCursor( 0, pos + opCodeField );
     glb -> disAsm -> displayTargetAndOperands( instr, getRadix( ));
+    setWinCursor( 0, pos + opCodeField + operandField );
     padLine( );
 }
 
@@ -2384,7 +2390,7 @@ void DrvWinDisplay::setWindowOrigins( int winStack, int rowOffset, int colOffset
 // number of rows needed for the windows and command window is less than the defined minimum number of rows,
 // the command window is enlarged to have a screen of minumum row size. When the screen size changed, we
 // just redraw the screen with the command screen going last. The command screen will have a columns size
-// across all visibloe stacks.
+// across all visible stacks.
 //
 //-----------------------------------------------------------------------------------------------------------
 void DrvWinDisplay::reDraw( bool mustRedraw ) {
@@ -2417,7 +2423,7 @@ void DrvWinDisplay::reDraw( bool mustRedraw ) {
     int curRows   = 1;
     
     for ( int i = 0; i < MAX_WIN_STACKS; i++ ) {
-        
+    
         setWindowColumns( i, winStackColumns[ i ] );
         setWindowOrigins( i, curRows, curColumn );
         
@@ -2426,7 +2432,11 @@ void DrvWinDisplay::reDraw( bool mustRedraw ) {
             curColumn += winStackColumns[ i ];
             if ( winStackColumns[ i ] > 0 ) curColumn += stackColumnGap;
         }
-        else curRows += winStackRows[ i ];
+        else {
+            
+            setWindowColumns( i, maxColumnsNeeded );
+            curRows += winStackRows[ i ];
+        }
     }
     
     if (( maxRowsNeeded + cmdWin -> getRows( )) < defRowSize ) {
@@ -2516,7 +2526,6 @@ void DrvWinDisplay::windowCurrent( TokId winCmd, int winNum ) {
 // window. They are always in the main window stack, which has the stack Id of zero. Theorethically we
 // could have many stacks, numbered 0 to MAX_STACKS - 1. Realistically, 3 to 4 stacks will fit on a screen.
 //
-// ??? would be nice to move a range of windows...
 //-----------------------------------------------------------------------------------------------------------
 void DrvWinDisplay::windowSetStack( int winStack, int winNumStart, int winNumEnd ) {
     
@@ -2532,8 +2541,11 @@ void DrvWinDisplay::windowSetStack( int winStack, int winNumStart, int winNumEnd
     
     for ( int i = winNumStart; i <= winNumEnd; i++ ) {
         
-        windowList[ i ] -> setWinStack( winStack );
-        setCurrentUserWindow( i );
+        if ( windowList[ i ] != nullptr ) {
+            
+            windowList[ i ] -> setWinStack( winStack );
+            setCurrentUserWindow( i );
+        }
     }
 }
 
