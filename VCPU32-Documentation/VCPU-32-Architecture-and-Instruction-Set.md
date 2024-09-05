@@ -109,7 +109,7 @@ July, 2024
     - [Segmented Memory Model](#segmented-memory-model)
     - [Address Translation](#address-translation)
     - [Protection Model](#protection-model)
-    - [Adress translation and caching](#adress-translation-and-caching)
+    - [Address translation and caching](#address-translation-and-caching)
     - [Translation Lookaside Buffer](#translation-lookaside-buffer)
     - [Caches](#caches)
     - [Page Tables](#page-tables)
@@ -506,7 +506,7 @@ The second dimension of protection is a **protection ID**. VCPU-32 allows to rec
 
 Protection Id checking is typically used to form a grouping of access. A good example are stack data segment, which is accessible at user privilege level. Since the CPU features a global virtual memory address space, every every task could access a data stack of another task. With protection Id checking enabled and the segment Id loaded in one of the control registers, only the corresponding user task is allowed to access the stack data segment with a matching protection Id. 
 
-### Adress translation and caching
+### Address translation and caching
 
 The previous section depicted the virtual address translation process. While the CPU architects the logical, virtual and physical address scheme, it does not specify how exactly the hardware supports the translation process. A very common model is to have for performance reasons instruction and data translation buffers(TLB) for caching translation results and data caches for caching memory data. The CPU architecture does not specify a particular model of TLB and cache implementation. Split TLBS and unified TLBs, L1 and L2 caches and other schemes are models to consider. This section just outlines the common architecture and instructions to manage these CPU components.
 
@@ -601,7 +601,7 @@ Locating a virtual page in the page table requires to first index into the page 
 
 Control flow is implemented through a set of branch instructions. They can be classified into unconditional and conditional instruction branches.
 
-**Unconditional Branches**. Unconditional branches fetch the next instruction address from the computed branch target. The address computation can be relative to the current instruction address ( instruction relative branch ) or relativ to an address register ( base register relative ). For a segment local branch, the instruction address segment part will not change. Unconditional branches are also used to jump to a subroutine and return from there. The branch and link instruction types save the return point to a general register. External calls are quite similar, except that they always branch to an absolute offset in the external segment. Just like the branch instruction, the return point can be saved, but this time to a segment is additionally stored in SR0.
+**Unconditional Branches**. Unconditional branches fetch the next instruction address from the computed branch target. The address computation can be relative to the current instruction address ( instruction relative branch ) or relative to an address register ( base register relative ). For a segment local branch, the instruction address segment part will not change. Unconditional branches are also used to jump to a subroutine and return from there. The branch and link instruction types save the return point to a general register. External calls are quite similar, except that they always branch to an absolute offset in the external segment. Just like the branch instruction, the return point can be saved, but this time to a segment is additionally stored in SR0.
 
 **Conditional Branches**. VCPU-32 features one conditional branch instructions. These instruction compares two register values for a certain condition. If the condition is met a branch to the target address is performed.  The target address is always a local address and the offset is instruction address relative. Conditional branches adopt a static prediction model. Forward branches are assumed not taken, backward branches are assumed taken.
 
@@ -675,7 +675,7 @@ To be defined ...
 
 ## Instruction Set Overview
 
-This chapter gives a brief overview on the instruction set. The instruction set is a fixed word length instruction format of one machine word. The instruction set is divided into five general groups of instructions. The **memory reference** group contains the instructions to load ans store to virtual and physical memory. The **immediate** group contains the instructions for building an immediate value up to 32 bit. The **branch** group present the conditional and unconditional instructions. The **computational** instructions perform arithmetic, boolean and bit functions such as bit extract and deposit. Finally, the **control** instruction group contains all instructions for managing HW elements such as caches and TLBs, register movements, as well as traps and interrupt handling. 
+This chapter gives a brief overview on the instruction set. The instruction set is a fixed word length instruction format of one machine word. The instruction set is divided into five general groups of instructions. The **memory reference** group contains the instructions to load and store to virtual and physical memory. The **immediate** group contains the instructions for building an immediate value up to 32 bit. The **branch** group present the conditional and unconditional instructions. The **computational** instructions perform arithmetic, boolean and bit functions such as bit extract and deposit. Finally, the **control** instruction group contains all instructions for managing HW elements such as caches and TLBs, register movements, as well as traps and interrupt handling. 
 
 ### Memory Reference Instructions
 
@@ -4308,7 +4308,7 @@ In a similar way, the TLB and Caches are spread over the pipeline. The instructi
 
 ### Nullification
 
-A concept found in RISC architectures for reducing pipeline unfrinedly branches is **nullification**. The idea is to "nullify" an instruction on the result of the previous instruction. For example, a test instruction sets the nullify bit in the status register to indicate that the follow-on instruction will have no effect on the proecessor state but rather treated as a NOP. For experimenting with the concept, the architecture needs a few changes:
+A concept found in RISC architectures for reducing pipeline unfrieNdly branches is **nullification**. The idea is to "nullify" an instruction on the result of the previous instruction. For example, a test instruction sets the nullify bit in the status register to indicate that the follow-on instruction will have no effect on the proecessor state but rather treated as a NOP. For experimenting with the concept, the architecture needs a few changes:
 
 1.) the operand modes will feature for mode 1 a 4-bit field to store the nullifictaion options. There are at least two options: "never" and "always". A value of zero in the field is interpreted as "never". 
 
