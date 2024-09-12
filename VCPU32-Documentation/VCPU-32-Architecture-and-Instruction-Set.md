@@ -1891,7 +1891,11 @@ Loads a memory value into a general register using a logical address.
 
 #### Description
 
-The load instruction will load the operand into the general register "r". The offset is computed by adding the sign extended or the general register "a" offset to "b". The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. The "dw" field specifies the data length. From 0 to 3 the data length is byte, half word, word and double. The double option is reserved for future use. The computed offset must match the alignment size of the data to fetch. The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. 
+The load instruction will load the operand into the general register "r". The offset is computed by adding the sign extended or the general register "a" offset to "b". The "seg" field selects the segment register. A zero will use the upper two bits of the computed address offset to select among SR4..SR7. Otherwise SR1..SR3 are selected. 
+
+The "dw" field specifies the data length. From 0 to 3 the data length is byte, half word, word and double. The double option is reserved for future use. The computed offset must match the alignment size of the data to fetch. 
+
+The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. If the "b" and "r" register are the same, the operation will store the loaded result in the register and the base registewr address modification is ignored.
 
 #### Operation
 
@@ -1976,7 +1980,9 @@ Loads the memory content into a general register using an absolute address.
 
 #### Description
 
-The load absolute instruction will load the content of the physical memory address into the general register "r". The absolute 32-bit address is computed by adding the signed offset or the general register "a" to general register "b". The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. The LDwA instructions is a privileged instructions.
+The load absolute instruction will load the content of the physical memory address into the general register "r". The absolute 32-bit address is computed by adding the signed offset or the general register "a" to general register "b". 
+
+The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. The LDwA instructions is a privileged instructions. If the "b" and "r" register are the same, the operation will store the loaded result in the register and the base registewr address modification is ignored.
 
 #### Operation
 
