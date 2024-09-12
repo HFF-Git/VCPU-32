@@ -4256,7 +4256,7 @@ Instruction operations are described in a pseudo C style language using assignme
 
 <div style="page-break-before: always;"></div>
 
-## A pipelined CPU model
+## A three-stage pipelined CPU model
 
 The VCPU-32 instruction set and runtime architecture has been designed with a pipeline CPU in mind. In general, pipeline operations such as stalling or flushing a CPU pipeline are in terms of performance costly and should be avoided where possible. Also, accessing data memory twice or any indirection level of data access would also affect the pipeline performance in a negative way. This chapter presents a simple pipeline reference model of a VCPU32 implementation for discussing architecture and instruction design rationales.
 
@@ -4295,11 +4295,62 @@ The VCPU-32 pipelined reference implementation also can be found in the simulato
 ```
 
 
-Note that the figure above is perhaps one of many ways to implement a pipeline. The three major stages are also further divided internally. For example, the fetch and decode stage could consist of two sub stages. Likewise, the memory access stages is divided into an address calculation sub-stage and the actual data access. Dividing into three stages  simplifies the bypass logic as there are only two spots to insert any register overriding. This is especially important for the memory access stage, which uses the register content to build addresses. Two separate stages, i.e. address computation and memory access, would require options to redo the address arithmetic when detecting a register interlock at the memory access stage.
+Note that the figure above is certainly one of many ways to implement a pipeline. The three major stages are also further divided internally. For example, the fetch and decode stage could consist of two sub stages. Likewise, the memory access stages is divided into an address calculation sub-stage and the actual data access. Dividing into three stages  simplifies the bypass logic as there are only two spots to insert any register overriding. This is especially important for the memory access stage, which uses the register content to build addresses. Two separate stages, i.e. address computation and memory access, would require options to redo the address arithmetic when detecting a register interlock at the memory access stage.
 
-Some instructions, such as store instruction, require to read three data items from the register file and optional also write back two items. Instead of designing a CPU with a three port read and two port write register file, the pipeline shown above is structured ion a way that the access to the register file is done on the first half of the fetch/decode stage and the second half of the memory access stage. The write back of the execute stage will write back the computation result on the second half of the execute stage, and the address increment write back on the first half of the instruction fetch stage of the next instruction. 
+Some instructions, such as store instruction, require to read three data items from the register file and optional also write back two items. Instead of designing a CPU with a three port read and two port write register file, the pipeline shown above is structured ion a way that the access to the register file is done on the first half of the fetch/decode stage and the second half of the memory access stage. The read could thus be split into fetching two registers in the decode substage and when needed a third register during the compute access substage. Likewise, the write back of the execute stage will write back the computation result on the second half of the execute stage, and the address increment write back on the first half of the instruction fetch stage of the next instruction. 
 
-In a similar way, the TLB and Caches are spread over the pipeline. The instruction TLB and Cache access takes place on the first half of the fetch/decode stage, the data access on the second half of the memory access stage. In other words the access for instructions and data do not overlap.
+In a similar way, the TLB and Caches are spread over the pipeline. The instruction TLB and Cache access takes place on the first half of the fetch/decode stage, the data access on the second half of the memory access stage. In other words the access for instructions and data do not overlap and could be served by a unified TLB and cache.
+
+## A four stage pipeline CPU model
+
+The three stage pipeline model, while simple and somewhat elegant, will have its limits in clock cycle time. It is also a scalar pipeline model. Nevertheless, it can be implemented and for the simulator valuable insights can be obtained. Any higher performancde implementation would however lean towards more stages and superscalar techniques. The following sketch is a four stage pipeline.
+
+```
+                        Instruction 1          Instruction 2           Instruction 3            Instruction 4
+
+                    :--------------------:
+                    :                    :
+    Fetch stage     : Instruction fetch  : 
+                    :                    :
+                    :--------------------:  :--------------------:
+                    :                    :  :                    : 
+    Decode stage    : Instruction decode :  : Instruction fetch  :
+                    :                    :  :                    : 
+                    :--------------------:  :--------------------:  :--------------------:
+                    :                    :  :                    :  :                    : 
+    Data stage      : Data fetch         :  : Instruction decode :  : Instruction fetch  :
+                    :                    :  :                    :  :                    : 
+                    :--------------------:  :--------------------:  :--------------------:  :--------------------:
+                    :                    :  :                    :  :                    :  :                    :
+   Execute stage    : Execute            :  : Data fetch         :  : Instruction decode :  : Instruction fetch  :
+                    :                    :  :                    :  :                    :  :                    : 
+                    :--------------------:  :--------------------:  :--------------------:  :--------------------:
+                                            :                    :  :                    :  :                    :   
+                                            : Execute            :  : Data fetch         :  : Instruction decode :
+                                            :                    :  :                    :  :                    :
+                                            :--------------------:  :--------------------:  :--------------------:
+                                                                    :                    :  :                    :
+                                                                    : Execute            :  : Data fetch         :
+                                                                    :                    :  :                    :
+                                                                    :--------------------:  :--------------------: 
+                                                                                            :                    :
+                                                                                            : Execute            :
+                                                                                            :                    : 
+                                                                                            :--------------------: 
+
+```
+
+The **fetch** stage will fetch the next instruction from memory. In contrast to the 3-stage model, there is no way to determine the next instruction address for simple branches already in the fetch stage. In order to improve the branch address prediction, techniques such as a **branch target buffer** and **branch prediction hardware** become essential. If they are not present, any unconditional branch would in one cycle penalty, since the next address is only known in the decode stage at the earliest. Yet the fetch stage needs to provide the next address for the next instruction fetch. A branch target buffer will store instruction address and branch target address for branch type instructions. If the entry matches, all is fine. Otherwise the address can only be compzted in the decode stage and there will be a one cycle penalty.
+
+As pipelines grow larger and superscalar, branch prediction becomes imminent. Any misprediction will cost several cycles and the flushing of several instructions with superscalar designs. The 3-stage pipeline model just used a static prediction scheme and due to the design of fetch and decode in one stage, there was no real need for target address buffering and predictions. The 4-stage pipeline model will introduce these enhancements. 
+
+The **decode** stage will decode the instruction and fetch the required data from the register file. Due to the nature of address translation in VCPU-32 the general register file as well as the segment register file need to be accessed in serial order. First, the general register will provide the address offsets and accessing the segment register file using the upper two bits of the offset will prvide the segment part of the virtual address.
+
+The **data fetch** stage will access memory for reading or storing data. Like the fetch stage, it will primarily just access memory. Since both instruction fetch and data fetch or write will access memory overlapping for instructions in flight, seprate L1 caches are required. It is envisoned that both L1 caches connect to a unified L2 cache.
+
+The **execute** stage will perform the computation tasks as before. It also manages execption handing. VCPU-32 provides a precise exception model. A misprediction of a condiztional branch is also resoilved at the execute stage.
+
+In summary, a 4-stage pipeline model will result in a shorter cycle time at the expense of more hardware. Especially the branch target buffer and branch prediction are a significant addition.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -4346,11 +4397,11 @@ Mode 0 and 3 do not have room for the nullify condition field.
       :-----------------------------------------------------------------------------------------------:
 ```
 
-The N bit is set when the nullification is evelauted to true. An instruction checks the N bit before committing its results.
+The N bit is set when the nullification is evaluated to true. An instruction checks the N bit before committing its results.
 
-3.) Candidates for a nullicfication condition field. 
+3.) Candidates for a nullification condition field. 
 
-All computational instrcutions with the aforementioned operand field are candidates for the nulification option. In addition, the EXTR, DEP and CMP have roo for the nullifcation field. 
+All computational instructions with the aforementioned operand field are candidates for the nullification option. In addition, the EXTR, DEP, DSR, SHLA and CMP have room for the nullification field. 
 
 4.) Removal of the CMR instrcution.
 
@@ -4367,8 +4418,19 @@ The CMR instruction could easily be replaced by a CMP instruction that condition
     ADD R1, R4, R0      ; move R4 to R1
 ```
 
-5.) The assembler needs to come up with a way to specifiy nullification.
+5.) The assembler needs to come up with a way to specifiy nullification in the instruction syntax.
 
+### The case for register indexed mode
+
+The current implementation provides a base "register plus offset" and a "base register plus register" addressing mode. Modern CPUs such as the RISC-V family instruction set do not offer a register plus register mode. The key argument is hardware complexity and the fact that the register indexed mode can easily be implemented with a two instruction sequence, where the first instructons builds the address offset and the next instrcution just uses the result as base register.
+
+To be investigated. Address adjustments as part of an register indexed access is a powerful feature when looping through arrays and well worth the additional hardware and complexity.
+
+### Instruction bundling
+
+Supercalar prcessors attempt to execute more than one instruction in one cycle. In a superscalar design the hardware detects teh potential hazards of the instrcutions in flight. When the instructions can furthermore execute in an out of order model, management of the dependencies becomes even more complex and require a lot of hardware estate.
+
+VLIW architectures group instructions in a bundle fetched by the instruction fetch stage, complemented with a template field that will tell the hardware about the type of instructions in the bundle. It is the responsibilty of the compiler to ensure that the instructions in a bundle will not conflict. Although an assembler could also work with instruction bundles, considerting all deoendencies and potential conflicts are a hard an cumbersome task for a human assembler programmer.
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
