@@ -629,7 +629,8 @@ void ExecuteStage::process( ) {
         case OP_LDA: {
           
             core -> gReg[ getBitField( instr, 9, 4 ) ].set( psValB.get( ));
-            if ( getBit( instr, 11 )) core -> gReg[ getBitField( instr, 31, 4 ) ].set( psValX.get( ));
+            if ( getBit( instr, 11 ) && ( getBitField( instr, 9, 4 ) != getBitField( instr, 31, 4 )))
+                core -> gReg[ getBitField( instr, 31, 4 ) ].set( psValX.get( ));
             
         } break;
             

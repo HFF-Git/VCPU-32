@@ -212,9 +212,12 @@ July, 2024
     - [Control Flow Instructions](#control-flow-instructions)
     - [System Control Instructions](#system-control-instructions-1)
   - [Instruction Operation Description Functions](#instruction-operation-description-functions)
-  - [A pipelined CPU model](#a-pipelined-cpu-model)
+  - [A three-stage pipelined CPU model](#a-three-stage-pipelined-cpu-model)
+  - [A four stage pipeline CPU model](#a-four-stage-pipeline-cpu-model)
   - [Notes](#notes-40)
     - [Nullification](#nullification)
+    - [The case for register indexed mode](#the-case-for-register-indexed-mode)
+    - [Instruction bundling](#instruction-bundling)
   - [References](#references)
 
 
@@ -4340,7 +4343,7 @@ The three stage pipeline model, while simple and somewhat elegant, will have its
 
 ```
 
-The **fetch** stage will fetch the next instruction from memory. In contrast to the 3-stage model, there is no way to determine the next instruction address for simple branches already in the fetch stage. In order to improve the branch address prediction, techniques such as a **branch target buffer** and **branch prediction hardware** become essential. If they are not present, any unconditional branch would in one cycle penalty, since the next address is only known in the decode stage at the earliest. Yet the fetch stage needs to provide the next address for the next instruction fetch. A branch target buffer will store instruction address and branch target address for branch type instructions. If the entry matches, all is fine. Otherwise the address can only be compzted in the decode stage and there will be a one cycle penalty.
+The **fetch** stage will fetch the next instruction from memory. In contrast to the 3-stage model, there is no way to determine the next instruction address for simple branches already in the fetch stage. In order to improve the branch address prediction, techniques such as a **branch target buffer** and **branch prediction hardware** become essential. If they are not present, any unconditional branch would in one cycle penalty, since the next address is only known in the decode stage at the earliest. Yet the fetch stage needs to provide the next address for the next instruction fetch. A branch target buffer will store instruction address and branch target address for branch type instructions. If the entry matches, all is fine. Otherwise the address can only be computed in the decode stage and there will be a one cycle penalty.
 
 As pipelines grow larger and superscalar, branch prediction becomes imminent. Any misprediction will cost several cycles and the flushing of several instructions with superscalar designs. The 3-stage pipeline model just used a static prediction scheme and due to the design of fetch and decode in one stage, there was no real need for target address buffering and predictions. The 4-stage pipeline model will introduce these enhancements. 
 
@@ -4422,15 +4425,15 @@ The CMR instruction could easily be replaced by a CMP instruction that condition
 
 ### The case for register indexed mode
 
-The current implementation provides a base "register plus offset" and a "base register plus register" addressing mode. Modern CPUs such as the RISC-V family instruction set do not offer a register plus register mode. The key argument is hardware complexity and the fact that the register indexed mode can easily be implemented with a two instruction sequence, where the first instructons builds the address offset and the next instrcution just uses the result as base register.
+The current implementation provides a base "register plus offset" and a "base register plus register" addressing mode. Modern CPUs such as the RISC-V family instruction set do not offer a register plus register mode. The key argument is hardware complexity and the fact that the register indexed mode can easily be implemented with a two instruction sequence, where the first instructions builds the address offset and the next instruction just uses the result as base register.
 
-To be investigated. Address adjustments as part of an register indexed access is a powerful feature when looping through arrays and well worth the additional hardware and complexity.
+To be investigated. Address adjustments as part of an register indexed access is a powerful feature when looping through arrays and well worth the additional hardware complexity.
 
 ### Instruction bundling
 
-Supercalar prcessors attempt to execute more than one instruction in one cycle. In a superscalar design the hardware detects teh potential hazards of the instrcutions in flight. When the instructions can furthermore execute in an out of order model, management of the dependencies becomes even more complex and require a lot of hardware estate.
+Supercalar processors attempt to execute more than one instruction in one cycle. In a superscalar design the hardware detects teh potential hazards of the instrcutions in flight. When the instructions can furthermore execute in an out of order model, management of the dependencies becomes even more complex and require a lot of hardware estate.
 
-VLIW architectures group instructions in a bundle fetched by the instruction fetch stage, complemented with a template field that will tell the hardware about the type of instructions in the bundle. It is the responsibilty of the compiler to ensure that the instructions in a bundle will not conflict. Although an assembler could also work with instruction bundles, considerting all deoendencies and potential conflicts are a hard an cumbersome task for a human assembler programmer.
+VLIW architectures group instructions in a bundle fetched by the instruction fetch stage, complemented with a template field that will tell the hardware about the type of instructions in the bundle. It is the responsibilty of the compiler to ensure that the instructions in a bundle will not conflict. Although an assembler could also work with instruction bundles, considerting all dependencies and potential conflicts are a hard an cumbersome task for a human assembler programmer.
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
