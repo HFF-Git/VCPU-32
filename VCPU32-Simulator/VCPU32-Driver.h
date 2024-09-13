@@ -118,9 +118,9 @@ enum TokId : uint16_t {
     CMD_HELP                = 1003,   CMD_WHELP             = 1004,
     
     CMD_RESET               = 1010,   CMD_RUN               = 1011, CMD_STEP              = 1012,
-    CMD_XF                  = 1013,   CMD_DIS_ASM           = 1014,
+    CMD_XF                  = 1013,   CMD_DIS_ASM           = 1014, CMD_ASM               = 1015,
     
-    CMD_B                   = 1015,   CMD_BD                = 1016, CMD_BL                = 1017,
+    CMD_B                   = 1016,   CMD_BD                = 1017, CMD_BL                = 1018,
     
     CMD_DR                  = 1020,   CMD_MR                = 1021,
     CMD_DA                  = 1027,   CMD_MA                = 1028,
@@ -774,6 +774,25 @@ private:
 };
 
 //------------------------------------------------------------------------------------------------------------
+// A simple one line assembler. This object is teh counter part to the disassmbler. We will parse a one
+// line input string for a valid instruction, using the syntax of the real assembler. There will be no
+// labels and commants, only the opcode and the operands.
+//
+//------------------------------------------------------------------------------------------------------------
+struct DrvOneLineAsm {
+    
+public:
+    
+    DrvOneLineAsm( VCPU32Globals *glb );
+    uint8_t parseAsmLine( char *inputStr, uint32_t *instr, TokId fmtId = TOK_DEF );
+    
+private:
+    
+    VCPU32Globals *glb = nullptr;
+    
+};
+
+//------------------------------------------------------------------------------------------------------------
 // The CPU driver main object. This objects implements the command loop. It is essentialy a llist of the
 // command handlers and the functions needed to read in and analyze a command line.
 //
@@ -816,6 +835,7 @@ private:
     void            deleteBreakPointCmd( char *cmdBuf );
     void            listBreakPointsCmd( char *cmdBuf );
     void            disAssembleCmd( char *cmdBuf );
+    void            assembleCmd( char *cmdBuf );
     void            displayRegCmd( char *cmdBuf );
     void            modifyRegCmd( char *cmdBuf );
     void            modifyPstageRegCmd( char *cmdBuf );
@@ -865,13 +885,15 @@ private:
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals {
     
-    DrvEnv             *env            = nullptr;
-    DrvDisAsm          *disAsm         = nullptr;
-    DrvLineDisplay     *lineDisplay    = nullptr;
-    DrvWinDisplay      *winDisplay     = nullptr;
-    DrvCmds            *cmds           = nullptr;
+    DrvEnv              *env            = nullptr;
+    DrvDisAsm           *disAsm         = nullptr;
+    DrvOneLineAsm       *oneLineAsm     = nullptr;
     
-    CpuCore            *cpu            = nullptr;
+    DrvLineDisplay      *lineDisplay    = nullptr;
+    DrvWinDisplay       *winDisplay     = nullptr;
+    DrvCmds             *cmds           = nullptr;
+    
+    CpuCore             *cpu            = nullptr;
 };
 
 #endif /* CPU24Driver_hpp */

@@ -61,6 +61,7 @@ struct {
     { "RUN",                "",         CMD_SET,            CMD_RUN                 },
     { "STEP",               "S",        CMD_SET,            CMD_STEP                },
     { "DIS",                "",         CMD_SET,            CMD_DIS_ASM             },
+    { "ASM",                "",         CMD_SET,            CMD_ASM                 },
     { "B",                  "",         CMD_SET,            CMD_B                   },
     { "BD",                 "",         CMD_SET,            CMD_BD                  },
     { "BL",                 "",         CMD_SET,            CMD_BL                  },
@@ -670,6 +671,7 @@ void DrvCmds::helpCmd( char *cmdBuf ) {
     fprintf( stdout, FMT_STR, "da <ofs> [ <len> [ fmt ]]", "display memory" );
     fprintf( stdout, FMT_STR, "ma <ofs> <val>", "modify memory" );
     fprintf( stdout, FMT_STR, "dis <instr>", "disassemble an instruction" );
+    fprintf( stdout, FMT_STR, "asm <instr-string>", "assemble an instruction" );
     fprintf( stdout, FMT_STR, "hva <seg> <ofs>",  "returns the hash value function result" );
     fprintf( stdout, FMT_STR, "d-cache (dca) <I|D|U> [<index> <len>]", "display cache content" );
     fprintf( stdout, FMT_STR, "p-cache (pca) <I|D|U> <index> [<F>]", "flushs and purges cache data" );
@@ -1060,15 +1062,51 @@ void DrvCmds::disAssembleCmd( char *cmdBuf ) {
         else fmtId = argId;
     }
     
-    if ( instr < UINT_MAX ) {
+    glb -> disAsm -> displayInstr( instr, fmtId );
         
-        glb -> disAsm -> displayInstr( instr, fmtId );
+    fprintf( stdout, " (" );
+    glb -> lineDisplay -> displayWord( instr, fmtId );
+    fprintf( stdout, ")\n" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Assemble command.
+//
+// ASM <instr-str> [ fmt ]
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::assembleCmd( char *cmdBuf ) {
+    
+    char        cmdStr[ TOK_NAME_SIZE ]     = "";
+    uint32_t    instr                       = 0;
+    TokId       fmtId                       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+    char        arg1Str[ TOK_NAME_SIZE ]    = "";
+    char        arg2Str[ TOK_NAME_SIZE ]    = "";
+    int         args = sscanf( cmdBuf, "%s \"%[^\"]\" %s", cmdStr, arg1Str, arg2Str );
+    
+    if ( args < 2 ) {
+        
+        fprintf( stdout, "Expected the assemble string\n" );
+        return;
+    }
+   
+    if ( args > 2 ) {
+        
+        TokId argId = matchFmtOptions( arg2Str );
+        if ( argId == TOK_NIL ) {
+            
+            fprintf( stdout, "Invalid format option\n" );
+            return;
+        }
+        else fmtId = argId;
+    }
+    
+    if ( glb -> oneLineAsm -> parseAsmLine( arg1Str, &instr, fmtId )) {
         
         fprintf( stdout, " (" );
         glb -> lineDisplay -> displayWord( instr, fmtId );
         fprintf( stdout, ")\n" );
     }
-    else fprintf( stdout, "Illegal instruction value\n" );
+    
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2323,6 +2361,7 @@ void DrvCmds::dispatchCmd( char *cmdBuf ) {
                 case CMD_BD:            deleteBreakPointCmd( cmdBuf );  break;
                 case CMD_BL:            listBreakPointsCmd( cmdBuf );   break;
                 case CMD_DIS_ASM:       disAssembleCmd( cmdBuf );       break;
+                case CMD_ASM:           assembleCmd( cmdBuf );          break;
                 case CMD_DR:            displayRegCmd( cmdBuf);         break;
                 case CMD_MR:            modifyRegCmd( cmdBuf);          break;
                 case CMD_HASH_VA:       hashVACmd( cmdBuf);             break;

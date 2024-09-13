@@ -81,7 +81,7 @@ void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
     
     val = ( val & tmpM ) << ( 31 - pos );
     
-    *arg = ( *arg & ( ~tmpM )) | val;
+    *arg = ( *arg & ( ~ ( tmpM << ( 31 - pos )))) | val;
 }
 
 //‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐

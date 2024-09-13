@@ -110,6 +110,7 @@ int main( int argc, const char* argv[ ] ) {
     glbDesc.lineDisplay                 = new DrvLineDisplay( &glbDesc );
     glbDesc.winDisplay                  = new DrvWinDisplay( &glbDesc );
     glbDesc.disAsm                      = new DrvDisAsm( &glbDesc );
+    glbDesc.oneLineAsm                  = new DrvOneLineAsm( &glbDesc );
     
     glbDesc.cmds -> processCmdLineArgs( argc, argv );
     glbDesc.cmds -> printWelcome( );
