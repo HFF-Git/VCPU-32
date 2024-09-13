@@ -22,7 +22,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Types.h"
-#include "VCPU32-IoSubsys.hpp"
+#include "VCPU32-IoSubsys.h"
 
 
 IoModule::IoModule( CpuIoDesc *ioDesc ) {
