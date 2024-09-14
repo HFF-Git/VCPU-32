@@ -77,12 +77,16 @@ const Token tokNameTab[ ] = {
     { "LDB",    TT_OPCODE,  0xC0000000  },
     { "LDH",    TT_OPCODE,  0xC0010000  },
     { "LDW",    TT_OPCODE,  0xC0020000  },
+    { "LDR",    TT_OPCODE,  0xD0020000  },
     { "LDA",    TT_OPCODE,  0xC8020000  },
     
     { "STB",    TT_OPCODE,  0xC4200000  },
     { "STH",    TT_OPCODE,  0xC4210000  },
     { "STW",    TT_OPCODE,  0xC4220000  },
+    { "STC",    TT_OPCODE,  0xD4020000  },
     { "STA",    TT_OPCODE,  0xCC220000  },
+    
+    
     
     { "R0",     TT_GREG,    0           },
     { "R1",     TT_GREG,    1           },
@@ -347,6 +351,11 @@ void nextToken( ) {
     else currentToken.tokType = TT_ERR;
 }
 
+//------------------------------------------------------------------------------------------------------------
+// "expectToken" checks the current token for a match and gets the next one. Otherwise an error message is
+// displayed.
+//
+//------------------------------------------------------------------------------------------------------------
 bool expectToken( uint8_t tokType, char *errStr ) {
     
     if ( currentToken.tokType == tokType ) {
@@ -520,12 +529,13 @@ bool parseInstrOptions( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseModeTypeInstr" parses all instructions that have an "operand" encoding.
+// "parseModeTypeInstr" parses all instructions that have an "operand" encoding. We enter the routine with
+// the OpCode and options parsed.
 //
 // ??? this will cover a lot of instructions ....
 //------------------------------------------------------------------------------------------------------------
 bool parseModeTypeInstr( uint32_t *instr ) {
-    
+   
     if ( currentToken.tokType == TT_GREG ) {
         
         setBitField( instr, 9, 4, currentToken.tokValue );
@@ -641,14 +651,15 @@ bool parseInstrCMR( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseLDxSTxOperand" parses the operand portion of the load and store instruction. The syntax is either
+// "parseLoadStoreOperand" parses the operand portion of the load and store instruction family. The syntax is
+// either a
 //
 //      <ofs> ( SR, GR )
 //      <ofs> ( GR )
 //      ( SR, GR )
 //      ( GR )
 //
-// We expect the instrcution template with opCode, opCode options and word length already set. The routine
+// We expect the instruction template with opCode, opCode options and word length already set. The routine
 // is called for load, where the operand is the source, and for store where the operand is the target.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -691,26 +702,18 @@ bool parseLoadStoreOperand( uint32_t *instr ) {
                 setBitField( instr, 13, 2, currentToken.tokValue );
             }
             else return( parserError((char *) "Expected SR1 .. SR3 " ));
-           
+            
             nextToken( );
-            if ( currentToken.tokType == TT_COMMA ) {
+            if ( ! expectToken( TT_COMMA, (char *) "Expected a comma" )) return( false );
+           
+            if ( currentToken.tokType == TT_GREG ) {
+            
+                setBitField( instr, 31, 4, currentToken.tokValue );
                 
                 nextToken( );
-                if ( currentToken.tokType == TT_GREG ) {
-            
-                    setBitField( instr, 31, 4, currentToken.tokValue );
-                    
-                    nextToken( );
-                    if ( currentToken.tokType == TT_RPAREN ) {
-                     
-                        nextToken( );
-                        return( true );
-                    }
-                    else return( parserError((char *) "Expected a right paren" ));
-                }
-                else return( parserError((char *) "Expected a comma" ));
+                return( expectToken( TT_RPAREN, (char *) "Expected a right paren" ));
             }
-            else return( parserError((char *) "Expected a comma" ));
+            else return( parserError((char *) "Expected a general reg" ));
         }
         else if ( currentToken.tokType == TT_GREG ) {
             
@@ -721,15 +724,16 @@ bool parseLoadStoreOperand( uint32_t *instr ) {
             if ( currentToken.tokType == TT_RPAREN ) return( true );
             else return( parserError((char *) "Expected a right paren" ));
         }
-        else return( parserError((char *) "Expected a general or segement register" ));
+        else return( parserError((char *) "Expected a general or segment register" ));
     }
     else return( parserError((char *) "Expected a left paren" ));
-    
-    return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseInstrLDx" will parse the LDx instructions.
+// "parseInstrLoad" will parse the load instructions family. The workhorse is the "parseLoadStoreOperand"
+// routine, which parses the operand. General form:
+//
+//  <opCode>.<opt> <targetReg>, <sourceOperand>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrLoad( uint32_t *instr ) {
@@ -750,17 +754,18 @@ bool parseInstrLoad( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseInstrSTx" will parse the STx instructions.
+// "parseInstrSTx" will parse the store instructionfamily. The workhorse is the "parseLoadStoreOperand"
+// routine, which parses the target. General form:
+//
+//  <opCode>.<opt> <targetOperand>, <sourceReg>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrStore( uint32_t *instr ) {
   
     if ( parseLoadStoreOperand( instr )) {
         
-        nextToken( );
-        if ( currentToken.tokType == TT_COMMA ) {
+        if ( expectToken( TT_COMMA, (char *) "Expected a comma" )) {
             
-            nextToken( );
             if ( currentToken.tokType == TT_GREG ) {
                 
                 setBitField( instr, 9, 4, currentToken.tokValue );
@@ -768,7 +773,7 @@ bool parseInstrStore( uint32_t *instr ) {
             }
             else return( parserError((char *) "Expected a general register" ));
         }
-        else return( parserError((char *) "Expected a comma" ));
+        else return( false );
     }
     else return( false );
 }
@@ -776,9 +781,15 @@ bool parseInstrStore( uint32_t *instr ) {
 //------------------------------------------------------------------------------------------------------------
 // "parseLine" will take the input string and parse the line for an instruction. In the simplified case, there
 // is only the opCode mnemonic and the argument list. No labels, no comments. For each instruction, there is
-// is a routine that parses the instruction specific input. As the parsing process comes along the instruction
-// template from the token name table will be augmented with further data. If all is successful, we will have
-// the final instruction bit pattern.
+// is a routine that parses the instruction specific input.
+//
+// An instruction starts with the opCode and the optional option qualifiers. For each opCode, the token table
+// has an instruction template. Specials such as mapping the "LDx" instruction to "LDW" is already encoded
+// in the tamplate. The next step for all instructions is to check for options. Finally, a dedicated parsing
+// routine will handle the remainder of the assembly line.
+//
+// As the parsing process comes along the instruction template from the token name table will be augmented
+// with further data. If all is successful, we will have the final instruction bit pattern.
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseLine( char *inputStr, uint32_t *instr, TokId fmtId ) {
@@ -791,9 +802,7 @@ bool parseLine( char *inputStr, uint32_t *instr, TokId fmtId ) {
     currentCharIndex    = 0;
     currentTokIndex     = 0;
     currentChar         = ' ';
-    
-    fprintf( stdout, "In: %s\n", tokenLine );
-    
+   
     nextToken( );
     if ( currentToken.tokType == TT_OPCODE ) {
         
@@ -802,7 +811,7 @@ bool parseLine( char *inputStr, uint32_t *instr, TokId fmtId ) {
         nextToken( );
         if ( currentToken.tokType == TT_PERIOD ) {
             
-            parseInstrOptions( instr );
+            if ( ! parseInstrOptions( instr )) return( false );
             nextToken( );
         }
       
@@ -819,10 +828,12 @@ bool parseLine( char *inputStr, uint32_t *instr, TokId fmtId ) {
             case OP_CMPU:   return( parseModeTypeInstr( instr ));
                 
             case OP_LD:
-            case OP_LDA:    return( parseInstrLoad( instr ));
+            case OP_LDA:
+            case OP_LDR:    return( parseInstrLoad( instr ));
                 
             case OP_ST:
-            case OP_STA:    return( parseInstrStore( instr ));
+            case OP_STA:    
+            case OP_STC:    return( parseInstrStore( instr ));
 
             case OP_EXTR:   return( parseInstrEXTR( instr ));
             case OP_DEP:    return( parseInstrEXTR( instr ));
