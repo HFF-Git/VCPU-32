@@ -347,11 +347,23 @@ void nextToken( ) {
     else currentToken.tokType = TT_ERR;
 }
 
+bool expectToken( uint8_t tokType, char *errStr ) {
+    
+    if ( currentToken.tokType == tokType ) {
+        
+        nextToken( );
+        return( true );
+    }
+    else return( parserError( errStr ));
+}
+
 //------------------------------------------------------------------------------------------------------------
 // "parseInstrOptions" will analyze the opCode option string. An opCode string looks just like an indentifier
 // to the one line parser. We will look at each character in the "name" and set the options for the particular
-// instruction.
+// instruction. The routine will also analyze a sequence of period/option string. One day we may have options
+// that have more than one period/option pair.
 //
+// ??? to do ...
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrOptions( uint32_t *instr ) {
     
@@ -514,7 +526,82 @@ bool parseInstrOptions( uint32_t *instr ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseModeTypeInstr( uint32_t *instr ) {
     
-    return( true );
+    if ( currentToken.tokType == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.tokValue );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.tokType == TT_COMMA ) {
+        
+        nextToken( );
+        
+        if ( currentToken.tokType == TT_NUM ) {
+            
+            Token tmp = currentToken;
+            
+            nextToken( );
+            if ( currentToken.tokType == TT_LPAREN ) {
+                
+                nextToken( );
+                if ( currentToken.tokType == TT_GREG ) {
+                    
+                    
+                    
+                    nextToken( );
+                    if ( currentToken.tokType != TT_RPAREN ) {
+                        
+                        return( parserError(( char *) "Expected a right parenthesis" ));
+                    }
+                    
+                    return( true );
+                }
+                else  {
+                    
+                    
+                    
+                }
+            }
+            else {
+                
+                
+            }
+            
+        }
+        else if ( currentToken.tokType == TT_GREG ) {
+            
+         
+            // ??? set A field
+            
+            nextToken( );
+            
+            if ( currentToken.tokType == TT_COMMA ) {
+                
+                nextToken( );
+                if ( currentToken.tokType == TT_GREG ) {
+                    
+                    
+                }
+                else ;
+            }
+        }
+        else if ( currentToken.tokType == TT_LPAREN ) {
+            
+            
+        }
+        
+        
+        
+        
+        // ...
+        
+        
+        
+        return( true );
+        
+    }
+    else return( parserError((char *) "Expected a comma" ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -565,7 +652,7 @@ bool parseInstrCMR( uint32_t *instr ) {
 // is called for load, where the operand is the source, and for store where the operand is the target.
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseLDxSTxOperand( uint32_t *instr ) {
+bool parseLoadStoreOperand( uint32_t *instr ) {
     
     if ( currentToken.tokType == TT_NUM ) {
         
@@ -593,6 +680,11 @@ bool parseLDxSTxOperand( uint32_t *instr ) {
         
         nextToken( );
         if ( currentToken.tokType == TT_SREG ) {
+            
+            if (( getBitField( *instr, 5, 6 ) == OP_LDA ) || ( getBitField( *instr, 5, 6 ) == OP_STA )) {
+                
+                return( parserError((char *) "Invalid address for instruction: seg:ofs" ));
+            }
             
             if (( currentToken.tokValue >= 1 ) && ( currentToken.tokValue <= 3 )) {
                 
@@ -640,14 +732,7 @@ bool parseLDxSTxOperand( uint32_t *instr ) {
 // "parseInstrLDx" will parse the LDx instructions.
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrLDx( uint32_t *instr ) {
-    
-    nextToken( );
-    if ( currentToken.tokType == TT_PERIOD ) {
-        
-        parseInstrOptions( instr );
-        nextToken( );
-    }
+bool parseInstrLoad( uint32_t *instr ) {
     
     if ( currentToken.tokType == TT_GREG ) {
         
@@ -659,7 +744,7 @@ bool parseInstrLDx( uint32_t *instr ) {
     if ( currentToken.tokType == TT_COMMA ) {
         
         nextToken( );
-        return( parseLDxSTxOperand( instr ));
+        return( parseLoadStoreOperand( instr ));
     }
     else return( parserError((char *) "Expected a comma" ));
 }
@@ -668,16 +753,9 @@ bool parseInstrLDx( uint32_t *instr ) {
 // "parseInstrSTx" will parse the STx instructions.
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrSTx( uint32_t *instr ) {
-    
-    nextToken( );
-    if ( currentToken.tokType == TT_PERIOD ) {
-        
-        parseInstrOptions( instr );
-        nextToken( );
-    }
+bool parseInstrStore( uint32_t *instr ) {
   
-    if ( parseLDxSTxOperand( instr )) {
+    if ( parseLoadStoreOperand( instr )) {
         
         nextToken( );
         if ( currentToken.tokType == TT_COMMA ) {
@@ -693,40 +771,6 @@ bool parseInstrSTx( uint32_t *instr ) {
         else return( parserError((char *) "Expected a comma" ));
     }
     else return( false );
-}
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-bool parseInstrLDA( uint32_t *instr ) {
-    
-    nextToken( );
-    if ( currentToken.tokType == TT_PERIOD ) {
-        
-        parseInstrOptions( instr );
-        nextToken( );
-    }
-    
-    if ( currentToken.tokType == TT_GREG ) {
-        
-        setBitField( instr, 9, 4, currentToken.tokValue );
-        nextToken( );
-    }
-    else return( parserError((char *) "Expected a general register" ));
-    
-    // ...
-    
-    return( true );
-}
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-bool parseInstrSTA( uint32_t *instr ) {
-    
-    return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -755,16 +799,30 @@ bool parseLine( char *inputStr, uint32_t *instr, TokId fmtId ) {
         
         *instr = currentToken.tokValue;
         
-        switch ( getBitField( currentToken.tokValue, 5, 6 ) ) {
+        nextToken( );
+        if ( currentToken.tokType == TT_PERIOD ) {
+            
+            parseInstrOptions( instr );
+            nextToken( );
+        }
+      
+        switch ( getBitField( *instr, 5, 6 ) ) {
                 
             case OP_ADD:
-            case OP_ADC:    return( parseModeTypeInstr( instr ));
+            case OP_ADC:  
+            case OP_SUB:
+            case OP_SBC:
+            case OP_AND:
+            case OP_OR:
+            case OP_XOR:
+            case OP_CMP:
+            case OP_CMPU:   return( parseModeTypeInstr( instr ));
                 
-            case OP_LD:     return( parseInstrLDx( instr ));
-            case OP_LDA:    return( parseInstrLDA( instr ));
+            case OP_LD:
+            case OP_LDA:    return( parseInstrLoad( instr ));
                 
-            case OP_ST:     return( parseInstrSTx( instr ));
-            case OP_STA:    return( parseInstrSTA( instr ));
+            case OP_ST:
+            case OP_STA:    return( parseInstrStore( instr ));
 
             case OP_EXTR:   return( parseInstrEXTR( instr ));
             case OP_DEP:    return( parseInstrEXTR( instr ));
