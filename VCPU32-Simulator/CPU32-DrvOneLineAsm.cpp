@@ -200,16 +200,6 @@ uint8_t lookupToken( char *str ) {
     return( 0 );
 }
 
-bool testForChar( char *str, char ch ) {
-    
-    for ( int i = 0; i < strlen( str ); i ++ ) {
-        
-        if ( str[ i ] == ch ) return( true );
-    }
-    
-    return( false );
-}
-
 //------------------------------------------------------------------------------------------------------------
 // "nextChar" returns the next character from the token line string.
 //
@@ -367,32 +357,154 @@ bool parseInstrOptions( uint32_t *instr ) {
     
     nextToken( );
     if ( currentToken.tokType == TT_IDENT ) {
-       
+    
         switch( getBitField( *instr, 5, 6 )) {
-                
+                    
             case OP_LD:     case OP_ST:  case OP_LDA:     case OP_STA:  {
-                
-                if ( testForChar( currentToken.tokName, 'M' )) setBit( instr, 11 );
-                return( true );
+            
+                if ( currentToken.tokName[ 0 ] == 'M' ) setBit( instr, 11 );
+                else return( parserError((char *) "Invalid instruction option" ));
                 
             } break;
-                
+                    
             case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC: {
                 
-                return( true );
+                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                    
+                    if      ( currentToken.tokName[ i ] == 'L' ) setBit( instr, 10 );
+                    else if ( currentToken.tokName[ i ] == 'O' ) setBit( instr, 11 );
+                    else return( parserError((char *) "Invalid instruction option" ));
+                }
+                    
+            } break;
+                    
+            case OP_AND:    case OP_OR: {
+                
+                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                    
+                    if      ( currentToken.tokName[ i ] == 'N' ) setBit( instr, 10 );
+                    else if ( currentToken.tokName[ i ] == 'C' ) setBit( instr, 11 );
+                    else return( parserError((char *) "Invalid instruction option" ));
+                }
+                
+            } break;
+            
+            case OP_XOR: {
+                
+                if      ( currentToken.tokName[ 0 ] == 'N' ) setBit( instr, 10 );
+                else return( parserError((char *) "Invalid instruction option" ));
+
+            } break;
+                
+            case OP_CMP:    case OP_CMPU: {
+                
+                if ( strcmp( currentToken.tokName, ((char *) "EQ" ))) setBitField( instr, 11, 2, 0 );
+                if ( strcmp( currentToken.tokName, ((char *) "LT" ))) setBitField( instr, 11, 2, 1 );
+                if ( strcmp( currentToken.tokName, ((char *) "NE" ))) setBitField( instr, 11, 2, 2 );
+                if ( strcmp( currentToken.tokName, ((char *) "LE" ))) setBitField( instr, 11, 2, 3 );
                 
             } break;
                 
-            case OP_AND:    case OP_OR:     case OP_XOR: {
+            case OP_EXTR: {
                 
-                return( true );
+                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                    
+                    if      ( currentToken.tokName[ i ] == 'S' ) setBit( instr, 10 );
+                    else if ( currentToken.tokName[ i ] == 'A' ) setBit( instr, 11 );
+                    else return( parserError((char *) "Invalid instruction option" ));
+                }
                 
             } break;
-              
-            default: return( false );
+                
+            case OP_DEP: {
+                
+                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                    
+                    if      ( currentToken.tokName[ i ] == 'Z' ) setBit( instr, 10 );
+                    else if ( currentToken.tokName[ i ] == 'A' ) setBit( instr, 11 );
+                    else if ( currentToken.tokName[ i ] == 'I' ) setBit( instr, 12 );
+                    else return( parserError((char *) "Invalid instruction option" ));
+                }
+                
+            } break;
+                
+            case OP_DSR: {
+                
+                if      ( currentToken.tokName[ 0 ] == 'A' ) setBit( instr, 11 );
+                else return( parserError((char *) "Invalid instruction option" ));
+
+            } break;
+                
+            case OP_SHLA: {
+                
+                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                    
+                    if      ( currentToken.tokName[ i ] == 'I' ) setBit( instr, 10 );
+                    else if ( currentToken.tokName[ i ] == 'L' ) setBit( instr, 11 );
+                    else if ( currentToken.tokName[ i ] == 'O' ) setBit( instr, 12 );
+                    else return( parserError((char *) "Invalid instruction option" ));
+                }
+                
+            } break;
+                
+            case OP_MR: {
+                
+                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                    
+                    if      ( currentToken.tokName[ i ] == 'D' ) setBit( instr, 10 );
+                    else if ( currentToken.tokName[ i ] == 'M' ) setBit( instr, 11 );
+                    else return( parserError((char *) "Invalid instruction option" ));
+                }
+                
+            } break;
+                
+            case OP_PRB: {
+                
+                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                    
+                    if      ( currentToken.tokName[ i ] == 'W' ) setBit( instr, 10 );
+                    else if ( currentToken.tokName[ i ] == 'I' ) setBit( instr, 11 );
+                    else return( parserError((char *) "Invalid instruction option" ));
+                }
+                
+            } break;
+                
+            case OP_ITLB: {
+                
+                if      ( currentToken.tokName[ 0 ] == 'T' ) setBit( instr, 11 );
+                else return( parserError((char *) "Invalid instruction option" ));
+
+            } break;
+                
+            case OP_PTLB: {
+                
+                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                    
+                    if      ( currentToken.tokName[ i ] == 'T' ) setBit( instr, 10 );
+                    else if ( currentToken.tokName[ i ] == 'M' ) setBit( instr, 11 );
+                    else return( parserError((char *) "Invalid instruction option" ));
+                }
+                
+            } break;
+                
+            case OP_PCA: {
+                
+                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                    
+                    if      ( currentToken.tokName[ i ] == 'T' ) setBit( instr, 10 );
+                    else if ( currentToken.tokName[ i ] == 'M' ) setBit( instr, 11 );
+                    else if ( currentToken.tokName[ i ] == 'F' ) setBit( instr, 14 );
+                    else return( parserError((char *) "Invalid instruction option" ));
+                }
+                
+            } break;
+                
+            default: return( parserError((char *) "Instruction has no option" ));
         }
     }
     else return( parserError((char *) "Expected the option qualifiers" ));
+    
+    return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
