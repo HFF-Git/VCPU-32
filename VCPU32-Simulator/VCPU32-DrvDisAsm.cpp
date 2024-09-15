@@ -549,22 +549,23 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_LDIL:
         case OP_ADDIL: {
             
-            fprintf( stdout, "," );
+            fprintf( stdout, ", " );
             printImmVal( getBitField( instr, 31, 22 ), fmtId );
             
         } break;
             
         case OP_LDO: {
             
+            fprintf( stdout, ", " );
             printImmVal( getBitField( instr, 27, 18 ));
-            fprintf( stdout, ", (r%d)", getBitField( instr, 31, 4 ));
+            fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
             
         } break;
       
         case OP_B: 
         case OP_GATE: {
             
-            fprintf( stdout, "," );
+            fprintf( stdout, ", " );
             printImmVal( immGenPosLenLowSign( instr, 31, 22 ) << 2, TOK_DEC );
                         
         } break;
@@ -572,38 +573,38 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_BR:
         case OP_BV: {
            
-            fprintf( stdout, ",(r%d)", getBitField( instr, 31, 4 ));
+            fprintf( stdout, ", (r%d)", getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_BE: {
             
             printImmVal( immGenPosLenLowSign( instr, 23, 18 ));
-            fprintf( stdout, ",(s%d,r%d)", getBitField( instr, 27, 4 ) << 2, getBitField( instr, 31, 4 ));
+            fprintf( stdout, ", (s%d,r%d)", getBitField( instr, 27, 4 ) << 2, getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_BVE: {
             
-            fprintf( stdout, ",r%d(r%d)", getBitField( instr, 27,4 ), getBitField( instr, 31,4 ));
+            fprintf( stdout, ", r%d(r%d)", getBitField( instr, 27,4 ), getBitField( instr, 31,4 ));
             
         } break;
             
         case OP_CBR: 
         case OP_CBRU: {
             
-            fprintf( stdout, "r%d,r%d,", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            fprintf( stdout, "r%d, r%d,", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             printImmVal( immGenPosLenLowSign( instr, 23, 15 ) << 2 );
             
         } break;
             
         case OP_MR: {
             
-            if ( getBit( instr, 11 )) fprintf( stdout, ",r%d", getBitField( instr, 9, 4 ));
+            if ( getBit( instr, 11 )) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
             else {
                 
-                if ( getBit( instr, 12 )) fprintf( stdout, ",c%d", getBitField( instr, 31, 5 ));
-                else fprintf( stdout, ",s%d", getBitField( instr, 31, 4 ));
+                if ( getBit( instr, 12 )) fprintf( stdout, ", c%d", getBitField( instr, 31, 5 ));
+                else fprintf( stdout, ", s%d", getBitField( instr, 31, 4 ));
             }
             
         } break;
@@ -649,26 +650,26 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         case OP_ITLB: {
             
-            fprintf( stdout, "r%d,", getBitField( instr, 9, 4 ));
+            fprintf( stdout, "r%d, ", getBitField( instr, 9, 4 ));
             fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_PTLB: {
             
-            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            fprintf( stdout, " (s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_PCA: {
             
-            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            fprintf( stdout, " (s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_BRK: {
             
-            fprintf( stdout, "%d, %d", getBitField( instr, 9, 4 ), getBitField( instr, 31, 16 ));
+            fprintf( stdout, " %d, %d", getBitField( instr, 9, 4 ), getBitField( instr, 31, 16 ));
            
         } break;
     }

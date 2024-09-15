@@ -94,81 +94,81 @@ const Token tokNameTab[ ] = {
     { "STC",    TT_OPCODE,  0xD4020000  },
     { "STA",    TT_OPCODE,  0xCC220000  },
     
-    { "ADD",    TT_OPCODE,  0x0         },
-    { "ADDB",   TT_OPCODE,  0x0         },
-    { "ADDH",   TT_OPCODE,  0x0         },
-    { "ADDW",   TT_OPCODE,  0x0         },
+    { "ADD",    TT_OPCODE,  0x40020000  },
+    { "ADDB",   TT_OPCODE,  0x40000000  },
+    { "ADDH",   TT_OPCODE,  0x40010000  },
+    { "ADDW",   TT_OPCODE,  0x40020000  },
     
-    { "ADC",    TT_OPCODE,  0x0         },
-    { "ADCB",   TT_OPCODE,  0x0         },
-    { "ADCH",   TT_OPCODE,  0x0         },
-    { "ADCW",   TT_OPCODE,  0x0         },
+    { "ADC",    TT_OPCODE,  0x44020000  },
+    { "ADCB",   TT_OPCODE,  0x44000000  },
+    { "ADCH",   TT_OPCODE,  0x44010000  },
+    { "ADCW",   TT_OPCODE,  0x44020000  },
     
-    { "SUB",    TT_OPCODE,  0x0         },
-    { "SUBB",   TT_OPCODE,  0x0         },
-    { "SUBH",   TT_OPCODE,  0x0         },
-    { "SUBW",   TT_OPCODE,  0x0         },
+    { "SUB",    TT_OPCODE,  0x48020000  },
+    { "SUBB",   TT_OPCODE,  0x48000000  },
+    { "SUBH",   TT_OPCODE,  0x48010000  },
+    { "SUBW",   TT_OPCODE,  0x48020000  },
     
-    { "SBC",    TT_OPCODE,  0x0         },
-    { "SBCB",   TT_OPCODE,  0x0         },
-    { "SBCH",   TT_OPCODE,  0x0         },
-    { "SBCW",   TT_OPCODE,  0x0         },
+    { "SBC",    TT_OPCODE,  0x4C020000  },
+    { "SBCB",   TT_OPCODE,  0x4C000000  },
+    { "SBCH",   TT_OPCODE,  0x4C010000  },
+    { "SBCW",   TT_OPCODE,  0x4C020000  },
     
-    { "AND",    TT_OPCODE,  0x0         },
-    { "ANDB",   TT_OPCODE,  0x0         },
-    { "ANDH",   TT_OPCODE,  0x0         },
-    { "ANDW",   TT_OPCODE,  0x0         },
+    { "AND",    TT_OPCODE,  0x50020000  },
+    { "ANDB",   TT_OPCODE,  0x50000000  },
+    { "ANDH",   TT_OPCODE,  0x50010000  },
+    { "ANDW",   TT_OPCODE,  0x50020000  },
     
-    { "OR" ,    TT_OPCODE,  0x0         },
-    { "ORB",    TT_OPCODE,  0x0         },
-    { "ORH",    TT_OPCODE,  0x0         },
-    { "ORW",    TT_OPCODE,  0x0         },
+    { "OR" ,    TT_OPCODE,  0x54020000  },
+    { "ORB",    TT_OPCODE,  0x54000000  },
+    { "ORH",    TT_OPCODE,  0x54010000  },
+    { "ORW",    TT_OPCODE,  0x54020000  },
     
-    { "XOR" ,   TT_OPCODE,  0x0         },
-    { "XORB",   TT_OPCODE,  0x0         },
-    { "XORH",   TT_OPCODE,  0x0         },
-    { "XORW",   TT_OPCODE,  0x0         },
+    { "XOR" ,   TT_OPCODE,  0x58020000  },
+    { "XORB",   TT_OPCODE,  0x58000000  },
+    { "XORH",   TT_OPCODE,  0x58010000  },
+    { "XORW",   TT_OPCODE,  0x58020000  },
     
-    { "CMP" ,   TT_OPCODE,  0x0         },
-    { "CMPB",   TT_OPCODE,  0x0         },
-    { "CMPH",   TT_OPCODE,  0x0         },
-    { "CMPW",   TT_OPCODE,  0x0         },
+    { "CMP" ,   TT_OPCODE,  0x5C020000  },
+    { "CMPB",   TT_OPCODE,  0x5C000000  },
+    { "CMPH",   TT_OPCODE,  0x5C010000  },
+    { "CMPW",   TT_OPCODE,  0x5C020000  },
     
-    { "CMPU" ,  TT_OPCODE,  0x0         },
-    { "CMPUB",  TT_OPCODE,  0x0         },
-    { "CMPUH",  TT_OPCODE,  0x0         },
-    { "CMPUW",  TT_OPCODE,  0x0         },
+    { "CMPU" ,  TT_OPCODE,  0x60020000  },
+    { "CMPUB",  TT_OPCODE,  0x60000000  },
+    { "CMPUH",  TT_OPCODE,  0x60010000  },
+    { "CMPUW",  TT_OPCODE,  0x60020000  },
     
-    { "LSID" ,  TT_OPCODE,  0x0         },
-    { "EXTR" ,  TT_OPCODE,  0x0         },
-    { "DEP",    TT_OPCODE,  0x0         },
-    { "DSR",    TT_OPCODE,  0x0         },
-    { "SHLA",   TT_OPCODE,  0x0         },
-    { "CMR",    TT_OPCODE,  0x0         },
+    { "LSID" ,  TT_OPCODE,  0x10000000  },
+    { "EXTR" ,  TT_OPCODE,  0x14000000  },
+    { "DEP",    TT_OPCODE,  0x18000000  },
+    { "DSR",    TT_OPCODE,  0x1C000000  },
+    { "SHLA",   TT_OPCODE,  0x20000000  },
+    { "CMR",    TT_OPCODE,  0x24000000  },
     
-    { "LIDL",   TT_OPCODE,  0x0         },
-    { "ADDIL",  TT_OPCODE,  0x0         },
-    { "LDO",    TT_OPCODE,  0x0         },
+    { "LIDL",   TT_OPCODE,  0x04000000  },
+    { "ADDIL",  TT_OPCODE,  0x08000000  },
+    { "LDO",    TT_OPCODE,  0x0C000000  },
     
-    { "B" ,     TT_OPCODE,  0x0         },
-    { "GATE",   TT_OPCODE,  0x0         },
-    { "BR",     TT_OPCODE,  0x0         },
-    { "BV",     TT_OPCODE,  0x0         },
-    { "BE",     TT_OPCODE,  0x0         },
-    { "BVE",    TT_OPCODE,  0x0         },
-    { "CBR",    TT_OPCODE,  0x0         },
-    { "CBRU",   TT_OPCODE,  0x0         },
+    { "B" ,     TT_OPCODE,  0x80000000  },
+    { "GATE",   TT_OPCODE,  0x84000000  },
+    { "BR",     TT_OPCODE,  0x88000000  },
+    { "BV",     TT_OPCODE,  0x8C000000  },
+    { "BE",     TT_OPCODE,  0x90000000  },
+    { "BVE",    TT_OPCODE,  0x94000000  },
+    { "CBR",    TT_OPCODE,  0x98000000  },
+    { "CBRU",   TT_OPCODE,  0x9C000000  },
     
-    { "MR",     TT_OPCODE,  0x0         },
-    { "MST",    TT_OPCODE,  0x0         },
-    { "LDPA",   TT_OPCODE,  0x0         },
-    { "PRB",    TT_OPCODE,  0x0         },
-    { "ITLB",   TT_OPCODE,  0x0         },
-    { "PTLB",   TT_OPCODE,  0x0         },
-    { "PCA",    TT_OPCODE,  0x0         },
-    { "DIAG",   TT_OPCODE,  0x0         },
-    { "RFI",    TT_OPCODE,  0x0          },
-    { "BRK",    TT_OPCODE,  0x0         },
+    { "MR",     TT_OPCODE,  0x28000000  },
+    { "MST",    TT_OPCODE,  0x2C000000  },
+    { "LDPA",   TT_OPCODE,  0xE4000000  },
+    { "PRB",    TT_OPCODE,  0xE8000000  },
+    { "ITLB",   TT_OPCODE,  0xEC000000  },
+    { "PTLB",   TT_OPCODE,  0xF0000000  },
+    { "PCA",    TT_OPCODE,  0xF4000000  },
+    { "DIAG",   TT_OPCODE,  0xF8000000  },
+    { "RFI",    TT_OPCODE,  0xFC000000  },
+    { "BRK",    TT_OPCODE,  0x00000000  },
     
     { "R0",     TT_GREG,    0           },
     { "R1",     TT_GREG,    1           },
@@ -340,7 +340,7 @@ bool parserError( char *errStr ) {
         fprintf( stdout, " " );
         i ++;
     }
-   
+    
     fprintf( stdout, "^\n" );
     
     fprintf( stdout, "%s\n", errStr );
@@ -361,16 +361,88 @@ bool checkEOS( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "getIdent" parses an identifier. It is a sequence of characters starting with an alpha character. We do
-// not really have use defined identifiers, only reserved words. However, the concept of a non-reserved
-// identifier is used to implement the opCode option string, which is just a list of characters.
+// "getNum" will parse a number. We leave the heavy lifting to the C library.
 //
-// ??? may a better place to deal with "L%" type qualifiers ?
 //------------------------------------------------------------------------------------------------------------
-void getIdent( ) {
+void parseNum( int sign ) {
     
-    int tokStrIndex = 0;
+    int  index = 0;
+    int  tmpRes = 0;
+    char tmpStr[ TOK_INPUT_LINE_SIZE ];
     
+    do {
+        
+        tmpStr[ index++ ] = currentChar;
+        nextChar( );
+        
+    } while ( isxdigit( currentChar ) ||
+             ( currentChar == 'X' )   || ( currentChar == 'x' ) ||
+             ( currentChar == 'O' )   || ( currentChar == 'o' ));
+    
+    tmpStr[ index ] = 0;
+    
+    if ( sscanf( tmpStr, "%i", &tmpRes ) == 1 ) {
+        
+        currentToken.typ    = TT_NUM;
+        currentToken.val   = tmpRes * sign;
+    }
+    else parserError((char *) "Invalid number" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "getIdent" parses an identifier. It is a sequence of characters starting with an alpha character. We do
+// not really have user defined identifiers, only reserved words. However, the concept of a non-reserved
+// identifier is used to implement the opCode option string, which is just a list of characters. The parsing
+// of an identfier also needs to manage the parsing of constants with a qualifier, such as "L%nnn". We first
+// check for these kind of qualifieres and if found hand over to parse a number.
+//
+//------------------------------------------------------------------------------------------------------------
+void parseIdent( ) {
+    
+    if ( currentChar == 'L' ) {
+        
+        nextChar( );
+        if ( currentChar == '%' ) {
+            
+            nextChar( );
+            if ( isdigit( currentChar )) {
+                
+                parseNum( 1 );
+                currentToken.val &= 0xFFFFFC00;
+                return;
+            }
+            else parserError((char *) "Invalid char in identifier" );
+        }
+        else {
+            
+            currentToken.name[ 0 ] = 'L';
+            currentToken.name[ 1 ] = currentChar;
+        }
+    }
+    else if ( currentChar == 'R' ) {
+        
+        nextChar( );
+        if ( currentChar == '%' ) {
+            
+            nextChar( );
+            if ( isdigit( currentChar )) {
+                
+                parseNum( 1 );
+                currentToken.val &= 0x3FF;
+                return;
+            }
+            else parserError((char *) "Invalid char in identifier" );
+        }
+        else {
+            
+            currentToken.name[ 0 ] = 'R';
+            currentToken.name[ 1 ] = currentChar;
+        }
+    }
+    
+    int tokStrIndex = 2;
+    
+    nextChar( );
     while ( isalnum( currentChar )) {
         
         currentToken.name[ tokStrIndex++ ] = currentChar;
@@ -390,35 +462,6 @@ void getIdent( ) {
         currentToken.typ     = TT_IDENT;
         currentToken.val    = 0;
     }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "getNum" will parse a number. We leave the heavy lifting to the C library.
-//
-//------------------------------------------------------------------------------------------------------------
-void getNum( int sign ) {
-    
-    int  index = 0;
-    int  tmpRes = 0;
-    char tmpStr[ TOK_INPUT_LINE_SIZE ];
-    
-    do {
-        
-        tmpStr[ index++ ] = currentChar;
-        nextChar( );
-    
-    } while ( isxdigit( currentChar ) || 
-             ( currentChar == 'X' )   || ( currentChar == 'x' ) ||
-             ( currentChar == 'O' )   || ( currentChar == 'o' ));
-    
-    tmpStr[ index ] = 0;
-    
-    if ( sscanf( tmpStr, "%i", &tmpRes ) == 1 ) {
-        
-        currentToken.typ    = TT_NUM;
-        currentToken.val   = tmpRes * sign;
-    }
-    else parserError((char *) "Invalid number" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -444,54 +487,16 @@ void nextToken( ) {
     
     if ( isalpha( currentChar )) {
         
-        if (( currentChar == 'L' ) || ( currentChar == 'l' )) {
-            
-            nextChar( );
-            if ( currentChar == '%' ) {
-                
-                nextChar( );
-                if ( isdigit( currentChar )) {
-                    
-                    getNum( 1 );
-                    currentToken.val &= 0xFFFFFC00;
-                }
-                else currentToken.typ = TT_ERR;
-            }
-            else {
-                
-                putBackChar( );
-                getIdent( );
-            }
-        }
-        else if (( currentChar == 'R' ) || ( currentChar == 'r' )) {
-            
-            nextChar( );
-            if ( currentChar == '%' ) {
-                
-                nextChar( );
-                if ( isdigit( currentChar )) {
-                    
-                    getNum( 1 );
-                    currentToken.val &= 0x3FF;
-                }
-                else currentToken.typ = TT_ERR;
-            }
-            else {
-                
-                putBackChar( );
-                getIdent( );
-            }
-        }
-        else getIdent( );
+        parseIdent( );
     }
     else if ( isdigit( currentChar )) {
         
-        getNum( 1 );
+        parseNum( 1 );
     }
     else if ( currentChar == '-' ) {
         
         nextChar( );
-        getNum( -1 );
+        parseNum( -1 );
     }
     else if ( currentChar == '(' ) {
         
@@ -533,27 +538,26 @@ void setUpOneLineAssembler( char *inputStr, uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseInstrOptions" will analyze the opCode option string. An opCode string looks just like an indentifier
+// "parseInstrOptions" will analyze the opCode option string. An opCode string looks just like an identifier
 // to the one line parser. We will look at each character in the "name" and set the options for the particular
-// instruction. The routine will also analyze a sequence of period/option string. One day we may have options
-// that have more than one period/option pair.
+// instruction. One day we may have options that have more than one period/option pair. And an option may have
+// a name that has more than one character. To be defined...
 //
-// ??? to do ...
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrOptions( uint32_t *instr ) {
     
     nextToken( );
     if ( currentToken.typ == TT_IDENT ) {
-    
+        
         switch( getBitField( *instr, 5, 6 )) {
-                    
+                
             case OP_LD:     case OP_ST:  case OP_LDA:     case OP_STA:  {
-            
+                
                 if ( currentToken.name[ 0 ] == 'M' ) setBit( instr, 11 );
                 else return( parserError((char *) "Invalid instruction option" ));
                 
             } break;
-                    
+                
             case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC: {
                 
                 for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
@@ -562,9 +566,9 @@ bool parseInstrOptions( uint32_t *instr ) {
                     else if ( currentToken.name[ i ] == 'O' ) setBit( instr, 11 );
                     else return( parserError((char *) "Invalid instruction option" ));
                 }
-                    
+                
             } break;
-                    
+                
             case OP_AND:    case OP_OR: {
                 
                 for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
@@ -575,12 +579,12 @@ bool parseInstrOptions( uint32_t *instr ) {
                 }
                 
             } break;
-            
+                
             case OP_XOR: {
                 
                 if      ( currentToken.name[ 0 ] == 'N' ) setBit( instr, 10 );
                 else return( parserError((char *) "Invalid instruction option" ));
-
+                
             } break;
                 
             case OP_CMP:    case OP_CMPU: {
@@ -619,7 +623,7 @@ bool parseInstrOptions( uint32_t *instr ) {
                 
                 if      ( currentToken.name[ 0 ] == 'A' ) setBit( instr, 11 );
                 else return( parserError((char *) "Invalid instruction option" ));
-
+                
             } break;
                 
             case OP_SHLA: {
@@ -660,7 +664,7 @@ bool parseInstrOptions( uint32_t *instr ) {
                 
                 if      ( currentToken.name[ 0 ] == 'T' ) setBit( instr, 11 );
                 else return( parserError((char *) "Invalid instruction option" ));
-
+                
             } break;
                 
             case OP_PTLB: {
@@ -709,7 +713,7 @@ bool parseInstrOptions( uint32_t *instr ) {
 bool parseModeTypeInstr( uint32_t *instr ) {
     
     uint8_t targetRegId = 0;
-   
+    
     if ( currentToken.typ == TT_GREG ) {
         
         setBitField( instr, 9, 4, currentToken.val );
@@ -732,7 +736,7 @@ bool parseModeTypeInstr( uint32_t *instr ) {
             
             nextToken( );
             if ( currentToken.typ == TT_GREG ) {
-            
+                
                 setBitField( instr, 13, 2, 3 );
                 setBitField( instr, 31, 4, currentToken.val );
                 
@@ -744,8 +748,8 @@ bool parseModeTypeInstr( uint32_t *instr ) {
         }
         else if ( currentToken.typ == TT_EOS ) {
             
-        setBitField( instr, 13, 2, 0 );
-         
+            setBitField( instr, 13, 2, 0 );
+            
             setImmVal( instr, 31, 18, tokVal );
             
             nextToken( );
@@ -760,7 +764,7 @@ bool parseModeTypeInstr( uint32_t *instr ) {
         
         nextToken( );
         if ( currentToken.typ == TT_EOS ) {
-         
+            
             setBitField( instr, 13, 2, 1 );
             setBitField( instr, 27, 4,targetRegId );
             setBitField( instr, 31, 4,operandRegId );
@@ -811,15 +815,15 @@ bool parseModeTypeInstr( uint32_t *instr ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrLSID( uint32_t *instr ) {
     
-     if ( currentToken.typ == TT_GREG ) {
-         
-         setBitField( instr, 9, 4, currentToken.val );
-         nextToken( );
-     }
-     else return( parserError((char *) "Expected a general register" ));
-     
-     if ( currentToken.typ == TT_COMMA ) nextToken( );
-     else return( parserError((char *) "Expected a Comma" ));
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
     
     if ( currentToken.typ == TT_GREG ) {
         
@@ -831,13 +835,10 @@ bool parseInstrLSID( uint32_t *instr ) {
     return( checkEOS( ));
 }
 
-
-// .... continue from here....
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // "parseInstrEXTR" parses the extract instruction.
+//
+//      <targetReg> "," <sourceReg>,
 //
 //
 // ??? syntax shift amount reg ?
@@ -854,15 +855,24 @@ bool parseInstrEXTRandDEP( uint32_t *instr ) {
     if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a Comma" ));
     
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 31, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
     if ( currentToken.typ == TT_NUM ) {
+        
         
         
         nextToken( );
     }
     else return( parserError((char *) "Expected a Comma" ));
     
-    if ( currentToken.typ == TT_COMMA ) nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
     
     if ( currentToken.typ == TT_NUM ) {
         
@@ -873,18 +883,15 @@ bool parseInstrEXTRandDEP( uint32_t *instr ) {
     
     // ....
     
-    if ( currentToken.typ == TT_GREG ) {
-        
-        setBitField( instr, 31, 4, currentToken.val );
-        nextToken( );
-    }
-    else return( parserError((char *) "Expected a general register" ));
+   
     
     return( checkEOS( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
 //
+//
+//      <targetReg> "," <sourceRegA> "," <sourceRegB>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrDSR( uint32_t *instr ) {
@@ -929,6 +936,8 @@ bool parseInstrDSR( uint32_t *instr ) {
 
 //------------------------------------------------------------------------------------------------------------
 //
+//
+//      <targetReg> "," <sourceRegA> "," <sourceRegB>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrSHLA( uint32_t *instr ) {
@@ -1118,7 +1127,7 @@ bool parseInstrBandGATE( uint32_t *instr ) {
         
         setBitField( instr, 31, 22, currentToken.val );
     }
-        
+    
     return( checkEOS( ));
 }
 
@@ -1155,7 +1164,7 @@ bool parseInstrBRandBV( uint32_t *instr ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrBE( uint32_t *instr ) {
     
-   
+    
     
     
     return( checkEOS( ));
@@ -1285,7 +1294,7 @@ bool parseInstrBRK( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseLoadStoreOperand" parses the operand portion of the load and store instruction family. The syntax 
+// "parseLoadStoreOperand" parses the operand portion of the load and store instruction family. The syntax
 // for the <operand> portion is either a
 //
 //      <ofs> "(" SR "," GR ")"
@@ -1345,9 +1354,9 @@ bool parseLoadStoreOperand( uint32_t *instr ) {
                 nextToken( );
             }
             else return( parserError((char *) "Expected a comma" ));
-           
-            if ( currentToken.typ == TT_GREG ) {
             
+            if ( currentToken.typ == TT_GREG ) {
+                
                 setBitField( instr, 31, 4, currentToken.val );
                 
                 nextToken( );
@@ -1404,7 +1413,7 @@ bool parseInstrLoad( uint32_t *instr ) {
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrStore( uint32_t *instr ) {
-  
+    
     if ( parseLoadStoreOperand( instr )) {
         
         if ( currentToken.typ == TT_COMMA ) {
@@ -1439,7 +1448,7 @@ bool parseInstrStore( uint32_t *instr ) {
 bool parseLine( char *inputStr, uint32_t *instr ) {
     
     setUpOneLineAssembler( inputStr, instr );
-   
+    
     nextToken( );
     if ( currentToken.typ == TT_OPCODE ) {
         
@@ -1451,11 +1460,11 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
             if ( ! parseInstrOptions( instr )) return( false );
             nextToken( );
         }
-      
+        
         switch ( getBitField( *instr, 5, 6 ) ) {
                 
             case OP_ADD:
-            case OP_ADC:  
+            case OP_ADC:
             case OP_SUB:
             case OP_SBC:
             case OP_AND:
@@ -1469,14 +1478,14 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
             case OP_LDR:    return( parseInstrLoad( instr ));
                 
             case OP_ST:
-            case OP_STA:    
+            case OP_STA:
             case OP_STC:    return( parseInstrStore( instr ));
-
+                
             case OP_LSID:   return( parseInstrLSID( instr ));
                 
             case OP_EXTR:
             case OP_DEP:    return( parseInstrEXTRandDEP( instr ));
-            
+                
             case OP_DSR:    return( parseInstrDSR( instr ));
             case OP_SHLA:   return( parseInstrSHLA( instr ));
             case OP_CMR:    return( parseInstrCMR( instr ));
@@ -1487,10 +1496,10 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
                 
             case OP_B:
             case OP_GATE:   return( parseInstrBandGATE( instr ));
-            
+                
             case OP_BR:
             case OP_BV:     return( parseInstrBRandBV( instr ));
-            
+                
             case OP_BE:     return( parseInstrBE( instr ));
             case OP_BVE:    return( parseInstrBVE( instr ));
             case OP_CBR:    return( parseInstrCBR( instr ));
@@ -1506,7 +1515,7 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
             case OP_DIAG:   return( parseInstrDIAG( instr ));
             case OP_RFI:    return( parseInstrRFI( instr ));
             case OP_BRK:    return( parseInstrBRK( instr ));
-             
+                
             default:    return( parserError((char *) "Invalid opcode" ));
         }
     }
