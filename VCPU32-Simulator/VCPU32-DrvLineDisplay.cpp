@@ -434,3 +434,45 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, TokId fm
     
     fprintf( stdout, "\n" );
 }
+
+
+//------------------------------------------------------------------------------------------------------------
+// Display absolute memory content as code shown in assembler syntx. There is one word per line.
+//
+//------------------------------------------------------------------------------------------------------------
+void  DrvLineDisplay::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, TokId fmtId ) {
+    
+    uint32_t    index           = ( ofs / 4 ) * 4;
+    uint32_t    limit           = ((( index + len ) + 3 ) / 4 ) * 4;
+    CpuMem      *physMem        = glb -> cpu -> physMem;
+    CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
+    CpuMem      *ioMem          = glb -> cpu -> ioMem;
+ 
+    while ( index < limit ) {
+        
+        glb -> lineDisplay -> displayWord( index, fmtId );
+        fprintf( stdout, ": " );
+        
+        if (( physMem != nullptr ) && ( physMem -> validAdr( index ))) {
+            
+            glb -> disAsm -> displayInstr( physMem -> getMemDataWord( index ), fmtId );
+        }
+        else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
+                
+            glb -> disAsm -> displayInstr( pdcMem -> getMemDataWord( index ), fmtId );
+        }
+        else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
+                
+            glb -> disAsm -> displayInstr( ioMem -> getMemDataWord( index ), fmtId );
+        }
+        else displayInvalidWord( fmtId );
+        
+        fprintf( stdout, "\n" );
+            
+        index += 1;
+    }
+       
+    fprintf( stdout, "\n" );
+}
+
+

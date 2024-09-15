@@ -124,11 +124,12 @@ enum TokId : uint16_t {
     
     CMD_DR                  = 1020,   CMD_MR                = 1021,
     CMD_DA                  = 1027,   CMD_MA                = 1028,
-    CMD_LMF                 = 1029,   CMD_SMF               = 1030,
+    CMD_DAA                 = 1029,   CMD_MAA               = 1030,
+    CMD_LMF                 = 1031,   CMD_SMF               = 1032,
     
-    CMD_HASH_VA             = 1031,
-    CMD_D_TLB               = 1032,   CMD_I_TLB             = 1033, CMD_P_TLB             = 1034,
-    CMD_D_CACHE             = 1035,   CMD_P_CACHE           = 1036,
+    CMD_HASH_VA             = 1033,
+    CMD_D_TLB               = 1034,   CMD_I_TLB             = 1035, CMD_P_TLB             = 1036,
+    CMD_D_CACHE             = 1037,   CMD_P_CACHE           = 1038,
     
     //--------------------------------------------------------------------------------------------------------
     // Window Commands.
@@ -723,6 +724,7 @@ public:
     void        displayWord( uint32_t val, TokId = TOK_DEF );
     void        displayHalfWord( uint32_t val, TokId = TOK_DEF );
     void        displayAbsMemContent( uint32_t ofs, uint32_t len, TokId = TOK_DEF );
+    void        displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, TokId fmtId );
     
     void        displayGeneralRegSet( TokId fmt = TOK_DEF );
     void        displaySegmentRegSet( TokId fmt = TOK_DEF );
@@ -784,7 +786,7 @@ struct DrvOneLineAsm {
 public:
     
     DrvOneLineAsm( VCPU32Globals *glb );
-    uint8_t parseAsmLine( char *inputStr, uint32_t *instr, TokId fmtId = TOK_DEF );
+    bool parseAsmLine( char *inputStr, uint32_t *instr );
     
 private:
     
@@ -846,7 +848,9 @@ private:
     void            displayCacheCmd( char *cmdBuf );
     void            purgeCacheCmd( char *cmdBuf );
     void            displayAbsMemCmd( char *cmdBuf );
-    void            modifyPhysMemCmd( char *cmdBuf );
+    void            displayAbsMemAsCodeCmd( char *cmdBuf );
+    void            modifyAbsMemCmd( char *cmdBuf );
+    void            modifyAbsMemAsCodeCmd( char *cmdBuf );
     void            loadPhysMemCmd( char *cmdBuf );
     void            savePhysMemCmd( char *cmdBuf );
     

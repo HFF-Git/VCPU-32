@@ -5,8 +5,8 @@
 //------------------------------------------------------------------------------------------------------------
 // The one line assembler assembles an instruction without further context. It is intended to for testing
 // instructons in teh simulator. There is no symbol table or any concept of assembling multiple instructions.
-// The instruction to generate test is completely self sufficient.
-//
+// The instruction to generate test is completely self sufficient. The parser is a straightforward recursive
+// descendant parser, LL1 grammar.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -44,49 +44,131 @@ const char  EOS_CHAR            = 0;
 //------------------------------------------------------------------------------------------------------------
 enum TokType : uint8_t {
     
-    TT_NIL,
-    TT_OPCODE,
-    TT_GREG,
-    TT_SREG,
-    TT_CREG,
-    TT_NUM,
-    TT_COMMA,
-    TT_PERIOD,
-    TT_LPAREN,
-    TT_RPAREN,
-    TT_PERCENT,
-    TT_IDENT,
-    TT_ERR,
-    TT_EOS
+    TT_NIL      = 0,
+    TT_OPCODE   = 1,
+    TT_GREG     = 2,
+    TT_SREG     = 3,
+    TT_CREG     = 4,
+    TT_NUM      = 5,
+    TT_IDENT    = 6,
+    
+    TT_COMMA    = 10,
+    TT_PERIOD   = 11,
+    TT_LPAREN   = 12,
+    TT_RPAREN   = 13,
+    TT_PERCENT  = 14,
+    
+    TT_ERR      = 20,
+    TT_EOS      = 21
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A token. A token has a name, a tye and a value.
+// A token. A token has a name, a tye and a value. For the instructions, the value represents the instruction
+// tempate for the respective instruction. We also already set the data word width and any other predefied
+// bits. The parsing routines will augment this tempalte be setting the remaing fields. The token table is
+// just a list of tokens, which is searched in a linear fashion.
 //
 //------------------------------------------------------------------------------------------------------------
 struct Token {
     
-    char        tokName[ TOK_NAME_SIZE ];
-    uint8_t     tokType;
-    uint32_t    tokValue;
+    char        name[ TOK_NAME_SIZE ];
+    uint8_t     typ;
+    uint32_t    val;
 };
 
 const Token tokNameTab[ ] = {
     
     { "NIL",    TT_NIL,     0           },
+    
+    { "LD",     TT_OPCODE,  0xC0020000  },
     { "LDB",    TT_OPCODE,  0xC0000000  },
     { "LDH",    TT_OPCODE,  0xC0010000  },
     { "LDW",    TT_OPCODE,  0xC0020000  },
     { "LDR",    TT_OPCODE,  0xD0020000  },
     { "LDA",    TT_OPCODE,  0xC8020000  },
     
+    { "ST",     TT_OPCODE,  0xC4220000  },
     { "STB",    TT_OPCODE,  0xC4200000  },
     { "STH",    TT_OPCODE,  0xC4210000  },
     { "STW",    TT_OPCODE,  0xC4220000  },
     { "STC",    TT_OPCODE,  0xD4020000  },
     { "STA",    TT_OPCODE,  0xCC220000  },
     
+    { "ADD",    TT_OPCODE,  0x0         },
+    { "ADDB",   TT_OPCODE,  0x0         },
+    { "ADDH",   TT_OPCODE,  0x0         },
+    { "ADDW",   TT_OPCODE,  0x0         },
     
+    { "ADC",    TT_OPCODE,  0x0         },
+    { "ADCB",   TT_OPCODE,  0x0         },
+    { "ADCH",   TT_OPCODE,  0x0         },
+    { "ADCW",   TT_OPCODE,  0x0         },
+    
+    { "SUB",    TT_OPCODE,  0x0         },
+    { "SUBB",   TT_OPCODE,  0x0         },
+    { "SUBH",   TT_OPCODE,  0x0         },
+    { "SUBW",   TT_OPCODE,  0x0         },
+    
+    { "SBC",    TT_OPCODE,  0x0         },
+    { "SBCB",   TT_OPCODE,  0x0         },
+    { "SBCH",   TT_OPCODE,  0x0         },
+    { "SBCW",   TT_OPCODE,  0x0         },
+    
+    { "AND",    TT_OPCODE,  0x0         },
+    { "ANDB",   TT_OPCODE,  0x0         },
+    { "ANDH",   TT_OPCODE,  0x0         },
+    { "ANDW",   TT_OPCODE,  0x0         },
+    
+    { "OR" ,    TT_OPCODE,  0x0         },
+    { "ORB",    TT_OPCODE,  0x0         },
+    { "ORH",    TT_OPCODE,  0x0         },
+    { "ORW",    TT_OPCODE,  0x0         },
+    
+    { "XOR" ,   TT_OPCODE,  0x0         },
+    { "XORB",   TT_OPCODE,  0x0         },
+    { "XORH",   TT_OPCODE,  0x0         },
+    { "XORW",   TT_OPCODE,  0x0         },
+    
+    { "CMP" ,   TT_OPCODE,  0x0         },
+    { "CMPB",   TT_OPCODE,  0x0         },
+    { "CMPH",   TT_OPCODE,  0x0         },
+    { "CMPW",   TT_OPCODE,  0x0         },
+    
+    { "CMPU" ,  TT_OPCODE,  0x0         },
+    { "CMPUB",  TT_OPCODE,  0x0         },
+    { "CMPUH",  TT_OPCODE,  0x0         },
+    { "CMPUW",  TT_OPCODE,  0x0         },
+    
+    { "LSID" ,  TT_OPCODE,  0x0         },
+    { "EXTR" ,  TT_OPCODE,  0x0         },
+    { "DEP",    TT_OPCODE,  0x0         },
+    { "DSR",    TT_OPCODE,  0x0         },
+    { "SHLA",   TT_OPCODE,  0x0         },
+    { "CMR",    TT_OPCODE,  0x0         },
+    
+    { "LIDL",   TT_OPCODE,  0x0         },
+    { "ADDIL",  TT_OPCODE,  0x0         },
+    { "LDO",    TT_OPCODE,  0x0         },
+    
+    { "B" ,     TT_OPCODE,  0x0         },
+    { "GATE",   TT_OPCODE,  0x0         },
+    { "BR",     TT_OPCODE,  0x0         },
+    { "BV",     TT_OPCODE,  0x0         },
+    { "BE",     TT_OPCODE,  0x0         },
+    { "BVE",    TT_OPCODE,  0x0         },
+    { "CBR",    TT_OPCODE,  0x0         },
+    { "CBRU",   TT_OPCODE,  0x0         },
+    
+    { "MR",     TT_OPCODE,  0x0         },
+    { "MST",    TT_OPCODE,  0x0         },
+    { "LDPA",   TT_OPCODE,  0x0         },
+    { "PRB",    TT_OPCODE,  0x0         },
+    { "ITLB",   TT_OPCODE,  0x0         },
+    { "PTLB",   TT_OPCODE,  0x0         },
+    { "PCA",    TT_OPCODE,  0x0         },
+    { "DIAG",   TT_OPCODE,  0x0         },
+    { "RFI",    TT_OPCODE,  0x0          },
+    { "BRK",    TT_OPCODE,  0x0         },
     
     { "R0",     TT_GREG,    0           },
     { "R1",     TT_GREG,    1           },
@@ -119,18 +201,15 @@ const Token tokNameTab[ ] = {
 
 const int   TOK_NAME_TAB_SIZE  = sizeof( tokNameTab ) / sizeof( *tokNameTab );
 
-
 //------------------------------------------------------------------------------------------------------------
-//
+// The current parser state.
 //
 //------------------------------------------------------------------------------------------------------------
 char        tokenLine[ TOK_INPUT_LINE_SIZE ];
-
 int         currentLineLen;
 int         currentCharIndex;
 int         currentTokIndex;
 char        currentChar;
-
 Token       currentToken;
 
 //------------------------------------------------------------------------------------------------------------
@@ -182,6 +261,17 @@ void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
     *arg = ( *arg & ( ~ ( tmpM << ( 31 - pos )))) | val;
 }
 
+void setImmVal( uint32_t *instr, int pos, int len, uint32_t val ) {
+    
+    setBit( instr, pos, (((int32_t) val < 0 ) ? 1 : 0 ));
+    setBitField( instr, pos - 1, len - 1, val );
+}
+
+void setImmValU( uint32_t *instr, int pos, int len, uint32_t val ) {
+    
+    setBitField( instr, pos, len, val );
+}
+
 void upshiftStr( char *str ) {
     
     size_t len = strlen( str );
@@ -198,14 +288,16 @@ uint8_t lookupToken( char *str ) {
     
     for ( int i = 0; i < TOK_NAME_TAB_SIZE; i++ ) {
         
-        if ( strcmp( str, tokNameTab[ i ].tokName ) == 0 ) return( i );
+        if ( strcmp( str, tokNameTab[ i ].name ) == 0 ) return( i );
     }
     
     return( 0 );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "nextChar" returns the next character from the token line string.
+// "nextChar" returns the next character from the token line string. "puBackChar" is necessary to set the
+// character index back one character. We need this for cases where we look two characters ahead and need
+// to go back one character once we know what we are looking at.
 //
 //------------------------------------------------------------------------------------------------------------
 void nextChar( ) {
@@ -216,6 +308,21 @@ void nextChar( ) {
         currentCharIndex ++;
     }
     else currentChar = EOS_CHAR;
+}
+
+void putBackChar( ) {
+    
+    if ( currentCharIndex > 0 ) {
+        
+        currentCharIndex --;
+        
+        if ( currentCharIndex > 0 ) {
+            
+            currentChar = tokenLine[ currentCharIndex - 1];
+        }
+        else currentChar = ' ';
+    }
+    else currentChar = ' ';
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -241,11 +348,24 @@ bool parserError( char *errStr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Check that the ASM line does not contain any extra tokens.
+//
+//------------------------------------------------------------------------------------------------------------
+bool checkEOS( ) {
+    
+    if ( currentToken.typ != TT_EOS ) {
+        
+        return( parserError((char *) "Extra tokens in the ASDM line" ));
+    }
+    else return( true );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // "getIdent" parses an identifier. It is a sequence of characters starting with an alpha character. We do
 // not really have use defined identifiers, only reserved words. However, the concept of a non-reserved
 // identifier is used to implement the opCode option string, which is just a list of characters.
 //
-// ??? what do we do about "L%xxxx" ?
+// ??? may a better place to deal with "L%" type qualifiers ?
 //------------------------------------------------------------------------------------------------------------
 void getIdent( ) {
     
@@ -253,13 +373,13 @@ void getIdent( ) {
     
     while ( isalnum( currentChar )) {
         
-        currentToken.tokName[ tokStrIndex++ ] = currentChar;
+        currentToken.name[ tokStrIndex++ ] = currentChar;
         nextChar( );
     }
     
-    currentToken.tokName[ tokStrIndex ] = 0;
+    currentToken.name[ tokStrIndex ] = 0;
     
-    int currentTokenIndex = lookupToken( currentToken.tokName );
+    int currentTokenIndex = lookupToken( currentToken.name );
     
     if ( currentTokenIndex != 0 ) {
         
@@ -267,15 +387,14 @@ void getIdent( ) {
     }
     else {
         
-        currentToken.tokType     = TT_IDENT;
-        currentToken.tokValue    = 0;
+        currentToken.typ     = TT_IDENT;
+        currentToken.val    = 0;
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "getNum" will parse a number. We leave the heavy lifting to the C library.
 //
-// ??? maybe a bit too simple... unsigned 32-bits how ?
 //------------------------------------------------------------------------------------------------------------
 void getNum( int sign ) {
     
@@ -288,14 +407,16 @@ void getNum( int sign ) {
         tmpStr[ index++ ] = currentChar;
         nextChar( );
     
-    } while ( isxdigit( currentChar ) || ( currentChar == 'x' ) || ( currentChar == 'o' ));
+    } while ( isxdigit( currentChar ) || 
+             ( currentChar == 'X' )   || ( currentChar == 'x' ) ||
+             ( currentChar == 'O' )   || ( currentChar == 'o' ));
     
     tmpStr[ index ] = 0;
     
-    if ( sscanf( tmpStr, "%d", &tmpRes ) == 1 ) {
+    if ( sscanf( tmpStr, "%i", &tmpRes ) == 1 ) {
         
-        currentToken.tokType    = TT_NUM;
-        currentToken.tokValue   = tmpRes * sign;
+        currentToken.typ    = TT_NUM;
+        currentToken.val   = tmpRes * sign;
     }
     else parserError((char *) "Invalid number" );
 }
@@ -304,12 +425,18 @@ void getNum( int sign ) {
 // "nextToken" provides the next token form the input source line. All information about the token parsed
 // will be stored in the global "currentXXX" variables.
 //
+// There is one tricky part. The "L%xxxxx" and alike numeric values do not start with a digit. We need to
+// scan the "L" character followed by an "%" character followed by the numeric value. When there is not
+// a "%" it must be treated as an identifier and put back the last character, so we can call "getIdent" to
+// analyze the identifier. When there is not a numeric value following the "L%" sequeunce, it is an error.
+//
+// ??? maybe there is a more struczured way to deal with the "L%" type qualifiers.... for now it will do.
 //------------------------------------------------------------------------------------------------------------
 void nextToken( ) {
     
-    currentToken.tokName[ 0 ]   = 0;;
-    currentToken.tokType        = TT_EOS;
-    currentToken.tokValue       = 0;
+    currentToken.name[ 0 ]  = 0;;
+    currentToken.typ        = TT_EOS;
+    currentToken.val        = 0;
     
     while (( currentChar == ' ' ) || ( currentChar == '\n' ) || ( currentChar == '\n' )) nextChar( );
     
@@ -317,7 +444,45 @@ void nextToken( ) {
     
     if ( isalpha( currentChar )) {
         
-        getIdent( );
+        if (( currentChar == 'L' ) || ( currentChar == 'l' )) {
+            
+            nextChar( );
+            if ( currentChar == '%' ) {
+                
+                nextChar( );
+                if ( isdigit( currentChar )) {
+                    
+                    getNum( 1 );
+                    currentToken.val &= 0xFFFFFC00;
+                }
+                else currentToken.typ = TT_ERR;
+            }
+            else {
+                
+                putBackChar( );
+                getIdent( );
+            }
+        }
+        else if (( currentChar == 'R' ) || ( currentChar == 'r' )) {
+            
+            nextChar( );
+            if ( currentChar == '%' ) {
+                
+                nextChar( );
+                if ( isdigit( currentChar )) {
+                    
+                    getNum( 1 );
+                    currentToken.val &= 0x3FF;
+                }
+                else currentToken.typ = TT_ERR;
+            }
+            else {
+                
+                putBackChar( );
+                getIdent( );
+            }
+        }
+        else getIdent( );
     }
     else if ( isdigit( currentChar )) {
         
@@ -330,40 +495,41 @@ void nextToken( ) {
     }
     else if ( currentChar == '(' ) {
         
-        currentToken.tokType = TT_LPAREN;
+        currentToken.typ = TT_LPAREN;
         nextChar( );
     }
     else if ( currentChar == ')' ) {
         
-        currentToken.tokType = TT_RPAREN;
+        currentToken.typ = TT_RPAREN;
         nextChar( );
     }
     else if ( currentChar == ',' ) {
         
-        currentToken.tokType = TT_COMMA;
+        currentToken.typ = TT_COMMA;
         nextChar( );
     }
     else if ( currentChar == '.' ) {
         
-        currentToken.tokType = TT_PERIOD;
+        currentToken.typ = TT_PERIOD;
         nextChar( );
     }
-    else currentToken.tokType = TT_ERR;
+    else currentToken.typ = TT_ERR;
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "expectToken" checks the current token for a match and gets the next one. Otherwise an error message is
-// displayed.
+// The one line assembler starts with a setup of the global data. The input is upshifted in this module.
 //
 //------------------------------------------------------------------------------------------------------------
-bool expectToken( uint8_t tokType, char *errStr ) {
+void setUpOneLineAssembler( char *inputStr, uint32_t *instr ) {
     
-    if ( currentToken.tokType == tokType ) {
-        
-        nextToken( );
-        return( true );
-    }
-    else return( parserError( errStr ));
+    strncpy( tokenLine, inputStr, strlen( inputStr ) + 1 );
+    upshiftStr( tokenLine );
+    
+    *instr              = 0;
+    currentLineLen      = (int) strlen( tokenLine );
+    currentCharIndex    = 0;
+    currentTokIndex     = 0;
+    currentChar         = ' ';
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -377,23 +543,23 @@ bool expectToken( uint8_t tokType, char *errStr ) {
 bool parseInstrOptions( uint32_t *instr ) {
     
     nextToken( );
-    if ( currentToken.tokType == TT_IDENT ) {
+    if ( currentToken.typ == TT_IDENT ) {
     
         switch( getBitField( *instr, 5, 6 )) {
                     
             case OP_LD:     case OP_ST:  case OP_LDA:     case OP_STA:  {
             
-                if ( currentToken.tokName[ 0 ] == 'M' ) setBit( instr, 11 );
+                if ( currentToken.name[ 0 ] == 'M' ) setBit( instr, 11 );
                 else return( parserError((char *) "Invalid instruction option" ));
                 
             } break;
                     
             case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC: {
                 
-                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
                     
-                    if      ( currentToken.tokName[ i ] == 'L' ) setBit( instr, 10 );
-                    else if ( currentToken.tokName[ i ] == 'O' ) setBit( instr, 11 );
+                    if      ( currentToken.name[ i ] == 'L' ) setBit( instr, 10 );
+                    else if ( currentToken.name[ i ] == 'O' ) setBit( instr, 11 );
                     else return( parserError((char *) "Invalid instruction option" ));
                 }
                     
@@ -401,10 +567,10 @@ bool parseInstrOptions( uint32_t *instr ) {
                     
             case OP_AND:    case OP_OR: {
                 
-                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
                     
-                    if      ( currentToken.tokName[ i ] == 'N' ) setBit( instr, 10 );
-                    else if ( currentToken.tokName[ i ] == 'C' ) setBit( instr, 11 );
+                    if      ( currentToken.name[ i ] == 'N' ) setBit( instr, 10 );
+                    else if ( currentToken.name[ i ] == 'C' ) setBit( instr, 11 );
                     else return( parserError((char *) "Invalid instruction option" ));
                 }
                 
@@ -412,26 +578,26 @@ bool parseInstrOptions( uint32_t *instr ) {
             
             case OP_XOR: {
                 
-                if      ( currentToken.tokName[ 0 ] == 'N' ) setBit( instr, 10 );
+                if      ( currentToken.name[ 0 ] == 'N' ) setBit( instr, 10 );
                 else return( parserError((char *) "Invalid instruction option" ));
 
             } break;
                 
             case OP_CMP:    case OP_CMPU: {
                 
-                if ( strcmp( currentToken.tokName, ((char *) "EQ" ))) setBitField( instr, 11, 2, 0 );
-                if ( strcmp( currentToken.tokName, ((char *) "LT" ))) setBitField( instr, 11, 2, 1 );
-                if ( strcmp( currentToken.tokName, ((char *) "NE" ))) setBitField( instr, 11, 2, 2 );
-                if ( strcmp( currentToken.tokName, ((char *) "LE" ))) setBitField( instr, 11, 2, 3 );
+                if ( strcmp( currentToken.name, ((char *) "EQ" ))) setBitField( instr, 11, 2, 0 );
+                if ( strcmp( currentToken.name, ((char *) "LT" ))) setBitField( instr, 11, 2, 1 );
+                if ( strcmp( currentToken.name, ((char *) "NE" ))) setBitField( instr, 11, 2, 2 );
+                if ( strcmp( currentToken.name, ((char *) "LE" ))) setBitField( instr, 11, 2, 3 );
                 
             } break;
                 
             case OP_EXTR: {
                 
-                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
                     
-                    if      ( currentToken.tokName[ i ] == 'S' ) setBit( instr, 10 );
-                    else if ( currentToken.tokName[ i ] == 'A' ) setBit( instr, 11 );
+                    if      ( currentToken.name[ i ] == 'S' ) setBit( instr, 10 );
+                    else if ( currentToken.name[ i ] == 'A' ) setBit( instr, 11 );
                     else return( parserError((char *) "Invalid instruction option" ));
                 }
                 
@@ -439,11 +605,11 @@ bool parseInstrOptions( uint32_t *instr ) {
                 
             case OP_DEP: {
                 
-                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
                     
-                    if      ( currentToken.tokName[ i ] == 'Z' ) setBit( instr, 10 );
-                    else if ( currentToken.tokName[ i ] == 'A' ) setBit( instr, 11 );
-                    else if ( currentToken.tokName[ i ] == 'I' ) setBit( instr, 12 );
+                    if      ( currentToken.name[ i ] == 'Z' ) setBit( instr, 10 );
+                    else if ( currentToken.name[ i ] == 'A' ) setBit( instr, 11 );
+                    else if ( currentToken.name[ i ] == 'I' ) setBit( instr, 12 );
                     else return( parserError((char *) "Invalid instruction option" ));
                 }
                 
@@ -451,18 +617,18 @@ bool parseInstrOptions( uint32_t *instr ) {
                 
             case OP_DSR: {
                 
-                if      ( currentToken.tokName[ 0 ] == 'A' ) setBit( instr, 11 );
+                if      ( currentToken.name[ 0 ] == 'A' ) setBit( instr, 11 );
                 else return( parserError((char *) "Invalid instruction option" ));
 
             } break;
                 
             case OP_SHLA: {
                 
-                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
                     
-                    if      ( currentToken.tokName[ i ] == 'I' ) setBit( instr, 10 );
-                    else if ( currentToken.tokName[ i ] == 'L' ) setBit( instr, 11 );
-                    else if ( currentToken.tokName[ i ] == 'O' ) setBit( instr, 12 );
+                    if      ( currentToken.name[ i ] == 'I' ) setBit( instr, 10 );
+                    else if ( currentToken.name[ i ] == 'L' ) setBit( instr, 11 );
+                    else if ( currentToken.name[ i ] == 'O' ) setBit( instr, 12 );
                     else return( parserError((char *) "Invalid instruction option" ));
                 }
                 
@@ -470,10 +636,10 @@ bool parseInstrOptions( uint32_t *instr ) {
                 
             case OP_MR: {
                 
-                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
                     
-                    if      ( currentToken.tokName[ i ] == 'D' ) setBit( instr, 10 );
-                    else if ( currentToken.tokName[ i ] == 'M' ) setBit( instr, 11 );
+                    if      ( currentToken.name[ i ] == 'D' ) setBit( instr, 10 );
+                    else if ( currentToken.name[ i ] == 'M' ) setBit( instr, 11 );
                     else return( parserError((char *) "Invalid instruction option" ));
                 }
                 
@@ -481,10 +647,10 @@ bool parseInstrOptions( uint32_t *instr ) {
                 
             case OP_PRB: {
                 
-                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
                     
-                    if      ( currentToken.tokName[ i ] == 'W' ) setBit( instr, 10 );
-                    else if ( currentToken.tokName[ i ] == 'I' ) setBit( instr, 11 );
+                    if      ( currentToken.name[ i ] == 'W' ) setBit( instr, 10 );
+                    else if ( currentToken.name[ i ] == 'I' ) setBit( instr, 11 );
                     else return( parserError((char *) "Invalid instruction option" ));
                 }
                 
@@ -492,17 +658,17 @@ bool parseInstrOptions( uint32_t *instr ) {
                 
             case OP_ITLB: {
                 
-                if      ( currentToken.tokName[ 0 ] == 'T' ) setBit( instr, 11 );
+                if      ( currentToken.name[ 0 ] == 'T' ) setBit( instr, 11 );
                 else return( parserError((char *) "Invalid instruction option" ));
 
             } break;
                 
             case OP_PTLB: {
                 
-                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
                     
-                    if      ( currentToken.tokName[ i ] == 'T' ) setBit( instr, 10 );
-                    else if ( currentToken.tokName[ i ] == 'M' ) setBit( instr, 11 );
+                    if      ( currentToken.name[ i ] == 'T' ) setBit( instr, 10 );
+                    else if ( currentToken.name[ i ] == 'M' ) setBit( instr, 11 );
                     else return( parserError((char *) "Invalid instruction option" ));
                 }
                 
@@ -510,11 +676,11 @@ bool parseInstrOptions( uint32_t *instr ) {
                 
             case OP_PCA: {
                 
-                for ( int i = 0; i < strlen( currentToken.tokName ); i ++ ) {
+                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
                     
-                    if      ( currentToken.tokName[ i ] == 'T' ) setBit( instr, 10 );
-                    else if ( currentToken.tokName[ i ] == 'M' ) setBit( instr, 11 );
-                    else if ( currentToken.tokName[ i ] == 'F' ) setBit( instr, 14 );
+                    if      ( currentToken.name[ i ] == 'T' ) setBit( instr, 10 );
+                    else if ( currentToken.name[ i ] == 'M' ) setBit( instr, 11 );
+                    else if ( currentToken.name[ i ] == 'F' ) setBit( instr, 14 );
                     else return( parserError((char *) "Invalid instruction option" ));
                 }
                 
@@ -530,106 +696,191 @@ bool parseInstrOptions( uint32_t *instr ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "parseModeTypeInstr" parses all instructions that have an "operand" encoding. We enter the routine with
-// the OpCode and options parsed.
+// the OpCode and options parsed. The mode type instruction parsing starts with the target register spot in
+// the command line.
 //
-// ??? this will cover a lot of instructions ....
+//      opCode [ "." opt ] <targetReg> "," <num>
+//      opCode [ "." opt ] <targetReg> "," <num> "(" <baseReg> ")"
+//      opCode [ "." opt ] <targetReg> ","<sourceReg>
+//      opCode [ "." opt ] <targetReg> "," <sourceRegA> "," "<sourceRegB>
+//      opCode [ "." opt ] <targetReg> "," <indexReg> "(" <baseReg> ")"
+//
 //------------------------------------------------------------------------------------------------------------
 bool parseModeTypeInstr( uint32_t *instr ) {
+    
+    uint8_t targetRegId = 0;
    
-    if ( currentToken.tokType == TT_GREG ) {
+    if ( currentToken.typ == TT_GREG ) {
         
-        setBitField( instr, 9, 4, currentToken.tokValue );
+        setBitField( instr, 9, 4, currentToken.val );
+        targetRegId = currentToken.val;
         nextToken( );
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( currentToken.tokType == TT_COMMA ) {
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_NUM ) {
+        
+        uint32_t tokVal = currentToken.val;
         
         nextToken( );
-        
-        if ( currentToken.tokType == TT_NUM ) {
+        if ( currentToken.typ == TT_LPAREN ) {
             
-            Token tmp = currentToken;
+            setImmVal( instr, 31, 12, tokVal );
             
             nextToken( );
-            if ( currentToken.tokType == TT_LPAREN ) {
+            if ( currentToken.typ == TT_GREG ) {
+            
+                setBitField( instr, 13, 2, 3 );
+                setBitField( instr, 31, 4, currentToken.val );
                 
                 nextToken( );
-                if ( currentToken.tokType == TT_GREG ) {
-                    
-                    
-                    
-                    nextToken( );
-                    if ( currentToken.tokType != TT_RPAREN ) {
-                        
-                        return( parserError(( char *) "Expected a right parenthesis" ));
-                    }
-                    
-                    return( true );
-                }
-                else  {
-                    
-                    
-                    
-                }
+                if ( currentToken.typ != TT_RPAREN )
+                    return( parserError((char *) "Expected a right parenthesis" ));
             }
-            else {
-                
-                
-            }
-            
+            else return( parserError((char *) "Expected a general reg" ));
         }
-        else if ( currentToken.tokType == TT_GREG ) {
+        else if ( currentToken.typ == TT_EOS ) {
             
+        setBitField( instr, 13, 2, 0 );
          
-            // ??? set A field
+            setImmVal( instr, 31, 18, tokVal );
             
             nextToken( );
+            if ( currentToken.typ == TT_EOS )
+                return( parserError((char *) "Invalid operand" ));
+        }
+        else return( parserError((char *) "Invalid operand" ));
+    }
+    else if ( currentToken.typ == TT_GREG ) {
+        
+        uint8_t operandRegId = currentToken.val;
+        
+        nextToken( );
+        if ( currentToken.typ == TT_EOS ) {
+         
+            setBitField( instr, 13, 2, 1 );
+            setBitField( instr, 27, 4,targetRegId );
+            setBitField( instr, 31, 4,operandRegId );
+        }
+        else if ( currentToken.typ == TT_COMMA ) {
             
-            if ( currentToken.tokType == TT_COMMA ) {
+            nextToken( );
+            if ( currentToken.typ == TT_GREG ) {
+                
+                setBitField( instr, 13, 2, 1 );
+                setBitField( instr, 27, 4, operandRegId );
+                setBitField( instr, 31, 4, currentToken.val );
                 
                 nextToken( );
-                if ( currentToken.tokType == TT_GREG ) {
-                    
-                    
-                }
-                else ;
+                if ( currentToken.typ == TT_EOS )
+                    return( parserError((char *) "Invalid operand" ));
             }
+            else return( parserError((char *) "Expected a general reg" ));
         }
-        else if ( currentToken.tokType == TT_LPAREN ) {
+        else if ( currentToken.typ == TT_LPAREN ) {
             
-            
+            nextToken( );
+            if ( currentToken.typ == TT_GREG ) {
+                
+                setBitField( instr, 13, 2, 2 );
+                setBitField( instr, 27, 4, operandRegId );
+                setBitField( instr, 31, 4, currentToken.val );
+            }
+            else return( parserError((char *) "Expected a general reg" ));
         }
-        
-        
-        
-        
-        // ...
-        
-        
-        
-        return( true );
-        
+        else return( parserError((char *) "Invalid operand" ));
     }
-    else return( parserError((char *) "Expected a comma" ));
-}
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-bool parseInstrEXTR( uint32_t *instr ) {
+    else return( parserError((char *) "Invalid operand" ));
+    
+    if (( getBitField( *instr, 13, 2 ) == 1 ) && ( getBitField( *instr, 15, 2 ) != 0 )) {
+        
+        return( parserError((char *) "Invalid opCode option" ));
+    }
     
     return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "parseInstrLSID" parses the LSID instruction.
 //
+//      <opCode> [ "." <opt> ] <targetReg> "," <sourceReg>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrDEP( uint32_t *instr ) {
+bool parseInstrLSID( uint32_t *instr ) {
     
-    return( true );
+     if ( currentToken.typ == TT_GREG ) {
+         
+         setBitField( instr, 9, 4, currentToken.val );
+         nextToken( );
+     }
+     else return( parserError((char *) "Expected a general register" ));
+     
+     if ( currentToken.typ == TT_COMMA ) nextToken( );
+     else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 31, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    return( checkEOS( ));
+}
+
+
+// .... continue from here....
+
+
+
+//------------------------------------------------------------------------------------------------------------
+// "parseInstrEXTR" parses the extract instruction.
+//
+//
+// ??? syntax shift amount reg ?
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrEXTRandDEP( uint32_t *instr ) {
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_NUM ) {
+        
+        
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_NUM ) {
+        
+        
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    // ....
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 31, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    return( checkEOS( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -638,7 +889,84 @@ bool parseInstrDEP( uint32_t *instr ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrDSR( uint32_t *instr ) {
     
-    return( true );
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 27, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 31, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    
+    // ....
+    
+    
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrSHLA( uint32_t *instr ) {
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 27, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 31, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    
+    // ...
+    
+    return( checkEOS( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -647,17 +975,326 @@ bool parseInstrDSR( uint32_t *instr ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrCMR( uint32_t *instr ) {
     
-    return( true );
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 27, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 31, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    
+    
+    return( checkEOS( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseLoadStoreOperand" parses the operand portion of the load and store instruction family. The syntax is
-// either a
 //
-//      <ofs> ( SR, GR )
-//      <ofs> ( GR )
-//      ( SR, GR )
-//      ( GR )
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrLDIL( uint32_t *instr ) {
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    
+    
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrADDIL( uint32_t *instr ) {
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    
+    
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Load offset instruction.
+//
+//      LDO <targetReg> "," [ <ofs> "," ] "(" <baseReg> ")"
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrLDO( uint32_t *instr ) {
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_NUM ) {
+        
+        setBitField( instr, 27, 18, currentToken.val );
+        
+        if ( currentToken.typ == TT_LPAREN ) nextToken( );
+        else return( parserError((char *) "Expected a Lparen" ));
+    }
+    else if ( currentToken.typ == TT_LPAREN ) {
+        
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected an offset or  left paren" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 31, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_RPAREN ) nextToken( );
+    else return( parserError((char *) "Expected a right paren" ));
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrBandGATE( uint32_t *instr ) {
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+        
+        if ( currentToken.typ == TT_COMMA ) nextToken( );
+        else return( parserError((char *) "Expected a Comma" ));
+    }
+    
+    if ( currentToken.typ == TT_NUM ) {
+        
+        setBitField( instr, 31, 22, currentToken.val );
+    }
+        
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrBRandBV( uint32_t *instr ) {
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 31, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    return( checkEOS( ));
+}
+
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrBE( uint32_t *instr ) {
+    
+   
+    
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrBVE( uint32_t *instr ) {
+    
+    
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrCBR( uint32_t *instr ) {
+    
+    
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrCBRU( uint32_t *instr ) {
+    
+    
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrMR( uint32_t *instr ) {
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrMST( uint32_t *instr ) {
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrLDPA( uint32_t *instr ) {
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrPRB( uint32_t *instr ) {
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrITLB( uint32_t *instr ) {
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrPTLB( uint32_t *instr ) {
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrPCA( uint32_t *instr ) {
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrDIAG( uint32_t *instr ) {
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrRFI( uint32_t *instr ) {
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrBRK( uint32_t *instr ) {
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "parseLoadStoreOperand" parses the operand portion of the load and store instruction family. The syntax 
+// for the <operand> portion is either a
+//
+//      <ofs> "(" SR "," GR ")"
+//      <ofs> "(" GR ")"
+//      "(" SR "," GR ")"
+//      "(" GR ")"
+//
+// <loadInstr>  [ "." <opt> ] <targetReg>       "," <sourceOperand>
+// <storeInstr> [ "." <opt> ] <targetOperand>   "," <sourceReg>
 //
 // We expect the instruction template with opCode, opCode options and word length already set. The routine
 // is called for load, where the operand is the source, and for store where the operand is the target.
@@ -665,68 +1302,74 @@ bool parseInstrCMR( uint32_t *instr ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseLoadStoreOperand( uint32_t *instr ) {
     
-    if ( currentToken.tokType == TT_NUM ) {
+    if ( currentToken.typ == TT_NUM ) {
         
-        if (((int32_t) currentToken.tokValue >= -2048 ) && ((int32_t) currentToken.tokValue <= 2047 )) {
+        if (((int32_t) currentToken.val >= -2048 ) && ((int32_t) currentToken.val <= 2047 )) {
             
-            setBit( instr, 27, (((int32_t) currentToken.tokValue < 0 ) ? 1 : 0 ));
-            setBitField( instr, 26, 11, (( currentToken.tokValue ) & 0x7FF ));
+            setImmVal( instr, 27, 12, currentToken.val );
             nextToken( );
         }
         else parserError((char *) "Offset value out of range" );
     }
-    else if ( currentToken.tokType == TT_GREG ) {
+    else if ( currentToken.typ == TT_GREG ) {
         
         setBit( instr, 10 );
-        setBitField( instr, 27, 4, currentToken.tokValue );
+        setBitField( instr, 27, 4, currentToken.val );
         nextToken( );
     }
-    else if ( currentToken.tokType == TT_LPAREN ) {
+    else if ( currentToken.typ == TT_LPAREN ) {
         
         setBitField( instr, 27, 12, 0 );
     }
     else return( parserError((char *) "Expected the operand" ));
     
-    if ( currentToken.tokType == TT_LPAREN ) {
+    if ( currentToken.typ == TT_LPAREN ) {
         
         nextToken( );
-        if ( currentToken.tokType == TT_SREG ) {
+        if ( currentToken.typ == TT_SREG ) {
             
             if (( getBitField( *instr, 5, 6 ) == OP_LDA ) || ( getBitField( *instr, 5, 6 ) == OP_STA )) {
                 
                 return( parserError((char *) "Invalid address for instruction: seg:ofs" ));
             }
             
-            if (( currentToken.tokValue >= 1 ) && ( currentToken.tokValue <= 3 )) {
+            if (( currentToken.val >= 1 ) && ( currentToken.val <= 3 )) {
                 
-                setBitField( instr, 13, 2, currentToken.tokValue );
+                setBitField( instr, 13, 2, currentToken.val );
             }
             else return( parserError((char *) "Expected SR1 .. SR3 " ));
             
             nextToken( );
-            if ( ! expectToken( TT_COMMA, (char *) "Expected a comma" )) return( false );
-           
-            if ( currentToken.tokType == TT_GREG ) {
-            
-                setBitField( instr, 31, 4, currentToken.tokValue );
+            if ( currentToken.typ == TT_COMMA ) {
                 
                 nextToken( );
-                return( expectToken( TT_RPAREN, (char *) "Expected a right paren" ));
+            }
+            else return( parserError((char *) "Expected a comma" ));
+           
+            if ( currentToken.typ == TT_GREG ) {
+            
+                setBitField( instr, 31, 4, currentToken.val );
+                
+                nextToken( );
+                if ( currentToken.typ == TT_RPAREN) nextToken( );
+                else return( parserError((char *) "Expected a right paren" ));
             }
             else return( parserError((char *) "Expected a general reg" ));
         }
-        else if ( currentToken.tokType == TT_GREG ) {
+        else if ( currentToken.typ == TT_GREG ) {
             
             setBitField( instr, 13, 2, 0 );
-            setBitField( instr, 31, 4, currentToken.tokValue );
+            setBitField( instr, 31, 4, currentToken.val );
             
             nextToken( );
-            if ( currentToken.tokType == TT_RPAREN ) return( true );
+            if ( currentToken.typ == TT_RPAREN ) return( true );
             else return( parserError((char *) "Expected a right paren" ));
         }
         else return( parserError((char *) "Expected a general or segment register" ));
     }
     else return( parserError((char *) "Expected a left paren" ));
+    
+    return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -738,14 +1381,14 @@ bool parseLoadStoreOperand( uint32_t *instr ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrLoad( uint32_t *instr ) {
     
-    if ( currentToken.tokType == TT_GREG ) {
+    if ( currentToken.typ == TT_GREG ) {
         
-        setBitField( instr, 9, 4, currentToken.tokValue );
+        setBitField( instr, 9, 4, currentToken.val );
         nextToken( );
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( currentToken.tokType == TT_COMMA ) {
+    if ( currentToken.typ == TT_COMMA ) {
         
         nextToken( );
         return( parseLoadStoreOperand( instr ));
@@ -764,16 +1407,17 @@ bool parseInstrStore( uint32_t *instr ) {
   
     if ( parseLoadStoreOperand( instr )) {
         
-        if ( expectToken( TT_COMMA, (char *) "Expected a comma" )) {
+        if ( currentToken.typ == TT_COMMA ) {
             
-            if ( currentToken.tokType == TT_GREG ) {
+            nextToken( );
+            if ( currentToken.typ == TT_GREG ) {
                 
-                setBitField( instr, 9, 4, currentToken.tokValue );
-                return( true );
+                setBitField( instr, 9, 4, currentToken.val );
+                return( checkEOS( ));
             }
             else return( parserError((char *) "Expected a general register" ));
         }
-        else return( false );
+        else return( parserError((char *) "Expected a comma" ));
     }
     else return( false );
 }
@@ -792,24 +1436,17 @@ bool parseInstrStore( uint32_t *instr ) {
 // with further data. If all is successful, we will have the final instruction bit pattern.
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseLine( char *inputStr, uint32_t *instr, TokId fmtId ) {
+bool parseLine( char *inputStr, uint32_t *instr ) {
     
-    strncpy( tokenLine, inputStr, strlen( inputStr ) + 1 );
-    upshiftStr( tokenLine );
-    
-    *instr              = 0;
-    currentLineLen      = (int) strlen( tokenLine );
-    currentCharIndex    = 0;
-    currentTokIndex     = 0;
-    currentChar         = ' ';
+    setUpOneLineAssembler( inputStr, instr );
    
     nextToken( );
-    if ( currentToken.tokType == TT_OPCODE ) {
+    if ( currentToken.typ == TT_OPCODE ) {
         
-        *instr = currentToken.tokValue;
+        *instr = currentToken.val;
         
         nextToken( );
-        if ( currentToken.tokType == TT_PERIOD ) {
+        if ( currentToken.typ == TT_PERIOD ) {
             
             if ( ! parseInstrOptions( instr )) return( false );
             nextToken( );
@@ -835,12 +1472,41 @@ bool parseLine( char *inputStr, uint32_t *instr, TokId fmtId ) {
             case OP_STA:    
             case OP_STC:    return( parseInstrStore( instr ));
 
-            case OP_EXTR:   return( parseInstrEXTR( instr ));
-            case OP_DEP:    return( parseInstrEXTR( instr ));
-            case OP_DSR:    return( parseInstrEXTR( instr ));
+            case OP_LSID:   return( parseInstrLSID( instr ));
                 
-            // ...
+            case OP_EXTR:
+            case OP_DEP:    return( parseInstrEXTRandDEP( instr ));
+            
+            case OP_DSR:    return( parseInstrDSR( instr ));
+            case OP_SHLA:   return( parseInstrSHLA( instr ));
+            case OP_CMR:    return( parseInstrCMR( instr ));
                 
+            case OP_LDIL:   return( parseInstrLDIL( instr ));
+            case OP_ADDIL:  return( parseInstrADDIL( instr ));
+            case OP_LDO:    return( parseInstrLDO( instr ));
+                
+            case OP_B:
+            case OP_GATE:   return( parseInstrBandGATE( instr ));
+            
+            case OP_BR:
+            case OP_BV:     return( parseInstrBRandBV( instr ));
+            
+            case OP_BE:     return( parseInstrBE( instr ));
+            case OP_BVE:    return( parseInstrBVE( instr ));
+            case OP_CBR:    return( parseInstrCBR( instr ));
+            case OP_CBRU:   return( parseInstrCBRU( instr ));
+                
+            case OP_MR:     return( parseInstrMR( instr ));
+            case OP_MST:    return( parseInstrMST( instr ));
+            case OP_LDPA:   return( parseInstrLDPA( instr ));
+            case OP_PRB:    return( parseInstrPRB( instr ));
+            case OP_ITLB:   return( parseInstrITLB( instr ));
+            case OP_PTLB:   return( parseInstrPTLB( instr ));
+            case OP_PCA:    return( parseInstrPCA( instr ));
+            case OP_DIAG:   return( parseInstrDIAG( instr ));
+            case OP_RFI:    return( parseInstrRFI( instr ));
+            case OP_BRK:    return( parseInstrBRK( instr ));
+             
             default:    return( parserError((char *) "Invalid opcode" ));
         }
     }
@@ -861,7 +1527,7 @@ DrvOneLineAsm::DrvOneLineAsm( VCPU32Globals *glb ) {
     this -> glb = glb;
 };
 
-uint8_t DrvOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr, TokId fmtId ) {
+bool DrvOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {
     
-    return ( parseLine( inputStr, instr, fmtId ));
+    return ( parseLine( inputStr, instr ));
 }

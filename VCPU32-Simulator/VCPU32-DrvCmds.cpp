@@ -81,6 +81,9 @@ struct {
     
     { "D-ABS",              "DA",       CMD_SET,            CMD_DA                  },
     { "M-ABS",              "MA",       CMD_SET,            CMD_MA                  },
+    { "D-ABS-ASM",          "DAA",      CMD_SET,            CMD_DAA                 },
+    { "M-ABS-ASM",          "MAA",      CMD_SET,            CMD_MAA                 },
+    
     { "LOAD-MEM",           "LMF",      CMD_SET,            CMD_LMF                 },
     { "SAVE-MEM",           "SMF",      CMD_SET,            CMD_SMF                 },
     
@@ -669,6 +672,7 @@ void DrvCmds::helpCmd( char *cmdBuf ) {
     fprintf( stdout, FMT_STR, "dr [<regSet>|<reg>] <fmt>]", "display registers" );
     fprintf( stdout, FMT_STR, "mr <reg> <val>", "modify registers" );
     fprintf( stdout, FMT_STR, "da <ofs> [ <len> [ fmt ]]", "display memory" );
+    fprintf( stdout, FMT_STR, "daa <ofs> [ <len> [ fmt ]]", "display memory as code" );
     fprintf( stdout, FMT_STR, "ma <ofs> <val>", "modify memory" );
     fprintf( stdout, FMT_STR, "dis <instr>", "disassemble an instruction" );
     fprintf( stdout, FMT_STR, "asm <instr-string>", "assemble an instruction" );
@@ -1100,13 +1104,11 @@ void DrvCmds::assembleCmd( char *cmdBuf ) {
         else fmtId = argId;
     }
     
-    if ( glb -> oneLineAsm -> parseAsmLine( arg1Str, &instr, fmtId )) {
+    if ( glb -> oneLineAsm -> parseAsmLine( arg1Str, &instr )) {
         
-        fprintf( stdout, " (" );
         glb -> lineDisplay -> displayWord( instr, fmtId );
-        fprintf( stdout, ")\n" );
+        fprintf( stdout, "\n" );
     }
-    
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1581,12 +1583,55 @@ void DrvCmds::displayAbsMemCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Modify physical memory command. This command accepts data values for up to eight consecutive locations.
+// Display absolute memory as code command. Similar to the "DA" command, except it will show the data as
+// code in assembly syntax, one word disassembled per line.
+//
+// DAA <ofs> [ <len> [ <fmt> ]]
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::displayAbsMemAsCodeCmd( char *cmdBuf ) {
+    
+    char        cmdStr[ TOK_NAME_SIZE + 1 ] = "";
+    char        fmtStr[ TOK_NAME_SIZE + 1 ] = "";
+    uint32_t    ofs                         = 0;
+    uint32_t    len                         = 1;
+   
+    int         args    = sscanf( cmdBuf, "%32s %i %i %32s", cmdStr, &ofs, &len, fmtStr );
+    TokId       fmtId   = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+ 
+    if ( args < 2 ) {
+        
+        fprintf( stdout, "Expected physical address offset\n" );
+        return;
+    }
+  
+    if (((uint64_t) ofs + len ) > UINT32_MAX ) {
+        
+        fprintf( stdout, "Offset / Len exceeds physical address range\n" );
+        return;
+    }
+    
+    if ( strlen( fmtStr ) > 0 ) {
+        
+        TokId argId = matchFmtOptions( fmtStr );
+        if ( argId == TOK_NIL ) {
+            
+            fprintf( stdout, "Invalid format option\n" );
+            return;
+        }
+        else fmtId = argId;
+    }
+    
+    glb -> lineDisplay -> displayAbsMemContentAsCode( ofs, len, fmtId );
+}
+
+
+//------------------------------------------------------------------------------------------------------------
+// Modify absolute memory command. This command accepts data values for up to eight consecutive locations.
 // We also use this command to populate physical memory from a script file.
 //
 // MA <ofs> <val1> [ <val2> [ <val3> [ <val4> [ <val5> [ <val6> [ <val7> [ <val8> ]]]]]]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
+void DrvCmds::modifyAbsMemCmd( char *cmdBuf ) {
     
     char        cmdStr[ TOK_NAME_SIZE + 1 ] = "";
     uint32_t    ofs                         = 0;
@@ -1635,6 +1680,50 @@ void DrvCmds::modifyPhysMemCmd( char *cmdBuf ) {
         if ( numOfVal >= 6 ) mem -> putMemDataWord( ofs + 20, val6 );
         if ( numOfVal >= 7 ) mem -> putMemDataWord( ofs + 24, val7 );
         if ( numOfVal >= 8 ) mem -> putMemDataWord( ofs + 28, val8 );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Modify absolute code memory command. This command accepts an address and string that represents the code
+// word in assembly format.
+//
+// MAA <ofs> <asm-string>
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::modifyAbsMemAsCodeCmd( char *cmdBuf ) {
+    
+    char        cmdStr[ TOK_NAME_SIZE + 1 ] = "";
+    char        argStr[ TOK_NAME_SIZE + 1 ] = "";
+    uint32_t    ofs                         = 0;
+    uint32_t    instr                       = 0;
+    CpuMem      *physMem                    = glb -> cpu -> physMem;
+    CpuMem      *pdcMem                     = glb -> cpu -> pdcMem;
+    CpuMem      *ioMem                      = glb -> cpu -> ioMem;
+    CpuMem      *mem                        = nullptr;
+    
+    int         args        = sscanf( cmdBuf, "%s %d \"%[^\"]\"", cmdStr, &ofs, argStr );
+    
+    if ( args < 3 ) {
+        
+        fprintf( stdout, "Expected offset and argument string \n" );
+        return;
+    }
+    
+    if (((uint64_t) ofs ) > UINT32_MAX ) {
+        
+        fprintf( stdout, "Offset / Len exceeds physical address range\n" );
+        return;
+    }
+   
+    if      (( physMem != nullptr ) && ( physMem -> validAdr( ofs ))) mem = physMem;
+    else if (( pdcMem  != nullptr ) && ( pdcMem  -> validAdr( ofs ))) mem = pdcMem;
+    else if (( ioMem   != nullptr ) && ( ioMem   -> validAdr( ofs ))) mem = ioMem;
+    
+    if ( mem != nullptr ) {
+        
+        if ( glb -> oneLineAsm -> parseAsmLine( argStr, &instr )) {
+            
+            mem -> putMemDataWord( ofs, instr );
+        }
     }
 }
 
@@ -2347,50 +2436,52 @@ void DrvCmds::dispatchCmd( char *cmdBuf ) {
             
             switch( currentCmd ) {
                     
-                case TOK_NIL:                                           break;
-                case CMD_COMMENT:       commentCmd( cmdBuf );           break;
-                case CMD_EXIT:          exitCmd( cmdBuf );              break;
-                case CMD_HELP:          helpCmd( cmdBuf);               break;
-                case CMD_WHELP:         winHelpCmd( cmdBuf);            break;
-                case CMD_ENV:           envCmd( cmdBuf);                break;
-                case CMD_XF:            execFileCmd( cmdBuf );          break;
-                case CMD_RESET:         resetCmd( cmdBuf);              break;
-                case CMD_RUN:           runCmd( cmdBuf );               break;
-                case CMD_STEP:          stepCmd( cmdBuf);               break;
-                case CMD_B:             setBreakPointCmd( cmdBuf );     break;
-                case CMD_BD:            deleteBreakPointCmd( cmdBuf );  break;
-                case CMD_BL:            listBreakPointsCmd( cmdBuf );   break;
-                case CMD_DIS_ASM:       disAssembleCmd( cmdBuf );       break;
-                case CMD_ASM:           assembleCmd( cmdBuf );          break;
-                case CMD_DR:            displayRegCmd( cmdBuf);         break;
-                case CMD_MR:            modifyRegCmd( cmdBuf);          break;
-                case CMD_HASH_VA:       hashVACmd( cmdBuf);             break;
-                case CMD_D_TLB:         displayTLBCmd( cmdBuf );        break;
-                case CMD_I_TLB:         insertTLBCmd( cmdBuf );         break;
-                case CMD_P_TLB:         purgeTLBCmd( cmdBuf );          break;
-                case CMD_D_CACHE:       displayCacheCmd( cmdBuf );      break;
-                case CMD_P_CACHE:       purgeCacheCmd( cmdBuf );        break;
-                case CMD_DA:            displayAbsMemCmd( cmdBuf );    break;
-                case CMD_MA:            modifyPhysMemCmd( cmdBuf);      break;
-                case CMD_LMF:           loadPhysMemCmd( cmdBuf);        break;
-                case CMD_SMF:           savePhysMemCmd( cmdBuf);        break;
+                case TOK_NIL:                                               break;
+                case CMD_COMMENT:       commentCmd( cmdBuf );               break;
+                case CMD_EXIT:          exitCmd( cmdBuf );                  break;
+                case CMD_HELP:          helpCmd( cmdBuf);                   break;
+                case CMD_WHELP:         winHelpCmd( cmdBuf);                break;
+                case CMD_ENV:           envCmd( cmdBuf);                    break;
+                case CMD_XF:            execFileCmd( cmdBuf );              break;
+                case CMD_RESET:         resetCmd( cmdBuf);                  break;
+                case CMD_RUN:           runCmd( cmdBuf );                   break;
+                case CMD_STEP:          stepCmd( cmdBuf);                   break;
+                case CMD_B:             setBreakPointCmd( cmdBuf );         break;
+                case CMD_BD:            deleteBreakPointCmd( cmdBuf );      break;
+                case CMD_BL:            listBreakPointsCmd( cmdBuf );       break;
+                case CMD_DIS_ASM:       disAssembleCmd( cmdBuf );           break;
+                case CMD_ASM:           assembleCmd( cmdBuf );              break;
+                case CMD_DR:            displayRegCmd( cmdBuf);             break;
+                case CMD_MR:            modifyRegCmd( cmdBuf);              break;
+                case CMD_HASH_VA:       hashVACmd( cmdBuf);                 break;
+                case CMD_D_TLB:         displayTLBCmd( cmdBuf );            break;
+                case CMD_I_TLB:         insertTLBCmd( cmdBuf );             break;
+                case CMD_P_TLB:         purgeTLBCmd( cmdBuf );              break;
+                case CMD_D_CACHE:       displayCacheCmd( cmdBuf );          break;
+                case CMD_P_CACHE:       purgeCacheCmd( cmdBuf );            break;
+                case CMD_DA:            displayAbsMemCmd( cmdBuf );         break;
+                case CMD_DAA:           displayAbsMemAsCodeCmd( cmdBuf );   break;
+                case CMD_MA:            modifyAbsMemCmd( cmdBuf);           break;
+                case CMD_MAA:           modifyAbsMemAsCodeCmd( cmdBuf);      break;
+                case CMD_LMF:           loadPhysMemCmd( cmdBuf);            break;
+                case CMD_SMF:           savePhysMemCmd( cmdBuf);            break;
                     
-                case CMD_WON:           winOnCmd( cmdBuf );             break;
-                case CMD_WOFF:          winOffCmd( cmdBuf );            break;
-                case CMD_WDEF:          winDefCmd( cmdBuf );            break;
-                case CMD_WC:            winCurrentCmd( cmdBuf );        break;
-                case CMD_WSE:           winStacksEnable( cmdBuf );      break;
-                case CMD_WSD:           winStacksDisable( cmdBuf );     break;
-                case CMD_WN:            winNewWinCmd( cmdBuf );         break;
-                case CMD_WK:            winKillWinCmd( cmdBuf );        break;
-                case CMD_WS:            winSetStackCmd( cmdBuf );       break;
-                case CMD_WT:            winToggleCmd( cmdBuf );         break;
-                case CMD_WX:            winExchangeCmd( cmdBuf );       break;
+                case CMD_WON:           winOnCmd( cmdBuf );                 break;
+                case CMD_WOFF:          winOffCmd( cmdBuf );                break;
+                case CMD_WDEF:          winDefCmd( cmdBuf );                break;
+                case CMD_WC:            winCurrentCmd( cmdBuf );            break;
+                case CMD_WSE:           winStacksEnable( cmdBuf );          break;
+                case CMD_WSD:           winStacksDisable( cmdBuf );         break;
+                case CMD_WN:            winNewWinCmd( cmdBuf );             break;
+                case CMD_WK:            winKillWinCmd( cmdBuf );            break;
+                case CMD_WS:            winSetStackCmd( cmdBuf );           break;
+                case CMD_WT:            winToggleCmd( cmdBuf );             break;
+                case CMD_WX:            winExchangeCmd( cmdBuf );           break;
                     
-                case CMD_WF:            winForwardCmd( cmdBuf );        break;
-                case CMD_WB:            winBackwardCmd( cmdBuf );       break;
-                case CMD_WH:            winHomeCmd( cmdBuf );           break;
-                case CMD_WJ:            winJumpCmd( cmdBuf );           break;
+                case CMD_WF:            winForwardCmd( cmdBuf );            break;
+                case CMD_WB:            winBackwardCmd( cmdBuf );           break;
+                case CMD_WH:            winHomeCmd( cmdBuf );               break;
+                case CMD_WJ:            winJumpCmd( cmdBuf );               break;
                     
                 case CMD_PSE:   case CMD_SRE:   case CMD_PLE:   case CMD_SWE:   case CMD_WE: {
                     
