@@ -551,22 +551,24 @@ VCPU-32 is a cache visible architecture, featuring a separate instruction and da
 The CPU architecture does not specify the page table model. Physical memory is organized in pages with a size of 16 Kbytes. There are several models of page tables possible. One model is to use an hashed page table model, in which each physical page allocated has an entry in the page table. During a TLB miss, a hash function computes an index into the hashed page table to the first page table entry and then walks the collision chain for a matching entry. A possible implementation of the page table entry is shown below.
 
 ```
-                                                                                       hash ( VPN )  -------+
-                                                                                                            |
-   Page Table Entry (Example):                                                                              |
-                                                                                                            |
-       0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31      |
-      :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:<----+
-      :V :T :D :B :P : 0      : AR        : VPN-H                                                     :
-      :-----------------------------------------------------------------------------------------------:
-      : VPN-L                                   : PPN                                                 :
-      :-----------------------------------------------------------------------------------------------:
-      : reserved OS                                                                                   :
-      :-----------------------------------------------------------------------------------------------:
-      : physical address of next entry in chain                                                       : ----+  collision chain
-      :-----------------------------------------------------------------------------------------------:     |
-                                                                                                            |
-                                                                                                            v 
+                                                                                       hash ( VPN )  ---------+
+                                                                                                              | 
+    Page Table Entry (Example):                                                                               |
+                                                                                                              |
+         0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31      |
+        :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:<----+
+        :V :T :D :B :P : 0      : AR        : VPN-H                                                     :
+        :-----------------------------------------------------------------------------------------------:
+        : VPN-L                                   : PPN                                                 :
+        :-----------------------------------------------------------------------------------------------:
+        : reserved OS                                                                                   :
+        :-----------------------------------------------------------------------------------------------:
+        : physical address of next entry in chain                                                       : ----+ 
+        :-----------------------------------------------------------------------------------------------:     |
+                                                                                                              |
+                                                                                                              v 
+
+                                                                                                        collision chain
 ```
 
 Each page table entry contains the virtual page number, the physical pages number, the access rights information, a set of status flags and the physical address of the next entry in the page table. On a TLB miss, the page table entry contains all the information that needs to go into the TLB entry. For a fast lookup index computation, page table entries should have a power of 2 size, typically 4 or 8 words. The reserved fields could be used for the operating system memory management data.
@@ -1057,7 +1059,8 @@ Perform an unconditional IA-relative branch with a static offset and store the r
 #### Format
 
 ```
-   B r, ofs
+   B ofs
+   B ofs, r
 ```
 
 ```
@@ -1100,7 +1103,8 @@ Perform an unconditional external branch.
 #### Format
 
 ```
-   BE r, ofs (a, b)
+   BE ofs (a, b)
+   BE ofs (a, b), r
 ```
 
 ```
@@ -1149,7 +1153,8 @@ Perform an unconditional IA-relative branch with a dynamic offset stored in a ge
 #### Format
 
 ```
-      BR r, b
+      BR b
+      BR b, r
 ```
 
 ```
@@ -1229,13 +1234,13 @@ The instruction opCode for BRK is the opCode value of zero. A zero instruction w
 
 <hr>
 
-Perform an unconditional branch using a base and offset general register for forming the target branch address.
+Perform an unconditional branch using a base general register for forming the target branch address.
 
 #### Format
 
 ```
-   BV r,(b)
    BV (b)
+   BV (b), r
 ```
 
 ```
@@ -1281,7 +1286,7 @@ Perform an unconditional external branch using a logical address and save the re
 #### Format
 
 ```
-   BVE r, (a, b)
+   BVE a (b) [ ,r ]
 ```
 
 ```
@@ -1328,7 +1333,7 @@ Compare two registers and branch on condition.
 #### Format
 
 ```
-   CBR .<cond> a, b, ofs
+   CBR  .<cond> a, b, ofs
    CBRU .<cond> a, b, ofs
 ```
 
@@ -1639,6 +1644,47 @@ The DIAG instruction sends a command to an implementation hardware specific comp
 
 None.
 
+
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
+### DS
+
+<hr>
+
+Placeholder for divide step.....
+
+#### Format
+
+```
+   DS ...
+```
+
+```
+    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+   : DS      ( 0xNN ): r         : 0                                       : a         : b         :
+   :-----------------:-----------------------------------------------------------------------------:
+```
+
+#### Description
+ 
+A placeholder for the divide step instruction .... to be investigated.
+
+#### Operation
+
+```
+   ...
+```
+
+#### Exceptions
+
+None.
+
+#### Notes
+
+None.
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -1988,7 +2034,7 @@ Loads the memory content into a general register using an absolute address.
 
 The load absolute instruction will load the content of the physical memory address into the general register "r". The absolute 32-bit address is computed by adding the signed offset or the general register "a" to general register "b". 
 
-The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. The LDwA instructions is a privileged instructions. If the "b" and "r" register are the same, the operation will store the loaded result in the register and the base registewr address modification is ignored.
+The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. The LDwA instructions is a privileged instructions. If the "b" and "r" register are the same, the operation will store the loaded result in the register and the base register address modification is ignored.
 
 #### Operation
 
@@ -2301,7 +2347,9 @@ Copy data between a general register and a segment or control register.
 
 #### Description
 
-The move register instructions copy data from segment or control register "s" to a general register "r" and vice versa. The "D" field indicates the copy direction. A value of one will copy general register "r" to segment or control register "s". A value of zero copies "r" from segment or control register "s". The "M" field identifies the register type. A value of one refers to a control register, otherwise segment register. Setting a value for a privileged segment or control register is a privileged operation.
+The move register instructions copy data from segment or control register "s" to a general register "r" and vice versa. The "D" field indicates the copy direction. A value of one will copy general register "r" to segment or control register "s". A value of zero copies "r" from segment or control register "s". 
+
+The "M" field identifies the register type. A value of one refers to a control register, otherwise segment register. Setting a value for a privileged segment or control register is a privileged operation.
 
 #### Operation
 

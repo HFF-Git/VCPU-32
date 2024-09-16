@@ -36,7 +36,6 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-
 //------------------------------------------------------------------------------------------------------------
 // Instruction decoding means to get to bits and bit fields. Here is a set of helper functions.
 //
@@ -152,7 +151,7 @@ void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
           
         case OP_MODE_REG: {
           
-            fprintf( stdout, "r%d,r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            fprintf( stdout, "r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             
         } break;
             
@@ -247,8 +246,8 @@ void displayOpCodeOptions( uint32_t instr ) {
             if ( getBitField( instr, 11, 2 ) > 0 ) {
                 
                 fprintf( stdout, "." );
-                if ( getBit( instr, 11 ))   fprintf( stdout, "L" );
-                if ( getBit( instr, 12 ))   fprintf( stdout, "O" );
+                if ( getBit( instr, 10 ))   fprintf( stdout, "L" );
+                if ( getBit( instr, 11 ))   fprintf( stdout, "O" );
             }
             
         } break;
@@ -402,11 +401,7 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
     if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {
         
-        if ( opCodeTab[ opCode ].flags &  BRANCH_INSTR ) {
-            
-            if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, "r%d, ", getBitField( instr, 9, 4 ));
-        }
-       else fprintf( stdout, "r%d", getBitField( instr, 9, 4 ));
+        fprintf( stdout, "r%d", getBitField( instr, 9, 4 ));
     }
     else if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
         
@@ -561,32 +556,42 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
             
         } break;
-      
+            
         case OP_B: 
         case OP_GATE: {
             
-            fprintf( stdout, ", " );
             printImmVal( immGenPosLenLowSign( instr, 31, 22 ) << 2, TOK_DEC );
-                        
+            if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
+        
         } break;
             
-        case OP_BR:
+        case OP_BR: {
+           
+            fprintf( stdout, "r%d", getBitField( instr, 31, 4 ));
+            if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
+            
+        } break;
+            
         case OP_BV: {
            
-            fprintf( stdout, ", (r%d)", getBitField( instr, 31, 4 ));
+            fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
+            if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
             
         } break;
             
         case OP_BE: {
             
             printImmVal( immGenPosLenLowSign( instr, 23, 18 ));
-            fprintf( stdout, ", (s%d,r%d)", getBitField( instr, 27, 4 ) << 2, getBitField( instr, 31, 4 ));
+            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ) << 2, getBitField( instr, 31, 4 ));
+            if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
             
         } break;
             
         case OP_BVE: {
             
-            fprintf( stdout, ", r%d(r%d)", getBitField( instr, 27,4 ), getBitField( instr, 31,4 ));
+            if ( getBitField( instr, 27,4 )) fprintf( stdout, "r%d", getBitField( instr, 27,4 ));
+            fprintf( stdout, "(r%d)", getBitField( instr, 31,4 ));
+            if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
             
         } break;
             

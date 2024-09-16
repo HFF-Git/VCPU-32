@@ -368,7 +368,7 @@ const struct opCodeInfo {
     /* 0x1F */  { "RSV_1F", 0x1F,       ( NO_FLAGS ) },
     
     /* 0x20 */  { "B",      OP_B,       ( BRANCH_INSTR | REG_R_INSTR ) },
-    /* 0x21 */  { "GATE",   OP_GATE,    ( CTRL_INSTR | BRANCH_INSTR | REG_R_INSTR ) },
+    /* 0x21 */  { "GATE",   OP_GATE,    ( BRANCH_INSTR | REG_R_INSTR | CTRL_INSTR ) },
     /* 0x22 */  { "BR",     OP_BR,      ( BRANCH_INSTR | REG_R_INSTR ) },
     /* 0x23 */  { "BV",     OP_BV,      ( BRANCH_INSTR | REG_R_INSTR ) },
     /* 0x24 */  { "BE",     OP_BE,      ( BRANCH_INSTR | REG_R_INSTR ) },
