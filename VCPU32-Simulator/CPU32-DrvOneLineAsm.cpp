@@ -703,11 +703,18 @@ bool parseInstrOptions( uint32_t *instr ) {
 // the OpCode and options parsed. The mode type instruction parsing starts with the target register spot in
 // the command line.
 //
-//      opCode [ "." opt ] <targetReg> "," <num>
-//      opCode [ "." opt ] <targetReg> "," <num> "(" <baseReg> ")"
-//      opCode [ "." opt ] <targetReg> ","<sourceReg>
-//      opCode [ "." opt ] <targetReg> "," <sourceRegA> "," "<sourceRegB>
-//      opCode [ "." opt ] <targetReg> "," <indexReg> "(" <baseReg> ")"
+//      opCode [ "." opt ] <targetReg> "," <num>                                - mode 0
+//      opCode [ "." opt ] <targetReg> "," <num> "(" <baseReg> ")"              - mode 3
+//      opCode [ "." opt ] <targetReg> ","<sourceReg>                           - mode 1
+//      opCode [ "." opt ] <targetReg> "," <sourceRegA> "," "<sourceRegB>       - mode 1
+//      opCode [ "." opt ] <targetReg> "," <indexReg> "(" <baseReg> ")"         - mode 2
+//
+//
+// There is one ugly thing. The "dw" field is only applicable to the mode 2 and 3 type instructions. Although
+// we set the data width option correctly in the instruction template, a "xxxB" byte type instrction will
+// set the "dw" field to "zero" as do the mode 0 and 1 type instructions. We cannot use the "dw" field for
+// checking that the correct instruction mnemonic for mode 0 and 1, i.e. "ADD", is used. An "ADDB" would
+// look the same.
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseModeTypeInstr( uint32_t *instr ) {
@@ -741,20 +748,17 @@ bool parseModeTypeInstr( uint32_t *instr ) {
                 setBitField( instr, 31, 4, currentToken.val );
                 
                 nextToken( );
-                if ( currentToken.typ != TT_RPAREN )
-                    return( parserError((char *) "Expected a right parenthesis" ));
+                checkEOS( );
             }
             else return( parserError((char *) "Expected a general reg" ));
         }
         else if ( currentToken.typ == TT_EOS ) {
             
             setBitField( instr, 13, 2, 0 );
-            
             setImmVal( instr, 31, 18, tokVal );
             
             nextToken( );
-            if ( currentToken.typ == TT_EOS )
-                return( parserError((char *) "Invalid operand" ));
+            checkEOS( );
         }
         else return( parserError((char *) "Invalid operand" ));
     }
@@ -779,8 +783,7 @@ bool parseModeTypeInstr( uint32_t *instr ) {
                 setBitField( instr, 31, 4, currentToken.val );
                 
                 nextToken( );
-                if ( currentToken.typ == TT_EOS )
-                    return( parserError((char *) "Invalid operand" ));
+                checkEOS( );
             }
             else return( parserError((char *) "Expected a general reg" ));
         }
@@ -792,8 +795,15 @@ bool parseModeTypeInstr( uint32_t *instr ) {
                 setBitField( instr, 13, 2, 2 );
                 setBitField( instr, 27, 4, operandRegId );
                 setBitField( instr, 31, 4, currentToken.val );
+                
+                nextToken( );
             }
             else return( parserError((char *) "Expected a general reg" ));
+            
+            if ( currentToken.typ == TT_RPAREN ) nextToken( );
+            else return( parserError((char *) "Expected a right paren" ));
+            
+            checkEOS( );
         }
         else return( parserError((char *) "Invalid operand" ));
     }
@@ -836,12 +846,16 @@ bool parseInstrLSID( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseInstrEXTR" parses the extract instruction.
+// "parseInstrEXTRandDEP" parses the extract or deposit instruction. The instruction has two basic formats.
+// When the "A" bit is set, the position will be obtained from the shift amount control register. Otherwise
+// it is encoded in the instruction.
 //
-//      <targetReg> "," <sourceReg>,
+//      EXTR [ ".“ <opt> ] <targetReg> "," <sourceReg> "," <pos> "," <len"
+//      EXTR [ "." "A" <opt> ] <targetReg> "," <sourceReg> ", <len"
 //
+//      DEP [ ".“ <opt> ] <targetReg> "," <sourceReg> "," <pos> "," <len"
+//      DEP [ "." "A" <opt> ] <targetReg> "," <sourceReg> ", <len"
 //
-// ??? syntax shift amount reg ?
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrEXTRandDEP( uint32_t *instr ) {
     
@@ -867,31 +881,40 @@ bool parseInstrEXTRandDEP( uint32_t *instr ) {
     
     if ( currentToken.typ == TT_NUM ) {
         
-        
-        
-        nextToken( );
-    }
-    else return( parserError((char *) "Expected a Comma" ));
-    
-    
-    if ( currentToken.typ == TT_NUM ) {
-        
+        if ( getBit( *instr, 11 )) {
+            
+            setBitField( instr, 21, 5, currentToken.val );
+        }
+        else setBitField( instr, 27, 5, currentToken.val );
         
         nextToken( );
     }
     else return( parserError((char *) "Expected a Comma" ));
     
-    // ....
-    
-   
+    if ( ! getBit( *instr, 11 )) {
+        
+        if ( currentToken.typ == TT_COMMA ) nextToken( );
+        else return( parserError((char *) "Expected a Comma" ));
+        
+        nextToken( );
+        if ( currentToken.typ == TT_NUM ) {
+            
+            setBitField( instr, 27, 5, currentToken.val );
+            nextToken( );
+        }
+        else return( parserError((char *) "Expected a nuber" ));
+        
+    }
     
     return( checkEOS( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
+// The DSR instruction parses the double shift instruction. There are two flavors. If the "A" bit is set, the
+// shift amount is taken from the shift amount control register, else from the instruction "len" field.
 //
-//
-//      <targetReg> "," <sourceRegA> "," <sourceRegB>
+//      DSR [ ".“ <opt> ] <targetReg> "," <sourceRegA> "," <sourceRegB> "," <len"
+//      DSR [ ".“ "A"   ] <targetReg> "," <sourceRegA> "," <sourceRegB>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrDSR( uint32_t *instr ) {
@@ -923,21 +946,28 @@ bool parseInstrDSR( uint32_t *instr ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( currentToken.typ == TT_COMMA ) nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
-    
-    
-    // ....
-    
-    
-    
+    if ( ! getBit( *instr, 11 )) {
+        
+        if ( currentToken.typ == TT_COMMA ) nextToken( );
+        else return( parserError((char *) "Expected a Comma" ));
+        
+        nextToken( );
+        if ( currentToken.typ == TT_NUM ) {
+            
+            setBitField( instr, 21, 5, currentToken.val );
+            nextToken( );
+        }
+        else return( parserError((char *) "Expected a nuber" ));
+    }
+
     return( checkEOS( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
+// The SHLA instructionperforms a shift left of "B" by "sa" and adds the "A" register to it. Th result will
+// go into the target register.
 //
-//
-//      <targetReg> "," <sourceRegA> "," <sourceRegB>
+//      SHLA [ "." <opt> ] <targetReg> "," <sourceRegA> "," <sourceRegB>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrSHLA( uint32_t *instr ) {
@@ -972,18 +1002,23 @@ bool parseInstrSHLA( uint32_t *instr ) {
     if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a Comma" ));
     
-    
-    // ...
+    if ( currentToken.typ == TT_NUM ) {
+        
+        setBitField( instr, 21, 2, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected the shift amount" ));
     
     return( checkEOS( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
+// The CMR instruction tests register "B" for a condition and if true copies the "A" value to "R".
 //
+//      CMR "." <cond> <targetReg> "," <regA> "," <regB>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrCMR( uint32_t *instr ) {
-    
     
     if ( currentToken.typ == TT_GREG ) {
         
@@ -1012,19 +1047,19 @@ bool parseInstrCMR( uint32_t *instr ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( currentToken.typ == TT_COMMA ) nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
-    
-    
-    
     return( checkEOS( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
+// The "LDIL" instruction loads the immediate value encoded in the instruction left shifted into "R". The 
+// "ADDIL" instruction will add the value encoded in the instruction left shifted to "R". The resukt is
+// in R1.
 //
+//      LDIL <targetReg> "," <val>
+//      ADDIL <sourceReg> "," <val>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrLDIL( uint32_t *instr ) {
+bool parseInstrLDILandADDIL( uint32_t *instr ) {
     
     if ( currentToken.typ == TT_GREG ) {
         
@@ -1036,36 +1071,18 @@ bool parseInstrLDIL( uint32_t *instr ) {
     if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a Comma" ));
     
-    
-    
-    
-    return( checkEOS( ));
-}
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-bool parseInstrADDIL( uint32_t *instr ) {
-    
-    if ( currentToken.typ == TT_GREG ) {
+    if ( currentToken.typ == TT_NUM ) {
         
-        setBitField( instr, 9, 4, currentToken.val );
+        setBitField( instr, 31, 22, currentToken.val );
         nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
-    
-    if ( currentToken.typ == TT_COMMA ) nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
-    
-    
-    
+    else return( parserError((char *) "Expected the shift amount" ));
     
     return( checkEOS( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Load offset instruction.
+// The "LDO" instruction computes the address of an operand, and stores the result in "R".
 //
 //      LDO <targetReg> "," [ <ofs> "," ] "(" <baseReg> ")"
 //
@@ -1107,6 +1124,11 @@ bool parseInstrLDO( uint32_t *instr ) {
     
     return( checkEOS( ));
 }
+
+
+
+
+
 
 //------------------------------------------------------------------------------------------------------------
 //
@@ -1490,8 +1512,9 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
             case OP_SHLA:   return( parseInstrSHLA( instr ));
             case OP_CMR:    return( parseInstrCMR( instr ));
                 
-            case OP_LDIL:   return( parseInstrLDIL( instr ));
-            case OP_ADDIL:  return( parseInstrADDIL( instr ));
+            case OP_LDIL:
+            case OP_ADDIL:  return( parseInstrLDILandADDIL( instr ));
+                
             case OP_LDO:    return( parseInstrLDO( instr ));
                 
             case OP_B:

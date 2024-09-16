@@ -1559,6 +1559,7 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 
 ```
    DEP [.<opt>] r, b, pos, len
+   DEP [.A <opt>] r, b, len
 ```
 
 ```
@@ -1653,6 +1654,7 @@ Performs a right shift of two concatenated registers for shift amount bits and s
 
 ```
    DSR [.A] r, b, a, shAmt
+   DSR.A r, b, a
 ```
 
 ```
@@ -1697,7 +1699,8 @@ Performs a bit field extract from a general register and stores the result in th
 #### Format
 
 ```
-   EXTR [.<opt>] r, b, pos, len
+   EXTR [.<opt>] r, b, pos ,len
+   EXTR [.A <opt>] r, b, len
 ```
 
 ```
