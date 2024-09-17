@@ -443,7 +443,7 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, TokId fm
 void  DrvLineDisplay::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, TokId fmtId ) {
     
     uint32_t    index           = ( ofs / 4 ) * 4;
-    uint32_t    limit           = ((( index + len ) + 3 ) / 4 ) * 4;
+    uint32_t    limit           = ((( index + len ) + 3 ) / 4 );
     CpuMem      *physMem        = glb -> cpu -> physMem;
     CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
     CpuMem      *ioMem          = glb -> cpu -> ioMem;

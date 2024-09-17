@@ -64,6 +64,8 @@ struct EnvTabEntry {
         .envId = ENV_SHOW_CMD_CNT,      .envTyp = ENV_TYP_BOOL, .rOnly = false,  .bVal = true      },
     { .name = "CMD-CNT",
         .envId = ENV_CMD_CNT,           .envTyp = ENV_TYP_INT,  .rOnly = true,   .iVal = 0         },
+    { .name = "ECHO-CMD-INPUT",
+        .envId = ENV_ECHO_CMD,          .envTyp = ENV_TYP_BOOL, .rOnly = false,  .bVal = false     },
     { .name = "EXIT-CODE",
         .envId = ENV_EXIT_CODE,         .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 0         },
     { .name = "W-PER-LINE",

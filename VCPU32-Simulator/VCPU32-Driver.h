@@ -89,12 +89,11 @@ enum TokId : uint16_t {
     ENV_MEM_SIZE            = 541,  ENV_MEM_BANKS           = 542,  ENV_MEM_BANK_SIZE       = 543,
     ENV_MEM_R_ACC_CYCLE     = 544,  ENV_MEM_W_ACC_CYCLE     = 545,
     
-    ENV_CMD_CNT             = 550,  ENV_SHOW_CMD_CNT        = 551,  ENV_FMT_DEF             = 552,
-    ENV_EXIT_CODE           = 553,  ENV_WORDS_PER_LINE      = 554,
-    
-    ENV_PROG_VERSION        = 555,  ENV_GIT_BRANCH          = 556,  ENV_PROG_PATCH_LEVEL    = 557,
-    ENV_STEP_IN_CLOCKS      = 558,  ENV_SHOW_PSTAGE_INFO    = 559,  ENV_PASS_CNT            = 560,  
-    ENV_FAIL_CNT            = 561,  ENV_WIN_MIN_ROWS        = 562,  ENV_WIN_TX_WIDTH        = 563,
+    ENV_CMD_CNT             = 550,  ENV_SHOW_CMD_CNT        = 551,  ENV_ECHO_CMD            = 552,
+    ENV_FMT_DEF             = 553,  ENV_EXIT_CODE           = 554,  ENV_WORDS_PER_LINE      = 555,
+    ENV_PROG_VERSION        = 556,  ENV_GIT_BRANCH          = 557,  ENV_PROG_PATCH_LEVEL    = 558,
+    ENV_STEP_IN_CLOCKS      = 559,  ENV_SHOW_PSTAGE_INFO    = 560,  ENV_PASS_CNT            = 561,
+    ENV_FAIL_CNT            = 562,  ENV_WIN_MIN_ROWS        = 563,  ENV_WIN_TX_WIDTH        = 564,
     
     //--------------------------------------------------------------------------------------------------------
     // Command Sets.

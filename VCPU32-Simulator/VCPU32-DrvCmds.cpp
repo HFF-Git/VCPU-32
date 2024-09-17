@@ -641,6 +641,11 @@ void  DrvCmds::execCmdsFromFile( char* fileName ) {
                 fgets( cmdLineBuf, sizeof( cmdLineBuf ), f );
                 cmdLineBuf[ strcspn( cmdLineBuf, "\r\n" ) ] = 0;
                 
+                if ( glb -> env -> getEnvValBool( ENV_ECHO_CMD )) {
+                    
+                    fprintf( stdout, "%s\n", cmdLineBuf );
+                }
+            
                 dispatchCmd( cmdLineBuf );
             }
         }
@@ -666,14 +671,15 @@ void DrvCmds::helpCmd( char *cmdBuf ) {
     fprintf( stdout, FMT_STR, "exec-f (xf) <filename> ", "execute commands from a file" );
     fprintf( stdout, FMT_STR, "run", "run the CPU" );
     fprintf( stdout, FMT_STR, "step (s) [<num>] [I|C]", "single step for instruction or clock cycle" );
-    fprintf( stdout, FMT_STR, "B <seg> <ofs>", "sets a break breakpoint at virtual address seg.ofs" );
-    fprintf( stdout, FMT_STR, "BD <seg> <ofs>", "deletes a break breakpoint" );
-    fprintf( stdout, FMT_STR, "BL", "displays the breakpoint table" );
+    fprintf( stdout, FMT_STR, "b <seg> <ofs>", "sets a break breakpoint at virtual address seg.ofs" );
+    fprintf( stdout, FMT_STR, "bd <seg> <ofs>", "deletes a break breakpoint" );
+    fprintf( stdout, FMT_STR, "bl", "displays the breakpoint table" );
     fprintf( stdout, FMT_STR, "dr [<regSet>|<reg>] <fmt>]", "display registers" );
     fprintf( stdout, FMT_STR, "mr <reg> <val>", "modify registers" );
     fprintf( stdout, FMT_STR, "da <ofs> [ <len> [ fmt ]]", "display memory" );
     fprintf( stdout, FMT_STR, "daa <ofs> [ <len> [ fmt ]]", "display memory as code" );
     fprintf( stdout, FMT_STR, "ma <ofs> <val>", "modify memory" );
+    fprintf( stdout, FMT_STR, "maa <ofs> <asm-str>", "modify memory as code" );
     fprintf( stdout, FMT_STR, "dis <instr>", "disassemble an instruction" );
     fprintf( stdout, FMT_STR, "asm <instr-string>", "assemble an instruction" );
     fprintf( stdout, FMT_STR, "hva <seg> <ofs>",  "returns the hash value function result" );
@@ -1109,6 +1115,7 @@ void DrvCmds::assembleCmd( char *cmdBuf ) {
         glb -> lineDisplay -> displayWord( instr, fmtId );
         fprintf( stdout, "\n" );
     }
+    else fprintf( stdout, "0xFFFFFFFF\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1593,7 +1600,7 @@ void DrvCmds::displayAbsMemAsCodeCmd( char *cmdBuf ) {
     char        cmdStr[ TOK_NAME_SIZE + 1 ] = "";
     char        fmtStr[ TOK_NAME_SIZE + 1 ] = "";
     uint32_t    ofs                         = 0;
-    uint32_t    len                         = 1;
+    uint32_t    len                         = 4;
    
     int         args    = sscanf( cmdBuf, "%32s %i %i %32s", cmdStr, &ofs, &len, fmtStr );
     TokId       fmtId   = glb -> env -> getEnvValTok( ENV_FMT_DEF );
@@ -1700,7 +1707,7 @@ void DrvCmds::modifyAbsMemAsCodeCmd( char *cmdBuf ) {
     CpuMem      *ioMem                      = glb -> cpu -> ioMem;
     CpuMem      *mem                        = nullptr;
     
-    int         args        = sscanf( cmdBuf, "%s %d \"%[^\"]\"", cmdStr, &ofs, argStr );
+    int         args = sscanf( cmdBuf, "%s %d \"%[^\"]\"", cmdStr, &ofs, argStr );
     
     if ( args < 3 ) {
         
