@@ -203,7 +203,8 @@ void displayOpCode( uint32_t instr ) {
         
         switch ( opCode ) {
                 
-            case OP_LD: case OP_ST: {
+            case OP_LD: 
+            case OP_ST: {
                 
                 fprintf( stdout, "%s", opCodeTab[ opCode ].mnemonic );
                 
@@ -233,15 +234,19 @@ void displayOpCodeOptions( uint32_t instr ) {
     
     switch ( opCode ) {
             
-        case OP_LD:     case OP_ST:
-        case OP_LDA:    case OP_STA: {
+        case OP_LD:     
+        case OP_ST:
+        case OP_LDA:    
+        case OP_STA: {
             
             if ( getBit( instr, 11 )) fprintf( stdout, ".M" );
             
         } break;
             
-        case OP_ADD:    case OP_ADC:
-        case OP_SUB:    case OP_SBC: {
+        case OP_ADD:    
+        case OP_ADC:
+        case OP_SUB:    
+        case OP_SBC: {
             
             if ( getBitField( instr, 11, 2 ) > 0 ) {
                 
@@ -399,7 +404,7 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
     
     uint32_t opCode = getBitField( instr, 5, 6 );
     
-    if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {
+    if (( opCodeTab[ opCode ].flags & REG_R_INSTR ) && ( ! ( opCodeTab[ opCode ].flags & BRANCH_INSTR ))) {
         
         fprintf( stdout, "r%d", getBitField( instr, 9, 4 ));
     }

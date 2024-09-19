@@ -1,16 +1,16 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Dissaembler
+// VCPU32 - A 32-bit CPU - One Line Assembler
 //
 //------------------------------------------------------------------------------------------------------------
 // The one line assembler assembles an instruction without further context. It is intended to for testing
-// instructons in teh simulator. There is no symbol table or any concept of assembling multiple instructions.
+// instructions in the simulator. There is no symbol table or any concept of assembling multiple instructions.
 // The instruction to generate test is completely self sufficient. The parser is a straightforward recursive
 // descendant parser, LL1 grammar.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Dissaembler
+// VCPU32 - A 32-bit CPU - One Line Assembler
 // Copyright (C) 2022 - 2024 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -28,7 +28,7 @@
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
-// Local namespace. These routines are not visible otside this source file.
+// Local namespace. These routines are not visible outside this source file.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
@@ -63,11 +63,14 @@ enum TokType : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A token. A token has a name, a tye and a value. For the instructions, the value represents the instruction
-// tempate for the respective instruction. We also already set the data word width and any other predefied
-// bits. The parsing routines will augment this tempalte be setting the remaing fields. The token table is
+// A token. A token has a name, a type and a value. For the instructions, the value represents the instruction
+// template for the respective instruction. We also already set the data word width and any other predefined
+// bits. The parsing routines will augment this template be setting the remaining fields. The token table is
 // just a list of tokens, which is searched in a linear fashion.
 //
+// ??? we may need some more options to detect special cases such as "ADDx" and a mode 0 instruction pattern.
+// We cannot detect that there is now "dw" field in this mode and hence specifying an ADDB will go undetected.
+// While this will not affect the assembly parsing and instruction generation, it looks strange,
 //------------------------------------------------------------------------------------------------------------
 struct Token {
     
@@ -202,18 +205,19 @@ const Token tokNameTab[ ] = {
 const int   TOK_NAME_TAB_SIZE  = sizeof( tokNameTab ) / sizeof( *tokNameTab );
 
 //------------------------------------------------------------------------------------------------------------
-// The current parser state.
+// The current parser state. There is the line, its length, and the "current" state for character and token.
 //
 //------------------------------------------------------------------------------------------------------------
 char        tokenLine[ TOK_INPUT_LINE_SIZE ];
 int         currentLineLen;
 int         currentCharIndex;
-int         currentTokIndex;
+int         currentTokCharIndex;
+
 char        currentChar;
 Token       currentToken;
 
 //------------------------------------------------------------------------------------------------------------
-// Instruction decoding means to get to bits and bit fields. Here is a set of helper functions.
+// Instruction decoding means to fiddle with bits and bit fields. Here is a set of helper functions.
 //
 //------------------------------------------------------------------------------------------------------------
 bool getBit( uint32_t arg, int pos ) {
@@ -313,9 +317,7 @@ uint8_t lookupToken( char *str ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "nextChar" returns the next character from the token line string. "puBackChar" is necessary to set the
-// character index back one character. We need this for cases where we look two characters ahead and need
-// to go back one character once we know what we are looking at.
+// "nextChar" returns the next character from the token line string.
 //
 //------------------------------------------------------------------------------------------------------------
 void nextChar( ) {
@@ -328,19 +330,21 @@ void nextChar( ) {
     else currentChar = EOS_CHAR;
 }
 
-void putBackChar( ) {
+//------------------------------------------------------------------------------------------------------------
+// The one line assembler interface. The input string is analyzed and the corresponding instruction word is
+// created. We initialize a couple of globals that represent the current state of the parsing process.
+//
+//------------------------------------------------------------------------------------------------------------
+void setUpOneLineAssembler( char *inputStr, uint32_t *instr ) {
     
-    if ( currentCharIndex > 0 ) {
-        
-        currentCharIndex --;
-        
-        if ( currentCharIndex > 0 ) {
-            
-            currentChar = tokenLine[ currentCharIndex - 1];
-        }
-        else currentChar = ' ';
-    }
-    else currentChar = ' ';
+    strncpy( tokenLine, inputStr, strlen( inputStr ) + 1 );
+    upshiftStr( tokenLine );
+    
+    *instr                  = 0;
+    currentLineLen          = (int) strlen( tokenLine );
+    currentCharIndex        = 0;
+    currentTokCharIndex     = 0;
+    currentChar             = ' ';
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -353,52 +357,43 @@ bool parserError( char *errStr ) {
     fprintf( stdout, "%s\n", tokenLine );
     
     int i = 0;
-    while ( i < currentTokIndex ) {
+    while ( i < currentTokCharIndex ) {
         
         fprintf( stdout, " " );
         i ++;
     }
     
-    fprintf( stdout, "^\n" );
-    
-    fprintf( stdout, "%s\n", errStr );
+    fprintf( stdout, "^\n" "%s\n", errStr );
     return( false );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Check that the ASM line does not contain any extra tokens.
+// Check that the ASM line does not contain any extra tokens when the parser completed the analysis of the
+// assembly line.
 //
 //------------------------------------------------------------------------------------------------------------
 bool checkEOS( ) {
     
-    if ( currentToken.typ != TT_EOS ) {
-        
-        return( parserError((char *) "Extra tokens in the assmbler line" ));
-    }
-    else return( true );
+    if ( currentToken.typ == TT_EOS ) return( true );
+    else return( parserError((char *) "Extra tokens in the assembler line" ));
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "getNum" will parse a number. We leave the heavy lifting to the C library.
+// "getNum" will parse a number. We leave the heavy lifting of converting the numeric value to the C library.
 //
 //------------------------------------------------------------------------------------------------------------
 void parseNum( int sign ) {
     
-    int  index = 0;
     int  tmpRes = 0;
-    char tmpStr[ TOK_INPUT_LINE_SIZE ];
+    char tmpStr[ TOK_INPUT_LINE_SIZE ] = "";
     
     do {
         
-        tmpStr[ index++ ] = currentChar;
+        strcat( tmpStr, &currentChar );
         nextChar( );
         
-    } while ( isxdigit( currentChar ) ||
-             ( currentChar == 'X' )   || ( currentChar == 'x' ) ||
-             ( currentChar == 'O' )   || ( currentChar == 'o' ));
-    
-    tmpStr[ index ] = 0;
-    
+    } while ( isxdigit( currentChar ) || ( currentChar == 'X' ) || ( currentChar == 'O' ));
+   
     if ( sscanf( tmpStr, "%i", &tmpRes ) == 1 ) {
         
         currentToken.typ    = TT_NUM;
@@ -409,22 +404,25 @@ void parseNum( int sign ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "getIdent" parses an identifier. It is a sequence of characters starting with an alpha character. We do
-// not really have user defined identifiers, only reserved words. However, the concept of a non-reserved
-// identifier is used to implement the opCode option string, which is just a list of characters. The parsing
-// of an identfier also needs to manage the parsing of constants with a qualifier, such as "L%nnn". We first
-// check for these kind of qualifiers and if found hand over to parse a number.
+// not really have user defined identifiers, only reserved words. As a qualified constant also begins with 
+// a character, the parsing of an identifier also needs to manage the parsing of constants with a qualifier,
+// such as "L%nnn".  We first check for these kind of qualifiers and if found hand over to parse a number.
 //
 //------------------------------------------------------------------------------------------------------------
 void parseIdent( ) {
     
-    int tokStrIndex = 0;
+    char identBuf[ TOK_INPUT_LINE_SIZE ] = "";
     
     if ( currentChar == 'L' ) {
         
+        strcat( identBuf, &currentChar );
         nextChar( );
+        
         if ( currentChar == '%' ) {
             
+            strcat( identBuf, &currentChar );
             nextChar( );
+            
             if ( isdigit( currentChar )) {
                 
                 parseNum( 1 );
@@ -433,21 +431,17 @@ void parseIdent( ) {
             }
             else parserError((char *) "Invalid char in identifier" );
         }
-        else {
-            
-            currentToken.name[ 0 ]  = 'L';
-            currentToken.name[ 1 ]  = currentChar;
-            tokStrIndex             = 2;
-        }
     }
     else if ( currentChar == 'R' ) {
-       
+        
+        strcat( identBuf, &currentChar );
         nextChar( );
+        
         if ( currentChar == '%' ) {
             
-            currentToken.name[ 1 ] = currentChar;
-            
+            strcat( identBuf, &currentChar );
             nextChar( );
+            
             if ( isdigit( currentChar )) {
                 
                 parseNum( 1 );
@@ -456,39 +450,23 @@ void parseIdent( ) {
             }
             else parserError((char *) "Invalid char in identifier" );
         }
-        else {
-            
-            currentToken.name[ 0 ] = 'R';
-            currentToken.name[ 1 ] = currentChar;
-            tokStrIndex            = 2;
-        }
     }
-    else {
-        
-        currentToken.name[ 0 ] = currentChar;
-        tokStrIndex            = 1;
-    }
-   
-    nextChar( );
+    
     while ( isalnum( currentChar )) {
         
-        currentToken.name[ tokStrIndex++ ] = currentChar;
+        strcat( identBuf, &currentChar );
         nextChar( );
     }
+   
+    int currentTokenIndex = lookupToken( identBuf );
     
-    currentToken.name[ tokStrIndex ] = 0;
-    
-    int currentTokenIndex = lookupToken( currentToken.name );
-    
-    if ( currentTokenIndex != 0 ) {
+    if ( currentTokenIndex == 0 ) {
         
-        currentToken = tokNameTab[ currentTokenIndex ];
+        strcpy( currentToken.name, identBuf );
+        currentToken.typ = TT_IDENT;
+        currentToken.val = 0;
     }
-    else {
-        
-        currentToken.typ     = TT_IDENT;
-        currentToken.val    = 0;
-    }
+    else currentToken = tokNameTab[ currentTokenIndex ];
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -504,7 +482,7 @@ void nextToken( ) {
     
     while (( currentChar == ' ' ) || ( currentChar == '\n' ) || ( currentChar == '\n' )) nextChar( );
     
-    currentTokIndex = currentCharIndex - 1;
+    currentTokCharIndex = currentCharIndex - 1;
     
     if ( isalpha( currentChar )) {
         
@@ -541,7 +519,7 @@ void nextToken( ) {
     }
     else if ( currentChar == EOS_CHAR ) {
         
-        currentToken.name[ 0 ]  = 0;;
+        currentToken.name[ 0 ]  = 0;
         currentToken.typ        = TT_EOS;
         currentToken.val        = 0;
     }
@@ -549,207 +527,198 @@ void nextToken( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The one line assembler interface. The input string is analyzed and the corresponding instruction word is
-// created. We initialize a couple of globals that represent the current state of the parsing process.
-//
-//------------------------------------------------------------------------------------------------------------
-void setUpOneLineAssembler( char *inputStr, uint32_t *instr ) {
-    
-    strncpy( tokenLine, inputStr, strlen( inputStr ) + 1 );
-    upshiftStr( tokenLine );
-    
-    *instr              = 0;
-    currentLineLen      = (int) strlen( tokenLine );
-    currentCharIndex    = 0;
-    currentTokIndex     = 0;
-    currentChar         = ' ';
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "parseInstrOptions" will analyze the opCode option string. An opCode string is a sequence of characters 
-// and looks just like an identifier to the one line parser. We will look at each character in the "name"
-// and set the options for the particular instruction. One day we may have options that have more than one
-// period/option pair. And an option may have a name that has more than one character. To be defined...
+// "parseInstrOptions" will analyze the opCode option string. An opCode string is a sequence of characters.
+// We will look at each character in the "name" and set the options for the particular instruction. There are
+// also cases where the only option is a multi-character sequence. We detect invalid options but not when
+// the same option is repeated. E.g. a "LOL" will result in "L" and "O" set.
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrOptions( uint32_t *instr ) {
     
-    nextToken( );
-    if ( currentToken.typ == TT_IDENT ) {
+    char optBuf[ TOK_INPUT_LINE_SIZE ] = "";
+    
+    while ( isalpha( currentChar )) {
         
-        switch( getBitField( *instr, 5, 6 )) {
-                
-            case OP_LD:     
-            case OP_ST:
-            case OP_LDA:
-            case OP_STA:  {
-                
-                if ( currentToken.name[ 0 ] == 'M' ) setBit( instr, 11 );
-                else return( parserError((char *) "Invalid instruction option" ));
-                
-            } break;
-                
-            case OP_ADD:    
-            case OP_ADC:
-            case OP_SUB:
-            case OP_SBC: {
-                
-                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
-                    
-                    if      ( currentToken.name[ i ] == 'L' ) setBit( instr, 10 );
-                    else if ( currentToken.name[ i ] == 'O' ) setBit( instr, 11 );
-                    else return( parserError((char *) "Invalid instruction option" ));
-                }
-                
-            } break;
-                
-            case OP_AND:    
-            case OP_OR: {
-                
-                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
-                    
-                    if      ( currentToken.name[ i ] == 'N' ) setBit( instr, 10 );
-                    else if ( currentToken.name[ i ] == 'C' ) setBit( instr, 11 );
-                    else return( parserError((char *) "Invalid instruction option" ));
-                }
-                
-            } break;
-                
-            case OP_XOR: {
-                
-                if      ( currentToken.name[ 0 ] == 'N' ) setBit( instr, 10 );
-                else return( parserError((char *) "Invalid instruction option" ));
-                
-            } break;
-                
-            case OP_CMP:    
-            case OP_CMPU: {
-                
-                if ( strcmp( currentToken.name, ((char *) "EQ" ))) setBitField( instr, 11, 2, 0 );
-                if ( strcmp( currentToken.name, ((char *) "LT" ))) setBitField( instr, 11, 2, 1 );
-                if ( strcmp( currentToken.name, ((char *) "NE" ))) setBitField( instr, 11, 2, 2 );
-                if ( strcmp( currentToken.name, ((char *) "LE" ))) setBitField( instr, 11, 2, 3 );
-                
-            } break;
-                
-            case OP_EXTR: {
-                
-                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
-                    
-                    if      ( currentToken.name[ i ] == 'S' ) setBit( instr, 10 );
-                    else if ( currentToken.name[ i ] == 'A' ) setBit( instr, 11 );
-                    else return( parserError((char *) "Invalid instruction option" ));
-                }
-                
-            } break;
-                
-            case OP_DEP: {
-                
-                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
-                    
-                    if      ( currentToken.name[ i ] == 'Z' ) setBit( instr, 10 );
-                    else if ( currentToken.name[ i ] == 'A' ) setBit( instr, 11 );
-                    else if ( currentToken.name[ i ] == 'I' ) setBit( instr, 12 );
-                    else return( parserError((char *) "Invalid instruction option" ));
-                }
-                
-            } break;
-                
-            case OP_DSR: {
-                
-                if      ( currentToken.name[ 0 ] == 'A' ) setBit( instr, 11 );
-                else return( parserError((char *) "Invalid instruction option" ));
-                
-            } break;
-                
-            case OP_SHLA: {
-                
-                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
-                    
-                    if      ( currentToken.name[ i ] == 'I' ) setBit( instr, 10 );
-                    else if ( currentToken.name[ i ] == 'L' ) setBit( instr, 11 );
-                    else if ( currentToken.name[ i ] == 'O' ) setBit( instr, 12 );
-                    else return( parserError((char *) "Invalid instruction option" ));
-                }
-                
-            } break;
-                
-            case OP_MR: {
-                
-                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
-                    
-                    if      ( currentToken.name[ i ] == 'D' ) setBit( instr, 10 );
-                    else if ( currentToken.name[ i ] == 'M' ) setBit( instr, 11 );
-                    else return( parserError((char *) "Invalid instruction option" ));
-                }
-                
-            } break;
-                
-            case OP_PRB: {
-                
-                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
-                    
-                    if      ( currentToken.name[ i ] == 'W' ) setBit( instr, 10 );
-                    else if ( currentToken.name[ i ] == 'I' ) setBit( instr, 11 );
-                    else return( parserError((char *) "Invalid instruction option" ));
-                }
-                
-            } break;
-                
-            case OP_ITLB: {
-                
-                if      ( currentToken.name[ 0 ] == 'T' ) setBit( instr, 11 );
-                else return( parserError((char *) "Invalid instruction option" ));
-                
-            } break;
-                
-            case OP_PTLB: {
-                
-                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
-                    
-                    if      ( currentToken.name[ i ] == 'T' ) setBit( instr, 10 );
-                    else if ( currentToken.name[ i ] == 'M' ) setBit( instr, 11 );
-                    else return( parserError((char *) "Invalid instruction option" ));
-                }
-                
-            } break;
-                
-            case OP_PCA: {
-                
-                for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
-                    
-                    if      ( currentToken.name[ i ] == 'T' ) setBit( instr, 10 );
-                    else if ( currentToken.name[ i ] == 'M' ) setBit( instr, 11 );
-                    else if ( currentToken.name[ i ] == 'F' ) setBit( instr, 14 );
-                    else return( parserError((char *) "Invalid instruction option" ));
-                }
-                
-            } break;
-                
-            default: return( parserError((char *) "Instruction has no option" ));
-        }
+        strcat( optBuf, &currentChar );
+        nextChar( );
     }
-    else return( parserError((char *) "Expected the option qualifiers" ));
+    
+    if ( strlen( optBuf ) == 0 ) {
+        
+        parserError((char *) "Expected the option" );
+        return( false );
+    }
+    
+    switch( getBitField( *instr, 5, 6 )) {
+            
+        case OP_LD:
+        case OP_ST:
+        case OP_LDA:
+        case OP_STA:  {
+            
+            if ( optBuf[ 0 ] == 'M' ) setBit( instr, 11 );
+            else return( parserError((char *) "Invalid instruction option" ));
+            
+        } break;
+            
+        case OP_ADD:
+        case OP_ADC:
+        case OP_SUB:
+        case OP_SBC: {
+            
+            for ( int i = 0; i < strlen( optBuf ); i ++ ) {
+                
+                if      ( optBuf[ i ] == 'L' ) setBit( instr, 10 );
+                else if ( optBuf[ i ] == 'O' ) setBit( instr, 11 );
+                else return( parserError((char *) "Invalid instruction option" ));
+            }
+            
+        } break;
+            
+        case OP_AND:
+        case OP_OR: {
+            
+            for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
+                
+                if      ( optBuf[ i ] == 'N' ) setBit( instr, 10 );
+                else if ( optBuf[ i ] == 'C' ) setBit( instr, 11 );
+                else return( parserError((char *) "Invalid instruction option" ));
+            }
+            
+        } break;
+            
+        case OP_XOR: {
+            
+            if ( optBuf[ 0 ] == 'N' ) setBit( instr, 10 );
+            else return( parserError((char *) "Invalid instruction option" ));
+            
+        } break;
+            
+        case OP_CMP:
+        case OP_CMPU: {
+            
+            if ( strcmp( optBuf, ((char *) "EQ" ))) setBitField( instr, 11, 2, 0 );
+            if ( strcmp( optBuf, ((char *) "LT" ))) setBitField( instr, 11, 2, 1 );
+            if ( strcmp( optBuf, ((char *) "NE" ))) setBitField( instr, 11, 2, 2 );
+            if ( strcmp( optBuf, ((char *) "LE" ))) setBitField( instr, 11, 2, 3 );
+            
+        } break;
+            
+        case OP_EXTR: {
+            
+            for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
+                
+                if      ( optBuf[ i ] == 'S' ) setBit( instr, 10 );
+                else if ( optBuf[ i ] == 'A' ) setBit( instr, 11 );
+                else return( parserError((char *) "Invalid instruction option" ));
+            }
+            
+        } break;
+            
+        case OP_DEP: {
+            
+            for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
+                
+                if      ( optBuf[ i ] == 'Z' ) setBit( instr, 10 );
+                else if ( optBuf[ i ] == 'A' ) setBit( instr, 11 );
+                else if ( optBuf[ i ] == 'I' ) setBit( instr, 12 );
+                else return( parserError((char *) "Invalid instruction option" ));
+            }
+            
+        } break;
+            
+        case OP_DSR: {
+            
+            if ( optBuf[ 0 ] == 'A' ) setBit( instr, 11 );
+            else return( parserError((char *) "Invalid instruction option" ));
+            
+        } break;
+            
+        case OP_SHLA: {
+            
+            for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
+                
+                if      ( optBuf[ i ] == 'I' ) setBit( instr, 10 );
+                else if ( optBuf[ i ] == 'L' ) setBit( instr, 11 );
+                else if ( optBuf[ i ] == 'O' ) setBit( instr, 12 );
+                else return( parserError((char *) "Invalid instruction option" ));
+            }
+            
+        } break;
+            
+        case OP_MR: {
+            
+            for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
+                
+                if      ( optBuf[ i ] == 'D' ) setBit( instr, 10 );
+                else if ( optBuf[ i ] == 'M' ) setBit( instr, 11 );
+                else return( parserError((char *) "Invalid instruction option" ));
+            }
+            
+        } break;
+            
+        case OP_PRB: {
+            
+            for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
+                
+                if      ( optBuf[ i ] == 'W' ) setBit( instr, 10 );
+                else if ( optBuf[ i ] == 'I' ) setBit( instr, 11 );
+                else return( parserError((char *) "Invalid instruction option" ));
+            }
+            
+        } break;
+            
+        case OP_ITLB: {
+            
+            if ( optBuf[ 0 ] == 'T' ) setBit( instr, 11 );
+            else return( parserError((char *) "Invalid instruction option" ));
+            
+        } break;
+            
+        case OP_PTLB: {
+            
+            for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
+                
+                if      ( optBuf[ i ] == 'T' ) setBit( instr, 10 );
+                else if ( optBuf[ i ] == 'M' ) setBit( instr, 11 );
+                else return( parserError((char *) "Invalid instruction option" ));
+            }
+            
+        } break;
+            
+        case OP_PCA: {
+            
+            for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
+                
+                if      ( optBuf[ i ] == 'T' ) setBit( instr, 10 );
+                else if ( optBuf[ i ] == 'M' ) setBit( instr, 11 );
+                else if ( optBuf[ i ] == 'F' ) setBit( instr, 14 );
+                else return( parserError((char *) "Invalid instruction option" ));
+            }
+            
+        } break;
+            
+        default: return( parserError((char *) "Instruction has no option" ));
+    }
     
     return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseModeTypeInstr" parses all instructions that have an "operand" encoding. We enter the routine with
-// the OpCode and options parsed. The mode type instruction parsing starts with the target register spot in
-// the command line.
+// "parseModeTypeInstr" parses all instructions that have an "operand" encoding. The syntax is as follows:
 //
 //      opCode [ "." opt ] <targetReg> "," <num>                                - mode 0
 //      opCode [ "." opt ] <targetReg> "," <num> "(" <baseReg> ")"              - mode 3
-//      opCode [ "." opt ] <targetReg> ","<sourceReg>                           - mode 1
+//      opCode [ "." opt ] <targetReg> "," <sourceReg>                          - mode 1
 //      opCode [ "." opt ] <targetReg> "," <sourceRegA> "," "<sourceRegB>       - mode 1
 //      opCode [ "." opt ] <targetReg> "," <indexReg> "(" <baseReg> ")"         - mode 2
 //
-// There is one ugly thing. The "dw" field is only applicable to the mode 2 and 3 type instructions. Although
-// we set the data width option correctly in the instruction template, a "xxxB" byte type instrction will
-// set the "dw" field to "zero" as do the mode 0 and 1 type instructions. We cannot use the "dw" field for
-// checking that the correct instruction mnemonic for mode 0 and 1, i.e. "ADD", is used. An "ADDB" would
-// look the same.
+// There is one ugly thing. The "dw" field is only applicable to the mode 2 and 3 type instructions. When
+// the input is for example "ADDB r1, 100", we cannot detect based on the 2dw" set in the template that this
+// is an invalid combination. For the translation no harm is done, but it would be nice to detect this and
+// report an error. Perhaps we need to enhance the tokTable with some further information for these kind of
+// cases. We could however also just accept it and detect that the numeric value for mode zero does not match
+// the range indicated by the instruction .... Hmmm.
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseModeTypeInstr( uint32_t *instr ) {
@@ -856,7 +825,7 @@ bool parseModeTypeInstr( uint32_t *instr ) {
     
     if (( getBitField( *instr, 13, 2 ) == 1 ) && ( getBitField( *instr, 15, 2 ) != 0 )) {
         
-        return( parserError((char *) "Invalid opCode option" ));
+        return( parserError((char *) "Invalid opCode data width specifier for mode option" ));
     }
     
     return( true );
@@ -865,7 +834,7 @@ bool parseModeTypeInstr( uint32_t *instr ) {
 //------------------------------------------------------------------------------------------------------------
 // "parseInstrLSID" parses the LSID instruction.
 //
-//      <opCode> [ "." <opt> ] <targetReg> "," <sourceReg>
+//      <opCode> <targetReg> "," <sourceReg>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrLSID( uint32_t *instr ) {
@@ -952,7 +921,7 @@ bool parseInstrEXTRandDEP( uint32_t *instr ) {
             }
             else return( parserError((char *) "Immediate value out of range" ));
         }
-        else return( parserError((char *) "Expected a nuber" ));
+        else return( parserError((char *) "Expected a number" ));
     }
     
     return( checkEOS( ));
@@ -1010,15 +979,14 @@ bool parseInstrDSR( uint32_t *instr ) {
             }
             else return( parserError((char *) "Immediate value out of range" ));
         }
-        else return( parserError((char *) "Expected a nuber" ));
+        else return( parserError((char *) "Expected a number" ));
     }
-
+    
     return( checkEOS( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The SHLA instructionperforms a shift left of "B" by "sa" and adds the "A" register to it. Th result will
-// go into the target register.
+// The SHLA instruction performs a shift left of "B" by "sa" and adds the "A" register to it.
 //
 //      SHLA [ "." <opt> ] <targetReg> "," <sourceRegA> "," <sourceRegB>
 //
@@ -1072,7 +1040,7 @@ bool parseInstrSHLA( uint32_t *instr ) {
 //------------------------------------------------------------------------------------------------------------
 // The CMR instruction tests register "B" for a condition and if true copies the "A" value to "R".
 //
-//      CMR "." <cond> <targetReg> "," <regA> "," <regB>
+//      CMR <targetReg> "," <regA> "," <regB>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrCMR( uint32_t *instr ) {
@@ -1108,8 +1076,8 @@ bool parseInstrCMR( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The "LDIL" instruction loads the immediate value encoded in the instruction left shifted into "R". The 
-// "ADDIL" instruction will add the value encoded in the instruction left shifted to "R". The resukt is
+// The "LDIL" instruction loads the immediate value encoded in the instruction left shifted into "R". The
+// "ADDIL" instruction will add the value encoded in the instruction left shifted to "R". The result is
 // in R1.
 //
 //      LDIL <targetReg> "," <val>
@@ -1169,7 +1137,7 @@ bool parseInstrLDO( uint32_t *instr ) {
         else return( parserError((char *) "Immediate value out of range" ));
         
         if ( currentToken.typ == TT_LPAREN ) nextToken( );
-        else return( parserError((char *) "Expected a Lparen" ));
+        else return( parserError((char *) "Expected a left paren" ));
     }
     else if ( currentToken.typ == TT_LPAREN ) {
         
@@ -1191,14 +1159,11 @@ bool parseInstrLDO( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The "B" and "GATE" instruction represent an instruction offset relatibve branch. Optionally, there is a
-// return register.
+// The "B" and "GATE" instruction represent an instruction offset relative branch. Optionally, there is an
+// optional return register. When omitted, R0 is used in the instruction generation.
 //
-//      B       <offsetReg>
-//      B       <offsetReg> "," <returnReg>
-//
-//      GATE    <offsetReg>
-//      GATE    <offsetReg> "," <returnReg>
+//      B       <offsetReg> [ "," <returnReg> ]
+//      GATE    <offsetReg> [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrBandGATE( uint32_t *instr ) {
@@ -1206,7 +1171,7 @@ bool parseInstrBandGATE( uint32_t *instr ) {
     if ( currentToken.typ == TT_NUM ) {
         
         if ( isInRangeForBitField( currentToken.val, 22 )) {
-        
+            
             setImmVal( instr, 31, 22, currentToken.val );
             nextToken( );
         }
@@ -1228,11 +1193,10 @@ bool parseInstrBandGATE( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The "BR" instruction is an IA-relative branch with the offset to be added in a general register. There is
-// also an optional return register.
+// The "BR" instruction is an IA-relative branch with the offset to be added in a general register. 
+// Optionally, there is an optional return register. When omitted, R0 is used in the instruction generation.
 //
-//      BR <branchReg>
-//      BR <branchReg> "," <returnReg>
+//      BR <branchReg> [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrBR( uint32_t *instr ) {
@@ -1259,11 +1223,10 @@ bool parseInstrBR( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The "BV" is an absolute branch address instrcution in the same segmnt. There is also an optional return
-// register.
+// The "BV" is an absolute branch address instruction in the same segment. Optionally, there is an optional
+// return register. When omitted, R0 is used in the instruction generation.
 //
-//      BV "(" <targetAdrReg> ")"
-//      BV "(" <targetAdrReg> ")" "," <returnReg>
+//      BV "(" <targetAdrReg> ")" [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrBV( uint32_t *instr ) {
@@ -1291,20 +1254,19 @@ bool parseInstrBV( uint32_t *instr ) {
         }
         else return( parserError((char *) "Expected a general register" ));
     }
-        
+    
     return( checkEOS( ));
 }
 
-
 //------------------------------------------------------------------------------------------------------------
-// The "BE" instruction is an external branch to a segment and a segment relative offset. There is also an 
-// optional return register.
+// The "BE" instruction is an external branch to a segment and a segment relative offset. When the offset
+// part is omitted, a zero is used. There is also an optional return register. When omitted, R0 is used in
+// the instruction generation.
 //
 //      BE [ <ofs> ] "(" <seg> "," <ofsReg> ")" [ "," <retSeg> ]
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrBE( uint32_t *instr ) {
-    
     
     if ( currentToken.typ == TT_NUM ) {
         
@@ -1326,7 +1288,7 @@ bool parseInstrBE( uint32_t *instr ) {
     }
     else return( parserError((char *) "Expected a segment register" ));
     
-    if ( currentToken.typ == TT_LPAREN ) nextToken( );
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a comma" ));
     
     if ( currentToken.typ == TT_GREG ) {
@@ -1355,7 +1317,7 @@ bool parseInstrBE( uint32_t *instr ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The "BVE" instruction forms a logical address by adding general register "a" to base register "b". There 
-// is also an optional return register.
+// is also an optional return register. When omitted, R0 is used in the instruction generation.
 //
 //      BVE [ <offsetReg> ] "(" <baseReg> ")" [ "," <returnReg> ]
 //
@@ -1397,10 +1359,10 @@ bool parseInstrBVE( uint32_t *instr ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The "CBR" and "CBRU" compare register "a" and "b" based on the condition and branch if the comparison
-// result is true.
+// result is true. The condition code is encoded in the instruction option string parsed before.
 //
-//      CBR  .<cond> a, b, ofs
-//      CBRU .<cond> a, b, ofs
+//      CBR  .<cond> <a>, <b>, <ofs>
+//      CBRU .<cond> <a>, <b>, <ofs>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrCBRandCBRU( uint32_t *instr ) {
@@ -1439,7 +1401,8 @@ bool parseInstrCBRandCBRU( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseLoadStoreOperand" parses the operand portion of the load and store instruction family. The syntax
+// "parseLoadStoreOperand" parses the operand portion of the load and store instruction family. It represents
+// the source location for the load type instruction and the target for the store type instruction. The syntax
 // for the <operand> portion is either a
 //
 //      <ofs> "(" SR "," GR ")"
@@ -1449,9 +1412,6 @@ bool parseInstrCBRandCBRU( uint32_t *instr ) {
 //
 // <loadInstr>  [ "." <opt> ] <targetReg>       "," <sourceOperand>
 // <storeInstr> [ "." <opt> ] <targetOperand>   "," <sourceReg>
-//
-// We expect the instruction template with opCode, opCode options and word length already set. The routine
-// is called for load, where the operand is the source, and for store where the operand is the target.
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseLoadStoreOperand( uint32_t *instr ) {
@@ -1527,7 +1487,7 @@ bool parseLoadStoreOperand( uint32_t *instr ) {
 // "parseInstrLoad" will parse the load instructions family. The workhorse is the "parseLoadStoreOperand"
 // routine, which parses the operand. General form:
 //
-//  <opCode>.<opt> <targetReg>, <sourceOperand>
+//      <opCode>.<opt> <targetReg>, <sourceOperand>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrLoad( uint32_t *instr ) {
@@ -1548,10 +1508,10 @@ bool parseInstrLoad( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseInstrSTx" will parse the store instructionfamily. The workhorse is the "parseLoadStoreOperand"
+// "parseInstrSTx" will parse the store instruction family. The workhorse is the "parseLoadStoreOperand"
 // routine, which parses the target. General form:
 //
-//  <opCode>.<opt> <targetOperand>, <sourceReg>
+//      <opCode>.<opt> <targetOperand>, <sourceReg>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrStore( uint32_t *instr ) {
@@ -1575,9 +1535,9 @@ bool parseInstrStore( uint32_t *instr ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The "MR" instruction is a move register instruction. We parse valid combination and assemble the
-// instruction. Note that the "MR" instruction is primarily used for moving segement and control registers
-// to and from a general register. However, the syntatx can also be used to move between general registers.
-// We will in this case emit a copy "OR" instruction.
+// instruction. Note that the "MR" instruction is primarily used for moving segment and control registers
+// to and from a general register. However, the syntax can also be used to move between general registers.
+// We will in this case emit an "OR" instruction.
 //
 //      MR <targetReg> "," <sourceReg>
 //
@@ -1591,7 +1551,7 @@ bool parseInstrMR( uint32_t *instr ) {
         nextToken( );
         if ( currentToken.typ == TT_COMMA ) nextToken( );
         else return( parserError((char *) "Expected a comma" ));
-       
+        
         if ( currentToken.typ == TT_GREG ) {
             
             *instr = 0;
@@ -1611,7 +1571,7 @@ bool parseInstrMR( uint32_t *instr ) {
             else return( parserError((char *) "Expected a comma" ));
             
             if ( currentToken.typ == TT_GREG ) {
-            
+                
                 setBitField( instr, 31, 3, currentToken.val );
                 setBitField( instr, 9, 4, tRegId );
                 nextToken( );
@@ -1627,7 +1587,7 @@ bool parseInstrMR( uint32_t *instr ) {
             else return( parserError((char *) "Expected a comma" ));
             
             if ( currentToken.typ == TT_GREG ) {
-               
+                
                 setBit( instr, 11 );
                 setBitField( instr, 31, 5, currentToken.val );
                 setBitField( instr, 9, 4, tRegId );
@@ -1676,12 +1636,14 @@ bool parseInstrMR( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The "MST" instruction sets and clears bits in the program state word.
+// The "MST" instruction sets and clears bits in the program state word. There are two basic formats. The
+// first format will use a general register for the data bits, the second format will use the value encoded
+// in the instruction.
 //
 //      MST b
-//      MST.S val
-//      MST.C val
-
+//      MST.S <val>
+//      MST.C <val>
+//
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrMST( uint32_t *instr ) {
     
@@ -1714,9 +1676,10 @@ bool parseInstrMST( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The "LDPA" instruction loads a physical address for the logical address.
+// The "LDPA" instruction loads a physical address for the logical address. When the segment is explicitly
+// used, it must be in the range of SR1 to SR3.
 //
-//      LDPA r, a([s,] b)
+//      LDPA <targetReg> ","  <indexReg" "(" [ <segmentReg>, ] <offsetReg > ")"
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrLDPA( uint32_t *instr ) {
@@ -1740,8 +1703,12 @@ bool parseInstrLDPA( uint32_t *instr ) {
         nextToken( );
         if ( currentToken.typ == TT_SREG ) {
             
-            setBitField( instr, 27, 4, currentToken.val );
-            nextToken( );
+            if ( isInRange( currentToken.val, 1, 3 )) {
+                
+                setBitField( instr, 13, 2, currentToken.val );
+                nextToken( );
+            }
+            else return( parserError((char *) "Expected SR1 .. SR3 " ));
             
             if ( currentToken.typ == TT_COMMA ) nextToken( );
             else return( parserError((char *) "Expected a comma" ));
@@ -1763,9 +1730,9 @@ bool parseInstrLDPA( uint32_t *instr ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The "PRB" instruction will test a logical address for the desired read or write access. The "I" bit will
-// when claered use the "A" reg as input, else bit 27 of the instruction.
+// when cleared use the "A" reg as input, else bit 27 of the instruction.
 //
-//      PRB [.<opt>] r, ([s,] b), a
+//      PRB <targetReg> ","  <indexReg" "(" [ <segmentReg>, ] <offsetReg > ")"
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrPRB( uint32_t *instr ) {
@@ -1789,16 +1756,20 @@ bool parseInstrPRB( uint32_t *instr ) {
     else return( parserError((char *) "Expected a left paren" ));
     
     if ( currentToken.typ == TT_SREG ) {
+        
+        if ( isInRange( currentToken.val, 1, 3 )) {
             
-        setBitField( instr, 27, 4, currentToken.val );
-        nextToken( );
-            
+            setBitField( instr, 13, 2, currentToken.val );
+            nextToken( );
+        }
+        else return( parserError((char *) "Expected SR1 .. SR3 " ));
+        
         if ( currentToken.typ == TT_COMMA ) nextToken( );
         else return( parserError((char *) "Expected a comma" ));
     }
-        
+    
     if ( currentToken.typ == TT_GREG ) {
-            
+        
         setBitField( instr, 31, 4, currentToken.val );
         nextToken( );
     }
@@ -1826,7 +1797,7 @@ bool parseInstrPRB( uint32_t *instr ) {
         setBitField( instr, 27, 4, currentToken.val );
         nextToken( );
     }
-    else return( parserError((char *) "Expected a register or numric vallue" ));
+    else return( parserError((char *) "Expected a register or numeric value" ));
     
     return( checkEOS( ));
 }
@@ -1835,7 +1806,7 @@ bool parseInstrPRB( uint32_t *instr ) {
 // The "ITLB" instruction will insert a new entry in the instruction or data TLB. We use the segment and
 // offset register pair for the virtual address to enter.
 //
-//      ITLB [.<opt>] r, (a, b)
+//      ITLB [.<opt>] <tlbInforReg> "," "(" <segmentReg> "," <offsetReg> ")"
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrITLB( uint32_t *instr ) {
@@ -1860,6 +1831,7 @@ bool parseInstrITLB( uint32_t *instr ) {
             if ( currentToken.typ == TT_COMMA ) nextToken( );
             else return( parserError((char *) "Expected a comma" ));
         }
+        else return( parserError((char *) "Expected a segment register" ));
         
         if ( currentToken.typ == TT_GREG ) {
             
@@ -1879,7 +1851,7 @@ bool parseInstrITLB( uint32_t *instr ) {
 // The "PTLB" instruction removes an entry from the instruction or data TLB. We use a logical address to
 // refer to the TLB entry.
 //
-//      PTLB [ "." <opt> ] a "(" [ s "," ] b ")"
+//      PTLB [ "." <opt> ] <targetReg> ","  <indexReg" "(" [ <segmentReg>, ] <offsetReg > ")"
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrPTLB( uint32_t *instr ) {
@@ -1908,7 +1880,7 @@ bool parseInstrPTLB( uint32_t *instr ) {
                 setBitField( instr, 13, 2, currentToken.val );
                 nextToken( );
             }
-            else return( parserError((char *) "xpected SR1 .. SR3 " ));
+            else return( parserError((char *) "Expected SR1 .. SR3 " ));
             
             if ( currentToken.typ == TT_COMMA ) nextToken( );
             else return( parserError((char *) "Expected a comma" ));
@@ -1931,7 +1903,7 @@ bool parseInstrPTLB( uint32_t *instr ) {
 //------------------------------------------------------------------------------------------------------------
 // The "PCA" instruction flushes and / or remove an entry from a data or instruction cache.
 //
-//       PCA [ "." <opt> ] [ a ] "(" s "," b ")"
+//      PCA [ "." <opt> ] <targetReg> ","  <ofs> "(" [ <segmentReg>, ] <offsetReg > ")"
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrPCA( uint32_t *instr ) {
@@ -1961,7 +1933,7 @@ bool parseInstrPCA( uint32_t *instr ) {
                 nextToken( );
             }
             else return( parserError((char *) "Invalid segment register" ));
-         
+            
             if ( currentToken.typ == TT_COMMA ) nextToken( );
             else return( parserError((char *) "Expected a comma" ));
         }
@@ -1981,7 +1953,7 @@ bool parseInstrPCA( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The "DIAG" instruction is the instruction for invoking special hardware or diagnistic functions.
+// The "DIAG" instruction is the instruction for invoking special hardware or diagnostic functions.
 //
 //      DIAG <resultReg> "," <parmRegA> "," <parmRegB> "," <info>
 //
@@ -2073,7 +2045,7 @@ bool parseInstrBRK( uint32_t *instr ) {
             setImmVal( instr, 31, 16, currentToken.val );
             nextToken( );
         }
-        else return( parserError((char *) "Immediate value out of range" ));        
+        else return( parserError((char *) "Immediate value out of range" ));
     }
     else return( parserError((char *) "Expected the info2 parm" ));
     
@@ -2087,11 +2059,10 @@ bool parseInstrBRK( uint32_t *instr ) {
 //
 // An instruction starts with the opCode and the optional option qualifiers. For each opCode, the token table
 // has an instruction template. Specials such as mapping the "LDx" instruction to "LDW" is already encoded
-// in the tamplate. The next step for all instructions is to check for options. Finally, a dedicated parsing
-// routine will handle the remainder of the assembly line.
-//
-// As the parsing process comes along the instruction template from the token name table will be augmented
-// with further data. If all is successful, we will have the final instruction bit pattern.
+// in the template. The next step for all instructions is to check for options. Finally, a dedicated parsing
+// routine will handle the remainder of the assembly line. As the parsing process comes along the instruction
+// template from the token name table will be augmented with further data. If all is successful, we will have
+// the final instruction bit pattern.
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseLine( char *inputStr, uint32_t *instr ) {
@@ -2174,11 +2145,10 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
 
 } // namespace
 
-
 //------------------------------------------------------------------------------------------------------------
-// A simple one line assembler. This object is teh counter part to the disassmbler. We will parse a one
-// line input string for a valid instruction, using the syntax of the real assembler. There will be no
-// labels and commants, only the opcode and the operands.
+// A simple one line assembler. This object is the counterpart to the disassembler. We will parse a one line
+// input string for a valid instruction, using the syntax of the real assembler. There will be no labels and
+// comments, only the opcode and the operands.
 //
 //------------------------------------------------------------------------------------------------------------
 DrvOneLineAsm::DrvOneLineAsm( VCPU32Globals *glb ) {

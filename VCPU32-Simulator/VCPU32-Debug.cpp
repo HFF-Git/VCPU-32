@@ -168,8 +168,8 @@ void CpuDebug::enterDebug( ) {
 //------------------------------------------------------------------------------------------------------------
 void CpuDebug::resumeProg( ) {
     
-    // ??? tricky. We need to execute from here on. This means to replace again the orginal instruction
-    // with the BRK instruction. Furthwermore we need to set a temporary breakpoint on the follow on
+    // ??? tricky. We need to execute from here on. This means to replace again the original instruction
+    // with the BRK instruction. Furthermore we need to set a temporary breakpoint on the follow on
     // instruction. This is needed to set the breakpoint again that we removed before.
     // 
     
