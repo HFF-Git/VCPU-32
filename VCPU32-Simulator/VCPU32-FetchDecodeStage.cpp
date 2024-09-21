@@ -213,7 +213,6 @@ bool FetchDecodeStage::dependencyValA( uint32_t regId ) {
 // will compute an address using the "B" and "X" values fetched from a register. An execption is register
 // zero for which there is by definition no dependency.
 //
-// ??? what about R0 used in the X field ?
 //------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::dependencyValB( uint32_t regId ) {
     
@@ -251,7 +250,6 @@ bool FetchDecodeStage::dependencyValB( uint32_t regId ) {
 // will compute an address using the "B" and "X" values fetched from a register. An execption is register
 // zero for which there is by definition no dependency.
 //
-// ??? what about R0 used in the X field ?
 //------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::dependencyValX( uint32_t regId ) {
     
@@ -291,6 +289,11 @@ bool FetchDecodeStage::dependencyValX( uint32_t regId ) {
     }
 }
 
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::consumesValB( ) {
     
     if ( getBitField( instr, 31, 4 ) == 0 ) return( false );
@@ -315,6 +318,11 @@ bool FetchDecodeStage::consumesValB( ) {
     }
 }
 
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::consumesValX( ) {
     
     switch ( getBitField( instr, 5, 6 )) {
@@ -334,8 +342,6 @@ bool FetchDecodeStage::consumesValX( ) {
         default: return( false );
     }
 }
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // Utility function to set and get the the pipeline register data.
@@ -531,6 +537,17 @@ void FetchDecodeStage::process( ) {
         
         physAdr = psPstate1.get( );
      }
+    
+    //--------------------------------------------------------------------------------------------------------
+    // An instruction address needs to be aligned on a 4-byte boundary.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    if ( ! isAligned( physAdr, 4 )) {
+        
+        setupTrapData( CODE_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
+        stallPipeLine( );
+        return;
+    }
     
     //--------------------------------------------------------------------------------------------------------
     // Instruction word fetch. If the address is in between the physical memory range, we pass the "seg.ofs"
@@ -743,6 +760,14 @@ void FetchDecodeStage::process( ) {
         } break;
             
         case OP_DIAG: {
+            
+            maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
+            maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
+            maStage -> psValX.set( 0 );
+            
+        } break;
+            
+        case OP_DS: {
             
             maStage -> psValA.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));

@@ -392,19 +392,6 @@ int printWord( uint32_t val, TokId radix = TOK_HEX, uint32_t fmtDesc = FMT_DEF_A
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "displayInvalidWord" shows a set of "*" when we cannot get a value for word. We make the length of the
-// "*" string accoriding to the current radix.
-//
-//------------------------------------------------------------------------------------------------------------
-void printInvalidWord( TokId fmtType ) {
-    
-    if      ( fmtType == TOK_DEC )  winPrintf( stdout, "**********" );
-    else if ( fmtType == TOK_OCT )  winPrintf( stdout, "************" );
-    else if ( fmtType == TOK_HEX )  winPrintf( stdout, "**********" );
-    else                            winPrintf( stdout, "**num**" );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // Routine for putting out simple text. We make sure that the string length is in the range of what the text
 // size could be.
 //
@@ -898,7 +885,6 @@ void DrvWinProgState::drawBanner( ) {
     setWinCursor( 1, 1 );
     printTextField((char *) "Program State", ( fmtDesc ), 16 );
     
-    
     printTextField((char *) "Seg:", fmtDesc, 5 );
     printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_0 ) & 0xFFFF, fmtDesc | FMT_HALF_WORD, 8 );
     printTextField((char *) "Ofs:", fmtDesc, 5 );
@@ -908,10 +894,16 @@ void DrvWinProgState::drawBanner( ) {
     uint32_t stat = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_0 );
     
     printTextField(( getBit( stat, ST_MACHINE_CHECK )) ? (char *) "M" : (char *) "m", fmtDesc );
-    printTextField(( getBit( stat, ST_CODE_TRANSLATION_ENABLE )) ? (char *) "I" : (char *) "i", fmtDesc );
+    printTextField(( getBit( stat, ST_EXECUTION_LEVEL )) ? (char *) "X" : (char *) "x", fmtDesc );
+    printTextField(( getBit( stat, ST_CODE_TRANSLATION_ENABLE )) ? (char *) "C" : (char *) "c", fmtDesc );
+    printTextField(( getBit( stat, ST_NULLIFY )) ? (char *) "N" : (char *) "n", fmtDesc );
+    printTextField(( getBit( stat, ST_DIVIDE_STEP )) ? (char *) "V" : (char *) "v", fmtDesc );
     printTextField(( getBit( stat, ST_CARRY )) ? (char *) "C" : (char *) "c", fmtDesc );
-    printTextField(( getBit( stat, ST_PROTECT_ID_CHECK_ENABLE )) ? (char *) "P" : (char *) "p", fmtDesc );
+    
+    printTextField(( getBit( stat, ST_REC_COUNTER )) ? (char *) "R" : (char *) "r", fmtDesc );
+    printTextField(( getBit( stat, ST_SINGLE_STEP )) ? (char *) "Z" : (char *) "z", fmtDesc );
     printTextField(( getBit( stat, ST_DATA_TRANSLATION_ENABLE )) ? (char *) "D" : (char *) "d", fmtDesc );
+    printTextField(( getBit( stat, ST_PROTECT_ID_CHECK_ENABLE )) ? (char *) "P" : (char *) "p", fmtDesc );
     printTextField(( getBit( stat, ST_INTERRUPT_ENABLE )) ? (char *) "E" : (char *) "e", fmtDesc );
     
     padLine( fmtDesc );

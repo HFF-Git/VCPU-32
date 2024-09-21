@@ -68,7 +68,7 @@ const uint8_t   TRAP_CODE_BLOCK_SIZE    = 32;
 //
 //  0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
 // :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-// :M :X :C :0 :CB: reserved           :0 :D :P :E : IA segment Id                                 :  PSW-0
+// :M :X :C :V :CB: reserved           :0 :D :P :E : IA segment Id                                 :  PSW-0
 // :-----------------------------------------------------------------------------------------------:
 // : IA offset                                                                               : 0   :  PSW-1
 // :-----------------------------------------------------------------------------------------------:
@@ -80,8 +80,12 @@ enum StatusRegBits : uint32_t {
     ST_MACHINE_CHECK                = 0,
     ST_EXECUTION_LEVEL              = 1,
     ST_CODE_TRANSLATION_ENABLE      = 2,
-    ST_CARRY                        = 4,
-    
+    ST_NULLIFY                      = 3,
+    ST_DIVIDE_STEP                  = 4,
+    ST_CARRY                        = 5,
+   
+    ST_REC_COUNTER                  = 11, 
+    ST_SINGLE_STEP                  = 12,
     ST_DATA_TRANSLATION_ENABLE      = 13,
     ST_PROTECT_ID_CHECK_ENABLE      = 14,
     ST_INTERRUPT_ENABLE             = 15
@@ -159,22 +163,23 @@ enum TrapId : uint32_t {
     ILLEGAL_INSTR_TRAP      = 4,
     PRIV_OPERATION_TRAP     = 5,
     OVERFLOW_TRAP           = 6,
-    DATA_ALIGNMENT_TRAP     = 19,
+    CODE_ALIGNMENT_TRAP     = 7,
+    DATA_ALIGNMENT_TRAP     = 8,
     
-    INSTR_MEM_PROTECT_TRAP  = 7,
-    DATA_MEM_PROTECT_TRAP   = 8,
+    INSTR_MEM_PROTECT_TRAP  = 9,
+    DATA_MEM_PROTECT_TRAP   = 10,
    
-    ITLB_MISS_TRAP          = 10,
-    ITLB_ACC_RIGHTS_TRAP    = 11,
-    ITLB_PROTECT_ID_TRAP    = 12,
-    ITLB_NON_ACCESS_TRAP    = 13,
+    ITLB_MISS_TRAP          = 11,
+    ITLB_ACC_RIGHTS_TRAP    = 12,
+    ITLB_PROTECT_ID_TRAP    = 13,
+    ITLB_NON_ACCESS_TRAP    = 14,
     
-    DTLB_MISS_TRAP          = 14,
-    DTLB_ACC_RIGHTS_TRAP    = 15,
-    DTLB_PROTECT_ID_TRAP    = 16,
-    DTLB_NON_ACCESS_TRAP    = 17,
+    DTLB_MISS_TRAP          = 15,
+    DTLB_ACC_RIGHTS_TRAP    = 16,
+    DTLB_PROTECT_ID_TRAP    = 17,
+    DTLB_NON_ACCESS_TRAP    = 18,
     
-    BREAK_TRAP              = 18,
+    BREAK_TRAP              = 19,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -260,6 +265,7 @@ enum InstrOpCode : uint8_t {
     OP_CMR          = 0x09,     // conditional move register or value
     OP_MR           = 0x0A,     // move to or from a segment or control register
     OP_MST          = 0x0B,     // set or clear status bits
+    OP_DS           = 0x0C,     // divide step
     
     OP_ADD          = 0x10,     // target = target + operand ;options for carry, ovl trap, etc.
     OP_ADC          = 0x11,     // target = target + operand ;options for carry, ovl trap, etc.
@@ -345,7 +351,7 @@ const struct opCodeInfo {
     /* 0x09 */  { "CMR",    OP_CMR,     ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x0A */  { "MR",     OP_MR,      ( CTRL_INSTR ) },
     /* 0x0B */  { "MST",    OP_MST,     ( CTRL_INSTR | PRIV_INSTR | REG_R_INSTR ) },
-    /* 0x0C */  { "RSV_0C", 0x0C,       ( NO_FLAGS ) },
+    /* 0x0C */  { "DS",     OP_DS,      ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x0D */  { "RSV_0D", 0x0D,       ( NO_FLAGS ) },
     /* 0x0E */  { "RSV_0E", 0x0E,       ( NO_FLAGS ) },
     /* 0x0F */  { "RSV_0F", 0x0F,       ( NO_FLAGS ) },

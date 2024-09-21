@@ -141,6 +141,7 @@ July, 2024
     - [CMR](#cmr)
     - [DEP](#dep)
     - [DIAG](#diag)
+    - [DS](#ds)
     - [DSR](#dsr)
     - [EXTR](#extr)
     - [GATE](#gate)
@@ -212,9 +213,14 @@ July, 2024
     - [Control Flow Instructions](#control-flow-instructions)
     - [System Control Instructions](#system-control-instructions-1)
   - [Instruction Operation Description Functions](#instruction-operation-description-functions)
+  - [Instruction Usage Examples](#instruction-usage-examples)
+    - [Loading 32-bit quantities](#loading-32-bit-quantities)
+    - [Multi-precision arithmetic](#multi-precision-arithmetic)
+    - [Unsigned division](#unsigned-division)
+    - [Signed division](#signed-division)
   - [A three-stage pipelined CPU model](#a-three-stage-pipelined-cpu-model)
   - [A four stage pipeline CPU model](#a-four-stage-pipeline-cpu-model)
-  - [Notes](#notes-40)
+  - [Notes](#notes-41)
     - [Nullification](#nullification)
     - [The case for register indexed mode](#the-case-for-register-indexed-mode)
     - [Instruction bundling](#instruction-bundling)
@@ -363,33 +369,26 @@ VCPU-32 features two registers to hold the processor state. The **instruction ad
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      :M :X :C :0 :CB: reserved           :0 :D :P :E : PSW.[seg]                                     :  PSW-0
+      :M :X :C :N :V :CB: reserved     :R :Z :D :P :E : PSW.[seg]                                     :  PSW-0
       :-----------------------------------------------------------------------------------------------:
       : PSW.[ofs]                                                                               : 0   :  PSW-1
       :-----------------------------------------------------------------------------------------------:
 ```
 
-// ??? need a Z bit for single stepping debugging support....cleared after each instruction, when set causes aDebug trap.
-
-// ??? perhaps need a "N" bit for nullification support.
-
-// ??? how would we support data breakpoints ? Would they need a separate mechanism ?
-
 // ??? how about taken branch traps ( taken, lower and higher : T H L )
 
-// ??? how about putting also a nullify bit for future enhancements for nullification ? ( N )
-
-// ??? we would also need a recovery counter enable bit ( R ) for the recovery counter
-
-
-Bits 12 .. 15 of the processor status represent the bit that can be modified by the privileged MST instruction. Setting the other status bits requires the usage of the privileged RFI instruction.
+Bits 8 .. 15 of the processor status represent the bit that can be modified by the privileged MST instruction. Setting the other status bits requires the usage of the privileged RFI instruction.
 
 | Flag | Name | Purpose |
 |:---|:---|:---|
 | **M** | Machine Check | When set, checks are disabled.|
 | **X** | Execution level | When set, the CPU runs in user mode, otherwise in privileged mode. |
 | **C** | Code Translation | When set, code translation is enabled. |
+| **V** | Divide step | Set by the DS instruction as a result of the divide step operation. |
 | **CB** | Carry/Borrow | The carry bit for ADD, ADC, SUB and SUBC instructions. |
+| **N** | Nullify | When set, the current instruction has no effect on the CPU state. |
+| **R** | Recovery counter | When set, the recovery counter is enabled and the recover counter is decremented. |
+| **Z** | Single step support | When set, the CPU traps after execution of the current instruction. |
 | **D** | Data Translation | When set, data translation is enabled. |
 | **P** | Protection Check | When set, protection checking is enabled. |
 | **E** | External Interrupt Enable | When set, an external interrupt are enabled. |
@@ -1653,7 +1652,7 @@ None.
 
 <hr>
 
-Placeholder for divide step.....
+The divide step instruction calculates a one bit of the quotient when a 32-bit value in general register "a" is is divided by a 32-bit value in general register "b" and leaves the partial remainder in general register "r". The bit of the quotient is stored in the process state cary bit.
 
 #### Format
 
@@ -1664,7 +1663,7 @@ Placeholder for divide step.....
 ```
     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : DS      ( 0xNN ): r         : 0                                       : a         : b         :
+   : DS      ( 0x0c ): r         : 0                                       : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -1675,6 +1674,13 @@ A placeholder for the divide step instruction .... to be investigated.
 #### Operation
 
 ```
+    if ( PSW.[V] ) 
+        GR[r] <- cat( leftShift( GR[a], 1 ), PSW.[C] ) - GR.[b];
+    else 
+        GR[r] <- cat( leftShift( GR[a], 1 ), PSW.[C] ) + GR.[b];
+
+    PSW.[C] <- carry/borrow bit;
+    PSW.[V] <- xor( carry/borrow bit, GR.[b] );
    ...
 ```
 
@@ -1684,7 +1690,7 @@ None.
 
 #### Notes
 
-None.
+The appendix shows an example of a 32-bit division using this instruction. ( to do ... )
 
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -4243,6 +4249,8 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : MST     ( 0x0B ): r         :mode : 0                                             : b         :
    :-----------------:-----------------------------------------------------------------------------:
+   : DS      ( 0x0c ): r         : 0                                       : a         : b         :
+   :-----------------:-----------------------------------------------------------------------------:
    : LDPA    ( 0x39 ): r         : 0   : seg : 0                           : a         : b         :       
    :-----------------:-----------------------------------------------------------------------------:
    : PRB     ( 0x3A ): r         :W :I : seg : 0                           : a         : b         : 
@@ -4301,6 +4309,24 @@ Instruction operations are described in a pseudo C style language using assignme
 | **purgeDataCache( seg, ofs )** | remove the data cache line that contains the virtual address by simply invalidating it. |
 |||
 
+
+<!--------------------------------------------------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+<!-- Chapter - Instruction usage exmaples ----------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+<!--------------------------------------------------------------------------------------------------------->
+
+<div style="page-break-before: always;"></div>
+
+## Instruction Usage Examples
+
+### Loading 32-bit quantities
+
+### Multi-precision arithmetic
+
+### Unsigned division
+
+### Signed division
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->

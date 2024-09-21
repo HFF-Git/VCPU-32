@@ -164,6 +164,7 @@ const Token tokNameTab[ ] = {
     
     { "MR",     TT_OPCODE,  0x28000000  },
     { "MST",    TT_OPCODE,  0x2C000000  },
+    { "DS",     TT_OPCODE,  0x30000000  },
     { "LDPA",   TT_OPCODE,  0xE4000000  },
     { "PRB",    TT_OPCODE,  0xE8000000  },
     { "ITLB",   TT_OPCODE,  0xEC000000  },
@@ -986,6 +987,44 @@ bool parseInstrDSR( uint32_t *instr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// The DS instruction parses the divide step instruction.
+//
+//      DS <targetReg> "," <sourceRegA> "," <sourceRegB>
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrDS( uint32_t *instr ) {
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 27, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 31, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
 // The SHLA instruction performs a shift left of "B" by "sa" and adds the "A" register to it.
 //
 //      SHLA [ "." <opt> ] <targetReg> "," <sourceRegA> "," <sourceRegB>
@@ -1100,7 +1139,7 @@ bool parseInstrLDILandADDIL( uint32_t *instr ) {
         
         if ( isInRangeForBitFieldU( currentToken.val, 22 )) {
             
-            setBitField( instr, 31, 22, currentToken.val );
+            setImmValU( instr, 31, 22, currentToken.val );
             nextToken( );
         }
         else return( parserError((char *) "Immediate value out of range" ));
@@ -2105,6 +2144,8 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
                 
             case OP_EXTR:
             case OP_DEP:    return( parseInstrEXTRandDEP( instr ));
+                
+            case OP_DS:     return( parseInstrDS( instr ));
                 
             case OP_DSR:    return( parseInstrDSR( instr ));
             case OP_SHLA:   return( parseInstrSHLA( instr ));

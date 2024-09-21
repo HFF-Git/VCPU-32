@@ -495,7 +495,7 @@ void MemoryAccessStage::process( ) {
         } break;
             
         case OP_EXTR:   case OP_DEP:    case OP_SHLA:   case OP_CMR:    case OP_LDIL:
-        case OP_ADDIL:  case OP_MST:    {
+        case OP_ADDIL:  case OP_MST:    case OP_DS: {
             
             exStage -> psValA.set( psValA.get( ));
             exStage -> psValB.set( psValB.get( ));

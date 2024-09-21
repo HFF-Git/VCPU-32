@@ -1115,7 +1115,6 @@ void DrvCmds::assembleCmd( char *cmdBuf ) {
         glb -> lineDisplay -> displayWord( instr, fmtId );
         fprintf( stdout, "\n" );
     }
-    else fprintf( stdout, "0xFFFFFFFF\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
