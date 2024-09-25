@@ -2394,9 +2394,9 @@ Set and clears bits in the processor status word.
 #### Format
 
 ```
-   MST b
-   MST.S val
-   MST.C val
+   MST r, b
+   MST.S  r, val
+   MST.C  r, val
 ```
 
 ```

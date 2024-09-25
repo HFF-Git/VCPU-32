@@ -452,13 +452,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         } break;
             
-        case OP_SHLA: {
-            
-            fprintf( stdout, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-            if ( getBitField( instr, 22, 2 ) > 0 ) fprintf( stdout, ",%d",  getBitField( instr, 21, 2 ));
-            
-        } break;
-            
+       
         case OP_EXTR:
         case OP_DEP: {
             
@@ -496,6 +490,15 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
             fprintf( stdout, ", r%d", getBitField( instr, 31, 4 ));
             
+        } break;
+            
+        case OP_DIAG: {
+            
+            fprintf( stdout, ",r%d, r%d, r%d, %d",
+                    getBitField( instr, 9, 4  ),
+                    getBitField( instr, 27, 4 ),
+                    getBitField( instr, 31, 4 ),
+                    getBitField( instr, 13, 4 ));
         } break;
             
         case OP_LD: {
@@ -546,6 +549,14 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         
         } break;
             
+        case OP_SHLA: {
+            
+            fprintf( stdout, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            if ( getBitField( instr, 22, 2 ) > 0 ) fprintf( stdout, ",%d",  getBitField( instr, 21, 2 ));
+            
+        } break;
+            
+            
         case OP_ST: case OP_STA: case OP_LDR: case OP_STC: {
             
             fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
@@ -593,7 +604,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_BE: {
             
             printImmVal( immGenPosLenLowSign( instr, 23, 18 ));
-            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ) << 2, getBitField( instr, 31, 4 ));
+            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
             
         } break;
@@ -632,7 +643,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
                     
                 case 0:  fprintf( stdout, "r%d", getBitField( instr, 31, 4 ));  break;
                 case 1:
-                case 2:  fprintf( stdout, "0x%x4", getBitField( instr, 31, 6 )); break;
+                case 2:  fprintf( stdout, "0x%x", getBitField( instr, 31, 6 )); break;
                 default: fprintf( stdout, "***" );
             }
             
