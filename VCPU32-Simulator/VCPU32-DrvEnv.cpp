@@ -37,6 +37,7 @@ namespace {
 // variable table is filled with reasonable defaults. A script executed at program start could of course set
 // the variables to other values.
 //
+// ??? wouldn't it be nice to have also user defined variables ?
 //------------------------------------------------------------------------------------------------------------
 const int MAX_ENV_STR_SIZE = 256;
 

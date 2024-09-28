@@ -111,13 +111,10 @@ FetchDecodeStage::FetchDecodeStage( CpuCore *core ) {
 // "reset" and "tick" manage the pipeline register. A "tick" will only update the pipeline register when
 // there is no stall.
 //
-// ??? check the reset vector. Seg and OFs are OK, what about the status bits ?
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::reset( )  {
     
     stalled = false;
-    psPstate0.reset( );
-    psPstate1.reset( );
     
     psPstate0.load( 0 );
     psPstate1.load( 0xF0000000 );
@@ -133,8 +130,8 @@ void FetchDecodeStage::tick( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Pipeline stall and flush. "stallPipeline" stops ourselve from being updated and pass on a NOP to the next
-// stage so that no erreneous things will be done.
+// Pipeline stall and flush. "stallPipeline" stops ourselves from being updated and pass on a NOP to the next
+// stage so that no erroneous things will be done.
 //
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::stallPipeLine( ) {
@@ -162,8 +159,8 @@ void FetchDecodeStage::setStalled( bool arg ) {
 //------------------------------------------------------------------------------------------------------------
 // "dependencyValA" checks if the instruction will fetch a value from the general register file intended to
 // be stored in pipeline register "A". This routine is called from the execute stage to determine whether
-// the data fetched from the general register whoud be overwritten with the data computed in the EX stage
-// for that register. An execption is register zero for which there is by definition no dependency.
+// the data fetched from the general register would be overwritten with the data computed in the EX stage
+// for that register. An exception is register zero for which there is by definition no dependency.
 //
 //------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::dependencyValA( uint32_t regId ) {
@@ -207,10 +204,10 @@ bool FetchDecodeStage::dependencyValA( uint32_t regId ) {
 //------------------------------------------------------------------------------------------------------------
 // "dependencyValB" checks if the instruction will fetch a value from the general register file intended to
 // be stored in pipeline register "B". This routine is called from the execute stage to determine whether
-// the data fetched from the general register whoud be overwritten with the data computed in the EX stage
+// the data fetched from the general register would be overwritten with the data computed in the EX stage
 // for that register. The other use case is where an instruction needs to be stalled because it cannot
 // continue with put the correct value fetched in the FD stage. This is the case for all instructions that
-// will compute an address using the "B" and "X" values fetched from a register. An execption is register
+// will compute an address using the "B" and "X" values fetched from a register. An exception is register
 // zero for which there is by definition no dependency.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -244,10 +241,10 @@ bool FetchDecodeStage::dependencyValB( uint32_t regId ) {
 //------------------------------------------------------------------------------------------------------------
 // "dependencyValX" checks if the instruction will fetch a value from the general register file intended to
 // be stored in pipeline register "X". This routine is called from the execute stage to determine whether
-// the data fetched from the general register whoud be overwritten with the data computed in the EX stage
+// the data fetched from the general register would be overwritten with the data computed in the EX stage
 // for that register. The other use case is where an instruction needs to be stalled because it cannot
 // continue with put the correct value fetched in the FD stage. This is the case for all instructions that
-// will compute an address using the "B" and "X" values fetched from a register. An execption is register
+// will compute an address using the "B" and "X" values fetched from a register. An exception is register
 // zero for which there is by definition no dependency.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -290,8 +287,25 @@ bool FetchDecodeStage::dependencyValX( uint32_t regId ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Some instruction depend on status bits from the status register. For example, the ADD instruction produces
+// a carry bit. If the follow-on instruction is an ADC, the carry bit is not set yet and needs to be bypassed.
 //
-//
+//------------------------------------------------------------------------------------------------------------
+bool FetchDecodeStage::dependencyValST( ) {
+    
+    switch ( getBitField( instr, 5, 6 )) {
+            
+        case OP_ADC:    case OP_SBC: return( true );
+            
+        default: return( false );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "consumesValB" determines whether the "B" value would be consumed in the MA stage. This is the case when
+// we use "B" as the base register and the instruction will for example load a value from memory. The data
+// fetched is passed in "B" to the EX stage. When there is a dependency on "B", we cannot bypass bat rather
+// have to stall the instruction until "B" is available for the MA stage.
 //
 //------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::consumesValB( ) {
@@ -319,9 +333,10 @@ bool FetchDecodeStage::consumesValB( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "consumesValX" determines whether the "X" value would be consumed in the MA stage. This is the case when
+// we use "C" as the index register and the instruction will for example load a value from memory.
 //
-//
-//
+// ??? truly needed ?
 //------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::consumesValX( ) {
     
@@ -372,8 +387,8 @@ void FetchDecodeStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 // address and any additional data for the trap handler. We also set the trap pending bit in the status
 // register. The "TMP-1" control register contains the trapId value.
 //
-// A trap will cause execution from a new locaton which is the trap vector address. However, we cannot
-// issue the trap rightaway as an instruction in the MA or EX before us may cause a trap. These traps will
+// A trap will cause execution from a new location which is the trap vector address. However, we cannot
+// issue the trap right away as an instruction in the MA or EX before us may cause a trap. These traps will
 // have to go first. ALl we do here is to just set the data. Since the pipeline stages are called in order
 // a "later" stage may simple overwrite the trap data. This way, a trap from a previous instruction will be
 // handled first. All trap handling takes place in the EX stage.
@@ -381,6 +396,7 @@ void FetchDecodeStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 // Note that we do not do anything else. The next instruction following the trapping instruction will be
 // fetched and enters the FD stage at the next clock. The EX stage will when encountering the trap simply
 // flush the pipeline.
+//
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::setupTrapData( uint32_t trapId,
                                       uint32_t psw0,
@@ -400,7 +416,7 @@ void FetchDecodeStage::setupTrapData( uint32_t trapId,
 //------------------------------------------------------------------------------------------------------------
 // Access to a segment may be subject to protection checking. The little helper routine will compare the
 // target segment Id with the segments stored in the protection control registers. The function returns a
-// value of true when one field maztches.
+// value of true when one field matches.
 //
 //------------------------------------------------------------------------------------------------------------
 bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
@@ -427,7 +443,7 @@ bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
 //
 // Next, the instruction cache or physical memory is accessed. If the data is not available yet, the pipeline
 // is stalled. Due to the pipeline logic, the same instruction is repeated again and again, until the read
-// request issued on each clockcycle completes successfully and we can get the instruction word.
+// request issued on each clock cycle completes successfully and we can get the instruction word.
 //
 // In general, the stall logic will always inhibit the update of the current and any previous pipeline reg
 // and stall the next stage too. Pipeline Flushing is done by passing on a NOP instead of the current
@@ -447,12 +463,12 @@ bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
 //
 // The "B" register is typically used for a base address. It also holds an immediate value for the IMM type
 // instructions. For instructions that use an address, "B" is designated as the base register and "X" as the
-// offset value. The address generation stage exepcts these two pipeline registers to have the appropriate
+// offset value. The address generation stage expects these two pipeline registers to have the appropriate
 // values for any address computation. Exception are instructions that use "A" and "B" and also need an
-// address. The ony instruction is CBR, which will compare "A" and "B" and then do a PSW relative branch.
+// address. The only instruction is CBR, which will compare "A" and "B" and then do a PSW relative branch.
 // In this case, only "X" is passed the offset. Note that in this case we read 3 general registers. In
-// hardware this is either a 3-port read registr file or we spread the read into the next pipeline stage.
-// The simulator assumes a 3-port read register file. Siilar, for the ST and STA instruction, the argument
+// hardware this is either a 3-port read register file or we spread the read into the next pipeline stage.
+// The simulator assumes a 3-port read register file. Similar, for the ST and STA instruction, the argument
 // to store is in "A", "B" and "X" form the address.
 //
 // The CBR instruction uses a static branch prediction scheme. A backward branch address is considered as a
@@ -463,7 +479,7 @@ bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
 // offset and is predicted as branch taken, the sign bit of the effect os used in the EX stage to figure out
 // whether we mispredicted.
 //
-// For instructiosn that will do arithmetic in the MA stage, we will check if the previous instruction is
+// For instruction that will do arithmetic in the MA stage, we will check if the previous instruction is
 // an instruction that sets a general register. If the register matches one of our just fetched registers,
 // we need to stall the pipeline for one cycle such that we can resolve this issue with a simple bypass
 // when the result to store has been computed.
@@ -475,10 +491,10 @@ bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
 // end. If that instruction raises a trap, it will overwrite the trap info, so that in any case we end up with
 // the actual trap to raise in the EX stage. Before fetching the next instruction in the EX stage the trap
 // pending flag is checked and if set, we will set the next instruction address to that of the respective
-// trap handler. When a trap occurs, the pipeline is stalled and the procedure returns rightaway.
+// trap handler. When a trap occurs, the pipeline is stalled and the procedure returns right away.
 //
 //
-// ??? note: this is a rather long routine. Perhaps we should split this into smaller portions.
+// Note: this is a rather long routine. Perhaps we should split this into smaller portions.
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::process( ) {
     
@@ -493,7 +509,7 @@ void FetchDecodeStage::process( ) {
     setStalled( false );
     
     //--------------------------------------------------------------------------------------------------------
-    // Instruction Address Translation. If the instruction segment is zero, translation and protection chekcs
+    // Instruction Address Translation. If the instruction segment is zero, translation and protection checks
     // are bypassed. The offset is the physical memory address. We also must be privileged.
     //
     //--------------------------------------------------------------------------------------------------------
@@ -524,7 +540,7 @@ void FetchDecodeStage::process( ) {
             }
         }
        
-        physAdr = tlbEntryPtr -> tPhysPage( ) | psPstate1.getBitField( 31, PAGE_SIZE_BITS );
+        physAdr = tlbEntryPtr -> tPhysPage( ) | psPstate1.getBitField( 31, PAGE_OFFSET_BITS );
     }
     else {
     
@@ -611,12 +627,13 @@ void FetchDecodeStage::process( ) {
         if ( getBit( psPstate0.get( ), ST_EXECUTION_LEVEL ) > 0 ) {
             
             setupTrapData( PRIV_OPERATION_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
+            stallPipeLine( );
             return;
         }
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Instruction register fetch and immedoiate value generation.
+    // Instruction register fetch and immediate value generation.
     //
     //--------------------------------------------------------------------------------------------------------
     switch ( opCode ) {
@@ -799,8 +816,7 @@ void FetchDecodeStage::process( ) {
            
             // ??? when do we exactly set the execution level in the status reg ? There are
             // two instructions ahead of us which should NOT benefit from the potential priv change....
-            
-            // ??? should we just get the TLB priv level and pass it onto the EX stage ?
+            // ??? to EX stage ? then we need to pass the TLB data...
             
             if ( psPstate0.getBit( ST_CODE_TRANSLATION_ENABLE )) {
                
@@ -911,6 +927,7 @@ void FetchDecodeStage::process( ) {
                 default: {
                     
                     setupTrapData( ILLEGAL_INSTR_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
+                    stallPipeLine( );
                     return;
                 }
             }
@@ -988,14 +1005,14 @@ void FetchDecodeStage::process( ) {
     
     //--------------------------------------------------------------------------------------------------------
     // Instructions that will do computation in the MA stage with "B" and "X" may run into the case that the
-    // register content for them is just produced by the preceeding instruction. The preceeding instruction
+    // register content for them is just produced by the preceding instruction. The preceding instruction
     // is currently in the MA stage and will enter the EX stage, when this instruction will enter the MA
-    // stage. When the EX of preceeding instruction will be in the EX stage, computing a result intended
+    // stage. When the EX of preceding instruction will be in the EX stage, computing a result intended
     // for "B" and "X", it is too late to just bypass the address computation. So, we need to stall this
     // instruction and wait at least one cycle so that the EX stage has a chance to bypass to the FD stage
     // and we will use the correct values for the MA stage.
     //
-    // When the instruction in the MA stage is one that will produce a register reuslt, we will test for a
+    // When the instruction in the MA stage is one that will produce a register result, we will test for a
     // dependency of the "B" and "X" fields on that instruction.
     //
     // ??? what about the status or segment register ?

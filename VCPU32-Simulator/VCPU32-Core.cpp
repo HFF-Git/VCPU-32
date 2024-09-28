@@ -48,7 +48,7 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
 
 
 //------------------------------------------------------------------------------------------------------------
-// The CPU24Core object constructor. Based on the cpu descriptor, we initilaize the registers and create the
+// The CPU24Core object constructor. Based on the cpu descriptor, we initialize the registers and create the
 // memory objects and the pipeline stages.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -101,11 +101,11 @@ CpuCore::CpuCore( CpuCoreDesc *cfg ) {
 //------------------------------------------------------------------------------------------------------------
 void  CpuCore::clearStats( ) {
     
-    iTlb -> clearStats( );
-    dTlb -> clearStats( );
+    if ( iTlb != nullptr )     iTlb -> clearStats( );
+    if ( dTlb != nullptr )     dTlb -> clearStats( );
     
-    iCacheL1 -> clearStats( );
-    dCacheL1 -> clearStats( );
+    if ( iCacheL1 != nullptr ) iCacheL1 -> clearStats( );
+    if ( dCacheL1 != nullptr ) dCacheL1 -> clearStats( );
     if ( uCacheL2 != nullptr ) uCacheL2 -> clearStats( );
     physMem -> clearStats( );
     
@@ -125,15 +125,13 @@ void CpuCore::reset( ) {
     for ( uint8_t i = 0; i < 16; i++  )  gReg[ i ].reset( );
     for ( uint8_t i = 0; i < 8; i++  )  sReg[ i ].reset( );
     for ( uint8_t i = 0; i < 32; i++  ) cReg[ i ].reset( );
+   
+    if ( iTlb != nullptr )      iTlb -> reset( );
+    if ( dTlb != nullptr )      dTlb -> reset( );
     
-    // ??? set the PC counter to a defined value ?
-    
-    iTlb -> reset( );
-    dTlb -> reset( );
-    
-    iCacheL1 -> reset( );
-    dCacheL1 -> reset( );
-    if ( uCacheL2 != nullptr ) uCacheL2 -> reset( );
+    if ( iCacheL1 != nullptr )  iCacheL1 -> reset( );
+    if ( dCacheL1 != nullptr )  dCacheL1 -> reset( );
+    if ( uCacheL2 != nullptr )  uCacheL2 -> reset( );
     
     fdStage -> reset( );
     maStage -> reset( );
@@ -146,20 +144,20 @@ void CpuCore::reset( ) {
 // "ClockStep" is the method that advances the simulator by one clock cycle. Each major component will use
 // the input from the respective register outputs and perform the "combinatorial logic", i.e. all data in
 // the input registers is processed, and any output is written to the input of the respective registers.
-// For example, the FD stage will take as inputs the instruction address registers and writes its instrcution
+// For example, the FD stage will take as inputs the instruction address registers and writes its instruction
 // decoding results to the FD/MA pipeline registers.
 //
 // On the next "tick" all latched inputs in the registers then become the register output and thus the input
-// for the next round of component "process". In our example, the FD/MA pipelne registers are the input to
+// for the next round of component "process". In our example, the FD/MA pipeline registers are the input to
 // the MA pipeline stage.
 //
 // Finally there is the order of processing itself. Although it should not matter, it unfortunately does for
-// the simulator. We cannot easily model selection and arbitation. For example, if the two L1 caches make a
+// the simulator. We cannot easily model selection and arbitration. For example, if the two L1 caches make a
 // request to the IDLE L2 cache, there needs to be an order. The L1 caches have a priority number which
 // decides which request will be passed the L2 cache. If the L2 cache however is "processed" before the
 // L1 caches, the request will only be recognized in the next clock cycle. This is not what we want to
-// model with respect to latency. So, the order mshould be: pipeline, L1, L2, MEM types. The "tick" order
-// does not matter. It will just update all registers in teh components, just as intended.
+// model with respect to latency. So, the order should be: pipeline, L1, L2, MEM types. The "tick" order
+// does not matter. It will just update all registers in the components, just as intended.
 //
 // ??? not sure if the "handle traps" should come right after the pipelines ?
 //------------------------------------------------------------------------------------------------------------
@@ -173,13 +171,12 @@ void CpuCore::clockStep( uint32_t numOfSteps ) {
         
         handleTraps( );
       
-        iTlb        -> process( );
-        dTlb        -> process( );
-        iCacheL1    -> process( );
-        dCacheL1    -> process( );
-        physMem     -> process( );
-        
+        if ( iTlb != nullptr )      iTlb        -> process( );
+        if ( dTlb != nullptr )      dTlb        -> process( );
+        if ( iCacheL1 != nullptr )  iCacheL1    -> process( );
+        if ( dCacheL1 != nullptr )  dCacheL1    -> process( );
         if ( uCacheL2 != nullptr )  uCacheL2    -> process( );
+        if ( physMem != nullptr )   physMem     -> process( );
         if ( pdcMem != nullptr )    pdcMem      -> process( );
         if ( ioMem != nullptr )     ioMem       -> process( );
         
@@ -190,15 +187,15 @@ void CpuCore::clockStep( uint32_t numOfSteps ) {
         fdStage     -> tick( );
         maStage     -> tick( );
         exStage     -> tick( );
-        iTlb        -> tick( );
-        dTlb        -> tick( );
-        iCacheL1    -> tick( );
-        dCacheL1    -> tick( );
-        physMem     -> tick( );
         
-        if ( uCacheL2 != nullptr ) uCacheL2 -> tick( );
-        if ( pdcMem   != nullptr ) pdcMem -> tick( );
-        if ( ioMem    != nullptr ) ioMem -> tick( );
+        if ( iTlb != nullptr )      iTlb        -> tick( );
+        if ( dTlb != nullptr )      dTlb        -> tick( );
+        if ( iCacheL1 != nullptr )  iCacheL1    -> tick( );
+        if ( dCacheL1 != nullptr )  dCacheL1    -> tick( );
+        if ( uCacheL2 != nullptr )  uCacheL2    -> tick( );
+        if ( physMem != nullptr )   physMem     -> tick( );
+        if ( pdcMem != nullptr )    pdcMem      -> tick( );
+        if ( ioMem != nullptr )     ioMem       -> tick( );
     
         stats.clockCntr++;
         
@@ -207,7 +204,7 @@ void CpuCore::clockStep( uint32_t numOfSteps ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Trap handling. This routine is called after the processing of the EX pipeline stage. Any trap that occured
+// Trap handling. This routine is called after the processing of the EX pipeline stage. Any trap that occurred
 // in the pipeline will set the trap data in the control registers. The trapping instruction itself will
 // be changed to a NOP and work its way through the pipelines as a NOP. Any trap that is caused by an earlier
 // instruction will overwrite the trap data. In the end we will have the traps in the right order showing up
@@ -257,7 +254,7 @@ void CpuCore::handleTraps( ) {
 // is truly a clock step, while an instruction step can take a varying number of clock cycles, depending on
 // events such as cache misses, etc. At instruction start we remember the instruction address and repeat
 // issuing clock steps until the instruction address is about to change. In addition, we also maintain a
-// cycle count to abort if we run off with an unreasonable high number of clocksteps.
+// cycle count to abort if we run off with an unreasonable high number of clock steps.
 //
 // Note that this does not mean that the instruction completely worked through the pipeline. if all goes well,
 // every clock a new instruction enters the pipeline and another one is leaving it. However, when we have

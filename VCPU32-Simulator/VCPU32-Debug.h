@@ -4,10 +4,10 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// We need a basic debugging capabilty for CPU24. The idea is to set a breakpoint, which replaces the
-// instruction at seg.ofs with the break instruction. Upon encounering a break instruction, a trap is
-// raised which will ultimately lead to entering the command interreter of the simulator. There is one
-// global breakpoint table which keeps track of the instructions replaxed with breakpoints.
+// We need a basic debugging capability for CPU24. The idea is to set a breakpoint, which replaces the
+// instruction at seg.ofs with the break instruction. Upon encountering a break instruction, a trap is
+// raised which will ultimately lead to entering the command interpreter of the simulator. There is one
+// global breakpoint table which keeps track of the instructions relaxed with breakpoints.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -47,7 +47,7 @@ enum CPU24BreakPointFlags : uint32_t {
 
 
 //------------------------------------------------------------------------------------------------------------
-// A breakpoint table entry. A breakpoint needs to keep track of the instrcution address and the instruction
+// A breakpoint table entry. A breakpoint needs to keep track of the instruction address and the instruction
 // originally found at that address. There are also some flags about whether the breakpoint is enabled and
 // so on. Breakpoints can be set in a way that they only fire every nth count.
 //

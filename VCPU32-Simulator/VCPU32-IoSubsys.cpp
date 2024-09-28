@@ -4,7 +4,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU-32 implements a memory mapped IO subsysten.
+// VCPU-32 implements a memory mapped IO subsystem.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -62,10 +62,10 @@ bool IoModule::writeIo( uint32_t adr, uint32_t len, uint32_t word, uint16_t pri 
 
 
 //------------------------------------------------------------------------------------------------------------
-// The "getIoDataWrd" and "ioPutDataWord" are used by the simulator line and window display for accessing the
+// The "getIoDataWord" and "ioPutDataWord" are used by the simulator line and window display for accessing the
 // IO address space data.
 //
-// ??? not clear what this mean for when tehre is no memory....
+// ??? not clear what this mean for when there is no memory....
 //------------------------------------------------------------------------------------------------------------
 uint32_t IoModule::getIoDataWord( uint32_t ofs ) {
     

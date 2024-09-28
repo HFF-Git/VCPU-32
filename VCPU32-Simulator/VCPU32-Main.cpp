@@ -28,7 +28,7 @@
 //
 // Idea: we could have for all parameters in the descriptors an environment variable. These variables can then
 // be used to create a descriptor with the data coming from these variables. Also, we should have an option to
-// set the environmnt variables from a file, specified as an input argument to the program.
+// set the environment variables from a file, specified as an input argument to the program.
 //
 // ??? do we keep all descriptors in one structure ? What if the CPU has two cores ?
 // ??? is the IO subsystem part of the CPU structure ? Still, we would need a memory range to configure...

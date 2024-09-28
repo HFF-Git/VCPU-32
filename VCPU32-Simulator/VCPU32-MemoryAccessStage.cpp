@@ -42,9 +42,10 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+//------------------------------------------------------------------------------------------------------------
 // Bit field access.
-// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+//
+//------------------------------------------------------------------------------------------------------------
 bool getBit( uint32_t arg, int pos ) {
     
     return(( arg & ( 1U << ( 31 - ( pos % 32 )))) ? 1 : 0 );
@@ -62,9 +63,10 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     else        return( tmpA & tmpM );
 }
 
-//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+///------------------------------------------------------------------------------------------------------------
 // Little helper function to return the data length in bytes as encoded in the 2dw" field.
-// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+//
+//------------------------------------------------------------------------------------------------------------
 uint32_t mapDataLen( uint32_t instr ) {
     
     switch( getBitField( instr, 15, 2 )) {
@@ -77,9 +79,22 @@ uint32_t mapDataLen( uint32_t instr ) {
     }
 }
 
-//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-// Two little helper functions that determine whethr an instrcution is reading from or writing to memory.
-// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+bool isAligned( uint32_t adr, uint32_t dwField ) {
+    
+    switch( dwField ) {
+            
+        case 0: return( true );
+        case 1: return(( adr & 0x1 ) == 0 );
+        case 2: return(( adr & 0x3 ) == 0 );
+        case 3: return(( adr & 0x7 ) == 0 );
+        default: return( false );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Two little helper functions that determine whether an instruction is reading from or writing to memory.
+//
+//------------------------------------------------------------------------------------------------------------
 bool isReadIstr( uint32_t instr ) {
     
     switch ( getBitField( instr, 5, 6 )) {
@@ -112,9 +127,10 @@ bool isWriteInstr( uint32_t instr ) {
     }
 }
 
-//‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-// A quick address alignment check.
-// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+//------------------------------------------------------------------------------------------------------------
+// Address alignment check.
+//
+//------------------------------------------------------------------------------------------------------------
 bool checkAlignment( uint32_t instr, uint32_t adr ) {
     
     uint8_t align = getBitField( instr, 15, 2 );
@@ -165,8 +181,8 @@ void MemoryAccessStage::tick( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Pipeline stall. "stallPipeline" stops ourselve from being updated and pass on a NOP to the next stage so
-// that no erreneous things will be done. "ResumePipeline" will just enable the update again. At the MA stage
+// Pipeline stall. "stallPipeline" stops ourselves from being updated and pass on a NOP to the next stage so
+// that no erroneous things will be done. "ResumePipeline" will just enable the update again. At the MA stage
 // we also have to make sure that the FD stage is also stalled. The same is true for resuming the pipeline.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -231,8 +247,8 @@ void MemoryAccessStage::flushPipeLine( ) {
 // address and any additional data for the trap handler. The "TMP-1" control register contains the trapId
 // value.
 //
-// A trap will cause execution from a new locaton which is the trap vector address. However, we cannot just
-// issue the trap rightaway as an instruction in the EX stage before us may also cause a trap. These traps
+// A trap will cause execution from a new location which is the trap vector address. However, we cannot just
+// issue the trap right away as an instruction in the EX stage before us may also cause a trap. These traps
 // will have to go first. ALl we do here is to just set the data. Since the pipeline stages are called in
 // order a "later" stage may simple overwrite the trap data. This way, a trap from a previous instruction
 // will be handled first. All trap handling takes place in the EX stage.
@@ -260,7 +276,7 @@ void MemoryAccessStage::setupTrapData( uint32_t trapId,
 // "dependencyValA" checks if the instruction fetched a value from the general register file in the FD stage
 // that we would just pass on to the EX stage. If that is the case, the execute stage will store its computed
 // value to the pipeline register so that we have the correct value. Since nothing is changed on the "valA"
-// data path, we just use the FD stage function. An execption is register zero for which there is by
+// data path, we just use the FD stage function. An exception is register zero for which there is by
 // definition no dependency.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -275,9 +291,7 @@ bool MemoryAccessStage::dependencyValA( uint32_t regId ) {
         case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:    case OP_OR:
         case OP_XOR:    case OP_CMP:    case OP_CMPU: {
             
-            uint32_t mode = getBitField( instr, 13, 2 );
-            
-            return(( mode > 0 ) && ( getBitField( instr, 27, 4 ) == regId ));
+            return(( getBitField( instr, 13, 2 ) > 0 ) && ( getBitField( instr, 27, 4 ) == regId ));
         }
             
         case OP_DEP: {
@@ -304,7 +318,7 @@ bool MemoryAccessStage::dependencyValA( uint32_t regId ) {
 // "dependencyValB" checks if the instruction fetched a value from the general register file in the FD stage
 // that we would just pass on to the EX stage. If that is the case, the execute stage will store its computed
 // value to the pipeline register so that we have the correct value. Note that several instruction that either
-// produce a new "valB" or have a dependcy on the result of the precedding instruction. These instructions
+// produce a new "valB" or have a dependency on the result of the preceding instruction. These instructions
 // were already stalled in the FD stage,
 //
 // ??? all other cases have been stalled ?
@@ -364,6 +378,23 @@ bool MemoryAccessStage::dependencyValX( uint32_t regId ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Some instruction depend on status bits from the status register. For example, the ADD instruction produces
+// a carry bit. If the follow-on instruction is an ADC, the carry bit is not set yet and needs to be bypassed.
+//
+//------------------------------------------------------------------------------------------------------------
+bool MemoryAccessStage::dependencyValST( ) {
+    
+    uint32_t instr = psInstr.get( );
+    
+    switch ( getBitField( instr, 5, 6 )) {
+            
+        case OP_ADC:    case OP_SBC: return( true );
+            
+        default: return( false );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Utility function to set and get the the pipeline register data.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -398,7 +429,7 @@ void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 //------------------------------------------------------------------------------------------------------------
 // Access to a segment may be subject to protection checking. The little helper routine will compare the
 // target segment Id with the segments stored in the protection control registers. The function returns a
-// value of true when one field maztches.
+// value of true when one field matches.
 //
 //------------------------------------------------------------------------------------------------------------
 bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
@@ -415,10 +446,10 @@ bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The memory access stage is primarily responsible for accessing memory data used by load and store type
-// instructions, branch type instructions and several system contrl instructions. This the stage where any
+// instructions, branch type instructions and several system control instructions. This the stage where any
 // segment or control register is accessed.
 //
-// For any instruction that need an adddress, the MA stage will take the B and X value and compute the address
+// For any instruction that need an address, the MA stage will take the B and X value and compute the address
 // offset for the memory data access or branch target. For branches that do not save a return link, we are
 // done and the EX stage is "bubbled". Otherwise, the instruction continues to the EX stage where the return
 // address is computed using the EX stage ALU and stored in a general register.
@@ -426,7 +457,7 @@ bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
 // For the conditional branch instruction, the predicted branch target based in the offset was already
 // processed in the FD stage. In this stage, the branch target address for the alternative target will
 // be computed by adding B and X, which were set accordingly in the FD stage. When the EX stage evaluates
-// the branch condition and determines that the branch was mispredicted, this adress will be used to
+// the branch condition and determines that the branch was mispredicted, this address will be used to
 // continue the instruction stream and flushing instructions fetched wrongly from the pipeline.
 //
 // In general, the stall logic will always inhibit the update of the current and any previous pipeline
@@ -450,15 +481,15 @@ bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
 // instruction MA stage with the correct data. For all these cases, the MA stage therefore needs to be stalled
 // until the correct value for "B" and "X" are written back to the general register and then resumed.
 //
-// Note: when a trap occurs, the pipeline is stalled and the procedure returns rightaway.
+// Note: when a trap occurs, the pipeline is stalled and the procedure returns right away.
 //
-// ??? note: this is a rather long routine. Perhaps we should split this into smaller portions.
+// Note: this is a rather long routine. Perhaps we should split this into smaller portions.
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::process( ) {
     
     uint32_t            instr       = psInstr.get( );
     uint8_t             opCode      = getBitField( instr, 5, 6 );
-    uint32_t            pageOfs     = psValX.get( ) % PAGE_SIZE;
+    uint32_t            pageOfs     = psValX.get( ) % PAGE_SIZE_BYTES;
     uint32_t            physAdr     = 0;
     
     uint32_t            segAdr      = 0;
@@ -523,6 +554,7 @@ void MemoryAccessStage::process( ) {
             if ( ! checkAlignment( instr, ofsAdr )) {
             
                 setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
+                stallPipeLine( );
                 return;
             }
             
@@ -551,6 +583,7 @@ void MemoryAccessStage::process( ) {
             if ( ! checkAlignment( instr, ofsAdr )) {
             
                 setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
+                stallPipeLine( );
                 return;
             }
             
@@ -568,6 +601,7 @@ void MemoryAccessStage::process( ) {
             if ( ! checkAlignment( instr, ofsAdr )) {
             
                 setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
+                stallPipeLine( );
                 return;
             }
             
@@ -774,9 +808,9 @@ void MemoryAccessStage::process( ) {
             }
             
             if ( ! getBit( instr, 12 ))
-                cPtr -> flushBlock( segAdr, ofsAdr, ( tlbEntryPtr -> tPhysPage( ) << PAGE_SIZE_BITS ));
+                cPtr -> flushBlock( segAdr, ofsAdr, ( tlbEntryPtr -> tPhysPage( ) << PAGE_OFFSET_BITS ));
             else
-                cPtr -> purgeBlock( segAdr, ofsAdr, ( tlbEntryPtr -> tPhysPage( ) << PAGE_SIZE_BITS ));
+                cPtr -> purgeBlock( segAdr, ofsAdr, ( tlbEntryPtr -> tPhysPage( ) << PAGE_OFFSET_BITS ));
             
         } break;
             
@@ -795,7 +829,7 @@ void MemoryAccessStage::process( ) {
     //
     //--------------------------------------------------------------------------------------------------------
     if (( isReadIstr( instr ) || ( isWriteInstr( instr )))) {
-  
+        
         if ( psPstate0.get( ) & ST_DATA_TRANSLATION_ENABLE ) {
             
             TlbEntry   *tlbEntryPtr = core -> dTlb -> lookupTlbEntry( segAdr, ofsAdr );
@@ -864,8 +898,13 @@ void MemoryAccessStage::process( ) {
             physAdr = ofsAdr;
         }
         
-        // ??? data alignment traps ??????
-        
+        if ( ! isAligned( physAdr, getBitField( instr, 15, 2 ) )) {
+            
+            setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr );
+            stallPipeLine( );
+            return;
+        }
+     
         bool rStat = false;
         
         if ( physAdr <= core -> physMem -> getEndAdr(  )) {

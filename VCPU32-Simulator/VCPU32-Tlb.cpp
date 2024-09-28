@@ -3,8 +3,8 @@
 // VCPU32 - A 32-bit CPU - A TLB for VCPU-32
 //
 //------------------------------------------------------------------------------------------------------------
-// A TLB is a translation cache. It contains the virtual adress and the corresponding physical adress as well
-// as access rights information for the page. Each virtual memory reference will conslt the TLB, it is on the
+// A TLB is a translation cache. It contains the virtual address and the corresponding physical address as well
+// as access rights information for the page. Each virtual memory reference will consult the TLB, it is on the
 // critical path.
 //
 //
@@ -43,7 +43,7 @@ const uint32_t  MAX_TLB_SIZE    = 2048;
 const uint8_t   SEG_SHIFT       = 4;
 
 //------------------------------------------------------------------------------------------------------------
-// TLB state mchine states.
+// TLB state machine states.
 //
 //------------------------------------------------------------------------------------------------------------
 enum tlbOpState : uint32_t {
@@ -99,7 +99,7 @@ uint32_t roundUp( uint32_t size ) {
 //------------------------------------------------------------------------------------------------------------
 uint16_t hashTlb( uint32_t seg, uint32_t ofs, uint32_t tlbSize ) {
     
-    return((( seg << SEG_SHIFT ) ^ ( ofs >> PAGE_SIZE_BITS )) % tlbSize );
+    return((( seg << SEG_SHIFT ) ^ ( ofs >> PAGE_OFFSET_BITS )) % tlbSize );
 }
 
 }; // namespace
@@ -195,7 +195,7 @@ bool CpuTlb::insertTlbEntryAdr( uint32_t seg, uint32_t ofs, uint32_t data ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The insert TLB protection info method is the second part of the TLB insert routine. The first part was
-// done by the inseert TLB address instruction. This part will complete the rest of the entries and fill in
+// done by the insert TLB address instruction. This part will complete the rest of the entries and fill in
 // the protection and access rights information. The entry becomes valid. To simulate that a TLB may need a
 // couple of cycles to carry out the request, we have a delay count decremented on each tick. If the tick is
 // zero, let's do the work.
@@ -262,7 +262,7 @@ bool CpuTlb::purgeTlbEntry( uint32_t seg, uint32_t ofs ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "abortTlbOp" will abort any current TLB opration. It is necessary when we flush the pipeline to avoid
+// "abortTlbOp" will abort any current TLB operation. It is necessary when we flush the pipeline to avoid
 // a fetching of an instruction that we never execute.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -297,8 +297,8 @@ bool CpuTlb::insertTlbEntryData( uint32_t seg, uint32_t ofs, uint32_t argAcc, ui
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "purgeTlbEntryData" is the routine called by the command interpreter to remove and enry and clear all
-// teh data from the TLB.
+// "purgeTlbEntryData" is the routine called by the command interpreter to remove and entry and clear all
+// the data from the TLB.
 //
 //------------------------------------------------------------------------------------------------------------
 bool CpuTlb::purgeTlbEntryData( uint32_t seg, uint32_t ofs ) {
@@ -327,7 +327,7 @@ TlbEntry *CpuTlb::lookupTlbEntry( uint32_t seg, uint32_t ofs ) {
     
    tlbAccess++;
     
-    if (( ptr -> vpnHigh == seg ) && (( ptr -> vpnLow >> PAGE_SIZE_BITS ) == ( ofs >> PAGE_SIZE_BITS ))) {
+    if (( ptr -> vpnHigh == seg ) && (( ptr -> vpnLow >> PAGE_OFFSET_BITS ) == ( ofs >> PAGE_OFFSET_BITS ))) {
         
         return( ptr );
     }
@@ -355,7 +355,7 @@ void CpuTlb::setTlbCtrlReg( uint8_t mReg, uint32_t val ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The get TLB entry method returns a pointer to the TLB emtry by index.
+// The get TLB entry method returns a pointer to the TLB entry by index.
 //
 //------------------------------------------------------------------------------------------------------------
 TlbEntry *CpuTlb::getTlbEntry( uint32_t index ) {

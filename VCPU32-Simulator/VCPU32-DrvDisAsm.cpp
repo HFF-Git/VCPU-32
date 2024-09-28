@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Dissaembler
+// VCPU32 - A 32-bit CPU - Disassembler
 //
 //------------------------------------------------------------------------------------------------------------
 // The instruction disassemble routine will format an instruction word in human readable form. An instruction
@@ -13,7 +13,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Dissaembler
+// VCPU32 - A 32-bit CPU - Disassembler
 // Copyright (C) 2022 - 2024 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -31,7 +31,7 @@
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
-// Local namespace. These routines are not visible otside this source file.
+// Local namespace. These routines are not visible outside this source file.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
@@ -78,7 +78,7 @@ static inline uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
 //------------------------------------------------------------------------------------------------------------
 // "printImmVal" display an immediate value in the selected radix. Octals and hex numbers are printed unsigned
 // quantities, decimal numbers are interpreted as signed integers. Most often decimal notation is used to
-// specifiy offsets on indexed addressing modes.
+// specify offsets on indexed addressing modes.
 //
 //------------------------------------------------------------------------------------------------------------
 void printImmVal( uint32_t val, TokId fmtType = TOK_HEX ) {
@@ -394,7 +394,7 @@ void displayOpCodeOptions( uint32_t instr ) {
 
 //------------------------------------------------------------------------------------------------------------
 // This routine display the instruction target. Most of the time it is a general register. For the STORE
-// type instructions the target adress is decoded and printed. Finally there are the MTR instructions which
+// type instructions the target address is decoded and printed. Finally there are the MTR instructions which
 // which will use a segment or control register as the target. There is one further exception. The BLE
 // instruction will produce a register value, the return link stored in R0. This is however not shown in the
 // disassembly printout.
@@ -434,7 +434,7 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Instruction have operands. For most of the instructions this is the operand field with the defined
-// addressing modes. For others it is highy instruction specific. The operand routine also has a parameter
+// addressing modes. For others it is highly instruction specific. The operand routine also has a parameter
 // to specify in what radix a value is shown. Address offsets are however always printed in decimal.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -684,19 +684,19 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         case OP_PTLB: {
             
-            fprintf( stdout, " (s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_PCA: {
             
-            fprintf( stdout, " (s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_BRK: {
             
-            fprintf( stdout, " %d, %d", getBitField( instr, 9, 4 ), getBitField( instr, 31, 16 ));
+            fprintf( stdout, "%d, %d", getBitField( instr, 9, 4 ), getBitField( instr, 31, 16 ));
            
         } break;
     }

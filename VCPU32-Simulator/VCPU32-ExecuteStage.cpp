@@ -44,7 +44,7 @@ namespace {
 
 //‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 // Bit field access.
-// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+////‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool getBit( uint32_t arg, int pos ) {
     
     return(( arg & ( 1U << ( 31 - ( pos % 32 )))) ? 1 : 0 );
@@ -63,15 +63,14 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
 }
 
 //‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-// Two little helper functions to compare two register values for the CBR instruction. 
-// //‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
+// Two little helper functions to compare two register values for the CMP and CBR instruction.
+////‐‐‐‐‐‐-----------------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool compareCond( uint32_t instr, uint32_t valA, uint32_t valB ) {
    
     switch( getBitField( instr, 8, 2 )) {
             
         case CC_EQ: return( valA == valB );
         case CC_NE: return( valA != valB );
-            
         case CC_LT: return(((int32_t) valA )  < ((int32_t) valB ));
         case CC_LE: return(((int32_t) valA )  <= ((int32_t) valB ));
         default: return( false );
@@ -84,7 +83,6 @@ bool compareCondU( uint32_t instr, uint32_t valA, uint32_t valB ) {
             
         case CC_EQ: return( valA == valB );
         case CC_NE: return( valA != valB );
-            
         case CC_LT: return( valA  < valB );
         case CC_LE: return( valA <= valB );
         default: return( false );
@@ -92,7 +90,7 @@ bool compareCondU( uint32_t instr, uint32_t valA, uint32_t valB ) {
 }
 
 //‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
-// A little helper function to compare 0 to a register value for the TBR instruction.
+// A little helper function to compare 0 to a register value for the CMR instruction.
 //
 //‐‐‐‐‐‐---------‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐‐
 bool testCond( uint32_t instr, uint32_t val ) {
@@ -179,7 +177,7 @@ void ExecuteStage::setStalled( bool arg ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Pipeline flush. When a trap occured, the EX stage will branch to a trap handler. All instructions that
+// Pipeline flush. When a trap occurs, the EX stage will branch to a trap handler. All instructions that
 // entered the pipeline after the trapping instruction will need to be flushed. This is done by simply
 // putting a NOP in the instruction fields of the MA pipeline register and our own pipeline register. This
 // will overwrite whatever the previous stages execution have put there.
@@ -253,9 +251,9 @@ void ExecuteStage::setPipeLineReg( uint32_t pReg, uint32_t val ) {
 #if 0
 //------------------------------------------------------------------------------------------------------------
 // Some registers are subject to the privilege mode check of the execution thread. Any register can be read
-// at any priviledge level. Beyond that, there are checks for write access.
+// at any privilege level. Beyond that, there are checks for write access.
 //
-// put into the instruction execution that makes these chccks....
+// put into the instruction execution that makes these checks....
 //------------------------------------------------------------------------------------------------------------
 bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessModes mode ) {
     
@@ -284,9 +282,9 @@ bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessMode
 //
 // For the EX to FD case, it is simply a matter of patching the MA stage pipeline register where the FD stage
 // put the old value of the register file. We check the instruction for fields that fetch a general and
-// compare the registr Id with the target register ID value of the current instruction in the EX stage. The
+// compare the register Id with the target register ID value of the current instruction in the EX stage. The
 // data we correct is for the instruction two instructions behind the instruction that is currently finishing
-// in the EX stage. In hardware you would have a path from the ALU output to the multipleyer before the input
+// in the EX stage. In hardware you would have a path from the ALU output to the multiplexer before the input
 // to the FD pipeline stage register.
 //
 // For the MA stage, we patch the EX stage pipeline for the "A" and "B" input. Like the previous scenario,
@@ -296,23 +294,21 @@ bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessMode
 //
 // For the CBR conditional branch instruction, we need to evaluate the condition and then compare the result
 // to the branch prediction decision taken in the FD stage. If we mispredicted the pipeline needs to be
-// flushed and instruction fetching continues from the alternate address passed forward through the pipleine
+// flushed and instruction fetching continues from the alternate address passed forward through the pipeline
 // "X" register.
 //
 // This routine will so far not cause a stall the pipeline but certainly it can trap. When a trap occurs, the
-// pipeline is flushed and the procedure returns rightaway. This is consistent with the other stages. The
+// pipeline is flushed and the procedure returns right away. This is consistent with the other stages. The
 // "clockStep" method in the CPU core, which drives the stages, will actually check for traps and handle them.
 //
 // Some status bits must be bypassed in order for them to be available in the follow-on instructions. The
-// ADD, ADDC, SUB and SUBC innstructions for exampke generate a carry bit. This bit needs to be available
+// ADD, ADDC, SUB and SUBC instructions for example generate a carry bit. This bit needs to be available
 // in the follow-on computational instruction. In addition to the FD and MA state we also set our own
 // pipeline processor state word accordingly.
 //
-// ??? do we need to set for ADD and friends the status bit also in teh MA stage or just FD and EX ?
-//
 // ??? what would we do about segment and control registers hazards, if at all ?
 //
-// ??? note: this is a rather long routine. Perhaps we should split this into smaller portions.
+// Note: this is a rather long routine. Perhaps we should split this into smaller portions.
 //------------------------------------------------------------------------------------------------------------
 void ExecuteStage::process( ) {
     

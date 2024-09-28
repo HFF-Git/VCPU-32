@@ -13,7 +13,7 @@
 // IDLE and can accept a new request.
 //
 // The memory access functions are tailored to the particular memory object. In the case of a L1 virtual
-// address, this is segement and offset. These two values are used to compute the index into the tag and
+// address, this is segment and offset. These two values are used to compute the index into the tag and
 // data array of the L1 layer. The tag parameter is the tag obtained from the translation unit. The tag must
 // match the tag stored in the memory tag array for the indexed block. The memory layers can have different
 // block sizes. However, only going from smaller to larger sizes is supported. For example, a 16 byte block
@@ -24,7 +24,7 @@
 // in a memory layer is stored in an array of words.
 //
 // The intended hardware will perform a lookup of TLB and caches in parallel. As a consequence the number of
-// bits needed to respresent the block entries cannot be greater than the number of bits necessary to
+// bits needed to represent the block entries cannot be greater than the number of bits necessary to
 // represent the page size minus the number of bits it takes to represent the block size. For example, of the
 // block size is 16 bytes, it will take four bits to index into the block. If the page bit size is 12 bits
 // then we have 8 bits left for indexing the cache, i.e. 256 entries.
@@ -35,7 +35,7 @@
 // There is also an arbitration scheme. The two L1 caches my compete for the L2 cache or the physical memory
 // layer when that layer is IDLE and both caches have a request. In this case the request with the highest
 // priority, i.e. the lowest numeric value, will win. Right now, the PDC and IO memory address space are
-// seprate and thus there is no arbitation like there would on a real system bus. To look into one day.
+// separate and thus there is no arbitration like there would on a real system bus. To look into one day.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -106,7 +106,7 @@ enum MemOpState : uint16_t {
 
 //------------------------------------------------------------------------------------------------------------
 // Helper functions. We want to make sure that the size values for blocks and lines are a power of two. The
-// other helper functions compute the bit mask and teh nmber of bits in it for the cache lines. Note that for
+// other helper functions compute the bit mask and the number of bits in it for the cache lines. Note that for
 // block size only 16, 32 and 64 bytes is allowed.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -154,10 +154,10 @@ uint32_t maxBlocks( CpuMemType memType, uint32_t blockSize ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Memory object constructor. We construct the object from the CPU descriptor portion for the memory object.
-// A memory is a set of data organized in blocks of a blocksize. A memory can also have a tag array for a
+// A memory is a set of data organized in blocks of a block size. A memory can also have a tag array for a
 // tag match operation of the selected block. Besides the the configuration descriptor, we are passed an
 // optional handle to a lower memory layer. Note that the memory object is an abstract class used by a
-// particular memory object. Allocating space for data and tag memory must be handled by the ingeriting
+// particular memory object. Allocating space for data and tag memory must be handled by the inheriting
 // class.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -214,7 +214,7 @@ void CpuMem::reset( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Reset the statistics. We maintain counters for total access, misses and how many cycles wwe waited for a
+// Reset the statistics. We maintain counters for total access, misses and how many cycles we waited for a
 // lower layer to read/ write some data.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -229,7 +229,7 @@ void CpuMem::clearStats( ) {
 //------------------------------------------------------------------------------------------------------------
 // The "tick" routine is invoked on every CPU clock cycle. All we do is to update any register defined. So
 // far this is only the opState for the state machine. The "process" method invokes the state machine. It is
-// a bit akward to read, we invoke a procedure label stored in the object. Both routines are used in the
+// a bit awkward to read, we invoke a procedure label stored in the object. Both routines are used in the
 // clock step code of the CPU core object. First all "ticks" are handled, then all "process" code is invoked.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -261,7 +261,7 @@ void CpuMem::abortOp( ) {
 // N-way-associative memories use the "matchTag" function to check for a matching tag in the set. We will
 // iterate through the tag arrays at the block index, check for a valid entry and matching tag. A tag is the
 // physical address with the blockBits set to zero. If no matching entry is found and the entry is valid, the
-// maximum block entries constant is returned. The tag passed is physical address. We maks off the block size
+// maximum block entries constant is returned. The tag passed is physical address. We mask off the block size
 // bits and compare the rest.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -281,7 +281,7 @@ uint16_t CpuMem::matchTag( uint32_t index, uint32_t tag ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "readWord" fills in the request data for reading a word, a half-word or a byte from the data array. The
-// method supports the latentcy option, so that we can model the latetncy behaviour of a physical memory
+// method supports the latency option, so that we can model the latency behavior of a physical memory
 // ´request. If the memory object is IDLE, we fill in the request parameters and the next cycle will start
 // processing the request. Note that this method will be called every clock cycle as long as the lower layer
 // operation is not completed. The completion is signaled by the latency count being zero. Note also that the
@@ -308,7 +308,7 @@ bool CpuMem::readWord( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t len, u
 
 //------------------------------------------------------------------------------------------------------------
 // "writeWord" fills in the request data for writing a word, a half-word or a byte into the data array. The
-// method supports the latentcy option, so that we can model the latetncy behaviour of a physical memory
+// method supports the latency option, so that we can model the latency behavior of a physical memory
 // ´request. If the memory object is IDLE, we fill in the request parameters and the next cycle will start
 // processing the request. Note that this method will be called every clock cycle as long as the lower layer
 // operation is not completed. The completion is signaled by the latency count being zero. Note also that the
@@ -390,7 +390,7 @@ bool CpuMem::writeBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint8_t *buf,
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "flushBlockPhys" will write the content of the block at adress "adr" to the lower layer. This method only
+// "flushBlockPhys" will write the content of the block at address "adr" to the lower layer. This method only
 // applies to caches that are connected to a physical memory layer. The block is marked "clean" after the
 // operation. If the operation is not supported by the lower layer, the state machine will simply ignore
 // this request.
@@ -414,7 +414,7 @@ bool CpuMem::flushBlock( uint32_t seg, uint32_t ofs, uint32_t tag, uint32_t pri 
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "purgeBlock" will invalidate the block at physical adress "adr" to the lower layer. This method only
+// "purgeBlock" will invalidate the block at physical address "adr" to the lower layer. This method only
 // applies to caches that are connected to a physical memory layer. The block is marked "clean" after the
 // operation. If the operation is not supported by the lower layer, the state machine will simply ignore
 // this request.
@@ -501,7 +501,7 @@ char *CpuMem::getMemOpStr( uint32_t opArg ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "getMemTagEntry" is a routine called by the simulator driver to obtain a reference to the tag data entry.
-// If the tag array does not exists or the indexed is out of range, a nullpr will be returned.
+// If the tag array does not exists or the indexed is out of range, a nullptr will be returned.
 //
 //------------------------------------------------------------------------------------------------------------
 MemTagEntry  *CpuMem::getMemTagEntry( uint32_t index, uint8_t set ) {
@@ -527,7 +527,7 @@ uint8_t *CpuMem::getMemBlockEntry( uint32_t index, uint8_t set ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "getMemDataWord" and "putMemWord" are the routines called by the simulator display functions. They get or
-// set a word in the data array of the data set. The ofset is rounded down to a 4-byte boundary.
+// set a word in the data array of the data set. The offset is rounded down to a 4-byte boundary.
 //
 //------------------------------------------------------------------------------------------------------------
 uint32_t CpuMem::getMemDataWord( uint32_t ofs, uint8_t set ) {
@@ -641,10 +641,10 @@ L1CacheMem::L1CacheMem( CpuMemDesc *mDesc, CpuMem *lowerMem ) : CpuMem( mDesc, l
 
 //------------------------------------------------------------------------------------------------------------
 // "readWord" overrides the memory object methods. The L1 caches are called from the pipeline stages. The
-// virtual adress is "seg.ofs". The "len" paramater specifies the number of bytes to read. Only 1, 2 and 4 
+// virtual address is "seg.ofs". The "len" parameter specifies the number of bytes to read. Only 1, 2 and 4 
 // bytes are allowed, which correspond to byte, half-word and word. The "adrTag" parameter is the physical
 // address used for tag comparison which we got from the TLB. The tag address is the full address, the memory
-// object will mask out the block bit maks. If the L1 cache is IDLE, we directly check to see if we have a
+// object will mask out the block bit masks. If the L1 cache is IDLE, we directly check to see if we have a
 // valid block containing the data. If so, the data is returned right away and we have no cycle penalty.
 // Depending on the requested data size, the byte or half-word is returned with leading zeros extended.
 // Otherwise, we first need to ALLOCATE a slot in the cache and read in the block. The next cycle will start
@@ -691,11 +691,11 @@ bool L1CacheMem::readWord( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32_t
 
 //------------------------------------------------------------------------------------------------------------
 // "writeWord" overrides the base class method. It is called from the CPU pipeline data access stage to write
-// data to the L1 cache. The virtual adress is "seg.ofs". The "adrTag" parameter is the physical address tag
+// data to the L1 cache. The virtual address is "seg.ofs". The "adrTag" parameter is the physical address tag
 // stored in the TLB. It is the full physical address, the memory object will mask out the bit mask size with
 // zeroes. If the L1 cache is IDLE, we directly check to see if we have a valid block containing the word. If
 // so, the data is stored right away and we have no cycle penalty. Depending on the request data size, the
-// byte or half-word is stored at the byte address in the cache. Othwerwise, we follow the same logic as
+// byte or half-word is stored at the byte address in the cache. Otherwise, we follow the same logic as
 // described for the read virtual data operation.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -815,7 +815,7 @@ bool L1CacheMem::purgeBlock( uint32_t seg, uint32_t ofs, uint32_t adrTag, uint32
 // MO_ALLOCATE_BLOCK: on a cache miss, we start here. The first task is to locate the block to use for the
 // cache miss. If there is an invalid block in the sets, this is the one to use and the next state is
 // MO_READ_BLOCK, where we will read the block that contains the requested data. Otherwise, we will
-// randomly select a block from the sets to be the canditate for serving the cache miss. If the selected
+// randomly select a block from the sets to be the candidate for serving the cache miss. If the selected
 // block is dirty it will be written back first and the next state MO_WRITE_BACK_BLOCK.
 //
 // MO_READ_BLOCK: coming from the MO_ALLOCATE_BLOCK state, this state will read the block from the lower
@@ -927,7 +927,7 @@ void L1CacheMem::process( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The "L2CacheMem" represents the L2 cache. It has a data and a tag array, which we allocate right here. The
-// caxche is physically indexed and physically tagged.
+// cache is physically indexed and physically tagged.
 //
 //------------------------------------------------------------------------------------------------------------
 L2CacheMem::L2CacheMem( CpuMemDesc *mDesc, CpuMem *lowerMem ) : CpuMem( mDesc, lowerMem ) {
@@ -945,7 +945,7 @@ L2CacheMem::L2CacheMem( CpuMemDesc *mDesc, CpuMem *lowerMem ) : CpuMem( mDesc, l
 // "processL2CacheRequest" is the state machine for the L2 cache. The L2 cache is a thing in the middle
 // between the L1 cache and the physical memory. It is a physically indexed, physically tagged cache and
 // serves both L1 caches with the L1 instruction cache having priority over the L1 data cache. The "seg"
-// paramater in the access methods is zero, and so is the "tag". The ofs" paramater contains the byte address
+// parameter in the access methods is zero, and so is the "tag". The ofs" parameter contains the byte address
 // which is both the address and the tag for comparison.
 //
 // The block sizes of the upper and lower layer do not necessarily have to match. For example, we could have
@@ -1067,7 +1067,7 @@ PhysMem::PhysMem( CpuMemDesc *mDesc  ) : CpuMem( mDesc, nullptr ) {
 // state machine has only two states, MO_READ_BLOCK_PHYS and MO_WRITE_BLOCK_PHYS. All else is ignored.
 //
 // It will use the latency counter to simulate the cycles it takes to serve the request. Each time the CPU
-// clock ( "tick" ) advances, the latency counter is decremented. When zero is reachd the requested operation
+// clock ( "tick" ) advances, the latency counter is decremented. When zero is reached the requested operation
 // is executed and the state machine advances to the next state.
 //
 // In general, we will return the data when the latency counter decrements to zero. The indexing method

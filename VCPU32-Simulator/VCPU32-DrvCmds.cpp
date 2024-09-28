@@ -509,9 +509,9 @@ void DrvCmds::printErrMsg( ErrMsgId errNum, char *argStr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Our friendly welcome message with the actual program version. We also set some of the enviroment variables
+// Our friendly welcome message with the actual program version. We also set some of the environment variables
 // to an initial value. Especially string variables need to be set as they are not initialized from the
-// enviroment variable table.
+// environment variable table.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::printWelcome( ) {
@@ -545,7 +545,7 @@ void DrvCmds::processCmdLineArgs( int argc, const char *argv[ ] ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "promtpCmdLine" lists out the promt string. For now this is just a "->". As developmnt goes on the prompt
+// "promtpCmdLine" lists out the prompt string. For now this is just a "->". As development goes on the prompt
 // string will contain some more info about the current CPU state. The prompt is only printed when the input
 // comes from a terminal and not an input file.
 //
@@ -563,8 +563,8 @@ void DrvCmds::promptCmdLine( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "promptYesNoCancel" is a simple function to print a promtstr with a decision question. The answer can be
-// yes/no or cancel. A positive result is a "yes" a negative result a "no", anything else a "cancel".
+// "promptYesNoCancel" is a simple function to print a prompt string with a decision question. The answer can
+//  be yes/no or cancel. A positive result is a "yes" a negative result a "no", anything else a "cancel".
 //
 //------------------------------------------------------------------------------------------------------------
 int DrvCmds::promptYesNoCancel( char *promptStr ) {
@@ -590,7 +590,7 @@ int DrvCmds::promptYesNoCancel( char *promptStr ) {
 // found, an invalid command or an empty command line status. We loop inside the routine until we receive
 // a valid command line or an EOF.
 //
-// Warning: on a Mac, fgets does read in a string. On the terminal program configuration, the erase chacracter
+// Warning: on a Mac, fgets does read in a string. On the terminal program configuration, the erase character
 // needs to be set to NOT send a control-H to the input. The cursor keys are just echoed to the input line
 // and I do not know a way to make them actually move around in the input line.
 //
@@ -684,7 +684,7 @@ void DrvCmds::helpCmd( char *cmdBuf ) {
     fprintf( stdout, FMT_STR, "asm <instr-string>", "assemble an instruction" );
     fprintf( stdout, FMT_STR, "hva <seg> <ofs>",  "returns the hash value function result" );
     fprintf( stdout, FMT_STR, "d-cache (dca) <I|D|U> [<index> <len>]", "display cache content" );
-    fprintf( stdout, FMT_STR, "p-cache (pca) <I|D|U> <index> [<F>]", "flushs and purges cache data" );
+    fprintf( stdout, FMT_STR, "p-cache (pca) <I|D|U> <index> [<F>]", "flushes and purges cache data" );
     fprintf( stdout, FMT_STR, "d-tlb (dtlb) <I|D> [<index> <len>]", "display TLB content" );
     fprintf( stdout, FMT_STR, "i-tlb (itlb) <I|D> <seg> <ofs> <argAcc> <argAdr>", "inserts an entry into the TLB" );
     fprintf( stdout, FMT_STR, "p-tlb (ptlb) <I|D> <seg> <ofs>", "purges an entry from the TLB" );
@@ -720,7 +720,7 @@ void DrvCmds::winHelpCmd( char *cmdBuf ) {
     fprintf( stdout, FMT_STR, "DC", "CPU Data Cache (L1) window" );
     fprintf( stdout, FMT_STR, "UC", "CPU Unified Cache (L2) window" );
     fprintf( stdout, FMT_STR, "PM", "Physical Memory window" );
-    fprintf( stdout, FMT_STR, "PC", "Progam Code Window" );
+    fprintf( stdout, FMT_STR, "PC", "Program Code Window" );
     fprintf( stdout, FMT_STR, "ICR", "CPU Instruction Cache (L1) controller registers" );
     fprintf( stdout, FMT_STR, "DCR", "CPU Data Cache (L1) controller registers" );
     fprintf( stdout, FMT_STR, "UCR", "CPU Unified Cache (L2) controller registers" );
@@ -794,7 +794,7 @@ void DrvCmds::exitCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Comment command. Just echo the line ... and leave the error status alone. This command is vry handy for
+// Comment command. Just echo the line ... and leave the error status alone. This command is very handy for
 // any script file to insert comments in that file.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -837,7 +837,7 @@ void DrvCmds::envCmd( char *cmdBuf ) {
         
         if ( glb-> env -> isReadOnly( arg1Id )) {
             
-            fprintf( stdout, "ENV variable is radonly\n" );
+            fprintf( stdout, "ENV variable is readonly\n" );
             return;
         }
         
@@ -907,7 +907,7 @@ void DrvCmds::execFileCmd( char *cmdBuf ) {
     char    arg1Str[ TOK_LARGE_STR_SIZE + 1 ]   = "";
     
     if ( sscanf( cmdBuf, "%32s %256s", cmdStr, arg1Str ) >= 2 ) execCmdsFromFile( arg1Str );
-    else fprintf( stdout, "Extepected a file path\n " );
+    else fprintf( stdout, "Expected a file path\n " );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -977,7 +977,7 @@ void DrvCmds::runCmd( char *cmdBuf ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Step command. The command will execute one instruction. Default is one instruction. There is an ENV
-// variable that will set the default to be a single clockstep.
+// variable that will set the default to be a single clock step.
 //
 // STEP [ <num> ] [I|C]
 //------------------------------------------------------------------------------------------------------------
@@ -1489,7 +1489,7 @@ void  DrvCmds::displayCacheCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Purges a cacheline from the cache.
+// Purges a cache line from the cache.
 //
 // P-CACHE <I|D|U> <index> <set> [<flush>]
 //------------------------------------------------------------------------------------------------------------
@@ -1545,10 +1545,10 @@ void  DrvCmds::purgeCacheCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Display absolute memory command. The memory address is a byte adress. The offset address is a byte address,
+// Display absolute memory command. The memory address is a byte address. The offset address is a byte address,
 // the length is measured in bytes, rounded up to the a word size. We accept any address and length and only
-// check that the offset plus length does not execeed the address space. The display routines, who will call
-// the actual memory obbject will take care of gaps in the memory address range.
+// check that the offset plus length does not exceed the address space. The display routines, who will call
+// the actual memory object will take care of gaps in the memory address range.
 //
 // DA <ofs> [ <len> [ <fmt> ]]
 //------------------------------------------------------------------------------------------------------------
@@ -1888,7 +1888,7 @@ void DrvCmds::winStacksDisable( char *cmdBuf ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Window current command. User definable windows are controlled by their window number. To avoid typing this
-// number all the time for a user window command, a user window can explicitly be set as the current commamnd.
+// number all the time for a user window command, a user window can explicitly be set as the current command.
 //
 // WC <winNum>
 //------------------------------------------------------------------------------------------------------------
@@ -1920,7 +1920,7 @@ void DrvCmds::winCurrentCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Windows enable and disable. When enabled, a window does show up on the sccreen. The window number is
+// Windows enable and disable. When enabled, a window does show up on the screen. The window number is
 // optional, used for user definable windows.
 //
 // <win>E [<winNum>]
@@ -2084,8 +2084,8 @@ void DrvCmds::winBackwardCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Window home. Each window has a home item adress, which was set at window creation or trough a non-zero
-// value passed to this command. The command sets the window item address to this value. The meaming of the
+// Window home. Each window has a home item address, which was set at window creation or trough a non-zero
+// value passed to this command. The command sets the window item address to this value. The meaning of the
 // item address is window dependent. The window number is optional, used for user definable windows.
 //
 // <win>H [<pos> [<winNum>]]
@@ -2115,7 +2115,7 @@ void DrvCmds::winHomeCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Window jump. The window jump command sets the item address to the position argument. The meaming of the
+// Window jump. The window jump command sets the item address to the position argument. The meaning of the
 // item address is window dependent. The window number is optional, used for user definable windows.
 //
 // <win>J [<pos> [<winNum>]]
@@ -2178,7 +2178,7 @@ void DrvCmds::winSetRowsCmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 // This command creates a new user window. The window is assigned a free index form the windows list. This
 // index is used in all the calls to this window. The window type allows to select from a code window, a
-// physical memoy window, a TLB and a CACHE window.
+// physical memory window, a TLB and a CACHE window.
 //
 // WN <winType> [ <arg> ]
 //------------------------------------------------------------------------------------------------------------
@@ -2427,7 +2427,7 @@ void  DrvCmds::winExchangeCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Excute command. This routine will scan the command buffer for the command token and branches to the
+// Execute command. This routine will scan the command buffer for the command token and branches to the
 // respective handler.
 //
 //------------------------------------------------------------------------------------------------------------

@@ -4,7 +4,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// CPU24Reg models a machine register. A register has an input and putput part. Setting means to store a
+// CPU24Reg models a machine register. A register has an input and output part. Setting means to store a
 // value in the input part, getting means a retrieval from the output part. The "tick" methods copies from
 // input to output, simulating a "positive clock edge" triggered D-Flip Flop..
 //
@@ -27,9 +27,11 @@
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
-// Methods. Straighforward. There is a "load" method which will set both register portions. This is primarily
-// used by the CPU driver to set a value and directly observe it through subsequent getter calls. A reister
-// can also be marked as a priviledge write access register.
+// Methods. Straightforward. There are the "get" and "set" methods. A value is set and appears on the outputs
+// after the "tick". There is also a "load" method which will set both register portions. This is primarily
+// used by the CPU driver to set a value and directly observe it through subsequent getter calls. A register
+// can also be marked as a privilege write access register. In addition there are a couple pf methods to
+// access bit fields.
 //
 //------------------------------------------------------------------------------------------------------------
 CpuReg::CpuReg( uint32_t val, bool isPriv ) {

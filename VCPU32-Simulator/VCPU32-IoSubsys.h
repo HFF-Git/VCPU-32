@@ -4,7 +4,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU-32 implements a memory mapped IO subsysten. The CPU core issus mememory resds and writes the need
+// VCPU-32 implements a memory mapped IO subsystem. The CPU core issues memory reads and writes the need
 // to be passed on to the corresponding IO module.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -52,7 +52,7 @@ struct CpuIoDesc {
 // The IO module is the central object for an IO module. It contains the data and methods to represent a
 // device in the IO memory address range. The CPU Memory Object for the IO space has a reference to this
 // object. Upon receiving a memory operation for the IO address range the request is passed to this object.
-// In general the IoModule follows the same implementation logic with a reset function, a imgainray clock
+// In general the IoModule follows the same implementation logic with a reset function, a imaginary clock
 // and so on.
 //
 //------------------------------------------------------------------------------------------------------------

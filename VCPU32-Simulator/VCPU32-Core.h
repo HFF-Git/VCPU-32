@@ -4,7 +4,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// CPU24Core represents the CPU itself. The CPU coe conists of the registers, the pipeline stages, the TLB
+// CPU24Core represents the CPU itself. The CPU core consists of the registers, the pipeline stages, the TLB
 // and L1 caches. All these objects are defined in this file.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -29,7 +29,7 @@
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
-// High level options for the virtual functionality. The options describe the overall strucuture of the TLB
+// High level options for the virtual functionality. The options describe the overall structure of the TLB
 // and Cache subsystems.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -117,7 +117,7 @@ enum MemoryObjRegId : uint32_t {
 //------------------------------------------------------------------------------------------------------------
 // We support two types of TLB. The split instruction and data TLB and a unified, dual ported TLB.
 //
-// ??? not clear how a dual ported will be modelled yet ...
+// ??? not clear how a dual ported will be modeled yet ...
 //------------------------------------------------------------------------------------------------------------
 enum TlbType : uint32_t {
     
@@ -186,7 +186,7 @@ enum CpuMemAccessType : uint32_t {
 // A cache or memory object is described through a descriptor. There are the type and access types. Size
 // information the number of entries in an array, the line size describes the number of words in a block.
 // the block sets value described the number of sets for n-way associative caches. The latency will specify
-// how many clock cycles it will take to perform the respective operation. For main memry, the PDC and the
+// how many clock cycles it will take to perform the respective operation. For main memory, the PDC and the
 // IO memory there is a start and ending address, since these memory will not cover all of the possible
 // memory range.
 //
@@ -205,9 +205,9 @@ struct CpuMemDesc {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The CPU core object descriptor holds the configuration settings for the CPU core objects. The descpriptor
-// contains the overall memory model, i.e. wheher it is a split or unified model for L1 caches or TLB, and
-// descriptors for each nuilding block.
+// The CPU core object descriptor holds the configuration settings for the CPU core objects. The descriptor
+// contains the overall memory model, i.e. whether it is a split or unified model for L1 caches or TLB, and
+// descriptors for each building block.
 //
 //------------------------------------------------------------------------------------------------------------
 struct CpuCoreDesc {
@@ -231,9 +231,9 @@ struct CpuCoreDesc {
 
 //------------------------------------------------------------------------------------------------------------
 // Core to the CPU is the register set. CPU24 features a set of registers available to the programmer. The
-// pipeline stage consist also of a set pf registers. All register implement with the same behaviour. There
+// pipeline stage consist also of a set pf registers. All register implement with the same behavior. There
 // is an inbound value that can be set and an outbound value that can be read. During the imaginary clock
-// edge, i.e. our "tick" function, the inbound value is copied to the outbound value. A registger can be
+// edge, i.e. our "tick" function, the inbound value is copied to the outbound value. A register can be
 // designated as a register only accessible in privileged mode.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -274,8 +274,8 @@ private:
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The TLB entry. Each TLB entry has the translation information, which is the virtual page nmuber and the
-// physical page nuber. Then there are the access rights of the page and the protection Id. Finally there
+// The TLB entry. Each TLB entry has the translation information, which is the virtual page number and the
+// physical page number. Then there are the access rights of the page and the protection Id. Finally there
 // are the valid, uncachable, tlb dirty, page and data reference trap bits. Regardless of the TLB model we
 // use, the entries have the same format. 
 //
@@ -305,7 +305,7 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 // TLB object. The different TLB models are built from this basic building block. The TLB entries contain
-// the viertual to physical teanslaton data. An entry is filled in two steps, first the data then the
+// the virtual to physical translation data. An entry is filled in two steps, first the data then the
 // protection and access rights data, which will ten set the entry valid. The object also maintains a set
 // of statistics to keep track of hits, misses, wait cycles and so on.
 //
@@ -380,7 +380,7 @@ struct MemTagEntry {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// VCPU-32 memory objects. All caches, the physical memory and the memory mapped IO asystem are build using
+// VCPU-32 memory objects. All caches, the physical memory and the memory mapped IO system are build using
 // the CPUMem class as the base object. When it comes to caches and main memory, VCPU-32 implements a
 // layered model. On top are always the L1 caches. There is an optional L2 cache. Below is the physical
 // memory layer. Next is the PDC memory, which is an uncached memory region. Finally, there is the IO memory
@@ -388,22 +388,22 @@ struct MemTagEntry {
 // object is not busy, it is IDLE and can accept a new request.
 //
 // The memory access functions always use a segment:offset pair as the address. In the case of a virtual
-// address, this is segement and offset. These two values are used to compute the index into the tag and
-// data array of the memory layer. The tag paramater is the tag obtained from the translation unit and must
+// address, this is segment and offset. These two values are used to compute the index into the tag and
+// data array of the memory layer. The tag parameter is the tag obtained from the translation unit and must
 // match the tag stored in the memory tag array for the indexed block. The memory layers can also have
 // different block sizes. However, only going from smaller to larger sizes are supported. For example, a
 // 4-word block L1 cache can map to a 16-word L2 cache, but not vice versa. The block function have a length
-// paramater to indicate how large the receiving layer block size actually is.
+// parameter to indicate how large the receiving layer block size actually is.
 //
-// All address offsets are byte adresses. All sizes are measured in bytes, rounded up to a word size when
+// All address offsets are byte addresses. All sizes are measured in bytes, rounded up to a word size when
 // necessary. The data array in a cache or memory layers is also an array of bytes, which allows a greater
-// flexibilty in configuring different meemory block sizes without a ton of address arithmtic. Some
+// flexibility in configuring different memory block sizes without a ton of address arithmetic. Some
 // interfaces to the memory objects do however pass as data as a word parameter.
 //
 // All memory objects have the same basic structure. At the core is a memory object specific state machine
-// that accepts a request and proceses it. The "process" methods is the abstract method that each inheriting
-// class must implement. The "tick" is the systen clock that advances that state machine. The CPU and the
-// memory obejcts themselves call each other with the defined methods. To simulate a latency, the method call
+// that accepts a request and process it. The "process" methods is the abstract method that each inheriting
+// class must implement. The "tick" is the system clock that advances that state machine. The CPU and the
+// memory objects themselves call each other with the defined methods. To simulate a latency, the method call
 // is repeated every clock cycle until the latency count is reached and the request is resolved.
 //
 // To simulate an arbitration a request with higher priority will overwrite a request entered but the current
@@ -540,7 +540,7 @@ struct PdcMem : CpuMem {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// "IoMem" frepresents the IO subsystem adress range.
+// "IoMem" represents the IO subsystem address range.
 //
 // ??? to do ...
 //------------------------------------------------------------------------------------------------------------
@@ -552,7 +552,7 @@ struct IoMem : CpuMem {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// CPU24 statistical data. Each major component maintains ts own statistics. The CPU itself also maintains
+// CPU24 statistical data. Each major component maintains its own statistics. The CPU itself also maintains
 // some statistics. To be defined...
 //
 // ??? just the statistics for the CPU itself ...
@@ -619,6 +619,7 @@ public:
     bool            dependencyValA( uint32_t regId );
     bool            dependencyValB( uint32_t regId );
     bool            dependencyValX( uint32_t regId );
+    bool            dependencyValST( );
     bool            consumesValB( );
     bool            consumesValX( );
     
@@ -641,12 +642,12 @@ private:
 
 //------------------------------------------------------------------------------------------------------------
 // The memory access stage first prepares the address from where to get the operand for the instruction. The
-// instruction decode stage stored the A, B and X valuzes in the pipeline register of this stage, as well as
+// instruction decode stage stored the A, B and X values in the pipeline register of this stage, as well as
 // the instruction address and instruction.
 //
 // This stage now decodes any address computation for the operand and generates the final virtual address by
 // selecting the segment register based on this information. Next, this stage fetches the necessary data from
-// the addresses computed. The adress is either a virtual adress or a physical address. This state is also
+// the addresses computed. The address is either a virtual address or a physical address. This state is also
 // the stage where any store to memory will take place. A data fetch operation stores the date into the B
 // pipeline register of the EX stage and passes all other registers just on to the EX stage. If there is no
 // data fetch necessary, B is also just passed on.
@@ -685,6 +686,7 @@ public:
     bool            dependencyValA( uint32_t regId );
     bool            dependencyValB( uint32_t regId );
     bool            dependencyValX( uint32_t regId );
+    bool            dependencyValST( );
     
     CpuReg          psPstate0;
     CpuReg          psPstate1;
@@ -794,7 +796,7 @@ public:
 private:
     
     //--------------------------------------------------------------------------------------------------------
-    // The CPU configuration descritpor and the CPU registers.
+    // The CPU configuration descriptor and the CPU registers.
     //
     //--------------------------------------------------------------------------------------------------------
     CpuCoreDesc     cpuDesc;

@@ -32,7 +32,7 @@ namespace {
 
 //------------------------------------------------------------------------------------------------------------
 // "displayInvalidWord" shows a set of "*" when we cannot get a value for word. We make the length of the
-// "*" string accoriding to the current radix.
+// "*" string according to the current radix.
 //
 //------------------------------------------------------------------------------------------------------------
 void displayInvalidWord( TokId fmtType ) {
@@ -89,7 +89,7 @@ void DrvLineDisplay::displayHalfWord( uint32_t val, TokId fmtType ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "displayRegsAndLabel" is a little building block to display a set of registers and a label. For exmaple:
+// "displayRegsAndLabel" is a little building block to display a set of registers and a label. For example:
 // "GR0=  xxx xxx xxx". It is an internal use only function to allow for the display of registers with some
 // options on title and how many are displayed in a row. Note that this routine does not a lot of checking.
 //
@@ -437,7 +437,7 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, TokId fm
 
 
 //------------------------------------------------------------------------------------------------------------
-// Display absolute memory content as code shown in assembler syntx. There is one word per line.
+// Display absolute memory content as code shown in assembler syntax. There is one word per line.
 //
 //------------------------------------------------------------------------------------------------------------
 void  DrvLineDisplay::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, TokId fmtId ) {

@@ -46,7 +46,7 @@
 //  home, jump      -> winJump          -> H, J
 //  rows            -> setRows          -> L
 //  radix           -> setRadix         -> R
-//  new             -> newUswerWin      -> N
+//  new             -> newUserWin       -> N
 //  kill            -> winUserKill      -> K
 //  current         -> currentUserWin   -> C
 //  toggle          -> winToggle        -> T
@@ -172,7 +172,7 @@ enum fmtDescOptions : uint32_t {
 
 //-----------------------------------------------------------------------------------------------------------
 // The list of windows. This local structure holds a reference to all defined windows. The first entries
-// are asssigned in a fixed manner, these windows are created once and cannot be removed. The remaining
+// are assigned in a fixed manner, these windows are created once and cannot be removed. The remaining
 // user definable windows are added and removed dynamically.
 //
 //-----------------------------------------------------------------------------------------------------------
@@ -206,8 +206,8 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
 // the string. This can be done many times without loosing or doubling any data. If the print operation is
 // successful, we have the buffer for writing. Then we issue the write operation. It is the same idea, if
 // the write aborts, it can be restarted without the fear that any data was written before the operation
-// was interrupted. Note that the comiler will issue a waring, for passing a varianle "fmt" to the print
-// function, which it cannot identy as a string literal. After all, "fmt" could be anything. Since we
+// was interrupted. Note that the compiler will issue a waring, for passing a variable "fmt" to the print
+// function, which it cannot identify as a string literal. After all, "fmt" could be anything. Since we
 // only use the "winPrintf" function in this file, no one else could do stupid things with it, except me.
 //
 // So far, the error never returned...
@@ -248,7 +248,7 @@ template<typename... Args> int winPrintf( FILE *stream, const char *fmt, Args...
 
 //------------------------------------------------------------------------------------------------------------
 // Building a screen will imply a ton of escape sequence to send to the terminal screen. The following batch
-// of routines will put out the escape sequcence for clearing data, position a cursor and so on. There is
+// of routines will put out the escape sequence for clearing data, position a cursor and so on. There is
 // a lot of printf that will take place. A future version could come up with a string concatenation scheme,
 // and use fewer writes.
 //
@@ -280,9 +280,9 @@ void clearScrollArea( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// A window will consist of lines with lines having fields on them. A field has a set of atributes such as
+// A window will consist of lines with lines having fields on them. A field has a set of attributes such as
 // foreground and background colors, bold characters and so on. This routine sets the attributes based on the
-// format descriptor. If the descriptor is zero, we will just stay where are with theice attributes.
+// format descriptor. If the descriptor is zero, we will just stay where are with their attributes.
 //
 //------------------------------------------------------------------------------------------------------------
 void setFieldAtributes( uint32_t fmtDesc ) {
@@ -314,7 +314,7 @@ void setFieldAtributes( uint32_t fmtDesc ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Routine to figure out what size we need for a numeric word in a given radix. Decimals needs 10 digits,
-// octals need 12 digits and hexadcimals need 10 digits. For a 16-bit word, the numbers are reduced to 5, 7
+// octals need 12 digits and hexadecimals need 10 digits. For a 16-bit word, the numbers are reduced to 5, 7
 // and 6.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -418,7 +418,7 @@ void padField( int dLen, int fLen ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Routine for creating the access rights string. It consists of the page access and the two privilege
-// levles.
+// levels.
 //
 //------------------------------------------------------------------------------------------------------------
 void buildAccessRightsStr( char *bufStr, int bufLen, uint8_t type, uint8_t privLev1, uint8_t privLev2 ) {
@@ -455,7 +455,7 @@ TokId setRadix( TokId rdx ) {
 //***********************************************************************************************************
 
 //------------------------------------------------------------------------------------------------------------
-// Object constructor and destructor. We need themm as we ccreate and destroy user definable windows.
+// Object constructor and destructor. We need them as we create and destroy user definable windows.
 //
 //------------------------------------------------------------------------------------------------------------
 DrvWin::DrvWin( VCPU32Globals *glb ) { this -> glb = glb; }
@@ -588,7 +588,7 @@ void DrvWin::printNumericField( uint32_t val, uint32_t fmtDesc, int fLen, int ro
 //------------------------------------------------------------------------------------------------------------
 // Print out a text field. Each call will set the format options passed via the format descriptor. If the
 // field length is larger than the positions needed to print the data in the field, the data will be printed
-// left or right justified in the field. If teh data is larger than the field, it will be truncated.
+// left or right justified in the field. If the data is larger than the field, it will be truncated.
 //
 //-----------------------------------------------------------------------------------------------------------
 void DrvWin::printTextField( char *text, uint32_t fmtDesc, int fLen, int row, int col ) {
@@ -684,7 +684,7 @@ void DrvWin::printWindowIdField( int stack, int index, bool current, uint32_t fm
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Padding a line will write a set of blanks with the current fortmat setting to the end of the line. It is
+// Padding a line will write a set of blanks with the current format setting to the end of the line. It is
 // intended to fill for example a banner line that is in inverse video with the inverse format until the end
 // of the screen column size.
 //
@@ -710,8 +710,8 @@ void DrvWin::reDraw( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Each window allows for perhaps toggling through different content. The implmentation of this capabilty is
-// entirely up to the specific window. On the "WT" command, this function wil be called.
+// Each window allows for perhaps toggling through different content. The implementation of this capability
+// is entirely up to the specific window. On the "WT" command, this function will be called.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvWin::toggleWin( ) { }
@@ -750,10 +750,10 @@ uint32_t  DrvWinScrollable::getLineIncrement( ) { return( lineIncrement ); }
 // The scrollable window inherits from the general window. While the banner part of a window is expected to
 // be implemented by the inheriting class, the body is done by this class, which will call the "drawLine"
 // method implemented by the inheriting class. The "drawLine" method is passed the current item address
-// which is the current line start of the item of whatever the window is displaying. The item adrress value
+// which is the current line start of the item of whatever the window is displaying. The item address value
 // is incremented by the itemsPerLine value each time the drawLine routine is called. The cursor position for
 // "drawLine" method call is incremented by the linesPerItem amount. Note that the window system thinks in
-// lines. If a window has items that occupy more than one line ( linesPerIem > 1 ), the line count in the
+// lines. If a window has items that occupy more than one line ( linesPerItem > 1 ), the line count in the
 // window needs to be divided by that value.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -774,7 +774,7 @@ void DrvWinScrollable::drawBody( ) {
 // to the current home address. If the address is larger than the limit address of the window, the position
 // will be the limit address minus the number of lines times the number of items on the line.
 //
-// ??? unsigned adresses ?
+// ??? unsigned addresses ?
 //------------------------------------------------------------------------------------------------------------
 void DrvWinScrollable::winHome( uint32_t pos ) {
     
@@ -790,7 +790,7 @@ void DrvWinScrollable::winHome( uint32_t pos ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The "winJump" method moves the starting item adress of a window within the boundaries zero and the limit
+// The "winJump" method moves the starting item address of a window within the boundaries zero and the limit
 // address.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -802,7 +802,7 @@ void DrvWinScrollable::winJump( uint32_t pos ) {
 //------------------------------------------------------------------------------------------------------------
 // Window move implements the forward / backward moves of a window. The amount is added to the current window
 // body position, also making sure that we stay inside the boundaries of the address range for the window.
-// If the new position would point beyound the limit address, we set the new item adress to limit minus the
+// If the new position would point beyond the limit address, we set the new item address to limit minus the
 // window lines times the line increment. Likewise of the new item address would be less than zero, we
 // just set it to zero.
 //
@@ -863,7 +863,7 @@ void DrvWinProgState::setDefaults( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The window overrides the setRadix method to set the column width according to the radix choosen.
+// The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvWinProgState::setRadix( TokId rdx ) {
@@ -1011,7 +1011,7 @@ void DrvWinSpecialRegs::setDefaults( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The window overrides the setRadix method to set the column width according to the radix choosen.
+// The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvWinSpecialRegs::setRadix( TokId rdx ) {
@@ -1156,7 +1156,7 @@ void DrvWinPipeLineRegs::setDefaults( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The window overrides the setRadix method to set the column width according to the radix choosen.
+// The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvWinPipeLineRegs::setRadix( TokId rdx ) {
@@ -1364,7 +1364,7 @@ void DrvWinAbsMem::setDefaults( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The window overrides the setRadix method to set the column width according to the radix choosen.
+// The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvWinAbsMem::setRadix( TokId rdx ) {
@@ -1374,9 +1374,9 @@ void DrvWinAbsMem::setRadix( TokId rdx ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The banner line shows the item adress, which is the current absolute physical memory adress where the
-// window body will start tp display. We also need to set the item adress limit. This is however always the
-// maximum value UINT_MAX, as absolute memory is up to 4Gbytes. The drawLine method will actually check that
+// The banner line shows the item address, which is the current absolute physical memory address where the
+// window body will start to display. We also need to set the item address limit. This is however always the
+// maximum value UINT_MAX, as absolute memory is up to 4G bytes. The drawLine method will actually check that
 // the offset passed is valid and invoke the correct absolute memory portion handler.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -1417,9 +1417,9 @@ void DrvWinAbsMem::drawBanner( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// A scrollable window needs to implement a routine for displaying a row. We are passed the item adress and
+// A scrollable window needs to implement a routine for displaying a row. We are passed the item address and
 // need to map this to the actual meaning of the particular window. The "itemAdr" value is the byte offset
-// into physical memory, the line incrment is 8 * 4 = 32 bytes. We show eight words.
+// into physical memory, the line increment is 8 * 4 = 32 bytes. We show eight words.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvWinAbsMem::drawLine( uint32_t itemAdr ) {
@@ -1491,7 +1491,7 @@ void DrvWinCode::setDefaults( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The banner for the code window shows the code address. We also need to set the item adress limit. As this
+// The banner for the code window shows the code address. We also need to set the item address limit. As this
 // can change with some commands outside the windows system, better set it every time. There is one more
 // thing. It would be nice to automatically scroll the window for the single step command. We detect this
 // by examining the current command and adjust the current item address to scroll to the next lines to show.
@@ -1588,7 +1588,7 @@ DrvWinTlb::DrvWinTlb( VCPU32Globals *glb, int winType ) : DrvWinScrollable( glb 
 }
 
 //------------------------------------------------------------------------------------------------------------
-// We have a function to set reasonable default values for the window. The default values are the intial
+// We have a function to set reasonable default values for the window. The default values are the initial
 // settings when windows is brought up the first time, or for the WDEF command. The TLB window is a window
 // where the number of lines to display can be set. However, the minimum is the default number of lines.
 //
@@ -1614,7 +1614,7 @@ void DrvWinTlb::setDefaults( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The window overrides the setRadix method to set the column width according to the radix choosen.
+// The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvWinTlb::setRadix( TokId rdx ) {
@@ -1625,7 +1625,7 @@ void DrvWinTlb::setRadix( TokId rdx ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Each window consist of a banner and a body. The banner line is always shown in inverse and contains
-// summary or head data for the window. We also need to set the item adress limit. As this can change with
+// summary or head data for the window. We also need to set the item address limit. As this can change with
 // some commands outside the windows system, better set it every time.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -1712,7 +1712,7 @@ DrvWinCache::DrvWinCache( VCPU32Globals *glb, int winType ) : DrvWinScrollable( 
 }
 
 //------------------------------------------------------------------------------------------------------------
-// We have a function to set reasonable default values for the window. The default values are the intial
+// We have a function to set reasonable default values for the window. The default values are the initial
 // settings when windows is brought up the first time, or for the WDEF command. The TLB window is a window
 // where the number of lines to display can be set. However, the minimum is the default number of lines.
 //
@@ -1742,7 +1742,7 @@ void DrvWinCache::setDefaults( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The window overrides the setRadix method to set the column width according to the radix choosen.
+// The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvWinCache::setRadix( TokId rdx ) {
@@ -1763,7 +1763,7 @@ void DrvWinCache::toggleWin( ) {
     
 //------------------------------------------------------------------------------------------------------------
 // Each window consist of a headline and a body. The banner line is always shown in inverse and contains
-// summary or head data for the window. We also need to set the item adress limit. As this can change with
+// summary or head data for the window. We also need to set the item address limit. As this can change with
 // some commands outside the windows system, better set it every time.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -1848,7 +1848,7 @@ DrvWinMemController::DrvWinMemController( VCPU32Globals *glb, int winType ) : Dr
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Set up reasonlable defaults and the reference to the actual memory object.
+// Set up reasonable defaults and the reference to the actual memory object.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvWinMemController::setDefaults( ) {
@@ -2019,7 +2019,7 @@ void DrvWinText::setDefaults( ) {
 // number. The file path may be a bit long for listing it completely, so we will truncate it on the left
 // side. The routine will print the the filename, and the position into the file. The banner method also sets
 // the preliminary line size of the window. This value is used until we know the actual number of lines in
-// the file. Lines shown on teh display start with one, internally we start at zero.
+// the file. Lines shown on the display start with one, internally we start at zero.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvWinText::drawBanner( ) {
@@ -2042,7 +2042,7 @@ void DrvWinText::drawBanner( ) {
 // The draw line method for the text file window. We print the file content line by line. A line consists of
 // the line number followed by the text. This routine will first check whether the file is already open.
 // If we cannot open the file, we would now print an error message into the screen. This is also the time
-// where we actually figure out hopw many lines are on the file so that we can set the limitItemAdr field
+// where we actually figure out how many lines are on the file so that we can set the limitItemAdr field
 // of the window object.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -2148,7 +2148,7 @@ int DrvWinText::readTextFileLine( int linePos, char *lineBuf, int bufLen  ) {
 DrvWinCommands::DrvWinCommands( VCPU32Globals *glb ) : DrvWin( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
-// The default values are the intial settings when windows is brought up the first time, or for the WDEF
+// The default values are the initial settings when windows is brought up the first time, or for the WDEF
 // command.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -2177,7 +2177,7 @@ void DrvWinCommands::drawBanner( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The body lines of the command window are displayed after the banner line. We will never draw in this
-// window via the window routines. The body is teh terminal scroll area. What we do however, is to reset
+// window via the window routines. The body is the terminal scroll area. What we do however, is to reset
 // any character drawing attribute.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -2195,7 +2195,7 @@ void DrvWinCommands::drawBody( ) {
 //***********************************************************************************************************
 
 //-----------------------------------------------------------------------------------------------------------
-// Object constructur. We initialize the windows list and create all the predefined windows. The remainder
+// Object constructor. We initialize the windows list and create all the predefined windows. The remainder
 // of the window list is used by the user defined windows.
 //
 //-----------------------------------------------------------------------------------------------------------
@@ -2240,7 +2240,7 @@ int  DrvWinDisplay::getLastUserWinIndex( ) {
 }
 
 //-----------------------------------------------------------------------------------------------------------
-// A window number is the index into the window list. It is valid when the numberis of course within bounds
+// A window number is the index into the window list. It is valid when the number is of course within bounds
 // and the window list entry is actually used. A valid user window number additionally tests that the number
 // is within the list portion reserved for user defined windows.
 //
@@ -2346,7 +2346,7 @@ int DrvWinDisplay::computeRowsNeeded( int winStack ) {
 
 //-----------------------------------------------------------------------------------------------------------
 // Content for each window is addressed in a window relative way. For this scheme to work, each window needs
-// to know the abslute position within in the overall screen. This routine will compute for each window of
+// to know the absolute position within in the overall screen. This routine will compute for each window of
 // the passed stack the absolute row and column position for the window in the terminal screen.
 //
 //-----------------------------------------------------------------------------------------------------------
@@ -2372,7 +2372,7 @@ void DrvWinDisplay::setWindowOrigins( int winStack, int rowOffset, int colOffset
 // Window screen drawing. Each time we read in a command input and are in windows mode, the terminal screen
 // is redrawn. A terminal screen consist of a list of stacks and in each stack a list of windows. There is
 // always the main stack, stack Id 0. Only if we have user defined windows assigned to another stack and
-// window stacks are enbled, will this stack show up in the terminal screen. If window stacks are disabled,
+// window stacks are enabled, will this stack show up in the terminal screen. If window stacks are disabled,
 // all windows, regardless what their stack ID says, will show up in the main stack.
 //
 // We first compute the number of rows and columns needed for the windows to show in their assigned stack.
@@ -2380,7 +2380,7 @@ void DrvWinDisplay::setWindowOrigins( int winStack, int rowOffset, int colOffset
 // set the window columns of a window in the respective stack to the computed columns size and to set the
 // absolute origin coordinates of each window. Again, this depends whether window stacks er enabled. If the
 // number of rows needed for the windows and command window is less than the defined minimum number of rows,
-// the command window is enlarged to have a screen of minumum row size. When the screen size changed, we
+// the command window is enlarged to have a screen of minimum row size. When the screen size changed, we
 // just redraw the screen with the command screen going last. The command screen will have a columns size
 // across all visible stacks.
 //
@@ -2515,7 +2515,7 @@ void DrvWinDisplay::windowCurrent( TokId winCmd, int winNum ) {
 
 //-----------------------------------------------------------------------------------------------------------
 // The routine sets the stack attribute for a user window. The setting is not allowed for the predefined
-// window. They are always in the main window stack, which has the stack Id of zero. Theorethically we
+// window. They are always in the main window stack, which has the stack Id of zero. Theoretically we
 // could have many stacks, numbered 0 to MAX_STACKS - 1. Realistically, 3 to 4 stacks will fit on a screen.
 //
 //-----------------------------------------------------------------------------------------------------------
@@ -2604,7 +2604,7 @@ void DrvWinDisplay::windowDisable( TokId winCmd, int winNum ) {
 //-----------------------------------------------------------------------------------------------------------
 // For the numeric values in a window, we can set the radix. The token ID for the format option is mapped to
 // the actual radix value.We are passed an optional windows number, which is used when there are user defined
-// windows for locating the window object. Changing the radix potetntially means tha the window layout needs
+// windows for locating the window object. Changing the radix potentially means that the window layout needs
 // to change.
 //
 //-----------------------------------------------------------------------------------------------------------
@@ -2636,7 +2636,7 @@ void DrvWinDisplay::windowRadix( TokId winCmd, TokId fmtId, int winNum ) {
 }
 
 //-----------------------------------------------------------------------------------------------------------
-// "setRows" is the method to set the nmber if lines in a window. The number includes the banner. We are
+// "setRows" is the method to set the number if lines in a window. The number includes the banner. We are
 // passed an optional windows number, which is used when there are user defined windows for locating the
 // window object.
 //
@@ -2665,7 +2665,7 @@ void DrvWinDisplay::windowSetRows( TokId winCmd, int rows, int winNum ) {
 
 //-----------------------------------------------------------------------------------------------------------
 // "winHome" will set the current position to the home index, i.e. the position with which the window was
-// creared. If the position passed is non-zero, it will become the new home position. The position meaning
+// cleared. If the position passed is non-zero, it will become the new home position. The position meaning
 // is window dependent and the actual window will sort it out. We are passed an optional windows number,
 // which is used when there are user defined windows for locating the window object.
 //
@@ -2764,7 +2764,7 @@ void DrvWinDisplay::windowToggle( TokId winCmd, int winNum ) {
 }
 
 //-----------------------------------------------------------------------------------------------------------
-// The display order of the windows is determined by the window index. It would howver be convenient to
+// The display order of the windows is determined by the window index. It would however be convenient to
 // modify the display order. The window exchange command will exchange the current window with the window
 // specified by the index of another window.
 //

@@ -207,7 +207,7 @@ enum TokId : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Our error messges IDs. There is a routine that maps the ID to a text.
+// Our error messages IDs. There is a routine that maps the ID to a text.
 //
 // ??? need to put all error messages here.... do a little when there is time...
 //------------------------------------------------------------------------------------------------------------
@@ -236,7 +236,7 @@ enum ErrMsgId : uint16_t {
 struct VCPU32Globals;
 
 //------------------------------------------------------------------------------------------------------------
-// Driver environment variables. Thre is a simple "name=value" dictionary.
+// Driver environment variables. There is a simple "name=value" dictionary.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvEnv {
@@ -273,10 +273,10 @@ private:
 
 //-----------------------------------------------------------------------------------------------------------
 // The "CPU24DrvBaseWin" class. The Terminal Screen will be in screen mode a set of stacks each with a list
-// of screen subwindows. The default is one stack, the general register set window and the command line
+// of screen sub windows. The default is one stack, the general register set window and the command line
 // window, which also spans all stacks. Each sub window is an instance of a specific window class with this
 // class as the base class. There are routines common to all windows to enable/ disable, set the lines
-// displayed and so on. There are also abstact methods that the inheriting class needs to implement.
+// displayed and so on. There are also abstract methods that the inheriting class needs to implement.
 // Examples are to initialize a window, redraw and so on.
 //
 //-----------------------------------------------------------------------------------------------------------
@@ -377,13 +377,13 @@ private:
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// "WinScrollable" is an extension to the basic window. It implements a scroallable window of a number of
+// "WinScrollable" is an extension to the basic window. It implements a scrollable window of a number of
 // lines. There is a high level concept of a starting index of zero and a limit. The meaning i.e. whether
 // the address is a memory address or an index into a TLB or Cache array is determined by the inheriting
-// class. The scrollable window will show a number of lines, the "drawLine" method needs to be implmented
+// class. The scrollable window will show a number of lines, the "drawLine" method needs to be implemented
 // by the inheriting class. The routine is passed the item address for the line and is responsible for the
-// correct interpretation of this address. The "lineIncrement" is the increment value for the item adress
-// passed. Item addresses are unsigned 32-bit quatities.
+// correct interpretation of this address. The "lineIncrement" is the increment value for the item address
+// passed. Item addresses are unsigned 32-bit quantities.
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinScrollable : DrvWin {
     
@@ -501,7 +501,7 @@ public:
 
 //-----------------------------------------------------------------------------------------------------------
 // Code Memory Window. A code memory window will show the instruction memory content starting with the
-// current address followed by the instruction and a human readable dissasembled verion.
+// current address followed by the instruction and a human readable disassembled version.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinCode : DrvWinScrollable {
@@ -538,7 +538,7 @@ private:
 
 //-----------------------------------------------------------------------------------------------------------
 // Memory Object - Cache Window. The memory object window display the cache date lines. Since we can have
-// caches with more than one set, the toggle function allows to flio through the sets, one at a time.
+// caches with more than one set, the toggle function allows to flip through the sets, one at a time.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinCache : DrvWinScrollable {
@@ -631,7 +631,7 @@ private:
 
 //-----------------------------------------------------------------------------------------------------------
 // Command Line Window. The command window is a special class, which comes always last in the windows list
-// and cannot be dispabled. It is intended to ba a scrollable window, where only the banner line is fixed.
+// and cannot be disabled. It is intended to be a scrollable window, where only the banner line is fixed.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinCommands : DrvWin {
@@ -650,7 +650,7 @@ public:
 // turned on. All commands send from the command input in windows mode will eventually end up as calls to
 // this object. A screen is an ordered list of windows. Although you can disable a window such that it
 // disappears on the screen, when enabled, it will show up in the place intended for it. For example, the
-// program state register window will always be on top, followe by the special regs, followed by the pipeline
+// program state register window will always be on top, follow by the special regs, followed by the pipeline
 // regs. The command input scroll area is always last and is the only window that cannot be disabled.
 //
 //-----------------------------------------------------------------------------------------------------------
@@ -775,9 +775,9 @@ private:
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A simple one line assembler. This object is teh counter part to the disassmbler. We will parse a one
+// A simple one line assembler. This object is the counter part to the disassembler. We will parse a one
 // line input string for a valid instruction, using the syntax of the real assembler. There will be no
-// labels and commants, only the opcode and the operands.
+// labels and comments, only the opcode and the operands.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvOneLineAsm {
@@ -794,7 +794,7 @@ private:
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The CPU driver main object. This objects implements the command loop. It is essentialy a llist of the
+// The CPU driver main object. This objects implements the command loop. It is essentially a list of the
 // command handlers and the functions needed to read in and analyze a command line.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -881,7 +881,7 @@ private:
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The globals, accessible to all objects. Turns out that all main objects need to accress data from all the
+// The globals, accessible to all objects. Turns out that all main objects need to access data from all the
 // individual objects of the CPU. To ease the passing around there is the idea a global structure with a
 // reference to all the individual objects.
 //

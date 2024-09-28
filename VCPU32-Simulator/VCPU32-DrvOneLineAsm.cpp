@@ -124,47 +124,47 @@ const Token tokNameTab[ ] = {
     { "STC",    TT_OPCODE,  0xD4020000, TF_WORD_INSTR  },
     { "STA",    TT_OPCODE,  0xCC220000, TF_WORD_INSTR },
     
-    { "ADD",    TT_OPCODE,  0x40000000, TF_WORD_INSTR  },
+    { "ADD",    TT_OPCODE,  0x40020000, TF_WORD_INSTR  },
     { "ADDB",   TT_OPCODE,  0x40000000, TF_BYTE_INSTR  },
     { "ADDH",   TT_OPCODE,  0x40010000, TF_HALF_INSTR  },
     { "ADDW",   TT_OPCODE,  0x40020000, TF_WORD_INSTR  },
     
-    { "ADC",    TT_OPCODE,  0x44000000, TF_WORD_INSTR  },
+    { "ADC",    TT_OPCODE,  0x44020000, TF_WORD_INSTR  },
     { "ADCB",   TT_OPCODE,  0x44000000, TF_BYTE_INSTR  },
     { "ADCH",   TT_OPCODE,  0x44010000, TF_HALF_INSTR  },
     { "ADCW",   TT_OPCODE,  0x44020000, TF_WORD_INSTR  },
     
-    { "SUB",    TT_OPCODE,  0x48000000, TF_WORD_INSTR  },
+    { "SUB",    TT_OPCODE,  0x48020000, TF_WORD_INSTR  },
     { "SUBB",   TT_OPCODE,  0x48000000, TF_BYTE_INSTR  },
     { "SUBH",   TT_OPCODE,  0x48010000, TF_HALF_INSTR  },
     { "SUBW",   TT_OPCODE,  0x48020000, TF_WORD_INSTR  },
     
-    { "SBC",    TT_OPCODE,  0x4C000000, TF_WORD_INSTR  },
+    { "SBC",    TT_OPCODE,  0x4C020000, TF_WORD_INSTR  },
     { "SBCB",   TT_OPCODE,  0x4C000000, TF_BYTE_INSTR  },
     { "SBCH",   TT_OPCODE,  0x4C010000, TF_HALF_INSTR  },
     { "SBCW",   TT_OPCODE,  0x4C020000, TF_WORD_INSTR  },
     
-    { "AND",    TT_OPCODE,  0x50000000, TF_WORD_INSTR  },
+    { "AND",    TT_OPCODE,  0x50020000, TF_WORD_INSTR  },
     { "ANDB",   TT_OPCODE,  0x50000000, TF_BYTE_INSTR  },
     { "ANDH",   TT_OPCODE,  0x50010000, TF_HALF_INSTR  },
     { "ANDW",   TT_OPCODE,  0x50020000, TF_WORD_INSTR  },
     
-    { "OR" ,    TT_OPCODE,  0x54000000, TF_WORD_INSTR  },
+    { "OR" ,    TT_OPCODE,  0x54020000, TF_WORD_INSTR  },
     { "ORB",    TT_OPCODE,  0x54000000, TF_BYTE_INSTR  },
     { "ORH",    TT_OPCODE,  0x54010000, TF_HALF_INSTR },
     { "ORW",    TT_OPCODE,  0x54020000, TF_WORD_INSTR  },
     
-    { "XOR" ,   TT_OPCODE,  0x58000000, TF_WORD_INSTR  },
+    { "XOR" ,   TT_OPCODE,  0x58020000, TF_WORD_INSTR  },
     { "XORB",   TT_OPCODE,  0x58000000, TF_BYTE_INSTR  },
     { "XORH",   TT_OPCODE,  0x58010000, TF_HALF_INSTR },
     { "XORW",   TT_OPCODE,  0x58020000, TF_WORD_INSTR  },
     
-    { "CMP" ,   TT_OPCODE,  0x5C000000, TF_WORD_INSTR  },
+    { "CMP" ,   TT_OPCODE,  0x5C020000, TF_WORD_INSTR  },
     { "CMPB",   TT_OPCODE,  0x5C000000, TF_BYTE_INSTR  },
     { "CMPH",   TT_OPCODE,  0x5C010000, TF_HALF_INSTR  },
     { "CMPW",   TT_OPCODE,  0x5C020000, TF_WORD_INSTR  },
     
-    { "CMPU" ,  TT_OPCODE,  0x60000000, TF_WORD_INSTR  },
+    { "CMPU" ,  TT_OPCODE,  0x60020000, TF_WORD_INSTR  },
     { "CMPUB",  TT_OPCODE,  0x60000000, TF_BYTE_INSTR  },
     { "CMPUH",  TT_OPCODE,  0x60010000, TF_HALF_INSTR  },
     { "CMPUW",  TT_OPCODE,  0x60020000, TF_WORD_INSTR  },
@@ -915,13 +915,13 @@ bool parseInstrOptions( uint32_t *instr ) {
 
             else if ( strcmp( optBuf, ((char *) "GT" ))) {
 
-                currentToken.flags != TF_SWAP_A_B_REGS;
-                currentToken.flags != TF_REVERSE_CMP_OP;
+                currentToken.flags |= TF_SWAP_A_B_REGS;
+                currentToken.flags |= TF_REVERSE_CMP_OP;
             }
             else if ( strcmp( optBuf, ((char *) "GE" ))) {
 
-                currentToken.flags != TF_SWAP_A_B_REGS;
-                currentToken.flags != TF_REVERSE_CMP_OP;
+                currentToken.flags |= TF_SWAP_A_B_REGS;
+                currentToken.flags |= TF_REVERSE_CMP_OP;
             }
 
         } break;
@@ -2043,8 +2043,6 @@ bool parseInstrLDPA( uint32_t *instr ) {
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrPRB( uint32_t *instr ) {
-    
-    Expr rExpr;
     
     if ( currentToken.typ == TT_GREG ) {
         

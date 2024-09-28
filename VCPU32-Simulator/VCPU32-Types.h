@@ -31,7 +31,7 @@
 
 //------------------------------------------------------------------------------------------------------------
 // Basic constants for TLB, caches and memory. The intended hardware will perform a lookup of TLB and caches
-// in paralell. As a consequence the number of bits needed to respresent the block entries cannot be greater
+// in parallel. As a consequence the number of bits needed to represent the block entries cannot be greater
 // than the number of bits necessary to represent the page size minus the number of bits it takes to represent
 // the block size. For example, of the block size is four words, it will take two bits to index into the
 // block. If the page bit size is 12 bits then we have 10 bits left for indexing the cache, i.e. 1024 entries.
@@ -45,9 +45,9 @@ const uint32_t  MAX_GREGS               = 16;
 const uint32_t  MAX_SREGS               = 8;
 const uint32_t  MAX_CREGS               = 32;
 
-const uint32_t  PAGE_SIZE               = 16384U;
-const uint32_t  PAGE_SIZE_BITS          = 14U;
-const uint32_t  PAGE_BIT_MASK           = (( 1U << 14 ) - 1 );
+const uint32_t  PAGE_SIZE_BYTES         = 16384U;
+const uint32_t  PAGE_OFFSET_BITS        = 14U;
+const uint32_t  PAGE_BIT_MASK           = (( 1U << PAGE_OFFSET_BITS ) - 1 );
 
 const uint32_t  MAX_MEMORY_SIZE         = UINT32_MAX;
 const uint32_t  MAX_IO_MEM_SIZE         = UINT32_MAX / 16;
@@ -63,7 +63,7 @@ const uint8_t   TRAP_CODE_BLOCK_SIZE    = 32;
 
 
 //------------------------------------------------------------------------------------------------------------
-// Processor state fields. There are two machine words containg ingvarious bits and fields for the current
+// Processor state fields. There are two machine words containing various bits and fields for the current
 // execution state.
 //
 //  0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
@@ -152,7 +152,7 @@ enum ControlRegisterId : uint32_t {
 // cannot continue at all. In an emulator, they most likely do not occur, but in a simulator we could simulate
 // a hardware situation.
 //
-// ??? cross check wth document...
+// ??? cross check with document...
 //------------------------------------------------------------------------------------------------------------
 enum TrapId : uint32_t {
     
@@ -183,7 +183,7 @@ enum TrapId : uint32_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// A memory reference is checked for access type. The acces types specify the read, write and execute
+// A memory reference is checked for access type. The access types specify the read, write and execute
 // operations allowed for the target address.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -257,7 +257,7 @@ enum InstrOpCode : uint8_t {
     OP_LDIL         = 0x01,     // load immediate left
     OP_ADDIL        = 0x02,     // add immediate left
     OP_LDO          = 0x03,     // load offset
-    OP_LSID         = 0x04,     // load segement id
+    OP_LSID         = 0x04,     // load segment id
     OP_EXTR         = 0x05,     // extract bit field of operand
     OP_DEP          = 0x06,     // extract bit field into operand
     OP_DSR          = 0x07,     // double register shift right
@@ -289,7 +289,7 @@ enum InstrOpCode : uint8_t {
     OP_LD           = 0x30,     // target = [ operand ]   // covers LDW, LDH, LDB
     OP_ST           = 0x31,     // [ operand ] = target   // covers STW, STH, STB
     OP_LDA          = 0x32,     // load word from absolute address
-    OP_STA          = 0x33,     // store word to absolute adress
+    OP_STA          = 0x33,     // store word to absolute address
     OP_LDR          = 0x34,     // load word referenced
     OP_STC          = 0X35,     // store word conditional
     
@@ -328,7 +328,7 @@ enum instrFlags : uint32_t {
 
 //------------------------------------------------------------------------------------------------------------
 // The instruction decoder needs to do a lot of checking on the opcode. Naturally. The following flags help
-// to simplifiy this checking. Each instruction is classified with the relevant flags.
+// to simplify this checking. Each instruction is classified with the relevant flags.
 //
 //------------------------------------------------------------------------------------------------------------
 const struct opCodeInfo {
