@@ -33,7 +33,7 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-const int   TOK_INPUT_LINE_SIZE = 80;
+const int   TOK_INPUT_LINE_SIZE = 128;
 const int   TOK_NAME_SIZE       = 8;
 const char  EOS_CHAR            = 0;
 
@@ -76,154 +76,200 @@ enum TokType : uint8_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
+// Token flags. They are used to communicate additional information about the the token to the assembly
+// process. Examples are the data width encoded in the opCode and the instruction mask.
+//
+//------------------------------------------------------------------------------------------------------------
+enum TokenFlags : uint32_t {
+  
+    TF_NIL              = 0,
+    TF_BYTE_INSTR       = 1,
+    TF_HALF_INSTR       = 2,
+    TF_WORD_INSTR       = 3,
+
+    TF_SWAP_A_B_REGS    = 4,
+    TF_REVERSE_CMP_OP   = 5
+};
+
+//------------------------------------------------------------------------------------------------------------
 // A token. A token has a name, a type and a value. For the instructions, the value represents the instruction
 // template for the respective instruction. We also set the data word width and any other predefined bits. The
 // parsing routines will augment this template be setting the remaining fields. The token table is just a list
 // of tokens, which is searched in a linear fashion.
 //
-// ??? we may need some more options to detect special cases such as "ADDx" and a mode 0 instruction pattern.
-// We cannot detect that there is now "dw" field in this mode and hence specifying an ADDB will go undetected.
-// While this will not affect the assembly parsing and instruction generation, it looks strange,
 //------------------------------------------------------------------------------------------------------------
 struct Token {
     
     char        name[ TOK_NAME_SIZE ];
     uint8_t     typ;
     uint32_t    val;
+    uint32_t    flags;
 };
 
 const Token tokNameTab[ ] = {
     
     { "NIL",    TT_NIL,     0           },
     
-    { "LD",     TT_OPCODE,  0xC0020000  },
-    { "LDB",    TT_OPCODE,  0xC0000000  },
-    { "LDH",    TT_OPCODE,  0xC0010000  },
-    { "LDW",    TT_OPCODE,  0xC0020000  },
-    { "LDR",    TT_OPCODE,  0xD0020000  },
-    { "LDA",    TT_OPCODE,  0xC8020000  },
+    { "LD",     TT_OPCODE,  0xC0020000, TF_WORD_INSTR  },
+    { "LDB",    TT_OPCODE,  0xC0000000, TF_BYTE_INSTR  },
+    { "LDH",    TT_OPCODE,  0xC0010000, TF_HALF_INSTR  },
+    { "LDW",    TT_OPCODE,  0xC0020000, TF_WORD_INSTR  },
+    { "LDR",    TT_OPCODE,  0xD0020000, TF_WORD_INSTR  },
+    { "LDA",    TT_OPCODE,  0xC8020000, TF_WORD_INSTR  },
     
-    { "ST",     TT_OPCODE,  0xC4220000  },
-    { "STB",    TT_OPCODE,  0xC4200000  },
-    { "STH",    TT_OPCODE,  0xC4210000  },
-    { "STW",    TT_OPCODE,  0xC4220000  },
-    { "STC",    TT_OPCODE,  0xD4020000  },
-    { "STA",    TT_OPCODE,  0xCC220000  },
+    { "ST",     TT_OPCODE,  0xC4220000, TF_HALF_INSTR  },
+    { "STB",    TT_OPCODE,  0xC4200000, TF_BYTE_INSTR  },
+    { "STH",    TT_OPCODE,  0xC4210000, TF_HALF_INSTR  },
+    { "STW",    TT_OPCODE,  0xC4220000, TF_WORD_INSTR  },
+    { "STC",    TT_OPCODE,  0xD4020000, TF_WORD_INSTR  },
+    { "STA",    TT_OPCODE,  0xCC220000, TF_WORD_INSTR },
     
-    { "ADD",    TT_OPCODE,  0x40000000  },
-    { "ADDB",   TT_OPCODE,  0x40000000  },
-    { "ADDH",   TT_OPCODE,  0x40010000  },
-    { "ADDW",   TT_OPCODE,  0x40020000  },
+    { "ADD",    TT_OPCODE,  0x40000000, TF_WORD_INSTR  },
+    { "ADDB",   TT_OPCODE,  0x40000000, TF_BYTE_INSTR  },
+    { "ADDH",   TT_OPCODE,  0x40010000, TF_HALF_INSTR  },
+    { "ADDW",   TT_OPCODE,  0x40020000, TF_WORD_INSTR  },
     
-    { "ADC",    TT_OPCODE,  0x44000000  },
-    { "ADCB",   TT_OPCODE,  0x44000000  },
-    { "ADCH",   TT_OPCODE,  0x44010000  },
-    { "ADCW",   TT_OPCODE,  0x44020000  },
+    { "ADC",    TT_OPCODE,  0x44000000, TF_WORD_INSTR  },
+    { "ADCB",   TT_OPCODE,  0x44000000, TF_BYTE_INSTR  },
+    { "ADCH",   TT_OPCODE,  0x44010000, TF_HALF_INSTR  },
+    { "ADCW",   TT_OPCODE,  0x44020000, TF_WORD_INSTR  },
     
-    { "SUB",    TT_OPCODE,  0x48000000  },
-    { "SUBB",   TT_OPCODE,  0x48000000  },
-    { "SUBH",   TT_OPCODE,  0x48010000  },
-    { "SUBW",   TT_OPCODE,  0x48020000  },
+    { "SUB",    TT_OPCODE,  0x48000000, TF_WORD_INSTR  },
+    { "SUBB",   TT_OPCODE,  0x48000000, TF_BYTE_INSTR  },
+    { "SUBH",   TT_OPCODE,  0x48010000, TF_HALF_INSTR  },
+    { "SUBW",   TT_OPCODE,  0x48020000, TF_WORD_INSTR  },
     
-    { "SBC",    TT_OPCODE,  0x4C000000  },
-    { "SBCB",   TT_OPCODE,  0x4C000000  },
-    { "SBCH",   TT_OPCODE,  0x4C010000  },
-    { "SBCW",   TT_OPCODE,  0x4C020000  },
+    { "SBC",    TT_OPCODE,  0x4C000000, TF_WORD_INSTR  },
+    { "SBCB",   TT_OPCODE,  0x4C000000, TF_BYTE_INSTR  },
+    { "SBCH",   TT_OPCODE,  0x4C010000, TF_HALF_INSTR  },
+    { "SBCW",   TT_OPCODE,  0x4C020000, TF_WORD_INSTR  },
     
-    { "AND",    TT_OPCODE,  0x50000000  },
-    { "ANDB",   TT_OPCODE,  0x50000000  },
-    { "ANDH",   TT_OPCODE,  0x50010000  },
-    { "ANDW",   TT_OPCODE,  0x50020000  },
+    { "AND",    TT_OPCODE,  0x50000000, TF_WORD_INSTR  },
+    { "ANDB",   TT_OPCODE,  0x50000000, TF_BYTE_INSTR  },
+    { "ANDH",   TT_OPCODE,  0x50010000, TF_HALF_INSTR  },
+    { "ANDW",   TT_OPCODE,  0x50020000, TF_WORD_INSTR  },
     
-    { "OR" ,    TT_OPCODE,  0x54000000  },
-    { "ORB",    TT_OPCODE,  0x54000000  },
-    { "ORH",    TT_OPCODE,  0x54010000  },
-    { "ORW",    TT_OPCODE,  0x54020000  },
+    { "OR" ,    TT_OPCODE,  0x54000000, TF_WORD_INSTR  },
+    { "ORB",    TT_OPCODE,  0x54000000, TF_BYTE_INSTR  },
+    { "ORH",    TT_OPCODE,  0x54010000, TF_HALF_INSTR },
+    { "ORW",    TT_OPCODE,  0x54020000, TF_WORD_INSTR  },
     
-    { "XOR" ,   TT_OPCODE,  0x58000000  },
-    { "XORB",   TT_OPCODE,  0x58000000  },
-    { "XORH",   TT_OPCODE,  0x58010000  },
-    { "XORW",   TT_OPCODE,  0x58020000  },
+    { "XOR" ,   TT_OPCODE,  0x58000000, TF_WORD_INSTR  },
+    { "XORB",   TT_OPCODE,  0x58000000, TF_BYTE_INSTR  },
+    { "XORH",   TT_OPCODE,  0x58010000, TF_HALF_INSTR },
+    { "XORW",   TT_OPCODE,  0x58020000, TF_WORD_INSTR  },
     
-    { "CMP" ,   TT_OPCODE,  0x5C000000  },
-    { "CMPB",   TT_OPCODE,  0x5C000000  },
-    { "CMPH",   TT_OPCODE,  0x5C010000  },
-    { "CMPW",   TT_OPCODE,  0x5C020000  },
+    { "CMP" ,   TT_OPCODE,  0x5C000000, TF_WORD_INSTR  },
+    { "CMPB",   TT_OPCODE,  0x5C000000, TF_BYTE_INSTR  },
+    { "CMPH",   TT_OPCODE,  0x5C010000, TF_HALF_INSTR  },
+    { "CMPW",   TT_OPCODE,  0x5C020000, TF_WORD_INSTR  },
     
-    { "CMPU" ,  TT_OPCODE,  0x60000000  },
-    { "CMPUB",  TT_OPCODE,  0x60000000  },
-    { "CMPUH",  TT_OPCODE,  0x60010000  },
-    { "CMPUW",  TT_OPCODE,  0x60020000  },
+    { "CMPU" ,  TT_OPCODE,  0x60000000, TF_WORD_INSTR  },
+    { "CMPUB",  TT_OPCODE,  0x60000000, TF_BYTE_INSTR  },
+    { "CMPUH",  TT_OPCODE,  0x60010000, TF_HALF_INSTR  },
+    { "CMPUW",  TT_OPCODE,  0x60020000, TF_WORD_INSTR  },
     
-    { "LSID" ,  TT_OPCODE,  0x10000000  },
-    { "EXTR" ,  TT_OPCODE,  0x14000000  },
-    { "DEP",    TT_OPCODE,  0x18000000  },
-    { "DSR",    TT_OPCODE,  0x1C000000  },
-    { "SHLA",   TT_OPCODE,  0x20000000  },
-    { "CMR",    TT_OPCODE,  0x24000000  },
+    { "LSID" ,  TT_OPCODE,  0x10000000, 0x0  },
+    { "EXTR" ,  TT_OPCODE,  0x14000000, 0x0  },
+    { "DEP",    TT_OPCODE,  0x18000000, 0x0  },
+    { "DSR",    TT_OPCODE,  0x1C000000, 0x0  },
+    { "SHLA",   TT_OPCODE,  0x20000000, 0x0  },
+    { "CMR",    TT_OPCODE,  0x24000000, 0x0  },
     
-    { "LIDL",   TT_OPCODE,  0x04000000  },
-    { "ADDIL",  TT_OPCODE,  0x08000000  },
-    { "LDO",    TT_OPCODE,  0x0C000000  },
+    { "LIDL",   TT_OPCODE,  0x04000000, 0x0  },
+    { "ADDIL",  TT_OPCODE,  0x08000000, 0x0  },
+    { "LDO",    TT_OPCODE,  0x0C000000, 0x0  },
     
-    { "B" ,     TT_OPCODE,  0x80000000  },
-    { "GATE",   TT_OPCODE,  0x84000000  },
-    { "BR",     TT_OPCODE,  0x88000000  },
-    { "BV",     TT_OPCODE,  0x8C000000  },
-    { "BE",     TT_OPCODE,  0x90000000  },
-    { "BVE",    TT_OPCODE,  0x94000000  },
-    { "CBR",    TT_OPCODE,  0x98000000  },
-    { "CBRU",   TT_OPCODE,  0x9C000000  },
+    { "B" ,     TT_OPCODE,  0x80000000, 0x0  },
+    { "GATE",   TT_OPCODE,  0x84000000, 0x0  },
+    { "BR",     TT_OPCODE,  0x88000000, 0x0  },
+    { "BV",     TT_OPCODE,  0x8C000000, 0x0  },
+    { "BE",     TT_OPCODE,  0x90000000, 0x0  },
+    { "BVE",    TT_OPCODE,  0x94000000, 0x0  },
+    { "CBR",    TT_OPCODE,  0x98000000, 0x0  },
+    { "CBRU",   TT_OPCODE,  0x9C000000, 0x0  },
     
-    { "MR",     TT_OPCODE,  0x28000000  },
-    { "MST",    TT_OPCODE,  0x2C000000  },
-    { "DS",     TT_OPCODE,  0x30000000  },
-    { "LDPA",   TT_OPCODE,  0xE4000000  },
-    { "PRB",    TT_OPCODE,  0xE8000000  },
-    { "ITLB",   TT_OPCODE,  0xEC000000  },
-    { "PTLB",   TT_OPCODE,  0xF0000000  },
-    { "PCA",    TT_OPCODE,  0xF4000000  },
-    { "DIAG",   TT_OPCODE,  0xF8000000  },
-    { "RFI",    TT_OPCODE,  0xFC000000  },
-    { "BRK",    TT_OPCODE,  0x00000000  },
+    { "MR",     TT_OPCODE,  0x28000000, 0x0  },
+    { "MST",    TT_OPCODE,  0x2C000000, 0x0  },
+    { "DS",     TT_OPCODE,  0x30000000, 0x0  },
+    { "LDPA",   TT_OPCODE,  0xE4000000, 0x0  },
+    { "PRB",    TT_OPCODE,  0xE8000000, 0x0  },
+    { "ITLB",   TT_OPCODE,  0xEC000000, 0x0  },
+    { "PTLB",   TT_OPCODE,  0xF0000000, 0x0  },
+    { "PCA",    TT_OPCODE,  0xF4000000, 0x0  },
+    { "DIAG",   TT_OPCODE,  0xF8000000, 0x0  },
+    { "RFI",    TT_OPCODE,  0xFC000000, 0x0  },
+    { "BRK",    TT_OPCODE,  0x00000000, 0x0  },
     
-    { "R0",     TT_GREG,    0           },
-    { "R1",     TT_GREG,    1           },
-    { "R2",     TT_GREG,    2           },
-    { "R3",     TT_GREG,    3           },
-    { "R4",     TT_GREG,    4           },
-    { "R5",     TT_GREG,    5           },
-    { "R6",     TT_GREG,    6           },
-    { "R7",     TT_GREG,    7           },
-    { "R8",     TT_GREG,    8           },
-    { "R9",     TT_GREG,    9           },
-    { "R10",    TT_GREG,    10          },
-    { "R11",    TT_GREG,    11          },
-    { "R12",    TT_GREG,    12          },
-    { "R13",    TT_GREG,    13          },
-    { "R14",    TT_GREG,    14          },
-    { "R15",    TT_GREG,    15          },
+    { "R0",     TT_GREG,    0,          0x0  },
+    { "R1",     TT_GREG,    1,          0x0  },
+    { "R2",     TT_GREG,    2,          0x0  },
+    { "R3",     TT_GREG,    3,          0x0  },
+    { "R4",     TT_GREG,    4,          0x0  },
+    { "R5",     TT_GREG,    5,          0x0  },
+    { "R6",     TT_GREG,    6,          0x0  },
+    { "R7",     TT_GREG,    7,          0x0  },
+    { "R8",     TT_GREG,    8,          0x0  },
+    { "R9",     TT_GREG,    9,          0x0  },
+    { "R10",    TT_GREG,    10,         0x0  },
+    { "R11",    TT_GREG,    11,         0x0  },
+    { "R12",    TT_GREG,    12,         0x0  },
+    { "R13",    TT_GREG,    13,         0x0  },
+    { "R14",    TT_GREG,    14,         0x0  },
+    { "R15",    TT_GREG,    15,         0x0  },
     
-    { "S0",     TT_SREG,    0           },
-    { "S1",     TT_SREG,    1           },
-    { "S2",     TT_SREG,    2           },
-    { "S3",     TT_SREG,    3           },
-    { "S4",     TT_SREG,    4           },
-    { "S5",     TT_SREG,    5           },
-    { "S6",     TT_SREG,    6           },
-    { "S7",     TT_SREG,    7           },
+    { "S0",     TT_SREG,    0,          0x0  },
+    { "S1",     TT_SREG,    1,          0x0  },
+    { "S2",     TT_SREG,    2,          0x0  },
+    { "S3",     TT_SREG,    3,          0x0  },
+    { "S4",     TT_SREG,    4,          0x0  },
+    { "S5",     TT_SREG,    5,          0x0  },
+    { "S6",     TT_SREG,    6,          0x0  },
+    { "S7",     TT_SREG,    7,          0x0  },
     
-    { "C0",     TT_CREG,    0           },
+    { "C0",     TT_CREG,    0,          0x0  },
+    { "C1",     TT_CREG,    1,          0x0  },
+    { "C2",     TT_CREG,    2,          0x0  },
+    { "C3",     TT_CREG,    3,          0x0  },
+    { "C4",     TT_CREG,    4,          0x0  },
+    { "C5",     TT_CREG,    5,          0x0  },
+    { "C6",     TT_CREG,    6,          0x0  },
+    { "C7",     TT_CREG,    7,          0x0  },
+    { "C8",     TT_CREG,    8,          0x0  },
+    { "C9",     TT_CREG,    9,          0x0  },
+    { "C10",    TT_CREG,    10,         0x0  },
+    { "C11",    TT_CREG,    11,         0x0  },
+    { "C12",    TT_CREG,    12,         0x0  },
+    { "C13",    TT_CREG,    13,         0x0  },
+    { "C14",    TT_CREG,    14,         0x0  },
+    { "C15",    TT_CREG,    15,         0x0  },
+    { "C16",    TT_CREG,    16,         0x0  },
+    { "C17",    TT_CREG,    17,         0x0  },
+    { "C18",    TT_CREG,    18,         0x0  },
+    { "C19",    TT_CREG,    19,         0x0  },
+    { "C20",    TT_CREG,    20,         0x0  },
+    { "C21",    TT_CREG,    21,         0x0  },
+    { "C22",    TT_CREG,    22,         0x0  },
+    { "C23",    TT_CREG,    23,         0x0  },
+    { "C24",    TT_CREG,    24,         0x0  },
+    { "C25",    TT_CREG,    25,         0x0  },
+    { "C26",    TT_CREG,    26,         0x0  },
+    { "C27",    TT_CREG,    27,         0x0  },
+    { "C28",    TT_CREG,    28,         0x0  },
+    { "C29",    TT_CREG,    29,         0x0  },
+    { "C30",    TT_CREG,    30,         0x0  },
+    { "C31",    TT_CREG,    31,         0x0  },
+    
 };
 
 const int   TOK_NAME_TAB_SIZE  = sizeof( tokNameTab ) / sizeof( *tokNameTab );
 
 //------------------------------------------------------------------------------------------------------------
-// The assmebly line has tokens, some of result in an expression when parsed. Examples are the numeric type
-// expressions but also addresses such as "seg:ofs". During parsig the expression type and value is stored
+// The assembly line has tokens, some of result in an expression when parsed. Examples are the numeric type
+// expressions but also addresses such as "seg:ofs". During parsing the expression type and value is stored
 // in the expression structure. While most expressions have just one value, the extended address "seg.ofs"
-// will use two values. Finally, the "parseEdpr" routine needs to be declared foward, as the parser is
-// recursively working its way through the exopressions.
+// will use two values. Finally, the "parseExpr" routine needs to be declared forward, as the parser is
+// recursively working its way through the expressions.
 //
 //------------------------------------------------------------------------------------------------------------
 enum ExprTyp {
@@ -742,7 +788,7 @@ bool parseTerm( Expr *rExpr ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "parseExpr" parses the expression syntax. The one line assembler parser routines use this call in many
-// places where a numeric expresson or an address is needed.
+// places where a numeric expression or an address is needed.
 //
 //      <expr>      ->  [ ( "+" | "-" ) ] <term> { <exprOp> <term> }
 //      <exprOp>    ->  "+" | "-" | "|" | "^"
@@ -799,6 +845,10 @@ bool parseExpr( Expr *rExpr ) {
 // also cases where the only option is a multi-character sequence. We detect invalid options but not when
 // the same option is repeated. E.g. a "LOL" will result in "L" and "O" set.
 //
+//
+// ??? the current token has the initial flags and the instruction mask. We should add to flags as we decode
+// special options. Example: GT does not exist for comparisons. It is handled by reversing the operators and
+// the comparison direction.
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrOptions( uint32_t *instr ) {
     
@@ -859,10 +909,21 @@ bool parseInstrOptions( uint32_t *instr ) {
         case OP_CMPU: {
             
             if ( strcmp( optBuf, ((char *) "EQ" ))) setBitField( instr, 11, 2, 0 );
-            if ( strcmp( optBuf, ((char *) "LT" ))) setBitField( instr, 11, 2, 1 );
-            if ( strcmp( optBuf, ((char *) "NE" ))) setBitField( instr, 11, 2, 2 );
-            if ( strcmp( optBuf, ((char *) "LE" ))) setBitField( instr, 11, 2, 3 );
-            
+            else if ( strcmp( optBuf, ((char *) "LT" ))) setBitField( instr, 11, 2, 1 );
+            else if ( strcmp( optBuf, ((char *) "NE" ))) setBitField( instr, 11, 2, 2 );
+            else if ( strcmp( optBuf, ((char *) "LE" ))) setBitField( instr, 11, 2, 3 );
+
+            else if ( strcmp( optBuf, ((char *) "GT" ))) {
+
+                currentToken.flags != TF_SWAP_A_B_REGS;
+                currentToken.flags != TF_REVERSE_CMP_OP;
+            }
+            else if ( strcmp( optBuf, ((char *) "GE" ))) {
+
+                currentToken.flags != TF_SWAP_A_B_REGS;
+                currentToken.flags != TF_REVERSE_CMP_OP;
+            }
+
         } break;
             
         case OP_EXTR: {
@@ -973,6 +1034,90 @@ bool parseInstrOptions( uint32_t *instr ) {
         default: return( parserError((char *) "Instruction has no option" ));
     }
     
+    return( true );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "parseLogicalAdr" analyzes a logical address, which is used by several instruction with a "seg" field.
+//
+//      "(" [ <segReg> "," ] <ofsReg> ")"
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseLogicalAdr( uint32_t *instr ) {
+    
+    Expr rExpr;
+    
+    if ( ! parseExpr( &rExpr )) return( false );
+        
+    if ( rExpr.typ == ET_EXT_ADR ) {
+        
+        setBitField( instr, 31, 4, rExpr.val2 );
+        
+        if ( isInRange( rExpr.val1, 1, 3 )) setBitField( instr, 13, 2, rExpr.val1 );
+        else return( parserError((char *) "Expected SR1 .. SR3 " ));
+    }
+    else if ( rExpr.typ == ET_ADR ) {
+        
+        setBitField( instr, 31, 4, rExpr.val2 );
+    }
+    else return( parserError((char *) "Expected a logical address" ));
+    
+    return( true );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "parseLoadStoreOperand" parses the operand portion of the load and store instruction family. It represents
+// the source location for the load type instruction and the target for the store type instruction. The syntax
+// for the <operand> portion is either a
+//
+//      <ofs> "(" SR "," GR ")"
+//      <ofs> "(" GR ")"
+//      <GR>  "(" SR "," GR ")"
+//      <GR>  "(" GR ")"
+//
+// <loadInstr>  [ "." <opt> ] <targetReg>       "," <sourceOperand>
+// <storeInstr> [ "." <opt> ] <targetOperand>   "," <sourceReg>
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseLoadStoreOperand( uint32_t *instr ) {
+    
+    Expr rExpr;
+    
+    if ( ! parseExpr(&rExpr )) return( false );
+    
+    if ( rExpr.typ == ET_NUM ) {
+        
+        if ( isInRangeForBitField( rExpr.val1, 12 )) setImmVal( instr, 27, 12, rExpr.val1 );
+        else return( parserError((char *) "Immediate value out of range" ));
+    }
+    else if ( rExpr.typ == ET_GREG ) {
+        
+        setBit( instr, 10 );
+        setBitField( instr, 27, 4, rExpr.val1 );
+    }
+    else return( parserError((char *) "Expected an offset" ));
+    
+    if ( ! parseExpr(&rExpr )) return( false );
+   
+    if ( rExpr.typ == ET_ADR ) {
+                    
+        setBitField( instr, 13, 2, 0 );
+        setBitField( instr, 31, 4, rExpr.val1 );
+    }
+    else if ( rExpr.typ == ET_EXT_ADR ) {
+                    
+        if (( getBitField( *instr, 5, 6 ) == OP_LDA ) || ( getBitField( *instr, 5, 6 ) == OP_STA )) {
+                    
+            return( parserError((char *) "Invalid address for instruction type" ));
+        }
+                
+        if ( isInRange( rExpr.val1, 1, 3 )) setBitField( instr, 13, 2, rExpr.val1 );
+        else return( parserError((char *) "Expected SR1 .. SR3 " ));
+                    
+        setBitField( instr, 31, 4, rExpr.val2 );
+    }
+    else return( parserError((char *) "Expected an address" ));
+   
     return( true );
 }
 
@@ -1595,14 +1740,7 @@ bool parseInstrBVE( uint32_t *instr ) {
     
     if ( ! parseExpr( &rExpr )) return( false );
     
-    if ( rExpr.typ == ET_EXT_ADR ) {
-        
-        setBitField( instr, 31, 4, rExpr.val2 );
-        
-        if ( isInRange( rExpr.val1, 1, 3 )) setBitField( instr, 13, 2, rExpr.val1 );
-        else return( parserError((char *) "Expected SR1 .. SR3 " ));
-    }
-    else if ( rExpr.typ == ET_ADR ) {
+    if ( rExpr.typ == ET_ADR ) {
         
         setBitField( instr, 31, 4, rExpr.val2 );
     }
@@ -1665,62 +1803,6 @@ bool parseInstrCBRandCBRU( uint32_t *instr ) {
     else return( parserError((char *) "Expected an offset value" ));
     
     return( checkEOS( ));
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "parseLoadStoreOperand" parses the operand portion of the load and store instruction family. It represents
-// the source location for the load type instruction and the target for the store type instruction. The syntax
-// for the <operand> portion is either a
-//
-//      <ofs> "(" SR "," GR ")"
-//      <ofs> "(" GR ")"
-//      <GR>  "(" SR "," GR ")"
-//      <GR>  "(" GR ")"
-//
-// <loadInstr>  [ "." <opt> ] <targetReg>       "," <sourceOperand>
-// <storeInstr> [ "." <opt> ] <targetOperand>   "," <sourceReg>
-//
-//------------------------------------------------------------------------------------------------------------
-bool parseLoadStoreOperand( uint32_t *instr ) {
-    
-    Expr rExpr;
-    
-    if ( ! parseExpr(&rExpr )) return( false );
-    
-    if ( rExpr.typ == ET_NUM ) {
-        
-        if ( isInRangeForBitField( rExpr.val1, 12 )) setImmVal( instr, 27, 12, rExpr.val1 );
-        else return( parserError((char *) "Immediate value out of range" ));
-    }
-    else if ( rExpr.typ == ET_GREG ) {
-        
-        setBit( instr, 10 );
-        setBitField( instr, 27, 4, rExpr.val1 );
-    }
-    else return( parserError((char *) "Expected an offset" ));
-    
-    if ( ! parseExpr(&rExpr )) return( false );
-   
-    if ( rExpr.typ == ET_ADR ) {
-                    
-        setBitField( instr, 13, 2, 0 );
-        setBitField( instr, 31, 4, rExpr.val1 );
-    }
-    else if ( rExpr.typ == ET_EXT_ADR ) {
-                    
-        if (( getBitField( *instr, 5, 6 ) == OP_LDA ) || ( getBitField( *instr, 5, 6 ) == OP_STA )) {
-                    
-            return( parserError((char *) "Invalid address for instruction type" ));
-        }
-                
-        if ( isInRange( rExpr.val1, 1, 3 )) setBitField( instr, 13, 2, rExpr.val1 );
-        else return( parserError((char *) "Expected SR1 .. SR3 " ));
-                    
-        setBitField( instr, 31, 4, rExpr.val2 );
-    }
-    else return( parserError((char *) "Expected an address" ));
-   
-    return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1950,15 +2032,7 @@ bool parseInstrLDPA( uint32_t *instr ) {
         if ( ! parseExpr( &rExpr )) return( false );
     }
     
-    if ( rExpr.typ == ET_EXT_ADR ) {
-        
-        if ( isInRange( rExpr.val1, 1, 3 )) setBitField( instr, 13, 2, rExpr.val1 );
-        else return( parserError((char *) "Expected SR1 .. SR3 " ));
-        
-        setBitField( instr, 31, 4, rExpr.val2 );
-        return( checkEOS( ));
-    }
-    else return( parserError((char *) "Expected an index Reg or left paren" ));
+    return( parseLogicalAdr( instr ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1981,20 +2055,7 @@ bool parseInstrPRB( uint32_t *instr ) {
     if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a comma" ));
     
-    if ( ! parseExpr( &rExpr )) return( false );
-    
-    if ( rExpr.typ == ET_EXT_ADR ) {
-        
-        setBitField( instr, 31, 4, rExpr.val2 );
-        
-        if ( isInRange( rExpr.val1, 1, 3 )) setBitField( instr, 13, 2, rExpr.val1 );
-        else return( parserError((char *) "Expected SR1 .. SR3 " ));
-    }
-    else if ( rExpr.typ == ET_ADR ) {
-        
-        setBitField( instr, 31, 4, rExpr.val2 );
-    }
-    else return( parserError((char *) "Expected a logical address" ));
+    if ( ! parseLogicalAdr( instr )) return( false );
     
     if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a comma" ));
@@ -2050,19 +2111,8 @@ bool parseInstrITLB( uint32_t *instr ) {
         if ( ! parseExpr( &rExpr )) return( false );
     }
     
-    if ( rExpr.typ == ET_EXT_ADR ) {
-        
-        setBitField( instr, 31, 4, rExpr.val2 );
-        
-        if ( isInRange( rExpr.val1, 1, 3 )) setBitField( instr, 13, 2, rExpr.val1 );
-        else return( parserError((char *) "Expected SR1 .. SR3 " ));
-    }
-    else if ( rExpr.typ == ET_ADR ) {
-        
-        setBitField( instr, 31, 4, rExpr.val2 );
-    }
-    else return( parserError((char *) "Expected a logical address" ));
-    
+    if ( ! parseLogicalAdr( instr )) return( false );
+
     return( checkEOS( ));
 }
 
@@ -2095,19 +2145,8 @@ bool parseInstrPTLB( uint32_t *instr ) {
         if ( ! parseExpr( &rExpr )) return( false );
     }
     
-    if ( rExpr.typ == ET_EXT_ADR ) {
-        
-        setBitField( instr, 31, 4, rExpr.val2 );
-        
-        if ( isInRange( rExpr.val1, 1, 3 )) setBitField( instr, 13, 2, rExpr.val1 );
-        else return( parserError((char *) "Expected SR1 .. SR3 " ));
-    }
-    else if ( rExpr.typ == ET_ADR ) {
-        
-        setBitField( instr, 31, 4, rExpr.val2 );
-    }
-    else return( parserError((char *) "Expected a logical address" ));
-    
+    if ( ! parseLogicalAdr( instr )) return( false );
+
     return( checkEOS( ));
 }
 
@@ -2139,19 +2178,8 @@ bool parseInstrPCA( uint32_t *instr ) {
         if ( ! parseExpr( &rExpr )) return( false );
     }
     
-    if ( rExpr.typ == ET_EXT_ADR ) {
-        
-        setBitField( instr, 31, 4, rExpr.val2 );
-        
-        if ( isInRange( rExpr.val1, 1, 3 )) setBitField( instr, 13, 2, rExpr.val1 );
-        else return( parserError((char *) "Expected SR1 .. SR3 " ));
-    }
-    else if ( rExpr.typ == ET_ADR ) {
-        
-        setBitField( instr, 31, 4, rExpr.val2 );
-    }
-    else return( parserError((char *) "Expected a logical address" ));
-    
+    if ( ! parseLogicalAdr( instr )) return( false );
+
     return( checkEOS( ));
 }
 
