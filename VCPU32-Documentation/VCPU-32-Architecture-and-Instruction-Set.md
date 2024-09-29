@@ -200,6 +200,9 @@ July, 2024
     - [Debug Subsystem](#debug-subsystem)
     - [System Startup sequence](#system-startup-sequence)
   - [Processor Dependent Code](#processor-dependent-code)
+    - [Entry and Exit condition](#entry-and-exit-condition)
+    - [Calling sequence](#calling-sequence)
+    - [PDC Services](#pdc-services)
   - [VCPU-32 Input/Output system](#vcpu-32-inputoutput-system)
     - [The physical address space](#the-physical-address-space)
     - [Concept of an I/O Module](#concept-of-an-io-module)
@@ -218,8 +221,9 @@ July, 2024
     - [Multi-precision arithmetic](#multi-precision-arithmetic)
     - [Unsigned division](#unsigned-division)
     - [Signed division](#signed-division)
-  - [A three-stage pipelined CPU model](#a-three-stage-pipelined-cpu-model)
-  - [A four stage pipeline CPU model](#a-four-stage-pipeline-cpu-model)
+  - [Pipeline Notes](#pipeline-notes)
+    - [A three-stage pipelined CPU model](#a-three-stage-pipelined-cpu-model)
+    - [A four stage pipeline CPU model](#a-four-stage-pipeline-cpu-model)
   - [Notes](#notes-41)
     - [Nullification](#nullification)
     - [The case for register indexed mode](#the-case-for-register-indexed-mode)
@@ -1953,7 +1957,7 @@ The load instruction will load the operand into the general register "r". The of
 
 The "dw" field specifies the data length. From 0 to 3 the data length is byte, half word, word and double. The double option is reserved for future use. The computed offset must match the alignment size of the data to fetch. 
 
-The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. If the "b" and "r" register are the same, the operation will store the loaded result in the register and the base registewr address modification is ignored.
+The "M" bit indicates base register increment. If set, a negative value in the "ofs" field or negative content "a" will add the offset to the base register before the memory access, otherwise after the memory access. If the "b" and "r" register are the same, the operation will store the loaded result in the register and the base register address modification is ignored.
 
 #### Operation
 
@@ -3770,7 +3774,7 @@ The caller "func1" will produce its arguments and stores them in ARG0 and ARG1, 
 
 The "func2" procedure will do its business and make a call to "func3". The parameters are prepared and a BL instruction branches to "func3". "func3" is a leaf procedure and there is no need for saving RL. If "func3" has local variables, then a frame will be allocated. Also, if "func3" would use a callee save register, there needs to be a spill area to save them before usage. The spill area is a part of the local data area too. "func3" returns with the BV instruction as before.
 
-When "func2" returns, it will deallocate the stack frame by moving SP back to the previous frame, load the saved return link into RL and a BV instructions branches back to the aller "func1". Phew.
+When "func2" returns, it will deallocate the stack frame by moving SP back to the previous frame, load the saved return link into RL and a BV instructions branches back to the caller "func1". Phew.
 
 ### Long calls
 
@@ -3881,7 +3885,7 @@ A compilation or assembly unit can contains more than one module. All code and d
                                                             :                          :                    
 ```
 
-Invoking a function in a another module requires to reach the target procedure. Furthermore, the DP value for the taget is that of the target module. Assemblers and compilers should not create different calling sequences depending on whether particular call is local to a module or referring to a procedure in another module. The approach is to replace the branch instruction with a branch to a stub, which contains the outgoing code to perform all the operations before calling the target function. Within a module, a calling sequence would be a branch from the calling function to the stub, from the stub to the target function, from the target function back to the stub and then back to the calling function. That is in total four branches. Therefore, a different approach is chosen for intermodule calls within the same compilation unit.
+Invoking a function in a another module requires to reach the target procedure. Furthermore, the DP value for the target is that of the target module. Assemblers and compilers should not create different calling sequences depending on whether particular call is local to a module or referring to a procedure in another module. The approach is to replace the branch instruction with a branch to a stub, which contains the outgoing code to perform all the operations before calling the target function. Within a module, a calling sequence would be a branch from the calling function to the stub, from the stub to the target function, from the target function back to the stub and then back to the calling function. That is in total four branches. Therefore, a different approach is chosen for intermodule calls within the same compilation unit.
 
 A call to a function in another module is considered a long call. The assembler/compiler creates a long call code sequence. At module compile time, the final target is however not know yet. The long call needs to be updated when the final position of the target module in the code space is known.
 
@@ -4032,9 +4036,9 @@ The linkage table is a memory structure built by the program load operation. It 
 
 ### Debug Subsystem
 
-// essentially a trap
+// essentially a debug trap
 
-// support for sigle stepping ?
+// support for single stepping ?
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
@@ -4063,13 +4067,17 @@ The linkage table is a memory structure built by the program load operation. It 
 
 Part of the I/O memory address range is allocated to processor dependent code.
 
-// entry and exit conditions
+// privileged code
 
-// invocation mechanism
+### Entry and Exit condition
 
-// runs privileged always
+### Calling sequence
 
-// groups of PDC services
+### PDC Services
+
+
+
+
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -4087,7 +4095,7 @@ Part of the I/O memory address range is allocated to processor dependent code.
 
 VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory address space is dedicated to the I/O system. The I/O Space is further divided into a memory address range for the processor dependent code and the IO modules.
 
-| Adress range start | end |Usage |
+| Address range start | end |Usage |
 |:---|:---|:---|
 | 0x00000000 | 0xEFFFFFFF | Physical memory |
 | 0xF0000000 | 0xF0FFFFFF | Processor dependent code |
@@ -4312,7 +4320,7 @@ Instruction operations are described in a pseudo C style language using assignme
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
-<!-- Chapter - Instruction usage exmaples ----------------------------------------------------------------->
+<!-- Chapter - Instruction usage examples ----------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 
@@ -4336,15 +4344,17 @@ Instruction operations are described in a pseudo C style language using assignme
 
 <div style="page-break-before: always;"></div>
 
-## A three-stage pipelined CPU model
+## Pipeline Notes
 
 The VCPU-32 instruction set and runtime architecture has been designed with a pipeline CPU in mind. In general, pipeline operations such as stalling or flushing a CPU pipeline are in terms of performance costly and should be avoided where possible. Also, accessing data memory twice or any indirection level of data access would also affect the pipeline performance in a negative way. This chapter presents a simple pipeline reference model of a VCPU32 implementation for discussing architecture and instruction design rationales.
 
-The VCPU-32 pipelined reference implementation also can be found in the simulator, which uses a three stage pipeline model. The stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
+### A three-stage pipelined CPU model
+
+The VCPU-32 pipelined reference implementation also can be found in the simulator, which uses a three stage pipeline model. The stages are the **instruction fetch and decode stage**, the **operand fetch** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
 
 - **Instruction fetch and decode**. The first stage will fetch the instruction word from memory and decode it. There are two parts. The first part of the stage will use the instruction address and attempt to fetch the instruction word from the instruction cache. At the same time the translation look-aside buffer will be checked whether the virtual to physical translation is available and if so whether the access rights match. The second part of the stage will decode the instruction and also read the general registers from the register file.
 
-- **Memory access**. The memory access stage will take the instruction decoded in the previous stage and compute the address for the memory data access. This also the stage where a segment or control register are accessed. In addition, unconditional branches are handled at this stage. Memory data item are read or stored depending on the instruction. Due to the nature of a register/memory architecture, the memory access has to be performed before the execute stage. This also implies that there needs to be an address arithmetic unit at this state. The classical 5-stage RISC pipeline with memory access past the execute stage uses the ALU for this purpose.
+- **Operand fetch**. The operand fetch stage will take the instruction decoded in the previous stage and compute the address for the memory data access. This also the stage where a segment or control register are accessed. In addition, unconditional branches are handled at this stage. Memory data item are read or stored depending on the instruction. Due to the nature of a register/memory architecture, the memory access has to be performed before the execute stage. This also implies that there needs to be an address arithmetic unit at this state. The classical 5-stage RISC pipeline with memory access past the execute stage uses the ALU for this purpose.
 
 - **Execute**. The Execute Stage will primarily do the computational work using the values passed from the MA stage. The computational result will be written back to the registers on the next clock cycle. Within the execute stage, there is the computational half followed by the result committing half. In addition, instructions that need to commit two results push one result to the first half of the instruction fetch and decode stage. Currently, the base register modification option of the load instructions will commit the loaded value in the EXECUTE stage but push the base register update to the instruction fetch half of the next instruction.
 
@@ -4357,7 +4367,7 @@ The VCPU-32 pipelined reference implementation also can be found in the simulato
                : Instruction decode : 
                :--------------------:     :--------------------:
                : Compute Address    :     : Instruction fetch  :
-   MA Stage    :---              ---:     :---              ---:
+   OF Stage    :---              ---:     :---              ---:
                : Data Fetch         :     : Instruction decode : 
                :--------------------:     :--------------------:     :--------------------:
                : Compute Result     :     : Compute Address    :     : Instruction fetch  : 
@@ -4381,9 +4391,9 @@ Some instructions, such as store instruction, require to read three data items f
 
 In a similar way, the TLB and Caches are spread over the pipeline. The instruction TLB and Cache access takes place on the first half of the fetch/decode stage, the data access on the second half of the memory access stage. In other words the access for instructions and data do not overlap and could be served by a unified TLB and cache.
 
-## A four stage pipeline CPU model
+### A four stage pipeline CPU model
 
-The three stage pipeline model, while simple and somewhat elegant, will have its limits in clock cycle time. It is also a scalar pipeline model. Nevertheless, it can be implemented and for the simulator valuable insights can be obtained. Any higher performancde implementation would however lean towards more stages and superscalar techniques. The following sketch is a four stage pipeline.
+The three stage pipeline model, while simple and somewhat elegant, will have its limits in clock cycle time. It is also a scalar pipeline model. Nevertheless, it can be implemented and for the simulator valuable insights can be obtained. Any higher performance implementation would however lean towards more stages and superscalar techniques. The following sketch is a four stage pipeline.
 
 ```
                         Instruction 1          Instruction 2           Instruction 3            Instruction 4
@@ -4398,19 +4408,19 @@ The three stage pipeline model, while simple and somewhat elegant, will have its
                     :                    :  :                    : 
                     :--------------------:  :--------------------:  :--------------------:
                     :                    :  :                    :  :                    : 
-    Data stage      : Data fetch         :  : Instruction decode :  : Instruction fetch  :
+    Data stage      : Operand fetch      :  : Instruction decode :  : Instruction fetch  :
                     :                    :  :                    :  :                    : 
                     :--------------------:  :--------------------:  :--------------------:  :--------------------:
                     :                    :  :                    :  :                    :  :                    :
-   Execute stage    : Execute            :  : Data fetch         :  : Instruction decode :  : Instruction fetch  :
+    Execute stage   : Execute            :  : Operand fetch      :  : Instruction decode :  : Instruction fetch  :
                     :                    :  :                    :  :                    :  :                    : 
                     :--------------------:  :--------------------:  :--------------------:  :--------------------:
                                             :                    :  :                    :  :                    :   
-                                            : Execute            :  : Data fetch         :  : Instruction decode :
+                                            : Execute            :  : Operand fetch      :  : Instruction decode :
                                             :                    :  :                    :  :                    :
                                             :--------------------:  :--------------------:  :--------------------:
                                                                     :                    :  :                    :
-                                                                    : Execute            :  : Data fetch         :
+                                                                    : Execute            :  : Operand fetch      :
                                                                     :                    :  :                    :
                                                                     :--------------------:  :--------------------: 
                                                                                             :                    :
@@ -4424,11 +4434,11 @@ The **fetch** stage will fetch the next instruction from memory. In contrast to 
 
 As pipelines grow larger and superscalar, branch prediction becomes imminent. Any misprediction will cost several cycles and the flushing of several instructions with superscalar designs. The 3-stage pipeline model just used a static prediction scheme and due to the design of fetch and decode in one stage, there was no real need for target address buffering and predictions. The 4-stage pipeline model will introduce these enhancements. 
 
-The **decode** stage will decode the instruction and fetch the required data from the register file. Due to the nature of address translation in VCPU-32 the general register file as well as the segment register file need to be accessed in serial order. First, the general register will provide the address offsets and accessing the segment register file using the upper two bits of the offset will prvide the segment part of the virtual address.
+The **decode** stage will decode the instruction and fetch the required data from the register file. Due to the nature of address translation in VCPU-32 the general register file as well as the segment register file need to be accessed in serial order. First, the general register will provide the address offsets and accessing the segment register file using the upper two bits of the offset will provide the segment part of the virtual address.
 
-The **data fetch** stage will access memory for reading or storing data. Like the fetch stage, it will primarily just access memory. Since both instruction fetch and data fetch or write will access memory overlapping for instructions in flight, seprate L1 caches are required. It is envisoned that both L1 caches connect to a unified L2 cache.
+The **operand fetch** stage will access memory for reading or storing data. Like the fetch stage, it will primarily just access memory. Since both instruction fetch and data fetch or write will access memory overlapping for instructions in flight, separate L1 caches are required. It is envisioned that both L1 caches connect to a unified L2 cache.
 
-The **execute** stage will perform the computation tasks as before. It also manages execption handing. VCPU-32 provides a precise exception model. A misprediction of a condiztional branch is also resoilved at the execute stage.
+The **execute** stage will perform the computation tasks as before. It also manages exception handing. VCPU-32 provides a precise exception model. A misprediction of a conditional branch is also resolved at the execute stage.
 
 In summary, a 4-stage pipeline model will result in a shorter cycle time at the expense of more hardware. Especially the branch target buffer and branch prediction are a significant addition.
 
@@ -4443,11 +4453,13 @@ In summary, a 4-stage pipeline model will result in a shorter cycle time at the 
 
 ## Notes
 
+This chapter contains notes on design and implementation.
+
 ### Nullification
 
-A concept found in RISC architectures for reducing pipeline unfrieNdly branches is **nullification**. The idea is to "nullify" an instruction on the result of the previous instruction. For example, a test instruction sets the nullify bit in the status register to indicate that the follow-on instruction will have no effect on the proecessor state but rather treated as a NOP. For experimenting with the concept, the architecture needs a few changes:
+A concept found in RISC architectures for reducing the cost of pipeline unfriendly branches is **nullification**. The idea is to "nullify" an instruction based on the result of the previous instruction. For example, a test instruction sets the nullify bit in the status register to indicate that the follow-on instruction will have no effect on the processor state but rather treated as a NOP. For experimenting with the concept, the architecture needs a few changes:
 
-1.) the operand modes will feature for mode 1 a 4-bit field to store the nullifictaion options. There are at least two options: "never" and "always". A value of zero in the field is interpreted as "never". 
+The operand modes will feature for mode 1 and 2 a 4-bit field to store the nullification options. There are at least two options: "never" and "always". A value of zero in the field is interpreted as "never". Other could be "condition met / not met" for the CMP instruction. 
 
 ```
        <-- operation --> <-  res  -> <opt> <---------------- operand -------------------------------->
@@ -4465,27 +4477,22 @@ A concept found in RISC architectures for reducing pipeline unfrieNdly branches 
 
 Mode 0 and 3 do not have room for the nullify condition field.
 
-2.) The procerrs state needs to have a bit  "N". 
+For the EXTR, DEP, DSR and SHLA instruction, there could be options to identify the left most bit as 0 or 1, the right most bit as 0 or 1, odd, even, and so on. This would be a good choice for using the EXTR instruction as shift operation to to test the outgoing bit. 
+
+The processor state needs to have a bit  "N". The N bit is set when the nullification is evaluated to true. An instruction checks the N bit before committing its results.
 
 
 ```
        0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
       :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-      :M :X :C :0 :CB:N : 0               :0 :D :P :E : PSW.[seg]                                     :  PSW-0
+      :M :X :C :N :V :CB: reserved     :R :Z :D :P :E : PSW.[seg]                                     :  PSW-0
       :-----------------------------------------------------------------------------------------------:
       : PSW.[ofs]                                                                               : 0   :  PSW-1
       :-----------------------------------------------------------------------------------------------:
 ```
 
-The N bit is set when the nullification is evaluated to true. An instruction checks the N bit before committing its results.
 
-3.) Candidates for a nullification condition field. 
-
-All computational instructions with the aforementioned operand field are candidates for the nullification option. In addition, the EXTR, DEP, DSR, SHLA and CMP have room for the nullification field. 
-
-4.) Removal of the CMR instrcution.
-
-The CMR instruction could easily be replaced by a CMP instruction that conditionally nullifies the follon on instruction. 
+The CMR instruction could easily be replaced by a CMP instruction that conditionally nullifies the follow-on instruction. 
 
 ```
    Example:
@@ -4494,11 +4501,11 @@ The CMR instruction could easily be replaced by a CMP instruction that condition
 
    Assumption: ( a -> R2, b -> R6,c -> R1, d -> R4 )
 
-    CMP.LT R1, R2, R6   ; compare R2 < R6 and store a zero or one in R1
-    ADD R1, R4, R0      ; move R4 to R1
+    CMP.LT.CNM  R1, R2, R6      ; compare R2 < R6 and store a zero or one in R1. 
+                                ; When the condition is not met, nullify the next instruction.
+    ADD         R1, R4, R0      ; move R4 to R1
 ```
-
-5.) The assembler needs to come up with a way to specifiy nullification in the instruction syntax.
+Finally, the assembler needs to come up with a way to specify nullification in the instruction syntax.
 
 ### The case for register indexed mode
 
@@ -4508,9 +4515,9 @@ To be investigated. Address adjustments as part of an register indexed access is
 
 ### Instruction bundling
 
-Supercalar processors attempt to execute more than one instruction in one cycle. In a superscalar design the hardware detects teh potential hazards of the instrcutions in flight. When the instructions can furthermore execute in an out of order model, management of the dependencies becomes even more complex and require a lot of hardware estate.
+Superscalar processors attempt to execute more than one instruction in one cycle. In a superscalar design the hardware detects the potential hazards of the instructions in flight. When the instructions can furthermore executes in an out of order model, management of the dependencies becomes even more complex and require a lot of hardware estate.
 
-VLIW architectures group instructions in a bundle fetched by the instruction fetch stage, complemented with a template field that will tell the hardware about the type of instructions in the bundle. It is the responsibilty of the compiler to ensure that the instructions in a bundle will not conflict. Although an assembler could also work with instruction bundles, considerting all dependencies and potential conflicts are a hard an cumbersome task for a human assembler programmer.
+VLIW architectures group instructions in a bundle fetched by the instruction fetch stage, complemented with a template field that will tell the hardware about the type of instructions in the bundle. It is the responsibility of the compiler to ensure that the instructions in a bundle will not conflict. Although an assembler could also work with instruction bundles, considering all dependencies and potential conflicts are a hard an cumbersome task for a human assembler programmer.
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
