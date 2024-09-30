@@ -1706,7 +1706,7 @@ void DrvCmds::modifyAbsMemAsCodeCmd( char *cmdBuf ) {
     CpuMem      *ioMem                      = glb -> cpu -> ioMem;
     CpuMem      *mem                        = nullptr;
     
-    int         args = sscanf( cmdBuf, "%s %d \"%[^\"]\"", cmdStr, &ofs, argStr );
+    int         args = sscanf( cmdBuf, "%s %i \"%[^\"]\"", cmdStr, &ofs, argStr );
     
     if ( args < 3 ) {
         

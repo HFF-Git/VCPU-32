@@ -30,6 +30,10 @@
 #include "VCPU32-Driver.h"
 #include "VCPU32-Core.h"
 
+//
+// ??? it would be better to produce a string rather than printing to stdout....
+//
+
 //------------------------------------------------------------------------------------------------------------
 // Local namespace. These routines are not visible outside this source file.
 //
@@ -627,11 +631,11 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         case OP_MR: {
             
-            if ( getBit( instr, 11 )) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
+            if ( getBit( instr, 10 )) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
             else {
                 
-                if ( getBit( instr, 12 )) fprintf( stdout, ", c%d", getBitField( instr, 31, 5 ));
-                else fprintf( stdout, ", s%d", getBitField( instr, 31, 4 ));
+                if ( getBit( instr, 11 )) fprintf( stdout, ", c%d", getBitField( instr, 31, 5 ));
+                else fprintf( stdout, ", s%d", getBitField( instr, 31, 3 ));
             }
             
         } break;

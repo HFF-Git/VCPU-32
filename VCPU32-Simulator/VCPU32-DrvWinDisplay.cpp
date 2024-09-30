@@ -432,8 +432,6 @@ void buildAccessRightsStr( char *bufStr, int bufLen, uint8_t type, uint8_t privL
     }
 }
 
-// ??? perhaps routines for building the status word bits, the cache line bits, tlb entry bits ...
-
 //------------------------------------------------------------------------------------------------------------
 // "setRadix" ensures that we passed in a valid radix value. The default is a decimal number.
 //
@@ -693,6 +691,23 @@ void DrvWin::padLine( uint32_t fmtDesc ) {
     
     setFieldAtributes( fmtDesc );
     padField( lastColPos, winColumns );
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWin::clearField( int len, uint32_t fmtDesc ) {
+    
+    int pos = lastColPos;
+    
+    if ( pos + len > winColumns ) len = winColumns - pos;
+    
+    setFieldAtributes( fmtDesc );
+    padField( lastColPos, lastColPos + len );
+    
+    setWinCursor( 0,  pos );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1563,9 +1578,12 @@ void DrvWinCode::drawLine( uint32_t itemAdr ) {
     int opCodeField  = glb -> disAsm -> getOpCodeOptionsFieldWidth( );
     int operandField = glb -> disAsm -> getOpCodeOptionsFieldWidth( );
     
+    clearField( opCodeField );
     glb -> disAsm -> displayOpCodeAndOptions( instr );
-    setWinCursor( 0, pos + opCodeField );
+
+    clearField( operandField );
     glb -> disAsm -> displayTargetAndOperands( instr, getRadix( ));
+    
     setWinCursor( 0, pos + opCodeField + operandField );
     padLine( );
 }

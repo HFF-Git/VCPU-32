@@ -342,6 +342,7 @@ public:
                                         int col = 0 );
     
     void            padLine( uint32_t fmtDesc = 0 );
+    void            clearField( int len, uint32_t fmtDesc = 0 ); 
     
     void            reDraw( );
     
