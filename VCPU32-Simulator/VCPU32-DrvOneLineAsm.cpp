@@ -802,8 +802,11 @@ bool parseTerm( Expr *rExpr ) {
         nextToken( );
         rStat = parseFactor( &lExpr );
         
-        // ??? type checking ????
-        
+        if ( rExpr -> typ != lExpr.typ ) {
+            
+            return ( parserError((char *) "Expression type mismatch" ));
+        }
+       
         switch( op ) {
                 
             case TT_MULT:   rExpr -> val1 = rExpr -> val1 * lExpr.val1; break;
@@ -857,7 +860,10 @@ bool parseExpr( Expr *rExpr ) {
         nextToken( );
         rStat = parseTerm( &lExpr );
         
-        // ??? type checking ????
+        if ( rExpr -> typ != lExpr.typ ) {
+            
+            return ( parserError((char *) "Expression type mismatch" ));
+        }
         
         switch ( op ) {
                 
