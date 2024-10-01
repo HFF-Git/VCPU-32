@@ -802,6 +802,8 @@ bool parseTerm( Expr *rExpr ) {
         nextToken( );
         rStat = parseFactor( &lExpr );
         
+        // ??? type checking ????
+        
         switch( op ) {
                 
             case TT_MULT:   rExpr -> val1 = rExpr -> val1 * lExpr.val1; break;
@@ -854,6 +856,8 @@ bool parseExpr( Expr *rExpr ) {
         
         nextToken( );
         rStat = parseTerm( &lExpr );
+        
+        // ??? type checking ????
         
         switch ( op ) {
                 
@@ -1116,7 +1120,7 @@ bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
     else if ( flags & TF_HALF_INSTR ) setBitField( instr, 15, 2, 1 );
     else if ( flags & TF_WORD_INSTR ) setBitField( instr, 15, 2, 2 );
   
-    if ( ! parseExpr(&rExpr )) return( false );
+    if ( ! parseExpr( &rExpr )) return( false );
     
     if ( rExpr.typ == ET_NUM ) {
         
