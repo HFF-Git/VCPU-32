@@ -226,6 +226,14 @@ void MemoryAccessStage::setStalled( bool arg ) {
 //
 // I am not sure whether HW would also work this way, or we just have this issue because of the way the
 // simulator works. To look into ...
+//
+// One other approach would be to stall the entire pipeline while we have a cache miss. This would for sure
+// solve these kind of issues bit at the expense of performance. Consider an unconditional branch. Whne we
+// can only determine the target in the MA stage, the FD stage already fetches the next - wrong - instruction.
+// When this instruction will cause an instruction cache miss, we wait many cycles for the cache to be filled
+// just to flush the fetched instruction. If a cache line hold four words, chances are 25% that will hit
+// this scenario. Even more ugly.
+//
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::flushPipeLine( ) {
     
@@ -256,6 +264,7 @@ void MemoryAccessStage::flushPipeLine( ) {
 // Note that we do not do anything else. The next instruction following the trapping instruction will enter
 // the MA stage and a new instruction is fetched to the FD stage at the next clock. The EX stage will when
 // encountering the trap simply flush the pipeline.
+//
 //------------------------------------------------------------------------------------------------------------
 void MemoryAccessStage::setupTrapData( uint32_t trapId,
                                       uint32_t psw0,

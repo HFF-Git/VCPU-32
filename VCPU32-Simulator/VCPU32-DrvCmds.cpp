@@ -3,7 +3,8 @@
 // VCPU32 - A 32-bit CPU - Simulator Commands
 //
 //------------------------------------------------------------------------------------------------------------
-// Welcome to the test driver commands.
+// Welcome to the test driver commands. This a rather simple command loop resting on the "sscanf" C library
+// routine to do the parsing.
 //
 //
 //------------------------------------------------------------------------------------------------------------
@@ -25,6 +26,49 @@
 #include "VCPU32-Types.h"
 #include "VCPU32-Driver.h"
 #include "VCPU32-Core.h"
+
+
+//------------------------------------------------------------------------------------------------------------
+// Idea:
+//
+// It turns out that a better command line parser would be a more powerful way to analyze a command line.
+// We have commands that just execute a command and functions that return a value. When we have a parser
+// we could implement such functions as arguments to the commands. Commands them selves may just be just a
+// function with a void return.
+//
+//      <command>   ->  <cmdId> [ <argList> ]
+//      <function>  -> <funcId> “(“ [ <argList> ] ")"
+//      <argList>   ->  <expr> { <expr> }
+//
+// Expression have a type, which are NUM, ADR, STR, SREG, GREG and CREG.
+//
+//      <factor> -> <number>                        |
+//                  <string>                        |
+//                  <envId>                         |
+//                  <gregId>                        |
+//                  <sregId>                        |
+//                  <cregId>                        |
+//                  "~" <factor>                    |
+//                  "(" [ <sreg> "," ] <greg> ")"   |
+//                  "(" <expr> ")"
+//
+//      <term>      ->  <factor> { <termOp> <factor> }
+//      <termOp>    ->  "*" | "/" | "%" | "&"
+//
+//      <expr>      ->  [ ( "+" | "-" ) ] <term> { <exprOp> <term> }
+//      <exprOp>    ->  "+" | "-" | "|" | "^"
+//
+// If a command is called, there is no output another than what the command was issuing itself.
+// If a function is called in the command place, the function result will be printed.
+// If an argument represents a function, its return value will be the argument in the command.
+//
+// The token table becomes a kind of dictionary with name, type and values.
+// The environment table needs to enhanced to allow for user defined variables.
+//
+// This is a bit of a rewrite of the command interpreter. Maybe later....
+//
+//------------------------------------------------------------------------------------------------------------
+
 
 //------------------------------------------------------------------------------------------------------------
 // Local name space. We try to keep utility functions local to the file.

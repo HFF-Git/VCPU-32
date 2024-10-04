@@ -1572,12 +1572,12 @@ bool parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
     if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a Comma" ));
     
-    if (( ! parseExpr( &rExpr )) && ( rExpr.typ == ET_NUM )) {
+    if (( parseExpr( &rExpr )) && ( rExpr.typ == ET_NUM )) {
 
-        if ( isInRangeForBitFieldU( currentToken.val, 22 )) setImmValU( instr, 31, 22, currentToken.val );
+        if ( isInRangeForBitFieldU( rExpr.val1, 22 )) setImmValU( instr, 31, 22, rExpr.val1  );
         else return( parserError((char *) "Immediate value out of range" ));
     }
-    else return( parserError((char *) "Expected the shift amount" ));
+    else return( parserError((char *) "Expected a numeric expression" ));
     
     return( checkEOS( ));
 }
@@ -1633,9 +1633,9 @@ bool parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TT_NUM )) {
+    if (( parseExpr( &rExpr )) && ( rExpr.typ == ET_NUM )) {
         
-        if ( isInRangeForBitField( currentToken.val, 22 )) setImmVal( instr, 31, 22, currentToken.val );
+        if ( isInRangeForBitField( rExpr.val1, 22 )) setImmVal( instr, 31, 22, rExpr.val1 );
         else return( parserError((char *) "Offset value out of range" ));
     }
     else return( parserError(( char *) "Expected an offset value" ));
