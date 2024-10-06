@@ -162,7 +162,7 @@ void ExecuteStage::tick( ) {
 void ExecuteStage::stallPipeLine( ) {
     
     setStalled( true );
-    core -> maStage -> setStalled( true );
+    core -> ofStage -> setStalled( true );
     core -> fdStage -> setStalled( true );
 }
 
@@ -179,7 +179,7 @@ void ExecuteStage::setStalled( bool arg ) {
 //------------------------------------------------------------------------------------------------------------
 // Pipeline flush. When a trap occurs, the EX stage will branch to a trap handler. All instructions that
 // entered the pipeline after the trapping instruction will need to be flushed. This is done by simply
-// putting a NOP in the instruction fields of the MA pipeline register and our own pipeline register. This
+// putting a NOP in the instruction fields of the OF pipeline register and our own pipeline register. This
 // will overwrite whatever the previous stages execution have put there.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -189,7 +189,7 @@ void ExecuteStage::flushPipeLine( ) {
     psValA.set( 0 );
     psValB.set( 0 );
     psValX.set( 0 );
-    core -> maStage -> flushPipeLine( );
+    core -> ofStage -> flushPipeLine( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -198,7 +198,7 @@ void ExecuteStage::flushPipeLine( ) {
 // value.
 //
 // Note that we do not do anything else. The next instruction following the trapping instruction will enter
-// the MA stage and a new instruction is fetched to the FD stage at the next clock. The EX stage will just
+// the OF stage and a new instruction is fetched to the FD stage at the next clock. The EX stage will just
 // return and the CPU24 core will analyze the trap and flush the pipeline.
 //------------------------------------------------------------------------------------------------------------
 void ExecuteStage::setupTrapData( uint32_t trapId,
@@ -270,26 +270,26 @@ bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessMode
 
 //------------------------------------------------------------------------------------------------------------
 // Execute Stage processing. This stage will primarily do the computational work using the "A" and "B" output
-// from the MA stage. The computational result will be written back to the registers on the next "tick". For
+// from the OF stage. The computational result will be written back to the registers on the next "tick". For
 // branch and link type instructions the ALU is used to compute the return address and store it into the
 // specified general register. For the BE and BLE instruction GR0 and SR0 are used to save the return address.
 //
-// We need to pass the computation result to the FD and MA stage in case there is a RAW data hazard. For
+// We need to pass the computation result to the FD and OF stage in case there is a RAW data hazard. For
 // example, an instruction will store to R3 and the follow-on instruction is using R3. In this case the wrong
 // value was read from the general register file. But we can use the "valR" value of the EX stage and just put
-// it into the pipeline register of the FD stage, so that the MA stage will work with the expected value. This
+// it into the pipeline register of the FD stage, so that the OF stage will work with the expected value. This
 // is generally called "bypassing".
 //
-// For the EX to FD case, it is simply a matter of patching the MA stage pipeline register where the FD stage
+// For the EX to FD case, it is simply a matter of patching the OF stage pipeline register where the FD stage
 // put the old value of the register file. We check the instruction for fields that fetch a general and
 // compare the register Id with the target register ID value of the current instruction in the EX stage. The
 // data we correct is for the instruction two instructions behind the instruction that is currently finishing
 // in the EX stage. In hardware you would have a path from the ALU output to the multiplexer before the input
 // to the FD pipeline stage register.
 //
-// For the MA stage, we patch the EX stage pipeline for the "A" and "B" input. Like the previous scenario,
+// For the OF stage, we patch the EX stage pipeline for the "A" and "B" input. Like the previous scenario,
 // this covers all the cases where the data is needed in the EX stage but of course not written back yet. All
-// the cases where the MA stage would have computed an address with wrong general register values are handled
+// the cases where the OF stage would have computed an address with wrong general register values are handled
 // by a pipeline stall in the FD stage.
 //
 // For the CBR conditional branch instruction, we need to evaluate the condition and then compare the result
@@ -303,7 +303,7 @@ bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessMode
 //
 // Some status bits must be bypassed in order for them to be available in the follow-on instructions. The
 // ADD, ADDC, SUB and SUBC instructions for example generate a carry bit. This bit needs to be available
-// in the follow-on computational instruction. In addition to the FD and MA state we also set our own
+// in the follow-on computational instruction. In addition to the FD and OF state we also set our own
 // pipeline processor state word accordingly.
 //
 // ??? what would we do about segment and control registers hazards, if at all ?
@@ -315,7 +315,7 @@ void ExecuteStage::process( ) {
     uint32_t            instr       = psInstr.get( );
     uint8_t             opCode      = getBitField( psInstr.get( ), 5, 6 );
    
-    MemoryAccessStage   *maStage    = core -> maStage;
+    OperandFetchStage   *ofStage    = core -> ofStage;
     FetchDecodeStage    *fdStage    = core -> fdStage;
    
     //--------------------------------------------------------------------------------------------------------
@@ -356,7 +356,7 @@ void ExecuteStage::process( ) {
                 
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpU );
                 fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
-                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                ofStage -> psPstate0.setBit( ST_CARRY, tmpC );
                 psPstate0.setBit( ST_CARRY, tmpC );
             }
             else {
@@ -381,7 +381,7 @@ void ExecuteStage::process( ) {
                     
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpS );
                 fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
-                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                ofStage -> psPstate0.setBit( ST_CARRY, tmpC );
                 psPstate0.setBit( ST_CARRY, tmpC );
             }
             
@@ -694,7 +694,7 @@ void ExecuteStage::process( ) {
                 
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpU );
                 fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
-                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                ofStage -> psPstate0.setBit( ST_CARRY, tmpC );
                 psPstate0.setBit( ST_CARRY, tmpC );
             }
             else {
@@ -719,7 +719,7 @@ void ExecuteStage::process( ) {
                 
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpS );
                 fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
-                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                ofStage -> psPstate0.setBit( ST_CARRY, tmpC );
                 psPstate0.setBit( ST_CARRY, tmpC );
             }
             
@@ -744,9 +744,9 @@ void ExecuteStage::process( ) {
     }
     
     //--------------------------------------------------------------------------------------------------------
-    // Bypass logic. We check the instruction currently in the FD or MA stage and "patch" the pipeline
-    // register in the MA and EX stage if needed. Again, an instruction that would depend on computed
-    // results in the MA stage, has been stalled already until we can reach it via a bypass.
+    // Bypass logic. We check the instruction currently in the FD or OF stage and "patch" the pipeline
+    // register in the OF and EX stage if needed. Again, an instruction that would depend on computed
+    // results in the OF stage, has been stalled already until we can reach it via a bypass.
     //
     //--------------------------------------------------------------------------------------------------------
     if ( opCodeTab[ opCode ].flags & REG_R_INSTR ) {
@@ -761,15 +761,15 @@ void ExecuteStage::process( ) {
         printf( "FD - ValA: %d\n", fdStage -> dependencyValA( regIdForValR ));
         printf( "FD - ValB: %d\n", fdStage -> dependencyValB( regIdForValR ));
         printf( "FD - ValX: %d\n", fdStage -> dependencyValX( regIdForValR ));
-        printf( "MA - ValA: %d\n", maStage -> dependencyValA( regIdForValR ));
-        printf( "MA - ValB: %d\n", maStage -> dependencyValB( regIdForValR ));
+        printf( "OF - ValA: %d\n", maStage -> dependencyValA( regIdForValR ));
+        printf( "OF - ValB: %d\n", maStage -> dependencyValB( regIdForValR ));
 #endif
         
-        if ( fdStage -> dependencyValA( regIdForValR )) maStage -> psValA.set( valR );
-        if ( fdStage -> dependencyValB( regIdForValR )) maStage -> psValB.set( valR );
-        if ( fdStage -> dependencyValX( regIdForValR )) maStage -> psValX.set( valR );
+        if ( fdStage -> dependencyValA( regIdForValR )) ofStage -> psValA.set( valR );
+        if ( fdStage -> dependencyValB( regIdForValR )) ofStage -> psValB.set( valR );
+        if ( fdStage -> dependencyValX( regIdForValR )) ofStage -> psValX.set( valR );
         
-        if ( maStage -> dependencyValA( regIdForValR )) psValA.set( valR );
-        if ( maStage -> dependencyValB( regIdForValR )) psValB.set( valR );
+        if ( ofStage -> dependencyValA( regIdForValR )) psValA.set( valR );
+        if ( ofStage -> dependencyValB( regIdForValR )) psValB.set( valR );
     }
 }

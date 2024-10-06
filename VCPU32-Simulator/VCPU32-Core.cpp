@@ -89,7 +89,7 @@ CpuCore::CpuCore( CpuCoreDesc *cfg ) {
     }
    
     fdStage = new FetchDecodeStage( this );
-    maStage = new MemoryAccessStage( this );
+    ofStage = new OperandFetchStage( this );
     exStage = new ExecuteStage( this );
     
     reset( );
@@ -134,7 +134,7 @@ void CpuCore::reset( ) {
     if ( uCacheL2 != nullptr )  uCacheL2 -> reset( );
     
     fdStage -> reset( );
-    maStage -> reset( );
+    ofStage -> reset( );
     exStage -> reset( );
     
     clearStats( );
@@ -166,7 +166,7 @@ void CpuCore::clockStep( uint32_t numOfSteps ) {
     while ( numOfSteps > 0 ) {
        
         fdStage     -> process( );
-        maStage     -> process( );
+        ofStage     -> process( );
         exStage     -> process( );
         
         handleTraps( );
@@ -185,7 +185,7 @@ void CpuCore::clockStep( uint32_t numOfSteps ) {
         for ( uint8_t i = 0; i < 32; i++ ) cReg[ i ].tick( );
         
         fdStage     -> tick( );
-        maStage     -> tick( );
+        ofStage     -> tick( );
         exStage     -> tick( );
         
         if ( iTlb != nullptr )      iTlb        -> tick( );
@@ -242,8 +242,8 @@ void CpuCore::handleTraps( ) {
         fdStage -> psPstate0.set( 0 ); // ??? also set all status bits to zero ?
         fdStage -> psPstate0.set( trapHandlerOfs );
         fdStage -> setStalled( false );
-        maStage -> psInstr.set( 0 );  // ??? what to really set ...
-        maStage -> setStalled ( false );
+        ofStage -> psInstr.set( 0 );  // ??? what to really set ...
+        ofStage -> setStalled ( false );
         exStage -> psInstr.set( 0 );  // ??? what to really set ...
         exStage -> setStalled( false );
     }
@@ -306,7 +306,7 @@ uint32_t CpuCore::getReg( RegClass regClass, uint8_t regNum ) {
         case RC_CTRL_REG_SET:   return( cReg[ regNum % MAX_CREGS ].get( ) );
             
         case RC_FD_PSTAGE:      return( fdStage -> getPipeLineReg( regNum ));
-        case RC_MA_PSTAGE:      return( maStage -> getPipeLineReg( regNum ));
+        case RC_OF_PSTAGE:      return( ofStage -> getPipeLineReg( regNum ));
         case RC_EX_PSTAGE:      return( exStage -> getPipeLineReg( regNum ));
             
         case RC_IC_L1_OBJ:      return( iCacheL1 -> getMemCtrlReg( regNum ));
@@ -337,7 +337,7 @@ void CpuCore::setReg( RegClass regClass, uint8_t regNum, uint32_t val ) {
         case RC_CTRL_REG_SET:   cReg[ regNum % MAX_CREGS ].load( val );     break;
         
         case RC_FD_PSTAGE:      fdStage -> setPipeLineReg( regNum, val );   break;
-        case RC_MA_PSTAGE:      maStage -> setPipeLineReg( regNum, val );   break;
+        case RC_OF_PSTAGE:      ofStage -> setPipeLineReg( regNum, val );   break;
         case RC_EX_PSTAGE:      exStage -> setPipeLineReg( regNum, val );   break;
             
         case RC_IC_L1_OBJ:      iCacheL1 -> setMemCtrlReg( regNum, val );   break;

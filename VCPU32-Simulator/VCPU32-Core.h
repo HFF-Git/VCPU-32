@@ -54,7 +54,7 @@ enum RegClass : uint32_t {
     RC_CTRL_REG_SET     = 3,
     RC_PROG_STATE       = 4,
     RC_FD_PSTAGE        = 5,
-    RC_MA_PSTAGE        = 6,
+    RC_OF_PSTAGE        = 6,
     RC_EX_PSTAGE        = 7,
     RC_IC_L1_OBJ        = 8,
     RC_DC_L1_OBJ        = 9,
@@ -641,7 +641,7 @@ private:
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The memory access stage first prepares the address from where to get the operand for the instruction. The
+// The operand fetch stage first prepares the address from where to get the operand for the instruction. The
 // instruction decode stage stored the A, B and X values in the pipeline register of this stage, as well as
 // the instruction address and instruction.
 //
@@ -656,11 +656,11 @@ private:
 // For the TLB and Cache related instructions, this stage is also the starting point of operation.
 //
 //------------------------------------------------------------------------------------------------------------
-struct MemoryAccessStage {
+struct OperandFetchStage {
     
 public:
     
-    MemoryAccessStage( struct CpuCore *core );
+    OperandFetchStage( struct CpuCore *core );
     
     void            reset( );
     void            tick( );
@@ -818,11 +818,11 @@ private:
     //
     //--------------------------------------------------------------------------------------------------------
     friend struct   FetchDecodeStage;
-    friend struct   MemoryAccessStage;
+    friend struct   OperandFetchStage;
     friend struct   ExecuteStage;
     
     struct          FetchDecodeStage    *fdStage    = nullptr;
-    struct          MemoryAccessStage   *maStage    = nullptr;
+    struct          OperandFetchStage   *ofStage    = nullptr;
     struct          ExecuteStage        *exStage    = nullptr;
 };
 

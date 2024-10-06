@@ -146,7 +146,7 @@ bool checkAlignment( uint32_t instr, uint32_t adr ) {
 // The address generation and memory access stage object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-MemoryAccessStage::MemoryAccessStage( CpuCore *core ) {
+OperandFetchStage::OperandFetchStage( CpuCore *core ) {
     
     this -> core = core;
 }
@@ -156,7 +156,7 @@ MemoryAccessStage::MemoryAccessStage( CpuCore *core ) {
 // there is no stall.
 //
 //------------------------------------------------------------------------------------------------------------
-void MemoryAccessStage::reset( )  {
+void OperandFetchStage::reset( )  {
     
     stalled = false;
     psPstate0.reset( );
@@ -167,7 +167,7 @@ void MemoryAccessStage::reset( )  {
     psValX.reset( );
 }
 
-void MemoryAccessStage::tick( ) {
+void OperandFetchStage::tick( ) {
     
     if ( ! stalled ) {
         
@@ -186,7 +186,7 @@ void MemoryAccessStage::tick( ) {
 // we also have to make sure that the FD stage is also stalled. The same is true for resuming the pipeline.
 //
 //------------------------------------------------------------------------------------------------------------
-void MemoryAccessStage::stallPipeLine( ) {
+void OperandFetchStage::stallPipeLine( ) {
     
     setStalled( true );
     core -> fdStage -> setStalled( true );
@@ -199,12 +199,12 @@ void MemoryAccessStage::stallPipeLine( ) {
     core -> exStage -> psValX.set( 0 );
 }
 
-bool MemoryAccessStage::isStalled( ) {
+bool OperandFetchStage::isStalled( ) {
     
     return( stalled );
 }
 
-void MemoryAccessStage::setStalled( bool arg ) {
+void OperandFetchStage::setStalled( bool arg ) {
     
     stalled = arg;
 }
@@ -234,8 +234,15 @@ void MemoryAccessStage::setStalled( bool arg ) {
 // just to flush the fetched instruction. If a cache line hold four words, chances are 25% that will hit
 // this scenario. Even more ugly.
 //
+// Yet amother approach is to stall in the FD stage itself. Assume that we csn determine in the FD stage
+// that we will branch for sure and need to stall for one cycle until the OF stage has teh new target ready.
+// This would thenmean that the branch instruction is simply processed again in the FD stage, no harm done.
+// We would then perhaps need not to abort the cache for this reason, perhaps for other reasons.
+// To be tried out ...
+//
+//
 //------------------------------------------------------------------------------------------------------------
-void MemoryAccessStage::flushPipeLine( ) {
+void OperandFetchStage::flushPipeLine( ) {
     
     psInstr.set( NOP_INSTR );
     psValA.set( 0 );
@@ -266,7 +273,7 @@ void MemoryAccessStage::flushPipeLine( ) {
 // encountering the trap simply flush the pipeline.
 //
 //------------------------------------------------------------------------------------------------------------
-void MemoryAccessStage::setupTrapData( uint32_t trapId,
+void OperandFetchStage::setupTrapData( uint32_t trapId,
                                       uint32_t psw0,
                                       uint32_t psw1,
                                       uint32_t p1,
@@ -289,7 +296,7 @@ void MemoryAccessStage::setupTrapData( uint32_t trapId,
 // definition no dependency.
 //
 //------------------------------------------------------------------------------------------------------------
-bool MemoryAccessStage::dependencyValA( uint32_t regId ) {
+bool OperandFetchStage::dependencyValA( uint32_t regId ) {
     
     if ( regId == 0 ) return( false );
   
@@ -334,7 +341,7 @@ bool MemoryAccessStage::dependencyValA( uint32_t regId ) {
 // ??? what about segment and control registers ?
 //
 //------------------------------------------------------------------------------------------------------------
-bool MemoryAccessStage::dependencyValB( uint32_t regId ) {
+bool OperandFetchStage::dependencyValB( uint32_t regId ) {
     
     if ( regId == 0 ) return( false );
     
@@ -366,7 +373,7 @@ bool MemoryAccessStage::dependencyValB( uint32_t regId ) {
 //
 // ??? do we have this case that "X" has a dependency to be checked in the MA stage ?
 //------------------------------------------------------------------------------------------------------------
-bool MemoryAccessStage::dependencyValX( uint32_t regId ) {
+bool OperandFetchStage::dependencyValX( uint32_t regId ) {
     
     if ( regId == 0 ) return( false );
    
@@ -391,7 +398,7 @@ bool MemoryAccessStage::dependencyValX( uint32_t regId ) {
 // a carry bit. If the follow-on instruction is an ADC, the carry bit is not set yet and needs to be bypassed.
 //
 //------------------------------------------------------------------------------------------------------------
-bool MemoryAccessStage::dependencyValST( ) {
+bool OperandFetchStage::dependencyValST( ) {
     
     uint32_t instr = psInstr.get( );
     
@@ -407,7 +414,7 @@ bool MemoryAccessStage::dependencyValST( ) {
 // Utility function to set and get the the pipeline register data.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t MemoryAccessStage::getPipeLineReg( uint8_t pReg ) {
+uint32_t OperandFetchStage::getPipeLineReg( uint8_t pReg ) {
     
     switch ( pReg ) {
             
@@ -422,7 +429,7 @@ uint32_t MemoryAccessStage::getPipeLineReg( uint8_t pReg ) {
     }
 }
 
-void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
+void OperandFetchStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
     
     switch ( pReg ) {
             
@@ -441,7 +448,7 @@ void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 // value of true when one field matches.
 //
 //------------------------------------------------------------------------------------------------------------
-bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
+bool OperandFetchStage::checkProtectId( uint16_t segId ) {
     
     return((( segId  == core -> cReg[ CR_SEG_ID_0_1 ].getBitField( 15, 16 )) ||
             ( segId  == core -> cReg[ CR_SEG_ID_0_1 ].getBitField( 31, 16 )) ||
@@ -494,7 +501,7 @@ bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
 //
 // Note: this is a rather long routine. Perhaps we should split this into smaller portions.
 //------------------------------------------------------------------------------------------------------------
-void MemoryAccessStage::process( ) {
+void OperandFetchStage::process( ) {
     
     uint32_t            instr       = psInstr.get( );
     uint8_t             opCode      = getBitField( instr, 5, 6 );

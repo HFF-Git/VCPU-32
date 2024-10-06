@@ -103,7 +103,7 @@ enum TokId : uint16_t {
     FMT_SET                 = 903,  REG_SET                 = 904,  REG_SET_ALL             = 905,
     
     GR_SET                  = 910,  SR_SET                  = 911,  CR_SET                  = 912,
-    PS_SET                  = 913,  FD_SET                  = 914,  MA_SET                  = 915,
+    PS_SET                  = 913,  FD_SET                  = 914,  OF_SET                  = 915,
     PR_SET                  = 916,
     
     IC_L1_SET               = 917,  DC_L1_SET               = 918,  UC_L2_SET               = 919,

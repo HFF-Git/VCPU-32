@@ -228,6 +228,7 @@ July, 2024
     - [Nullification](#nullification)
     - [The case for register indexed mode](#the-case-for-register-indexed-mode)
     - [Instruction bundling](#instruction-bundling)
+    - [A larger physical memory space](#a-larger-physical-memory-space)
   - [References](#references)
 
 
@@ -1755,15 +1756,15 @@ Performs a bit field extract from a general register and stores the result in th
 #### Format
 
 ```
-   EXTR [.<opt>] r, b, pos ,len
-   EXTR [.A <opt>] r, b, len
+    EXTR [.<opt>] r, b, pos ,len
+    EXTR [.A <opt>] r, b, len
 ```
 
 ```
-    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : EXTR    ( 0x05 ): r         :S :A :0             : len          :0 : pos          : b         :
-   :-----------------:-----------------------------------------------------------------------------:
+     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+    : EXTR    ( 0x05 ): r         :S :A :0             : len          :0 : pos          : b         :
+    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1773,13 +1774,13 @@ The instruction performs a bit field extract specified by the position and lengt
 #### Operation
 
 ```
-   if ( instr.[A] ) tmpPos <- SHAMT.[27..31];
-   else             tmpPos <- instr.[pos];
+    if ( instr.[A] ) tmpPos <- SHAMT.[27..31];
+    else             tmpPos <- instr.[pos];
 
-   GR[instr.[r]] <= extract( GR[instr.[b]], tmpPos, instr.[len] );
+    GR[instr.[r]] <= extract( GR[instr.[b]], tmpPos, instr.[len] );
 
-   if ( instr.[S] ) signExtend( GR[instr.[r]], instr.[len] );
-   else             zeroExtend( GR[instr.[r]], instr.[len] );
+    if ( instr.[S] ) signExtend( GR[instr.[r]], instr.[len] );
+    else             zeroExtend( GR[instr.[r]], instr.[len] );
 ```
 
 #### Exceptions
@@ -1866,14 +1867,14 @@ Inserts a translation into the instruction or data TLB.
 #### Format
 
 ```
-   ITLB [.<opt>] r, (a, b)
+    ITLB [.<opt>] r, (a, b)
 ```
 
 ```
-    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : ITLB    ( 0x3B ): r         :T                                        : a         : b         :
-   :-----------------:-----------------------------------------------------------------------------:
+     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+    : ITLB    ( 0x3B ): r         :T                                        : a         : b         :
+    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1885,35 +1886,35 @@ The "T" bit specifies whether the instruction or the data TLB is addressed. A va
 #### Argument Word Layout
 
 ```
-    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   :V :T :D :B :P : 0      : AR        : PPN                                                       : 
-   :-----------------------------------------------------------------------------------------------:
+     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+    :V :T :D :B :P : 0      : AR        : PPN                                                       : 
+    :-----------------------------------------------------------------------------------------------:
 ```
 
 #### Operation
 
 ```
-   if ( ! PSW.[P] ) privilegedOperationTrap( );
+    if ( ! PSW.[P] ) privilegedOperationTrap( );
 
-   if ( instr.[T] ) { 
+    if ( instr.[T] ) { 
       
-      if ( ! searchDataTlbEntry( SR[a], GR[instr.[b]], &entry )) 
-         allocateDataTlbEntry( SR[a], GR[instr.[b]], &entry );
-   }
-   else {
+        if ( ! searchDataTlbEntry( SR[a], GR[instr.[b]], &entry )) 
+            allocateDataTlbEntry( SR[a], GR[instr.[b]], &entry );
+    }
+    else {
 
-      if ( ! searchInstructionTlbEntry( SR[a], GR[instr.[b]], &entry )) 
-         allocateInstructionTlbEntry( SR[a], GR[instr.[b]], &entry );
-   }
+        if ( ! searchInstructionTlbEntry( SR[a], GR[instr.[b]], &entry )) 
+            allocateInstructionTlbEntry( SR[a], GR[instr.[b]], &entry );
+    }
 
-   entry.[T]      <- GR[instr.[r]].[T];
-   entry.[D]      <- GR[instr.[r]].[D];
-   entry.[B]      <- GR[instr.[r]].[B];
-   entry.[P]      <- GR[instr.[r]].[P];
-   entry.AR       <- GR[instr.[r]].AR;
-   entry.[PPN]    <- GR[instr.[r]].[PPN];
-   entry.[V]      <- 1; 
+    entry.[T]      <- GR[instr.[r]].[T];
+    entry.[D]      <- GR[instr.[r]].[D];
+    entry.[B]      <- GR[instr.[r]].[B];
+    entry.[P]      <- GR[instr.[r]].[P];
+    entry.AR       <- GR[instr.[r]].AR;
+    entry.[PPN]    <- GR[instr.[r]].[PPN];
+    entry.[V]      <- 1; 
 ```
 
 #### Exceptions
@@ -1938,17 +1939,17 @@ Loads a memory value into a general register using a logical address.
 #### Format
 
 ```
-   LDw [.M] r, ofs([s,] b)          w = B|H|W
-   LDw [.M] r, a([s,] b)            w = B|H|W
+    LDw [.M] r, ofs([s,] b)          w = B|H|W
+    LDw [.M] r, a([s,] b)            w = B|H|W
 ```
 
 ```
-    0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
-   :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-   : LDw     ( 0x30 ): r         :0 :M : seg : dw  : ofs                               : b         :
-   :-----------------:-----------------------------------------------------------------------------:
-   : LDw     ( 0x30 ): r         :1 :M : seg : dw  : 0                      : a        : b         :
-   :-----------------:-----------------------------------------------------------------------------:
+     0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+    :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
+    : LDw     ( 0x30 ): r         :0 :M : seg : dw  : ofs                               : b         :
+    :-----------------:-----------------------------------------------------------------------------:
+    : LDw     ( 0x30 ): r         :1 :M : seg : dw  : 0                      : a        : b         :
+    :-----------------:-----------------------------------------------------------------------------:
 ```
 
 #### Description
@@ -1962,37 +1963,37 @@ The "M" bit indicates base register increment. If set, a negative value in the "
 #### Operation
 
 ```
-   if ( instr.[10] ) {
+    if ( instr.[10] ) {
 
-      if ( instr.[M] ) {
+        if ( instr.[M] ) {
 
-         if ( GR[instr.[a]] < 0 ) tmpOfs = GR[instr.[b]] + GR[instr.[a]];
-         else                     tmpOfs = GR[instr.[b]];
-      }
-      else tmpOfs = GR[instr.[b]] + GR[instr.[a]];
-   }
-   else {
+            if ( GR[instr.[a]] < 0 ) tmpOfs = GR[instr.[b]] + GR[instr.[a]];
+            else                     tmpOfs = GR[instr.[b]];
+        }
+        else tmpOfs = GR[instr.[b]] + GR[instr.[a]];
+    }
+    else {
 
-      if ( instr.[M] ) {
+        if ( instr.[M] ) {
 
-         if ( lowSignExtend( ofs, 12 ) < 0 ) tmpOfs = GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
-         else                                tmpOfs = GR[instr.[b]];
-      }
-      else tmpOfs = GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
-   }
+            if ( lowSignExtend( ofs, 12 ) < 0 ) tmpOfs = GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
+            else                                tmpOfs = GR[instr.[b]];
+        }
+        else tmpOfs = GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
+    }
 
-   len = dataLen( instr.[seg] );
+    len = dataLen( instr.[seg] );
 
-   if ( instr.[seg] == 0 ) seg = segSelect( tmpOfs );
-   else                    seg = instr.[seg];
+    if ( instr.[seg] == 0 ) seg = segSelect( tmpOfs );
+    else                    seg = instr.[seg];
    
-   GR[instr.[r]] <- zeroExtend( memLoad( seg, tmpOfs, len ), len );
+    GR[instr.[r]] <- zeroExtend( memLoad( seg, tmpOfs, len ), len );
 
-   if ( instr.[10] ) {
+    if ( instr.[10] ) {
    
-      if ( instr.[10] ) GR[instr.[b]] <- GR[instr.[b]] + GR[instr.[a]];
-      else              GR[instr.[b]] <- GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
-   }
+        if ( instr.[10] ) GR[instr.[b]] <- GR[instr.[b]] + GR[instr.[a]];
+        else              GR[instr.[b]] <- GR[instr.[b]] + lowSignExtend( instr.[ofs], 12 );
+    }
 ```
 
 #### Exceptions
@@ -4518,6 +4519,10 @@ To be investigated. Address adjustments as part of an register indexed access is
 Superscalar processors attempt to execute more than one instruction in one cycle. In a superscalar design the hardware detects the potential hazards of the instructions in flight. When the instructions can furthermore executes in an out of order model, management of the dependencies becomes even more complex and require a lot of hardware estate.
 
 VLIW architectures group instructions in a bundle fetched by the instruction fetch stage, complemented with a template field that will tell the hardware about the type of instructions in the bundle. It is the responsibility of the compiler to ensure that the instructions in a bundle will not conflict. Although an assembler could also work with instruction bundles, considering all dependencies and potential conflicts are a hard an cumbersome task for a human assembler programmer.
+
+### A larger physical memory space
+
+The description of the TLB fields and the ITLB instruction already allow for a 16 GByte physical address space with the caveat that the LDA / STA instruction only reaches the first 4Gbytes. Concpetually, this scheme of a 4Gbyte lower physical memory and a large upper physical memory space can be enlarged even further. However, the ITLB instruction in its current form will not be able to accomodate the larger physical page numer. Such a system would simply use the DIAG instruction with appropriate arguments for this purposes. 
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
