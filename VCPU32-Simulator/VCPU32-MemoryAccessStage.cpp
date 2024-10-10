@@ -234,8 +234,8 @@ void OperandFetchStage::setStalled( bool arg ) {
 // just to flush the fetched instruction. If a cache line hold four words, chances are 25% that will hit
 // this scenario. Even more ugly.
 //
-// Yet amother approach is to stall in the FD stage itself. Assume that we csn determine in the FD stage
-// that we will branch for sure and need to stall for one cycle until the OF stage has teh new target ready.
+// Yet another approach is to stall in the FD stage itself. Assume that we can determine in the FD stage
+// that we will branch for sure and need to stall for one cycle until the OF stage has the new target ready.
 // This would thenmean that the branch instruction is simply processed again in the FD stage, no harm done.
 // We would then perhaps need not to abort the cache for this reason, perhaps for other reasons.
 // To be tried out ...

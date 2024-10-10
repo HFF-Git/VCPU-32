@@ -837,8 +837,10 @@ bool parseExpr( Expr *rExpr ) {
         nextToken( );
         rStat = parseTerm( rExpr );
         
-        if ( ! ( rExpr -> typ == TT_NUM ))
-            parserError((char *) "Expected a numeric constant" );
+        if ( ! ( rExpr -> typ == TT_NUM )) {
+            
+            return( parserError((char *) "Expected a numeric constant" ));
+        }
     }
     else if ( currentToken.typ == TT_MINUS ) {
         
@@ -846,7 +848,7 @@ bool parseExpr( Expr *rExpr ) {
         rStat = parseTerm( rExpr );
         
         if ( rExpr -> typ == ET_NUM ) rExpr -> val1 = - rExpr -> val1;
-        else parserError((char *) "Expected a numeric constant" );
+        else return( parserError((char *) "Expected a numeric constant" ));
     }
     else rStat = parseTerm( rExpr );
     
@@ -894,8 +896,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
     
     if ( strlen( optBuf ) == 0 ) {
         
-        parserError((char *) "Expected the option qualifier(s)" );
-        return( false );
+        return( parserError((char *) "Expected the option qualifier(s)" ));
     }
     
     switch( getBitField( *instr, 5, 6 )) {

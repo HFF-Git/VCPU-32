@@ -133,6 +133,7 @@ void FetchDecodeStage::tick( ) {
 // Pipeline stall and flush. "stallPipeline" stops ourselves from being updated and pass on a NOP to the next
 // stage so that no erroneous things will be done.
 //
+// ??? for branches: do we just stall but let the original instruction flow forward ?
 //------------------------------------------------------------------------------------------------------------
 void FetchDecodeStage::stallPipeLine( ) {
     
@@ -702,6 +703,10 @@ void FetchDecodeStage::process( ) {
             
         } break;
             
+        
+        // ??? for branches that resolve in the OF stage, we need to stall ...
+            
+        
         case OP_BE: {
             
             ofStage -> psValA.set( 0 );

@@ -37,7 +37,7 @@
 // function with a void return.
 //
 //      <command>   ->  <cmdId> [ <argList> ]
-//      <function>  -> <funcId> “(“ [ <argList> ] ")"
+//      <function>  ->  <funcId> “(“ [ <argList> ] ")"
 //      <argList>   ->  <expr> { <expr> }
 //
 // Expression have a type, which are NUM, ADR, STR, SREG, GREG and CREG.
