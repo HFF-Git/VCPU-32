@@ -11,68 +11,74 @@
 <style>
 
    div {
-      text-align: justify;
-      orphans:3;
-      widow:2;
+        text-align: justify;
+        orphans:3;
+        widow:2;
 	}
-   table {
-      width: 90%;
-      padding: 12px;
-      break-inside: auto;
+    table {
+        width: 90%;
+        padding: 12px;
+        break-inside: auto;
     }
-   img {
+    img {
     	display: block;
     	margin-left: auto;
      	margin-right: auto;
-	   max-width:90%;
+	    max-width:90%;
     	height: auto;
     }
-   blockquote {
-      break-inside: avoid;
-      orphans:3;
-      widow:2;
+    blockquote {
+        break-inside: avoid;
+        orphans:3;
+        widow:2;
     }
-   code {
-      break-inside: avoid;
-      font-size: 12px;
-      line-height: 17px;
-      max-width:90%;
+    code {
+        break-inside: avoid;
+        font-size: 12px;
+        line-height: 17px;
+        max-width:90%;
     	height: auto;
-      orphans:3;
-      widows:2;
-   }
+        orphans:3;
+        widows:2;
+    }
    @media print {
-      code, blockquote, figure {
-         break-inside: avoid;
-         max-width:90%;
-    	   height: auto;
-      }
-      table {
-         break-inside: auto;
-      }
-      html, body {
-         text-align: justify;
-         height: auto;
-         font-size: 14pt;
-         orphans:3;
-         widows:3; 
-      }
-      h1, h2, h3, h4, h5, h6 { 
-         page-break-after:avoid; 
-         page-break-inside:avoid;
-         orphans:3;
-         widows:2; 
-      }
+        code, blockquote, figure {
+            page-break-inside: avoid;
+            max-width:90%;
+    	    height: auto;
+        }
+        table {
+            page-break-inside: auto;
+        }
+        figure {
+            page-break-inside: avoid;
+        }
+        h1, h2 {
+            break-before: always;
+        }
+        h3, h4, h5, h6 { 
+            page-break-after: avoid; 
+            page-break-inside: avoid;
+            orphans:3;
+            widows:2; 
+        }
+        html, body {
+            text-align: justify;
+            height: auto;
+            font-size: 14pt;
+            orphans:3;
+            widows:3; 
+        }
    }
    @page { 
-      size:21.0cm 29.7cm;
-      margin-top:1.7cm; 
-      margin-bottom:1.7cm; 
-      margin-left:1.7cm; 
-      margin-right:1.7cm 
+        size:21.0cm 29.7cm;
+        margin-top:1.7cm; 
+        margin-bottom:1.7cm; 
+        margin-left:1.7cm; 
+        margin-right:1.7cm 
    }
    .hljs {
-      break-inside: avoid;
+        break-inside: avoid;
    }
 
 </style>
@@ -4522,7 +4528,7 @@ VLIW architectures group instructions in a bundle fetched by the instruction fet
 
 ### A larger physical memory space
 
-The description of the TLB fields and the ITLB instruction already allow for a 16 GByte physical address space with the caveat that the LDA / STA instruction only reaches the first 4Gbytes. Concpetually, this scheme of a 4Gbyte lower physical memory and a large upper physical memory space can be enlarged even further. However, the ITLB instruction in its current form will not be able to accomodate the larger physical page numer. Such a system would simply use the DIAG instruction with appropriate arguments for this purposes. 
+The description of the TLB fields and the ITLB instruction already allow for a 16 GigaByte physical address space with the caveat that the LDA / STA instruction only reaches the first 4 Giga-bytes. Conceptually, this scheme of a 4 Giga-byte lower physical memory and a large upper physical memory space can be enlarged even further. However, the ITLB instruction in its current form will not be able to accommodate the larger physical page number. Such a system would simply use the DIAG instruction with appropriate arguments for this purposes. 
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->

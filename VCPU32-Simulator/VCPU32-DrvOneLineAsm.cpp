@@ -53,6 +53,7 @@ enum TokType : uint8_t {
     TT_NUM          = 5,
     TT_IDENT        = 6,
     TT_OPT          = 7,
+    TT_STR          = 8,
     
     TT_COMMA        = 10,
     TT_PERIOD       = 11,
@@ -584,6 +585,38 @@ void parseIdent( ) {
         currentToken.val = 0;
     }
     else currentToken = tokNameTab[ currentTokenIndex ];
+}
+
+// ??? a string type parser, not needed here... just parked for now.
+void parseString( ) {
+
+    char stringBuf[ TOK_INPUT_LINE_SIZE ] = "";
+
+    nextChar( );
+          
+    while (( currentChar != EOS_CHAR ) && ( currentChar != '"' )) {
+
+        if ( currentChar == '\\' ) {
+
+            nextChar( );
+            if ( currentChar != EOS_CHAR ) {
+
+                if      ( currentChar == 'n' )  strcat( stringBuf, (char *) "\n" );
+                else if ( currentChar == 't' )  strcat( stringBuf, (char *) "\t" );
+                else if ( currentChar == '\\' ) strcat( stringBuf, (char *) "\\" );
+                else                            strcat( stringBuf, &currentChar );
+            }
+            else parserError((char *) "Expected a \" for the string" );
+        }
+        else strcat( stringBuf, &currentChar );
+
+        nextChar( ); 
+    }   
+
+    nextChar( );
+
+    currentToken.typ   = TT_STR;
+    currentToken.val   = 0;
 }
 
 //------------------------------------------------------------------------------------------------------------
