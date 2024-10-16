@@ -457,10 +457,23 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         } break;
             
-        case OP_EXTR:
-        case OP_DEP: {
+        case OP_EXTR: {
             
             fprintf( stdout, ", r%d", getBitField( instr, 31, 4 ));
+            
+            if ( ! getBit( instr, 11 )) {
+                
+                fprintf( stdout, ", %d", getBitField( instr, 27, 5 ));
+                fprintf( stdout, ", %d", getBitField( instr, 21, 5 ));
+                
+            } else fprintf( stdout, ", %d", getBitField( instr, 21, 5 ));
+            
+        } break;
+            
+        case OP_DEP: {
+            
+            if ( getBit( instr, 12 ))   fprintf( stdout, ", %d", getBitField( instr, 31, 4 ));
+            else                        fprintf( stdout, ", r%d", getBitField( instr, 31, 4 ));
             
             if ( ! getBit( instr, 11 )) {
                 

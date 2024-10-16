@@ -410,6 +410,16 @@ bool isInRangeForBitFieldU( uint32_t val, uint8_t bitLen ) {
     return( val <= max );
 }
 
+int bitsNeededForU( uint32_t arg ) {
+    
+    if      ( arg < 2  ) return( 1 );
+    else if ( arg < 4  ) return( 2 );
+    else if ( arg < 8  ) return( 3 );
+    else if ( arg < 16 ) return( 4 );
+    else if ( arg < 32 ) return( 5 );
+    else return( 0 );
+}
+
 void upshiftStr( char *str ) {
     
     size_t len = strlen( str );
@@ -1327,7 +1337,7 @@ bool parseInstrLSID( uint32_t *instr, uint32_t flags ) {
 //
 //      DEP [ ".“ <opt> ]       <targetReg> "," <sourceReg> "," <pos> "," <len"
 //      DEP [ "." "A" <opt> ]   <targetReg> "," <sourceReg> ", <len>"
-//      DEP [ "." "I" <opt> ]   <targetReg> "," <pos>", <val>
+//      DEP [ "." "I" <opt> ]   <targetReg> "," <val>, <pos>
 //      DEP [ "." "AI" <opt> ]  <targetReg> "," <val>
 //
 //------------------------------------------------------------------------------------------------------------
@@ -1343,33 +1353,10 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
     if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a Comma" ));
     
-    
-    // ???? fix syntax for suporting "I" option....
-    
-    
     if ( currentToken.typ == TT_GREG ) {
         
         setBitField( instr, 31, 4, currentToken.val );
         nextToken( );
-    }
-    else return( parserError((char *) "Expected a general register" ));
-    
-    if ( currentToken.typ == TT_COMMA ) nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
-    
-    if ( currentToken.typ == TT_NUM ) {
-        
-        if ( isInRangeForBitFieldU( currentToken.val, 5 )) {
-            
-            if ( getBit( *instr, 11 ))  setBitField( instr, 21, 5, currentToken.val );
-            else                        setBitField( instr, 27, 5, currentToken.val );
-            nextToken( );
-        }
-        else return( parserError((char *) "Immediate value out of range" ));
-    }
-    else return( parserError((char *) "Expected a number" ));
-    
-    if ( ! getBit( *instr, 11 )) {
         
         if ( currentToken.typ == TT_COMMA ) nextToken( );
         else return( parserError((char *) "Expected a Comma" ));
@@ -1378,13 +1365,61 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
             
             if ( isInRangeForBitFieldU( currentToken.val, 5 )) {
                 
-                setBitField( instr, 21, 5, currentToken.val );
+                if ( getBit( *instr, 11 ))  setBitField( instr, 21, 5, currentToken.val );
+                else                        setBitField( instr, 27, 5, currentToken.val );
                 nextToken( );
             }
             else return( parserError((char *) "Immediate value out of range" ));
         }
         else return( parserError((char *) "Expected a number" ));
+        
+        if ( ! getBit( *instr, 11 )) {
+            
+            if ( currentToken.typ == TT_COMMA ) nextToken( );
+            else return( parserError((char *) "Expected a Comma" ));
+            
+            if ( currentToken.typ == TT_NUM ) {
+                
+                if ( isInRangeForBitFieldU( currentToken.val, 5 )) {
+                    
+                    setBitField( instr, 21, 5, currentToken.val );
+                    nextToken( );
+                }
+                else return( parserError((char *) "Immediate value out of range" ));
+            }
+            else return( parserError((char *) "Expected a number" ));
+        }
     }
+    else if ( currentToken.typ == TT_NUM ) {
+        
+        if ( getBit( *instr, 12 )) {
+            
+            if ( getBit( *instr, 11 )) {
+               
+                if ( isInRangeForBitFieldU( currentToken.val, 4 )) setBitField( instr, 31, 4, currentToken.val );
+                else return( parserError((char *) "Immediate value out of range" ));
+               
+                setBitField( instr, 21, 4, bitsNeededForU( currentToken.val ));
+                nextToken( );
+            }
+            else {
+                
+                if ( isInRangeForBitFieldU( currentToken.val, 4 )) setBitField( instr, 31, 4, currentToken.val );
+                else return( parserError((char *) "Immediate value out of range" ));
+                
+                nextToken( );
+                if ( currentToken.typ == TT_COMMA ) nextToken( );
+                else return( parserError((char *) "Expected a Comma" ));
+                  
+                if ( isInRangeForBitFieldU( currentToken.val, 5 )) setBitField( instr, 27, 5, currentToken.val );
+                else return( parserError((char *) "Pos value out of range" ));
+                
+                setBitField( instr, 21, 4, bitsNeededForU( currentToken.val ));
+                nextToken( );
+            }
+        }
+    }
+    else return( parserError((char *) "Expected a general register or a numeric value" ));
     
     return( checkEOS( ));
 }

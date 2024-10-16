@@ -1575,6 +1575,8 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 ```
    DEP [.<opt>] r, b, pos, len
    DEP [.A <opt>] r, b, len
+   DEP [.I <opt>] r, val, pos
+   DEP [.IA <opt>] r, val
 ```
 
 ```
@@ -1586,7 +1588,7 @@ Performs a bit field deposit of the value extracted from a bit field in reg "B" 
 
 #### Description
 
-The instruction deposits the bit field of length "len" in general register "b" into the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. The "len" field specifies the bit size if the field to deposit. The "Z" bit clears the target register "r" before storing the bit field, the "I" bit specifies that the instruction bits 28..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value.
+The instruction deposits the bit field of length "len" in general register "b" into the general register "r" at the specified position. The "pos" field specifies the rightmost bit for the bit field to deposit. The "len" field specifies the bit size if the field to deposit. The "Z" bit clears the target register "r" before storing the bit field. The "I" bit specifies that the instruction bits 28..31 contain an immediate value instead of a register. If the "A" bit is set, the shift amount control register is used for obtaining the position value. Note that the ".I" option will not specify the length in the assembly syntax. The number of bits needed to deposit the immediate value is set transparently.
 
 #### Operation
 
@@ -4189,6 +4191,8 @@ This appendix lists all instructions by instruction group.
    : SHLA    ( 0x08 ): r         :I :L :O : 0                  : sa  : 0   : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
    : CMR     ( 0x09 ): r         :cond       : 0                           : a         : b         : 
+   :-----------------:-----------------------------------------------------------------------------:
+   : DS      ( 0x0c ): r         : 0                                       : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
 ```
 

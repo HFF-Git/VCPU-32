@@ -212,7 +212,7 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
 //
 // So far, the error never returned...
 //-----------------------------------------------------------------------------------------------------------
-template<typename... Args> int winPrintf( FILE *stream, const char *fmt, Args... args) {
+template<typename... Args> int winPrintf( FILE *stream, char *fmt, Args... args) {
     
     static char buf[ 256 ];
     
@@ -255,28 +255,28 @@ template<typename... Args> int winPrintf( FILE *stream, const char *fmt, Args...
 //------------------------------------------------------------------------------------------------------------
 void clearScreen( ) {
     
-    winPrintf( stdout, "\x1b[2J" );
-    winPrintf( stdout, "\x1b[3J" );
+    winPrintf( stdout, (char *) "\x1b[2J" );
+    winPrintf( stdout, (char *) "\x1b[3J" );
 }
 
 void setAbsCursor( int row, int col ) {
     
-    winPrintf( stdout, "\x1b[%d;%dH", row, col );
+    winPrintf( stdout, (char *) "\x1b[%d;%dH", row, col );
 }
 
 void setWindowSize( int row, int col ) {
     
-    winPrintf( stdout, "\x1b[8;%d;%dt", row, col );
+    winPrintf( stdout, (char *) "\x1b[8;%d;%dt", row, col );
 }
 
 void setScrollArea( int start, int end ) {
     
-    winPrintf( stdout, "\x1b[%d;%dr", start, end );
+    winPrintf( stdout, (char *) "\x1b[%d;%dr", start, end );
 }
 
 void clearScrollArea( ) {
     
-    winPrintf( stdout, "\x1b[r" );
+    winPrintf( stdout, (char *) "\x1b[r" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -289,25 +289,25 @@ void setFieldAtributes( uint32_t fmtDesc ) {
     
     if ( fmtDesc != 0 ) {
         
-        winPrintf( stdout, "\x1b[0m" );
-        if ( fmtDesc & FMT_INVERSE )    winPrintf( stdout, "\x1b[7m" );
-        if ( fmtDesc & FMT_BLINK )      winPrintf( stdout, "\x1b[5m" );
-        if ( fmtDesc & FMT_BOLD )       winPrintf( stdout, "\x1b[1m" );
+        winPrintf( stdout, (char *) "\x1b[0m" );
+        if ( fmtDesc & FMT_INVERSE )    winPrintf( stdout, (char *) "\x1b[7m" );
+        if ( fmtDesc & FMT_BLINK )      winPrintf( stdout, (char *) "\x1b[5m" );
+        if ( fmtDesc & FMT_BOLD )       winPrintf( stdout, (char *) "\x1b[1m" );
         
         switch ( fmtDesc & 0xF ) {
                 
-            case 1:     winPrintf( stdout, "\x1b[41m"); break;
-            case 2:     winPrintf( stdout, "\x1b[42m"); break;
-            case 3:     winPrintf( stdout, "\x1b[43m"); break;
-            default:    winPrintf( stdout, "\x1b[49m");
+            case 1:     winPrintf( stdout, (char *) "\x1b[41m"); break;
+            case 2:     winPrintf( stdout, (char *) "\x1b[42m"); break;
+            case 3:     winPrintf( stdout, (char *) "\x1b[43m"); break;
+            default:    winPrintf( stdout, (char *) "\x1b[49m");
         }
         
         switch (( fmtDesc >> 4 ) & 0xF ) {
                 
-            case 1:     winPrintf( stdout, "\x1b[31m"); break;
-            case 2:     winPrintf( stdout, "\x1b[32m"); break;
-            case 3:     winPrintf( stdout, "\x1b[33m"); break;
-            default:    winPrintf( stdout, "\x1b[39m");
+            case 1:     winPrintf( stdout, (char *) "\x1b[31m"); break;
+            case 2:     winPrintf( stdout, (char *) "\x1b[32m"); break;
+            case 3:     winPrintf( stdout, (char *) "\x1b[33m"); break;
+            default:    winPrintf( stdout, (char *) "\x1b[39m");
         }
     }
 }
@@ -342,50 +342,50 @@ int printWord( uint32_t val, TokId radix = TOK_HEX, uint32_t fmtDesc = FMT_DEF_A
             
             if ( noNum ) {
                 
-                if ( half ) len = winPrintf( stdout, "*****" );
-                else        len = winPrintf( stdout, "**********" );
+                if ( half ) len = winPrintf( stdout, (char *) "*****" );
+                else        len = winPrintf( stdout, (char *) "**********" );
             }
             else {
                 
-                if ( half ) len = winPrintf( stdout, "%5d", val );
-                else        len = winPrintf( stdout, "%10d", val );
+                if ( half ) len = winPrintf( stdout, (char *) "%5d", val );
+                else        len = winPrintf( stdout, (char *) "%10d", val );
             }
         }
         else if ( radix == TOK_OCT ) {
             
             if ( noNum ) {
                 
-                if ( half ) len = winPrintf( stdout, "*******" );
-                else        len = winPrintf( stdout, "************" );
+                if ( half ) len = winPrintf( stdout, (char *) "*******" );
+                else        len = winPrintf( stdout, (char *) "************" );
             }
             else {
                 
-                if ( half ) len = winPrintf( stdout, "%07o", val );
-                else        len = winPrintf( stdout, "%#012o", val );
+                if ( half ) len = winPrintf( stdout, (char *) "%07o", val );
+                else        len = winPrintf( stdout, (char *) "%#012o", val );
             }
         }
         else if ( radix == TOK_HEX ) {
             
             if ( noNum ) {
                 
-                if ( half ) len = winPrintf( stdout, "******" );
-                else        len = winPrintf( stdout, "**********" );
+                if ( half ) len = winPrintf( stdout, (char *) "******" );
+                else        len = winPrintf( stdout, (char *) "**********" );
             }
             else {
                 
                 if ( val == 0 ) {
                     
-                    if ( half ) len = winPrintf( stdout, "0x0000" );
-                    else        len = winPrintf( stdout, "0x00000000" );
+                    if ( half ) len = winPrintf( stdout, (char *) "0x0000" );
+                    else        len = winPrintf( stdout, (char *) "0x00000000" );
                     
                 } else {
                     
-                    if ( half ) len = winPrintf( stdout, "%#06x", val );
-                    else        len = winPrintf( stdout, "%#010x", val );
+                    if ( half ) len = winPrintf( stdout, (char *) "%#06x", val );
+                    else        len = winPrintf( stdout, (char *) "%#010x", val );
                 }
             }
         }
-        else len = winPrintf( stdout, "***num***" );
+        else len = winPrintf( stdout, (char *) "***num***" );
     
     
     return( len );
@@ -398,8 +398,8 @@ int printWord( uint32_t val, TokId radix = TOK_HEX, uint32_t fmtDesc = FMT_DEF_A
 //------------------------------------------------------------------------------------------------------------
 int printText( char *text, int len ) {
     
-    if ( strlen( text ) < MAX_TEXT_FIELD_LEN ) return( winPrintf( stdout, "%s", text ));
-    else return( winPrintf( stdout, "***Text***" ));
+    if ( strlen( text ) < MAX_TEXT_FIELD_LEN ) return( winPrintf( stdout, (char *) "%s", text ));
+    else return( winPrintf( stdout,(char *)  "***Text***" ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -411,7 +411,7 @@ void padField( int dLen, int fLen ) {
     
     while ( fLen > dLen ) {
         
-        winPrintf( stdout, " " );
+        winPrintf( stdout, (char *) " " );
         fLen --;
     }
 }
@@ -671,11 +671,11 @@ void DrvWin::printWindowIdField( int stack, int index, bool current, uint32_t fm
     
     setFieldAtributes( fmtDesc );
     
-    if      (( index >= 0   ) && ( index <= 10 ))   winPrintf( stdout, "(%1d:%1d)  ", stack, index );
-    else if (( index >= 10  ) && ( index <= 99 ))   winPrintf( stdout, "(%1d:%2d) ", stack, index );
-    else                                            winPrintf( stdout, "-***-" );
+    if      (( index >= 0   ) && ( index <= 10 ))   winPrintf( stdout, (char *) "(%1d:%1d)  ", stack, index );
+    else if (( index >= 10  ) && ( index <= 99 ))   winPrintf( stdout, (char *) "(%1d:%2d) ", stack, index );
+    else                                            winPrintf( stdout, (char *) "-***-" );
     
-    winPrintf( stdout, (( current ) ? "* " : "  " ));
+    winPrintf( stdout, (( current ) ? (char *) "* " : (char *) "  " ));
     
     lastRowPos  = row;
     lastColPos  = col + 9;
