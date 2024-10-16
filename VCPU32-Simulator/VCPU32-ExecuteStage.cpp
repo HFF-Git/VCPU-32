@@ -100,11 +100,11 @@ bool testCond( uint32_t instr, uint32_t val ) {
         case CC_EQ: return( val == 0 );
         case CC_NE: return( val != 0 );
             
-        case CC_GT: return((int32_t) val >  0 );
+       // case CC_GT: return((int32_t) val >  0 );
         case CC_LT: return((int32_t) val <  0 );
         
         case CC_LE: return((int32_t) val <= 0 );
-        case CC_GE: return((int32_t) val >= 0 );
+       // case CC_GE: return((int32_t) val >= 0 );
             
         // ??? to be completed ...
             

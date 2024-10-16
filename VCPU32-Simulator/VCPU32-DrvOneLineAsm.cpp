@@ -399,14 +399,14 @@ bool isInRange( int val, int low, int high ) {
 
 bool isInRangeForBitField( int32_t val, uint8_t bitLen ) {
     
-    int min = - ( 1 << ( bitLen % 32 ));
-    int max = ( 1 << ( bitLen %32 )) - 1;
+    int min = - ( 1 << (( bitLen -1 ) % 32 ));
+    int max = ( 1 << (( bitLen - 1 ) %32 )) - 1;
     return(( val <= max ) && ( val >= min ));
 }
 
 bool isInRangeForBitFieldU( uint32_t val, uint8_t bitLen ) {
     
-    int max = ( 1 << ( bitLen % 32 ));
+    int max = (( 1 << ( bitLen % 32 )) - 1 );
     return( val <= max );
 }
 
@@ -980,22 +980,11 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
         case OP_CMP:
         case OP_CMPU: {
             
-            if ( strcmp( optBuf, ((char *) "EQ" ))) setBitField( instr, 11, 2, 0 );
-            else if ( strcmp( optBuf, ((char *) "LT" ))) setBitField( instr, 11, 2, 1 );
-            else if ( strcmp( optBuf, ((char *) "NE" ))) setBitField( instr, 11, 2, 2 );
-            else if ( strcmp( optBuf, ((char *) "LE" ))) setBitField( instr, 11, 2, 3 );
-
-            else if ( strcmp( optBuf, ((char *) "GT" ))) {
-
-                
-                *flags |= TF_SWAP_A_B_REGS;
-                *flags |= TF_REVERSE_CMP_OP;
-            }
-            else if ( strcmp( optBuf, ((char *) "GE" ))) {
-
-                *flags |= TF_SWAP_A_B_REGS;
-                *flags |= TF_REVERSE_CMP_OP;
-            }
+            if      ( strcmp( optBuf, ((char *) "EQ" )) == 0 ) setBitField( instr, 11, 2, 0 );
+            else if ( strcmp( optBuf, ((char *) "LT" )) == 0 ) setBitField( instr, 11, 2, 1 );
+            else if ( strcmp( optBuf, ((char *) "NE" )) == 0 ) setBitField( instr, 11, 2, 2 );
+            else if ( strcmp( optBuf, ((char *) "LE" )) == 0 ) setBitField( instr, 11, 2, 3 );
+            else return( parserError((char *) "Invalid compare option" ));
 
         } break;
             
@@ -1332,18 +1321,17 @@ bool parseInstrLSID( uint32_t *instr, uint32_t flags ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseInstrEXTRandDEP" parses the extract or deposit instruction. The instruction has two basic formats.
+// "parseInstrDEP" parses the deposit instruction. The instruction has three basic formats.
 // When the "A" bit is set, the position will be obtained from the shift amount control register. Otherwise
 // it is encoded in the instruction.
 //
-//      EXTR [ ".“ <opt> ]      <targetReg> "," <sourceReg> "," <pos> "," <len"
-//      EXTR [ "." "A" <opt> ]  <targetReg> "," <sourceReg> ", <len"
-//
 //      DEP [ ".“ <opt> ]       <targetReg> "," <sourceReg> "," <pos> "," <len"
-//      DEP [ "." "A" <opt> ]   <targetReg> "," <sourceReg> ", <len"
+//      DEP [ "." "A" <opt> ]   <targetReg> "," <sourceReg> ", <len>"
+//      DEP [ "." "I" <opt> ]   <targetReg> "," <pos>", <val>
+//      DEP [ "." "AI" <opt> ]  <targetReg> "," <val>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrEXTRandDEP( uint32_t *instr, uint32_t flags ) {
+bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
     
     if ( currentToken.typ == TT_GREG ) {
         
@@ -1354,6 +1342,10 @@ bool parseInstrEXTRandDEP( uint32_t *instr, uint32_t flags ) {
     
     if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a Comma" ));
+    
+    
+    // ???? fix syntax for suporting "I" option....
+    
     
     if ( currentToken.typ == TT_GREG ) {
         
@@ -1393,6 +1385,44 @@ bool parseInstrEXTRandDEP( uint32_t *instr, uint32_t flags ) {
         }
         else return( parserError((char *) "Expected a number" ));
     }
+    
+    return( checkEOS( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The DS instruction parses the divide step instruction.
+//
+//      DS <targetReg> "," <sourceRegA> "," <sourceRegB>
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 9, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 27, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_COMMA ) nextToken( );
+    else return( parserError((char *) "Expected a Comma" ));
+    
+    if ( currentToken.typ == TT_GREG ) {
+        
+        setBitField( instr, 31, 4, currentToken.val );
+        nextToken( );
+    }
+    else return( parserError((char *) "Expected a general register" ));
     
     return( checkEOS( ));
 }
@@ -1456,12 +1486,15 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The DS instruction parses the divide step instruction.
+// "parseInstrEXTR" parses the extract instruction. The instruction has two basic formats. When the "A" bit
+// is set, the position will be obtained from the shift amount control register. Otherwise it is encoded in
+// the instruction.
 //
-//      DS <targetReg> "," <sourceRegA> "," <sourceRegB>
+//      EXTR [ ".“ <opt> ]      <targetReg> "," <sourceReg> "," <pos> "," <len"
+//      EXTR [ "." "A" <opt> ]  <targetReg> "," <sourceReg> ", <len"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
+bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
     
     if ( currentToken.typ == TT_GREG ) {
         
@@ -1475,7 +1508,7 @@ bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
     
     if ( currentToken.typ == TT_GREG ) {
         
-        setBitField( instr, 27, 4, currentToken.val );
+        setBitField( instr, 31, 4, currentToken.val );
         nextToken( );
     }
     else return( parserError((char *) "Expected a general register" ));
@@ -1483,12 +1516,34 @@ bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
     if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a Comma" ));
     
-    if ( currentToken.typ == TT_GREG ) {
+    if ( currentToken.typ == TT_NUM ) {
         
-        setBitField( instr, 31, 4, currentToken.val );
-        nextToken( );
+        if ( isInRangeForBitFieldU( currentToken.val, 5 )) {
+            
+            if ( getBit( *instr, 11 ))  setBitField( instr, 21, 5, currentToken.val );
+            else                        setBitField( instr, 27, 5, currentToken.val );
+            nextToken( );
+        }
+        else return( parserError((char *) "Immediate value out of range" ));
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else return( parserError((char *) "Expected a number" ));
+    
+    if ( ! getBit( *instr, 11 )) {
+        
+        if ( currentToken.typ == TT_COMMA ) nextToken( );
+        else return( parserError((char *) "Expected a Comma" ));
+        
+        if ( currentToken.typ == TT_NUM ) {
+            
+            if ( isInRangeForBitFieldU( currentToken.val, 5 )) {
+                
+                setBitField( instr, 21, 5, currentToken.val );
+                nextToken( );
+            }
+            else return( parserError((char *) "Immediate value out of range" ));
+        }
+        else return( parserError((char *) "Expected a number" ));
+    }
     
     return( checkEOS( ));
 }
@@ -1640,14 +1695,17 @@ bool parseInstrLDO( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == ET_NUM ) {
         
-        if ( isInRangeForBitField( currentToken.val, 18 )) setImmVal( instr, 27, 18, currentToken.val );
+        if ( isInRangeForBitField( rExpr.val1, 18 )) setImmVal( instr, 27, 18, rExpr.val1 );
         else return( parserError((char *) "Immediate value out of range" ));
         
-        if ( currentToken.typ == TT_LPAREN ) nextToken( );
-        else return( parserError((char *) "Expected a left paren" ));
+        if ( ! parseExpr( &rExpr )) return( false );
+        
+        if ( rExpr.typ == ET_ADR ) setBitField( instr, 31, 4, rExpr.val1 );
+        else return( parserError((char *) "Expected the base register" ));
     }
     else if ( rExpr.typ == ET_ADR ) {
         
+        setImmVal( instr, 27, 18, 0 );
         setBitField( instr, 31, 4, rExpr.val1 );
     }
     else return( parserError((char *) "Expected an offset or  left paren" ));
@@ -2406,8 +2464,8 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
                 
             case OP_LSID:   return( parseInstrLSID( instr, flags ));
                 
-            case OP_EXTR:
-            case OP_DEP:    return( parseInstrEXTRandDEP( instr, flags ));
+            case OP_EXTR:   return( parseInstrEXTR( instr, flags ));
+            case OP_DEP:    return( parseInstrDEP( instr, flags ));
                 
             case OP_DS:     return( parseInstrDS( instr, flags ));
                 

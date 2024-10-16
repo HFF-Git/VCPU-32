@@ -1,0 +1,619 @@
+# =============================================================================================
+# =============================================================================================
+# Test the assembler / disassembler syntax and parsing process. The idea is to set the
+# memory address 0 to zero, modify it with the value of the assembler result and then 
+# display the memory cell as assembly code again. 
+#
+# =============================================================================================
+# =============================================================================================
+#
+#
+# =============================================================================================
+# 
+# Test OpMode argument cases for success and failure
+#
+# =============================================================================================
+#
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, 100"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, -100"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, 131071"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, 131072"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, -131072"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, -131073"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, r2, r3"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, 100(r3)"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, -100(r3)"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, 2047(r3)"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, 2048(r3)"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, -2048(r3)"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1, -2049(r3)"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+#
+#
+# =============================================================================================
+# 
+# Computational instruction options
+#
+# ADD, ADC, SUB, SBC, AND, OR, XOR, CMP, CMPU
+# =============================================================================================
+#
+#
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add.L r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add.O r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add.LO r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "add.XX r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "adc r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "adc.L r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "adc.O r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "adc.LO r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "adc.XX r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "sub r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "sub.L r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "sub.O r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "sub.LO r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "sub.XX r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "sbc r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "sbc.L r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "sbc.O r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "sbc.LO r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "sbc.XX r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "and r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "and.C r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "and.N r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "and.CN r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "and.XX r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "or r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "or.C r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "or.N r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "or.CN r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "or.XX r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "xor r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "xor.N r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "xor.X r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "cmp.EQ r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "cmp.NE r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "cmp.LT r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "cmp.LE r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "cmp.XX r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "cmpu.EQ r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "cmpu.NE r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "cmpu.LT r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "cmpu.LE r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "cmpu.XX r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+#
+#
+# =============================================================================================
+# 
+# Other Computational instruction
+#
+# LSID, EXTR, DEP, DSR, SHLA, CMR
+# =============================================================================================
+#
+#
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "lsid r1,r2"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "extr r1,r2, 5, 11"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "extr r1,r2, 32, 11"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "extr r1,r2, 5, 32"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "extr.S r1,r2, 5, 11"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "extr.A r1,r2, 5"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "extr.XX r1,r2, 5"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+#ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "dep r1,r2, 5, 11"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "dep r1,r2, 32, 11"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "dep r1,r2, 5, 32"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "dep.Z r1,r2, 5, 11"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "dep.A r1,r2, 5"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "dep.I r1,r2, 5"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+
+#
+#
+#
+#
+
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "LIDL r1, 100"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "LIDL r1, 0x3FFFFF"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "LIDL r1, 0x3FFFFF + 1"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "ADDIL r1, 100"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "ADDIL r1, 0x3fffff"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "ADDIL r1, 0x3fffff + 1"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "LDO r1, 100(r4)"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "LDO r1, 0x1ffff + 1 (r4)"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "LDO r1, -100(r4)"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+ENV ECHO-CMD-INPUT true
+MA 0 0
+MAA 0 "LDO r1, - 0x20000 - 1 (r4)"
+DA 0
+DAA 0
+ENV ECHO-CMD-INPUT false
+# ---------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+ENV ECHO-CMD-INPUT false
+
+
+

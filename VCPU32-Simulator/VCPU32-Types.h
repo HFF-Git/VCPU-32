@@ -205,12 +205,8 @@ enum CompareConditionCodes : uint32_t {
     
     CC_EQ   = 0x0,  // a == b
     CC_LT   = 0x1,  // a <  b
-    CC_GT   = 0x2,  // a >  b
-    CC_LS   = 0x3,  // a <  b, Unsigned
-    CC_NE   = 0x4,  // a != b
-    CC_LE   = 0x5,  // a <= b
-    CC_GE   = 0x6,  // a >= b
-    CC_HI   = 0x7,  // a >  b, Unsigned
+    CC_NE   = 0x2,  // a != b
+    CC_LE   = 0x3,  // a <= b
 };
 
 //------------------------------------------------------------------------------------------------------------

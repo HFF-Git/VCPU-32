@@ -279,10 +279,11 @@ void displayOpCodeOptions( uint32_t instr ) {
             
         } break;
             
-        case OP_CMP: {
+        case OP_CMP: 
+        case OP_CMPU: {
             
             fprintf( stdout, "." );
-            displayComparisonCodes( getBitField( instr, 12, 3 ));
+            displayComparisonCodes( getBitField( instr, 11, 2 ));
             
         } break;
             
@@ -456,16 +457,17 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         } break;
             
-       
         case OP_EXTR:
         case OP_DEP: {
             
             fprintf( stdout, ", r%d", getBitField( instr, 31, 4 ));
             
-            if ( getBit( instr, 11 )) fprintf( stdout, ",shamt" );
-            else fprintf( stdout, ",%d", getBitField( instr, 27, 5 ));
-            
-            fprintf( stdout, ",%d", getBitField( instr, 21, 5 ));
+            if ( ! getBit( instr, 11 )) {
+                
+                fprintf( stdout, ", %d", getBitField( instr, 27, 5 ));
+                fprintf( stdout, ", %d", getBitField( instr, 21, 5 ));
+                
+            } else fprintf( stdout, ", %d", getBitField( instr, 21, 5 ));
             
         } break;
             
