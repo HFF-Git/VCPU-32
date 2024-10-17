@@ -998,6 +998,20 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
 
         } break;
             
+        case OP_CMR: {
+            
+            if      ( strcmp( optBuf, ((char *) "EQ" )) == 0 ) setBitField( instr, 13, 4, 0 );
+            else if ( strcmp( optBuf, ((char *) "LT" )) == 0 ) setBitField( instr, 13, 4, 1 );
+            else if ( strcmp( optBuf, ((char *) "GT" )) == 0 ) setBitField( instr, 13, 4, 2 );
+            else if ( strcmp( optBuf, ((char *) "EV" )) == 0 ) setBitField( instr, 13, 4, 3 );
+            else if ( strcmp( optBuf, ((char *) "NE" )) == 0 ) setBitField( instr, 13, 4, 4 );
+            else if ( strcmp( optBuf, ((char *) "LE" )) == 0 ) setBitField( instr, 13, 4, 5 );
+            else if ( strcmp( optBuf, ((char *) "GE" )) == 0 ) setBitField( instr, 13, 4, 6 );
+            else if ( strcmp( optBuf, ((char *) "OD" )) == 0 ) setBitField( instr, 13, 4, 7 );
+            else return( parserError((char *) "Invalid test option" ));
+            
+        } break;
+            
         case OP_EXTR: {
             
             for ( int i = 0; i < strlen( currentToken.name ); i ++ ) {
@@ -1394,47 +1408,30 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
         
         if ( getBit( *instr, 12 )) {
             
-            if ( getBit( *instr, 11 )) {
+            if ( isInRangeForBitField( currentToken.val, 4 )) setBitField( instr, 31, 4, currentToken.val );
+            else return( parserError((char *) "Immediate value out of range" ));
+            
+            nextToken( );
+            if ( currentToken.typ == TT_COMMA ) nextToken( );
+            else return( parserError((char *) "Expected a Comma" ));
+            
+            if ( ! getBit( *instr, 11 )) {
                
-                if ( isInRangeForBitFieldU( currentToken.val, 4 )) setBitField( instr, 31, 4, currentToken.val );
-                else return( parserError((char *) "Immediate value out of range" ));
-               
-                nextToken( );
-                if ( currentToken.typ == TT_COMMA ) nextToken( );
-                else return( parserError((char *) "Expected a Comma" ));
-                
-                if ( currentToken.typ == TT_NUM ) {
-                    
-                    if ( isInRangeForBitFieldU( currentToken.val, 5 )) setBitField( instr, 21, 5, currentToken.val );
-                    else return( parserError((char *) "Len value out of range" ));
-                    nextToken( );
-                }
-                else return( parserError((char *) "Expected a numeric value" ));
-            }
-            else {
-                
-                if ( isInRangeForBitFieldU( currentToken.val, 4 )) setBitField( instr, 31, 4, currentToken.val );
-                else return( parserError((char *) "Immediate value out of range" ));
-                
-                nextToken( );
-                if ( currentToken.typ == TT_COMMA ) nextToken( );
-                else return( parserError((char *) "Expected a Comma" ));
-                  
                 if ( isInRangeForBitFieldU( currentToken.val, 5 )) setBitField( instr, 27, 5, currentToken.val );
                 else return( parserError((char *) "Pos value out of range" ));
                 
                 nextToken( );
                 if ( currentToken.typ == TT_COMMA ) nextToken( );
                 else return( parserError((char *) "Expected a Comma" ));
-                
-                if ( currentToken.typ == TT_NUM ) {
-                    
-                    if ( isInRangeForBitFieldU( currentToken.val, 5 )) setBitField( instr, 21, 5, currentToken.val );
-                    else return( parserError((char *) "Len value out of range" ));
-                    nextToken( );
-                }
-                else return( parserError((char *) "Expected a numeric value" ));
             }
+            
+            if ( currentToken.typ == TT_NUM ) {
+                
+                if ( isInRangeForBitFieldU( currentToken.val, 5 )) setBitField( instr, 21, 5, currentToken.val );
+                else return( parserError((char *) "Len value out of range" ));
+                nextToken( );
+            }
+            else return( parserError((char *) "Expected a numeric value" ));
         }
         else return( parserError((char *) "Expected a numeric value for the I-opt" ));
     }
@@ -1523,7 +1520,6 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
         if ( currentToken.typ == TT_COMMA ) nextToken( );
         else return( parserError((char *) "Expected a Comma" ));
         
-        nextToken( );
         if ( currentToken.typ == TT_NUM ) {
             
             if ( isInRangeForBitFieldU( currentToken.val, 5 )) {
@@ -1545,7 +1541,7 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
 // the instruction.
 //
 //      EXTR [ ".“ <opt> ]      <targetReg> "," <sourceReg> "," <pos> "," <len"
-//      EXTR [ "." "A" <opt> ]  <targetReg> "," <sourceReg> ", <len"
+//      EXTR "." "A" [ <opt> ]  <targetReg> "," <sourceReg> ", <len"
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
@@ -1605,7 +1601,8 @@ bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 // The SHLA instruction performs a shift left of "B" by "sa" and adds the "A" register to it.
 //
-//      SHLA [ "." <opt> ] <targetReg> "," <sourceRegA> "," <sourceRegB>
+//      SHLA [ "." <opt> ] <targetReg> "," <sourceRegA> "," <sourceRegB> "," <amt>
+//      SHLA ".I" <targetReg> "," <sourceRegA> "," <val> "," <amt>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
@@ -1630,13 +1627,32 @@ bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
     if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a Comma" ));
     
+    
     if ( currentToken.typ == TT_GREG ) {
         
+        if ( getBit( *instr, 10 ))
+            return( parserError((char *) "Invalid option for register add" ));
+        
         setBitField( instr, 31, 4, currentToken.val );
-        nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else if ( currentToken.typ == TT_NUM ) {
+        
+        if ( getBit( *instr, 11 )) {
+            
+            if ( ! isInRangeForBitFieldU( currentToken.val, 4 ))
+                return( parserError((char *) "Immediate value out of range"));
+        }
+        else {
+            
+            if ( ! isInRangeForBitField( currentToken.val, 4 ))
+                return( parserError((char *) "Immediate value out of range"));
+        }
+        
+        setBitField( instr, 31, 4, currentToken.val );
+    }
+    else return( parserError((char *) "Expected a general register or immediate value" ));
     
+    nextToken( );
     if ( currentToken.typ == TT_COMMA ) nextToken( );
     else return( parserError((char *) "Expected a Comma" ));
     
@@ -1657,7 +1673,7 @@ bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 // The CMR instruction tests register "B" for a condition and if true copies the "A" value to "R".
 //
-//      CMR <targetReg> "," <regA> "," <regB>
+//      CMR "." <cond> <targetReg> "," <regA> "," <regB>
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrCMR( uint32_t *instr, uint32_t flags ) {

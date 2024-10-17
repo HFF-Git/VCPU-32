@@ -325,7 +325,7 @@ void displayOpCodeOptions( uint32_t instr ) {
             if ( getBitField( instr, 12, 3 ) > 0 ) {
                 
                 fprintf( stdout, "." );
-                if ( getBit( instr, 10 ))   fprintf( stdout, "Z" );
+                if ( getBit( instr, 10 ))   fprintf( stdout, "I" );
                 if ( getBit( instr, 11 ))   fprintf( stdout, "L" );
                 if ( getBit( instr, 12 ))   fprintf( stdout, "O" );
             }
@@ -335,7 +335,7 @@ void displayOpCodeOptions( uint32_t instr ) {
         case OP_CMR: {
             
             fprintf( stdout, "." );
-            displayTestCodes( getBitField( instr, 11, 2 ));
+            displayTestCodes( getBitField( instr, 13, 4 ));
             
         } break;
             
@@ -486,16 +486,14 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         case OP_DSR: {
             
-            fprintf( stdout, ",r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-            
-            if ( getBit( instr, 11 )) fprintf( stdout, ",shmat" );
-            else fprintf( stdout, ", %d", getBitField( instr, 21, 5 ));
+            fprintf( stdout, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            if ( ! getBit( instr, 11 )) fprintf( stdout, ", %d", getBitField( instr, 21, 5 ));
             
         } break;
             
         case OP_DS: {
             
-            fprintf( stdout, ",r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            fprintf( stdout, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             
         } break;
             
@@ -507,6 +505,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         case OP_CMR: {
             
+            fprintf( stdout, ", r%d", getBitField( instr, 27, 4 ));
             fprintf( stdout, ", r%d", getBitField( instr, 31, 4 ));
             
         } break;
@@ -571,7 +570,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_SHLA: {
             
             fprintf( stdout, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-            if ( getBitField( instr, 22, 2 ) > 0 ) fprintf( stdout, ",%d",  getBitField( instr, 21, 2 ));
+            if ( getBitField( instr, 21, 2 ) > 0 ) fprintf( stdout, ", %d",  getBitField( instr, 21, 2 ));
             
         } break;
             
