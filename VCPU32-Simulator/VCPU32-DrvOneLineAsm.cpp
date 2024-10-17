@@ -1306,7 +1306,6 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Invalid operand" ));
     
- 
     if (  getBitField( *instr, 13, 2 ) < 2 ) {
         
         if (( flags & TF_BYTE_INSTR ) || ( flags & TF_HALF_INSTR ))
@@ -1349,7 +1348,7 @@ bool parseInstrLSID( uint32_t *instr, uint32_t flags ) {
 // When the "A" bit is set, the position will be obtained from the shift amount control register. Otherwise
 // it is encoded in the instruction.
 //
-//      DEP [ ".“ <opt> ]       <targetReg> "," <sourceReg> "," <pos> "," <len"
+//      DEP [ ".“ <opt> ]       <targetReg> "," <sourceReg> "," <pos> "," <len>"
 //      DEP [ "." "A" <opt> ]   <targetReg> "," <sourceReg> ", <len>"
 //      DEP [ "." "I" <opt> ]   <targetReg> "," <val>, <pos> "," <len>
 //      DEP [ "." "AI" <opt> ]  <targetReg> "," <val> "," <len>
