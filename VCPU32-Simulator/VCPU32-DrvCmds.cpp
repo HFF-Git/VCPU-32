@@ -838,14 +838,11 @@ void DrvCmds::exitCmd( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Comment command. Just echo the line ... and leave the error status alone. This command is very handy for
-// any script file to insert comments in that file.
+// Comment command. For the interactve mode we do nothing, since the command was already displayed when we
+// typed it in. For batch file input, the batch routine will optionally print these lines.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::commentCmd( char *cmdBuf ) {
-    
-    fprintf( stdout, "%s\n", cmdBuf );
-}
+void DrvCmds::commentCmd( char *cmdBuf ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // ENV command. The test driver has a few global environment variables for data format, command count and so

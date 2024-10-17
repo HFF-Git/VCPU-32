@@ -1581,6 +1581,8 @@ void DrvWinCode::drawLine( uint32_t itemAdr ) {
     clearField( opCodeField );
     glb -> disAsm -> displayOpCodeAndOptions( instr );
 
+    setWinCursor( 0, pos + opCodeField );
+    
     clearField( operandField );
     glb -> disAsm -> displayTargetAndOperands( instr, getRadix( ));
     

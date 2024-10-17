@@ -1179,16 +1179,20 @@ bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
         
         if ( isInRangeForBitField( rExpr.val1, 12 )) setImmVal( instr, 27, 12, rExpr.val1 );
         else return( parserError((char *) "Immediate value out of range" ));
+        
+        if ( ! parseExpr( &rExpr )) return( false );
     }
     else if ( rExpr.typ == ET_GREG ) {
         
+        if (( getBitField( *instr, 5, 6 ) == OP_LDR ) || ( getBitField( *instr, 5, 6 ) == OP_LDR ))
+            return( parserError((char *) "Register based offset is not allowed for this instruction" ));
+        
         setBit( instr, 10 );
         setBitField( instr, 27, 4, rExpr.val1 );
+        
+        if ( ! parseExpr( &rExpr )) return( false );
     }
-    else return( parserError((char *) "Expected an offset" ));
     
-    if ( ! parseExpr(&rExpr )) return( false );
-   
     if ( rExpr.typ == ET_ADR ) {
                     
         setBitField( instr, 13, 2, 0 );
