@@ -388,7 +388,8 @@ void displayOpCodeOptions( uint32_t instr ) {
                 
                 fprintf( stdout, "." );
                 if ( getBit( instr, 10 )) fprintf( stdout, "T" );
-                if ( getBit( instr, 11 ))fprintf( stdout, "F" );
+                if ( getBit( instr, 11 )) fprintf( stdout, "M" );
+                if ( getBit( instr, 14 )) fprintf( stdout, "F" );
             }
             
         } break;
@@ -675,21 +676,20 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             }
             else fprintf( stdout, ", (r%d)", getBitField( instr, 31, 4 ));
             
-            if ( getBit( instr, 11 ))   fprintf( stdout, ", r%d", getBitField( instr, 27, 4 ));
-            else                        fprintf( stdout, ", %d", getBit( instr, 27 ));
+            if ( getBit( instr, 11 ))   fprintf( stdout, ", %d", getBit( instr, 27 ));
+            else                        fprintf( stdout, ", r%d", getBitField( instr, 27, 4 ));
             
         } break;
         
         case OP_LDPA: {
             
+            if ( getBitField( instr, 27, 4 ) != 0 ) fprintf( stdout, "r%d", getBitField( instr, 27, 4 ));
+            
             if ( getBitField( instr, 13, 2 ) > 0 ) {
                 
-                fprintf( stdout, ", r%d(s%d, r%d)",
-                        getBitField( instr, 27, 4 ),
-                        getBitField(instr, 13, 2 ),
-                        getBitField( instr, 31, 4 ));
+                fprintf( stdout, "(s%d, r%d)", getBitField(instr, 13, 2 ), getBitField( instr, 31, 4 ));
             }
-            else fprintf( stdout, ", r%d(r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            else fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
                                                           
         } break;
             
@@ -700,15 +700,16 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         } break;
             
-        case OP_PTLB: {
+        case OP_PTLB:
+        case OP_PCA:{
             
-            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            if ( getBitField( instr, 27, 4 ) != 0 ) fprintf( stdout, "r%d", getBitField( instr, 27, 4 ));
             
-        } break;
-            
-        case OP_PCA: {
-            
-            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            if ( getBitField( instr, 13, 2 ) > 0 ) {
+                
+                fprintf( stdout, "(s%d, r%d)", getBitField(instr, 13, 2 ), getBitField( instr, 31, 4 ));
+            }
+            else fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
             
         } break;
             

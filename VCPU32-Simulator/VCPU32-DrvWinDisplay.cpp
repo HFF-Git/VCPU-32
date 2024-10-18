@@ -180,7 +180,7 @@ DrvWin         *windowList[ MAX_WINDOWS ];
 DrvWinCommands *cmdWin;
 
 //-----------------------------------------------------------------------------------------------------------
-//
+// Little helpers.
 //
 //-----------------------------------------------------------------------------------------------------------
 bool getBit( uint32_t arg, int pos ) {
@@ -210,40 +210,42 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
 // function, which it cannot identify as a string literal. After all, "fmt" could be anything. Since we
 // only use the "winPrintf" function in this file, no one else could do stupid things with it, except me.
 //
-// So far, the error never returned...
+// So far, the error not returned...
 //-----------------------------------------------------------------------------------------------------------
-template<typename... Args> int winPrintf( FILE *stream, char *fmt, Args... args) {
+
+// template<typename... Args> int winPrintf( FILE *stream, const char *fmt, Args... args) {
+template<typename... Args>  int winPrintf( FILE* stream, const char* fmt, Args&&... args ) {
     
     static char buf[ 256 ];
-    
-    size_t len = 0;
+    size_t      len = 0;
     
     do {
         
-        len = snprintf( buf, sizeof( buf ), (char *) fmt, args... );
+        //len = snprintf( buf, sizeof( buf ), fmt, args... );
+        len = snprintf(buf, sizeof(buf), fmt, std::forward<Args>(args)...);
         
         if (( len < 0 ) && ( errno != EINTR )) {
             
-            fprintf( stderr, "myPrintf (snprintf) error, errno: %lu, %s\n", len, strerror( errno ));
+            fprintf( stderr, "winPrintf (snprintf) error, errno: %d, %s\n", errno, strerror(errno));
             exit( errno );
         }
-    }
-    
-    while ( len < 0 );
+        
+    } while ( len < 0 );
     
     do {
         
-        len = write( fileno( stdout ), buf, len );
-        
+        // len = write( fileno( stdout ), buf, len );
+        len = fwrite( buf, 1, len, stdout );
+       
         if (( len < 0 ) && ( errno != EINTR )) {
             
             fprintf( stderr, "myPrintf (write) error, errno: %lu, %s\n", len, strerror( errno ));
             exit( errno );
         }
-    }
-    while ( len < 0 );
+        
+    } while ( len < 0 );
     
-    return((int) len );
+    return( static_cast<int>(len));
 }
 
 //------------------------------------------------------------------------------------------------------------
