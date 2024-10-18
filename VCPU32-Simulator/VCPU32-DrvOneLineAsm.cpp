@@ -998,6 +998,17 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
 
         } break;
             
+        case OP_CBR:
+        case OP_CBRU: {
+            
+            if      ( strcmp( optBuf, ((char *) "EQ" )) == 0 ) setBitField( instr, 7, 2, 0 );
+            else if ( strcmp( optBuf, ((char *) "LT" )) == 0 ) setBitField( instr, 7, 2, 1 );
+            else if ( strcmp( optBuf, ((char *) "NE" )) == 0 ) setBitField( instr, 7, 2, 2 );
+            else if ( strcmp( optBuf, ((char *) "LE" )) == 0 ) setBitField( instr, 7, 2, 3 );
+            else return( parserError((char *) "Invalid compare option" ));
+
+        } break;
+            
         case OP_CMR: {
             
             if      ( strcmp( optBuf, ((char *) "EQ" )) == 0 ) setBitField( instr, 13, 4, 0 );
@@ -1823,10 +1834,13 @@ bool parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
 // The "BR" instruction is an IA-relative branch with the offset to be added in a general register. There is
 // also an optional return register. When omitted, R0 is used in the instruction generation.
 //
-//      BR <branchReg> [ "," <returnReg> ]
+//      BR "(" <branchReg> ")" [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrBR( uint32_t *instr, uint32_t flags ) {
+    
+    if ( currentToken.typ == TT_LPAREN ) nextToken( );
+    else return ( parserError((char *) "Expected a left paren" ));
     
     if ( currentToken.typ == TT_GREG ) {
         
@@ -1834,6 +1848,9 @@ bool parseInstrBR( uint32_t *instr, uint32_t flags ) {
         nextToken( );
     }
     else return( parserError((char *) "Expected a general register" ));
+    
+    if ( currentToken.typ == TT_RPAREN ) nextToken( );
+    else return ( parserError((char *) "Expected a right paren" ));
     
     if ( currentToken.typ == TT_COMMA ) {
         
@@ -1949,7 +1966,7 @@ bool parseInstrBVE( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == ET_ADR ) {
         
-        setBitField( instr, 31, 4, rExpr.val2 );
+        setBitField( instr, 31, 4, rExpr.val1 );
     }
     else return( parserError((char *) "Expected a logical address" ));
     

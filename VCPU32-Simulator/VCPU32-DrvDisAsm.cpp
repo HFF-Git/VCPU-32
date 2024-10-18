@@ -343,7 +343,7 @@ void displayOpCodeOptions( uint32_t instr ) {
         case OP_CBRU: {
             
             fprintf( stdout, "." );
-            displayComparisonCodes( getBitField( instr, 11, 2 ));
+            displayComparisonCodes( getBitField( instr, 7, 2 ));
             
         } break;
             
@@ -592,7 +592,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_LDO: {
             
             fprintf( stdout, ", " );
-            printImmVal( getBitField( instr, 27, 18 ));
+            printImmVal( immGenPosLenLowSign( instr, 27, 18 ));
             fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
             
         } break;
@@ -607,7 +607,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         case OP_BR: {
            
-            fprintf( stdout, "r%d", getBitField( instr, 31, 4 ));
+            fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
             if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
             
         } break;
@@ -621,7 +621,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
             
         case OP_BE: {
             
-            printImmVal( immGenPosLenLowSign( instr, 23, 18 ));
+            printImmVal( immGenPosLenLowSign( instr, 23, 14 ) << 2, TOK_DEC );
             fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
             
@@ -722,6 +722,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
 
 }; // namespace
 
+
 //************************************************************************************************************
 // Object methods.
 //************************************************************************************************************
@@ -766,4 +767,3 @@ int DrvDisAsm::getTargetAndOperandsFieldWidth( ) {
     
     return( 16 );
 }
-

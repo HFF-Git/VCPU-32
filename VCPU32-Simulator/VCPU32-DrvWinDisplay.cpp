@@ -220,7 +220,7 @@ template<typename... Args> int winPrintf( FILE *stream, char *fmt, Args... args)
     
     do {
         
-        len = snprintf( buf, sizeof( buf ), fmt, args... );
+        len = snprintf( buf, sizeof( buf ), (char *) fmt, args... );
         
         if (( len < 0 ) && ( errno != EINTR )) {
             
