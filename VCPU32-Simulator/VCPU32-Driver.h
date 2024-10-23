@@ -54,6 +54,7 @@ enum TokId : uint16_t {
     //--------------------------------------------------------------------------------------------------------
     TOK_NIL                 = 0,    TOK_INV                 = 1,    TOK_ALL                 = 2,
     TOK_TRUE                = 3,    TOK_FALSE               = 4,    TOK_DEF                 = 5,
+    TOK_ERR                 = 6,    TOK_EOS                 = 7,
     
     TOK_CPU                 = 6,    TOK_MEM                 = 7,    TOK_STATS               = 8,
     
@@ -72,6 +73,47 @@ enum TokId : uint16_t {
     
     TOK_EQ                  = 40,   TOK_NE                  = 41,   TOK_LT                  = 42,
     TOK_GT                  = 43,   TOK_LE                  = 44,   TOK_GE                  = 45,
+    
+    TOK_IDENT               = 50,   TOK_NUM                 = 51,   TOK_STR                 = 52,
+    
+    TOK_COMMA               = 60,   TOK_PERIOD              = 61,   TOK_LPAREN              = 62,
+    TOK_RPAREN              = 63,   TOK_QUOTE               = 64,   TOK_PLUS                = 65,
+    TOK_MINUS               = 66,   TOK_MULT                = 67,   TOK_DIV                 = 68,
+    TOK_MOD                 = 69,   TOK_REM                 = 70,   TOK_NEG                 = 71,
+    TOK_AND                 = 72,   TOK_OR                  = 73,   TOK_XOR                 = 74,
+    
+    // ??? symbols...
+    
+#if 0
+    
+    TT_GREG         = 2,
+    TT_SREG         = 3,
+    TT_CREG         = 4,
+    TT_NUM          = 5,
+    TT_IDENT        = 6,
+    TT_STR          = 7,
+    
+    TT_COMMA        = 10,
+    TT_PERIOD       = 11,
+    TT_LPAREN       = 12,
+    TT_RPAREN       = 13,
+    TT_QUOTE        = 14,
+    TT_PLUS         = 15,
+    TT_MINUS        = 16,
+    TT_MULT         = 17,
+    TT_DIV          = 18,
+    TT_MOD          = 19,
+    TT_NEG          = 20,
+    TT_AND          = 21,
+    TT_OR           = 22,
+    TT_XOR          = 23,
+    
+    TT_ERR          = 100,
+    TT_EOS          = 101
+    
+#endif
+    
+ 
     
     //--------------------------------------------------------------------------------------------------------
     // Environment variable tokens.
@@ -109,7 +151,7 @@ enum TokId : uint16_t {
     IC_L1_SET               = 917,  DC_L1_SET               = 918,  UC_L2_SET               = 919,
     MEM_SET                 = 920,  ITLB_SET                = 921,  DTLB_SET                = 922,
 
-    OP_CODE_SET             = 930,
+    OP_CODE_SET             = 930,  OP_CODE_SET_S           = 931,
     
     //--------------------------------------------------------------------------------------------------------
     // Line Commands.
@@ -297,11 +339,11 @@ struct VCPU32Globals;
 struct DrvToken {
 
     char        name[ 16 ]; // ??? for now...
+    TokId       tokGrpId;
+    TokId       tokenId;
 
     // ??? need to unify all our token table... ENV, CMD, and ASM
 
-    TokId       tokGrpId;
-    TokId       tokenId;
     uint32_t    val;
     uint32_t    flags;
 };
@@ -316,8 +358,7 @@ struct DrvTokenTab {
     uint16_t    size;
     DrvToken    *map;
     
-
-    // ??? all teh lookup functions ?
+    // ??? all the lookup functions ?
 };
 
   
@@ -332,7 +373,7 @@ struct DrvTokenizer {
 
     DrvTokenizer( );
 
-    bool        setupTokenizer( char *lineBuf, DrvTokenTab *tokTab );
+    uint8_t     setupTokenizer( char *lineBuf, DrvTokenTab *tokTab );
     
     void        nextToken( );
     DrvToken    currentToken;
@@ -340,7 +381,7 @@ struct DrvTokenizer {
     private: 
 
     void        nextChar( );
-    void        parseNum( );
+    void        parseNum( int sign );
     void        parseString( );
     void        parseIdent( );
 
