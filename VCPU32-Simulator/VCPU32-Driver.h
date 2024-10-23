@@ -96,7 +96,7 @@ enum TokId : uint16_t {
     ENV_FAIL_CNT            = 562,  ENV_WIN_MIN_ROWS        = 563,  ENV_WIN_TX_WIDTH        = 564,
     
     //--------------------------------------------------------------------------------------------------------
-    // Command Sets.
+    // Token Sets.
     //
     //--------------------------------------------------------------------------------------------------------
     SET_NIL                 = 900,  ENV_SET                 = 901,  CMD_SET                 = 902,
@@ -108,6 +108,8 @@ enum TokId : uint16_t {
     
     IC_L1_SET               = 917,  DC_L1_SET               = 918,  UC_L2_SET               = 919,
     MEM_SET                 = 920,  ITLB_SET                = 921,  DTLB_SET                = 922,
+
+    OP_CODE_SET             = 930,
     
     //--------------------------------------------------------------------------------------------------------
     // Line Commands.
@@ -199,11 +201,63 @@ enum TokId : uint16_t {
     UC_L2_LATENCY           = 4726, UC_L2_BLOCK_ENTRIES     = 4727, UC_L2_BLOCK_SIZE        = 4728,
     UC_L2_SETS              = 4729,
     
-    ITLB_STATE              = 4730, ITLB_REQ                = 4731, ITLB_REQ_SEG           = 4732,
+    ITLB_STATE              = 4730, ITLB_REQ                = 4731, ITLB_REQ_SEG            = 4732,
     ITLB_REQ_OFS            = 4733,
     
-    DTLB_STATE              = 4740, DTLB_REQ                = 4741, DTLB_REQ_SEG           = 4742,
+    DTLB_STATE              = 4740, DTLB_REQ                = 4741, DTLB_REQ_SEG            = 4742,
     DTLB_REQ_OFS            = 4743,
+
+    //--------------------------------------------------------------------------------------------------------
+    // OP Codes
+    //
+    //--------------------------------------------------------------------------------------------------------
+    OP_CODE_LD              = 5000, OP_CODE_LDB             = 5001, OP_CODE_LDH             = 5002,
+    OP_CODE_LDW             = 5003, OP_CODE_LDR             = 5004, OP_CODE_LDA             = 5005, 
+
+    OP_CODE_ST              = 5010, OP_CODE_STB             = 5011, OP_CODE_STH             = 5012,
+    OP_CODE_STW             = 5013, STC                     = 5014, OP_CODE_STA             = 5015, 
+
+    OP_CODE_ADD             = 5020, OP_CODE_ADDB            = 5021, OP_CODE_ADDH            = 5022,
+    OP_CODE_ADDW            = 5023, 
+
+    OP_CODE_ADC             = 5025, OP_CODE_ADCB            = 5026, OP_CODE_ADCH            = 5027,
+    OP_CODE_ADCW            = 5028, 
+
+    OP_CODE_SUB             = 5030, OP_CODE_SUBB            = 5031, OP_CODE_SUBH            = 5032,
+    OP_CODE_SUBW            = 5033, 
+
+    OP_CODE_SBC             = 5035, OP_CODE_SBCB            = 5036, OP_CODE_SBCH            = 5037,
+    OP_CODE_SBCW            = 5038, 
+
+    OP_CODE_AND             = 5040, OP_CODE_ANDB            = 5041, OP_CODE_ANDH            = 5042,
+    OP_CODE_ANDW            = 5043, 
+
+    OP_CODE_OR              = 5045, OP_CODE_ORB             = 5046, OP_CODE_ORH             = 5047,
+    OP_CODE_ORW             = 5048, 
+
+    OP_CODE_XOR             = 5050, OP_CODE_XORB            = 5051, OP_CODE_XORH            = 5052,
+    OP_CODE_XORW            = 5053,
+    
+    OP_CODE_CMP             = 5060, OP_CODE_CMPB            = 5061, OP_CODE_CMPH            = 5062,
+    OP_CODE_CMPW            = 5063,
+
+    OP_CODE_CMPU            = 5065, OP_CODE_CMPUB           = 5066, OP_CODE_CMPUH           = 5067,
+    OP_CODE_CMPUW           = 5068,
+    
+    OP_CODE_LSID            = 5070, OP_CODE_EXTR            = 5071, OP_CODE_DEP             = 5072,
+    OP_CODE_DSR             = 5073, OP_CODE_SHLA            = 5074, OP_CODE_CMR             = 5075,
+    OP_CODE_LDIL            = 5076, OP_CODE_ADDIL           = 5077, OP_CODE_LDO             = 5078,
+
+    OP_CODE_B               = 5080, OP_CODE_GATE            = 5081, OP_CODE_BR              = 5082,
+    OP_CODE_BV              = 5083, OP_CODE_BE              = 5084, OP_CODE_BVE             = 5085,
+    OP_CODE_CBR             = 5086, OP_CODE_CBRU            = 5087, 
+
+    OP_CODE_MR              = 5090, OP_CODE_MST             = 5091, OP_CODE_DS              = 5092,
+    OP_CODE_LDPA            = 5093, OP_CODE_PRB             = 5094, OP_CODE_ITLB            = 5095,
+    OP_CODE_PTLB            = 5096, OP_CODE_PCA             = 5097, OP_CODE_DIAG            = 5098,
+    
+    OP_CODE_RFI             = 5100, OP_CODE_BRK             = 5101,
+
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -234,6 +288,69 @@ enum ErrMsgId : uint16_t {
 //
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals;
+
+//------------------------------------------------------------------------------------------------------------
+// The command line interpreter as well as the one line assembler work the command line or assembley line
+// processed as a list of tokens. A token found in a string is recorded using the token structure.
+//  
+//------------------------------------------------------------------------------------------------------------
+struct DrvToken {
+
+    char        name[ 16 ]; // ??? for now...
+
+    // ??? need to unify all our token table... ENV, CMD, and ASM
+
+    TokId       tokGrpId;
+    TokId       tokenId;
+    uint32_t    val;
+    uint32_t    flags;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The tokeinizer needs a table of resreved token identifiers. This tabkle is just an array of tokens
+// swhoch have a nam an Id, a grop Id, an opional value and flags for further data to keep with the token.
+//
+//------------------------------------------------------------------------------------------------------------
+struct DrvTokenTab {
+
+    uint16_t    size;
+    DrvToken    *map;
+    
+
+    // ??? all teh lookup functions ?
+};
+
+  
+//------------------------------------------------------------------------------------------------------------
+// Tokenizer object. The command line interface as well as the one line assembler parse their input line. The
+// tokenizer will return the tokens found in the line.
+//
+//------------------------------------------------------------------------------------------------------------
+struct DrvTokenizer {
+
+    public:
+
+    DrvTokenizer( );
+
+    bool        setupTokenizer( char *lineBuf, DrvTokenTab *tokTab );
+    
+    void        nextToken( );
+    DrvToken    currentToken;
+
+    private: 
+
+    void        nextChar( );
+    void        parseNum( );
+    void        parseString( );
+    void        parseIdent( );
+
+    char        tokenLine[ 256 ]; // ??? for now ...
+    int         currentLineLen;
+    int         currentCharIndex;
+    int         currentTokCharIndex;
+    char        currentChar;
+
+};
 
 //------------------------------------------------------------------------------------------------------------
 // Driver environment variables. There is a simple "name=value" dictionary.

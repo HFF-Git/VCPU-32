@@ -87,6 +87,8 @@ const int   TOK_ALIAS_NAME_SIZE = 8;
 const int   TOK_LARGE_STR_SIZE  = 256;
 const int   PATH_STR_SIZE       = 256;
 
+// ??? simplify, take out alias and make the owen token tab entries...
+
 struct {
     
     char    name[ TOK_NAME_SIZE ];
