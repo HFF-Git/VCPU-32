@@ -42,263 +42,246 @@
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
-// Tokens are the labels for reserved words recognized by the command input. They also serve as attribute
-// values and numeric for some command options and settings.
+// Tokens are the labels for reserved words and symbols recognized by the tokenizer. Tokens are further
+// grouped in sets. The tokenizer file has a global table with all tokens known to the simulator.
 //
 //------------------------------------------------------------------------------------------------------------
 enum TokId : uint16_t {
     
     //--------------------------------------------------------------------------------------------------------
-    // General tokens.
+    // Token Sets.
     //
     //--------------------------------------------------------------------------------------------------------
-    TOK_NIL                 = 0,    TOK_INV                 = 1,    TOK_ALL                 = 2,
-    TOK_TRUE                = 3,    TOK_FALSE               = 4,    TOK_DEF                 = 5,
-    TOK_ERR                 = 6,    TOK_EOS                 = 7,
+    SET_NIL                 = 900,      ENV_SET                 = 901,      CMD_SET                 = 902,
+    FMT_SET                 = 903,      REG_SET                 = 904,      REG_SET_ALL             = 905,
     
-    TOK_CPU                 = 6,    TOK_MEM                 = 7,    TOK_STATS               = 8,
+    GR_SET                  = 910,      SR_SET                  = 911,      CR_SET                  = 912,
+    PS_SET                  = 913,      FD_SET                  = 914,      OF_SET                  = 915,
+    PR_SET                  = 916,
     
-    TOK_C                   = 100,  TOK_D                   = 101,  TOK_F                   = 102,
-    TOK_I                   = 103,  TOK_T                   = 104,  TOK_U                   = 105,
+    IC_L1_SET               = 917,      DC_L1_SET               = 918,      UC_L2_SET               = 919,
+    MEM_SET                 = 920,      ITLB_SET                = 921,      DTLB_SET                = 922,
+
+    OP_CODE_SET             = 930,      OP_CODE_SET_S           = 931,
     
-    TOK_DEC                 = 12,   TOK_OCT                 = 13,   TOK_HEX                 = 14,
-    
-    TOK_PM                  = 20,   TOK_PC                  = 21,   TOK_IT                  = 22,
-    TOK_DT                  = 23,   TOK_IC                  = 24,   TOK_DC                  = 25,
-    TOK_UC                  = 26,   TOK_TX                  = 27,
-    
-    TOK_ICR                 = 28,   TOK_DCR                 = 29,   TOK_UCR                 = 30,
-    TOK_ITR                 = 31,   TOK_DTR                 = 32,   TOK_MCR                 = 33,
-    TOK_PCR                 = 34,   TOK_IOR                 = 35,
-    
-    TOK_EQ                  = 40,   TOK_NE                  = 41,   TOK_LT                  = 42,
-    TOK_GT                  = 43,   TOK_LE                  = 44,   TOK_GE                  = 45,
-    
-    TOK_IDENT               = 50,   TOK_NUM                 = 51,   TOK_STR                 = 52,
+    //--------------------------------------------------------------------------------------------------------
+    // General tokens and smybols.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    TOK_NIL                 = 0,    TOK_ERR                 = 6,    TOK_EOS                 = 7,
     
     TOK_COMMA               = 60,   TOK_PERIOD              = 61,   TOK_LPAREN              = 62,
     TOK_RPAREN              = 63,   TOK_QUOTE               = 64,   TOK_PLUS                = 65,
     TOK_MINUS               = 66,   TOK_MULT                = 67,   TOK_DIV                 = 68,
     TOK_MOD                 = 69,   TOK_REM                 = 70,   TOK_NEG                 = 71,
     TOK_AND                 = 72,   TOK_OR                  = 73,   TOK_XOR                 = 74,
+    TOK_EQ                  = 40,   TOK_NE                  = 41,   TOK_LT                  = 42,
+    TOK_GT                  = 43,   TOK_LE                  = 44,   TOK_GE                  = 45,
     
-    // ??? symbols...
+    TOK_IDENT               = 50,   TOK_NUM                 = 51,   TOK_STR                 = 52,
     
-#if 0
     
-    TT_GREG         = 2,
-    TT_SREG         = 3,
-    TT_CREG         = 4,
-    TT_NUM          = 5,
-    TT_IDENT        = 6,
-    TT_STR          = 7,
+    //--------------------------------------------------------------------------------------------------------
+    //
+    //
+    //--------------------------------------------------------------------------------------------------------
     
-    TT_COMMA        = 10,
-    TT_PERIOD       = 11,
-    TT_LPAREN       = 12,
-    TT_RPAREN       = 13,
-    TT_QUOTE        = 14,
-    TT_PLUS         = 15,
-    TT_MINUS        = 16,
-    TT_MULT         = 17,
-    TT_DIV          = 18,
-    TT_MOD          = 19,
-    TT_NEG          = 20,
-    TT_AND          = 21,
-    TT_OR           = 22,
-    TT_XOR          = 23,
+    TOK_DEF                 = 5,
+    TOK_INV                 = 1,        TOK_ALL                 = 2,
     
-    TT_ERR          = 100,
-    TT_EOS          = 101
+    TOK_TRUE                = 3,        TOK_FALSE               = 4,
     
-#endif
+    TOK_CPU                 = 6,        TOK_MEM                 = 7,        TOK_STATS               = 8,
     
- 
+    TOK_C                   = 100,      TOK_D                   = 101,      TOK_F                   = 102,
+    TOK_I                   = 103,      TOK_T                   = 104,      TOK_U                   = 105,
     
+    TOK_DEC                 = 12,       TOK_OCT                 = 13,       TOK_HEX                 = 14,
+    
+    TOK_PM                  = 20,       TOK_PC                  = 21,       TOK_IT                  = 22,
+    TOK_DT                  = 23,       TOK_IC                  = 24,       TOK_DC                  = 25,
+    TOK_UC                  = 26,       TOK_TX                  = 27,
+    
+    TOK_ICR                 = 28,       TOK_DCR                 = 29,       TOK_UCR                 = 30,
+    TOK_ITR                 = 31,       TOK_DTR                 = 32,       TOK_MCR                 = 33,
+    TOK_PCR                 = 34,       TOK_IOR                 = 35,
+    
+   
+    
+    
+   
     //--------------------------------------------------------------------------------------------------------
     // Environment variable tokens.
     //
     //--------------------------------------------------------------------------------------------------------
-    ENV_TYP_INT             = 500,  ENV_TYP_UINT            = 501,  ENV_TYP_STR             = 502,
-    ENV_TYP_BOOL            = 503,  ENV_TYP_TOK             = 504,
+    ENV_TYP_INT             = 500,      ENV_TYP_UINT            = 501,      ENV_TYP_STR             = 502,
+    ENV_TYP_BOOL            = 503,      ENV_TYP_TOK             = 504,
     
-    ENV_I_TLB_SETS          = 510,  ENV_I_TLB_SIZE          = 511,
-    ENV_D_TLB_SETS          = 512,  ENV_D_TLB_SIZE          = 513,
+    ENV_I_TLB_SETS          = 510,      ENV_I_TLB_SIZE          = 511,
+    ENV_D_TLB_SETS          = 512,      ENV_D_TLB_SIZE          = 513,
     
-    ENV_I_CACHE_SETS        = 520,  ENV_I_CACHE_SIZE        = 521,  ENV_I_CACHE_LINE_SIZE   = 522,
-    ENV_D_CACHE_SETS        = 530,  ENV_D_CACHE_SIZE        = 531,  ENV_D_CACHE_LINE_SIZE   = 532,
-    ENV_U_CACHE_SETS        = 535,  ENV_U_CACHE_SIZE        = 536,  ENV_U_CACHE_LINE_SIZE   = 537,
-    ENV_MEM_SIZE            = 541,  ENV_MEM_BANKS           = 542,  ENV_MEM_BANK_SIZE       = 543,
-    ENV_MEM_R_ACC_CYCLE     = 544,  ENV_MEM_W_ACC_CYCLE     = 545,
+    ENV_I_CACHE_SETS        = 520,      ENV_I_CACHE_SIZE        = 521,      ENV_I_CACHE_LINE_SIZE   = 522,
+    ENV_D_CACHE_SETS        = 530,      ENV_D_CACHE_SIZE        = 531,      ENV_D_CACHE_LINE_SIZE   = 532,
+    ENV_U_CACHE_SETS        = 535,      ENV_U_CACHE_SIZE        = 536,      ENV_U_CACHE_LINE_SIZE   = 537,
+    ENV_MEM_SIZE            = 541,      ENV_MEM_BANKS           = 542,      ENV_MEM_BANK_SIZE       = 543,
+    ENV_MEM_R_ACC_CYCLE     = 544,      ENV_MEM_W_ACC_CYCLE     = 545,
     
-    ENV_CMD_CNT             = 550,  ENV_SHOW_CMD_CNT        = 551,  ENV_ECHO_CMD            = 552,
-    ENV_FMT_DEF             = 553,  ENV_EXIT_CODE           = 554,  ENV_WORDS_PER_LINE      = 555,
-    ENV_PROG_VERSION        = 556,  ENV_GIT_BRANCH          = 557,  ENV_PROG_PATCH_LEVEL    = 558,
-    ENV_STEP_IN_CLOCKS      = 559,  ENV_SHOW_PSTAGE_INFO    = 560,  ENV_PASS_CNT            = 561,
-    ENV_FAIL_CNT            = 562,  ENV_WIN_MIN_ROWS        = 563,  ENV_WIN_TX_WIDTH        = 564,
+    ENV_CMD_CNT             = 550,      ENV_SHOW_CMD_CNT        = 551,      ENV_ECHO_CMD            = 552,
+    ENV_FMT_DEF             = 553,      ENV_EXIT_CODE           = 554,      ENV_WORDS_PER_LINE      = 555,
+    ENV_PROG_VERSION        = 556,      ENV_GIT_BRANCH          = 557,      ENV_PROG_PATCH_LEVEL    = 558,
+    ENV_STEP_IN_CLOCKS      = 559,      ENV_SHOW_PSTAGE_INFO    = 560,      ENV_PASS_CNT            = 561,
+    ENV_FAIL_CNT            = 562,      ENV_WIN_MIN_ROWS        = 563,      ENV_WIN_TX_WIDTH        = 564,
     
-    //--------------------------------------------------------------------------------------------------------
-    // Token Sets.
-    //
-    //--------------------------------------------------------------------------------------------------------
-    SET_NIL                 = 900,  ENV_SET                 = 901,  CMD_SET                 = 902,
-    FMT_SET                 = 903,  REG_SET                 = 904,  REG_SET_ALL             = 905,
     
-    GR_SET                  = 910,  SR_SET                  = 911,  CR_SET                  = 912,
-    PS_SET                  = 913,  FD_SET                  = 914,  OF_SET                  = 915,
-    PR_SET                  = 916,
-    
-    IC_L1_SET               = 917,  DC_L1_SET               = 918,  UC_L2_SET               = 919,
-    MEM_SET                 = 920,  ITLB_SET                = 921,  DTLB_SET                = 922,
-
-    OP_CODE_SET             = 930,  OP_CODE_SET_S           = 931,
     
     //--------------------------------------------------------------------------------------------------------
     // Line Commands.
     //
     //--------------------------------------------------------------------------------------------------------
-    CMD_COMMENT             = 1000,   CMD_ENV               = 1001, CMD_EXIT              = 1002,
-    CMD_HELP                = 1003,   CMD_WHELP             = 1004,
+    CMD_COMMENT             = 1000,     CMD_ENV                 = 1001,     CMD_EXIT                = 1002,
+    CMD_HELP                = 1003,     CMD_WHELP               = 1004,
     
-    CMD_RESET               = 1010,   CMD_RUN               = 1011, CMD_STEP              = 1012,
-    CMD_XF                  = 1013,   CMD_DIS_ASM           = 1014, CMD_ASM               = 1015,
+    CMD_RESET               = 1010,     CMD_RUN                 = 1011,     CMD_STEP                = 1012,
+    CMD_XF                  = 1013,     CMD_DIS_ASM             = 1014,     CMD_ASM                 = 1015,
     
-    CMD_B                   = 1016,   CMD_BD                = 1017, CMD_BL                = 1018,
+    CMD_B                   = 1016,     CMD_BD                  = 1017,     CMD_BL                  = 1018,
     
-    CMD_DR                  = 1020,   CMD_MR                = 1021,
-    CMD_DA                  = 1027,   CMD_MA                = 1028,
-    CMD_DAA                 = 1029,   CMD_MAA               = 1030,
-    CMD_LMF                 = 1031,   CMD_SMF               = 1032,
+    CMD_DR                  = 1020,     CMD_MR                  = 1021,
+    CMD_DA                  = 1027,     CMD_MA                  = 1028,
+    CMD_DAA                 = 1029,     CMD_MAA                 = 1030,
+    CMD_LMF                 = 1031,     CMD_SMF                 = 1032,
     
     CMD_HASH_VA             = 1033,
-    CMD_D_TLB               = 1034,   CMD_I_TLB             = 1035, CMD_P_TLB             = 1036,
-    CMD_D_CACHE             = 1037,   CMD_P_CACHE           = 1038,
+    CMD_D_TLB               = 1034,     CMD_I_TLB               = 1035,     CMD_P_TLB               = 1036,
+    CMD_D_CACHE             = 1037,     CMD_P_CACHE             = 1038,
     
     //--------------------------------------------------------------------------------------------------------
     // Window Commands.
     //
     //--------------------------------------------------------------------------------------------------------
-    CMD_WON                 = 2000, CMD_WOFF                = 2001, CMD_WDEF                = 2002,
-    CMD_CWL                 = 2003, CMD_WSE                 = 2004, CMD_WSD                 = 2005,
+    CMD_WON                 = 2000,     CMD_WOFF                = 2001,     CMD_WDEF                = 2002,
+    CMD_CWL                 = 2003,     CMD_WSE                 = 2004,     CMD_WSD                 = 2005,
     
-    CMD_PSE                 = 2010, CMD_PSD                 = 2011, CMD_PSR                 = 2012,
-    CMD_SRE                 = 2015, CMD_SRD                 = 2016, CMD_SRR                 = 2017,
-    CMD_PLE                 = 2020, CMD_PLD                 = 2021, CMD_PLR                 = 2022,
-    CMD_SWE                 = 2025, CMD_SWD                 = 2026, CMD_SWR                 = 2027,
+    CMD_PSE                 = 2010,     CMD_PSD                 = 2011,     CMD_PSR                 = 2012,
+    CMD_SRE                 = 2015,     CMD_SRD                 = 2016,     CMD_SRR                 = 2017,
+    CMD_PLE                 = 2020,     CMD_PLD                 = 2021,     CMD_PLR                 = 2022,
+    CMD_SWE                 = 2025,     CMD_SWD                 = 2026,     CMD_SWR                 = 2027,
     
-    CMD_WE                  = 2050, CMD_WD                  = 2051, CMD_WR                  = 2052,
-    CMD_WF                  = 2053, CMD_WB                  = 2054, CMD_WH                  = 2055,
-    CMD_WJ                  = 2056, CMD_WL                  = 2057, CMD_WN                  = 2058,
-    CMD_WK                  = 2059, CMD_WS                  = 2060, CMD_WC                  = 2061,
-    CMD_WT                  = 2062, CMD_WX                  = 2063,
+    CMD_WE                  = 2050,     CMD_WD                  = 2051,     CMD_WR                  = 2052,
+    CMD_WF                  = 2053,     CMD_WB                  = 2054,     CMD_WH                  = 2055,
+    CMD_WJ                  = 2056,     CMD_WL                  = 2057,     CMD_WN                  = 2058,
+    CMD_WK                  = 2059,     CMD_WS                  = 2060,     CMD_WC                  = 2061,
+    CMD_WT                  = 2062,     CMD_WX                  = 2063,
     
     //--------------------------------------------------------------------------------------------------------
     // General, Segment and Control Registers
     //
     //--------------------------------------------------------------------------------------------------------
-    GR_0                    = 4100, GR_1                    = 4101, GR_2                    = 4102,
-    GR_3                    = 4103, GR_4                    = 4104, GR_5                    = 4105,
-    GR_6                    = 4106, GR_7                    = 4107, GR_8                    = 4108,
-    GR_9                    = 4109, GR_10                   = 4110, GR_11                   = 4111,
-    GR_12                   = 4112, GR_13                   = 4113, GR_14                   = 4114,
+    GR_0                    = 4100,     GR_1                    = 4101,     GR_2                    = 4102,
+    GR_3                    = 4103,     GR_4                    = 4104,     GR_5                    = 4105,
+    GR_6                    = 4106,     GR_7                    = 4107,     GR_8                    = 4108,
+    GR_9                    = 4109,     GR_10                   = 4110,     GR_11                   = 4111,
+    GR_12                   = 4112,     GR_13                   = 4113,     GR_14                   = 4114,
     GR_15                   = 4115,
     
-    SR_0                    = 4200, SR_1                    = 4201, SR_2                    = 4202,
-    SR_3                    = 4203, SR_4                    = 4204, SR_5                    = 4205,
-    SR_6                    = 4206, SR_7                    = 4207,
+    SR_0                    = 4200,     SR_1                    = 4201,     SR_2                    = 4202,
+    SR_3                    = 4203,     SR_4                    = 4204,     SR_5                    = 4205,
+    SR_6                    = 4206,     SR_7                    = 4207,
     
-    CR_0                    = 4300, CR_1                    = 4301, CR_2                    = 4302,
-    CR_3                    = 4303, CR_4                    = 4304, CR_5                    = 4305,
-    CR_6                    = 4306, CR_7                    = 4307, CR_8                    = 4308,
-    CR_9                    = 4309, CR_10                   = 4310, CR_11                   = 4311,
-    CR_12                   = 4312, CR_13                   = 4313, CR_14                   = 4314,
-    CR_15                   = 4315, CR_16                   = 4316, CR_17                   = 4317,
-    CR_18                   = 4318, CR_19                   = 4319, CR_20                   = 4320,
-    CR_21                   = 4321, CR_22                   = 4322, CR_23                   = 4323,
-    CR_24                   = 4324, CR_25                   = 4325, CR_26                   = 4326,
-    CR_27                   = 4327, CR_28                   = 4328, CR_29                   = 4329,
-    CR_30                   = 4330, CR_31                   = 4331,
+    CR_0                    = 4300,     CR_1                    = 4301,     CR_2                    = 4302,
+    CR_3                    = 4303,     CR_4                    = 4304,     CR_5                    = 4305,
+    CR_6                    = 4306,     CR_7                    = 4307,     CR_8                    = 4308,
+    CR_9                    = 4309,     CR_10                   = 4310,     CR_11                   = 4311,
+    CR_12                   = 4312,     CR_13                   = 4313,     CR_14                   = 4314,
+    CR_15                   = 4315,     CR_16                   = 4316,     CR_17                   = 4317,
+    CR_18                   = 4318,     CR_19                   = 4319,     CR_20                   = 4320,
+    CR_21                   = 4321,     CR_22                   = 4322,     CR_23                   = 4323,
+    CR_24                   = 4324,     CR_25                   = 4325,     CR_26                   = 4326,
+    CR_27                   = 4327,     CR_28                   = 4328,     CR_29                   = 4329,
+    CR_30                   = 4330,     CR_31                   = 4331,
     
-    PS_IA_SEG               = 4400, PS_IA_OFS               = 4401, PS_STATUS               = 4402,
+    PS_IA_SEG               = 4400,     PS_IA_OFS               = 4401,     PS_STATUS               = 4402,
     
-    FD_IA_SEG               = 4500, FD_IA_OFS               = 4501, FD_INSTR                = 4502,
-    FD_A                    = 4503, FD_B                    = 4504, FD_X                    = 4505,
+    FD_IA_SEG               = 4500,     FD_IA_OFS               = 4501,     FD_INSTR                = 4502,
+    FD_A                    = 4503,     FD_B                    = 4504,     FD_X                    = 4505,
     
-    MA_IA_SEG               = 4600, MA_IA_OFS               = 4601, MA_INSTR                = 4602,
-    MA_A                    = 4603, MA_B                    = 4604, MA_X                    = 4605,
+    MA_IA_SEG               = 4600,     MA_IA_OFS               = 4601,     MA_INSTR                = 4602,
+    MA_A                    = 4603,     MA_B                    = 4604,     MA_X                    = 4605,
     MA_S                    = 4606,
     
-    IC_L1_STATE             = 4700, IC_L1_REQ               = 4701, IC_L1_REQ_SEG           = 4702,
-    IC_L1_REQ_OFS           = 4703, IC_L1_REQ_TAG           = 4704, IC_L1_REQ_LEN           = 4705,
-    IC_L1_LATENCY           = 4706, IC_L1_BLOCK_ENTRIES     = 4707, IC_L1_BLOCK_SIZE        = 4708,
+    IC_L1_STATE             = 4700,     IC_L1_REQ               = 4701,     IC_L1_REQ_SEG           = 4702,
+    IC_L1_REQ_OFS           = 4703,     IC_L1_REQ_TAG           = 4704,     IC_L1_REQ_LEN           = 4705,
+    IC_L1_LATENCY           = 4706,     IC_L1_BLOCK_ENTRIES     = 4707,     IC_L1_BLOCK_SIZE        = 4708,
     IC_L1_SETS              = 4709,
     
-    DC_L1_STATE             = 4710, DC_L1_REQ               = 4711, DC_L1_REQ_SEG           = 4712,
-    DC_L1_REQ_OFS           = 4713, DC_L1_REQ_TAG           = 4714, DC_L1_REQ_LEN           = 4715,
-    DC_L1_LATENCY           = 4716, DC_L1_BLOCK_ENTRIES     = 4717, DC_L1_BLOCK_SIZE        = 4718,
+    DC_L1_STATE             = 4710,     DC_L1_REQ               = 4711,     DC_L1_REQ_SEG           = 4712,
+    DC_L1_REQ_OFS           = 4713,     DC_L1_REQ_TAG           = 4714,     DC_L1_REQ_LEN           = 4715,
+    DC_L1_LATENCY           = 4716,     DC_L1_BLOCK_ENTRIES     = 4717,     DC_L1_BLOCK_SIZE        = 4718,
     DC_L1_SETS              = 4719,
     
-    UC_L2_STATE             = 4720, UC_L2_REQ               = 4721, UC_L2_REQ_SEG           = 4722,
-    UC_L2_REQ_OFS           = 4723, UC_L2_REQ_TAG           = 4724, UC_L2_REQ_LEN           = 4725,
-    UC_L2_LATENCY           = 4726, UC_L2_BLOCK_ENTRIES     = 4727, UC_L2_BLOCK_SIZE        = 4728,
+    UC_L2_STATE             = 4720,     UC_L2_REQ               = 4721,     UC_L2_REQ_SEG           = 4722,
+    UC_L2_REQ_OFS           = 4723,     UC_L2_REQ_TAG           = 4724,     UC_L2_REQ_LEN           = 4725,
+    UC_L2_LATENCY           = 4726,     UC_L2_BLOCK_ENTRIES     = 4727,     UC_L2_BLOCK_SIZE        = 4728,
     UC_L2_SETS              = 4729,
     
-    ITLB_STATE              = 4730, ITLB_REQ                = 4731, ITLB_REQ_SEG            = 4732,
+    ITLB_STATE              = 4730,     ITLB_REQ                = 4731,     ITLB_REQ_SEG            = 4732,
     ITLB_REQ_OFS            = 4733,
     
-    DTLB_STATE              = 4740, DTLB_REQ                = 4741, DTLB_REQ_SEG            = 4742,
+    DTLB_STATE              = 4740,     DTLB_REQ                = 4741,     DTLB_REQ_SEG            = 4742,
     DTLB_REQ_OFS            = 4743,
 
     //--------------------------------------------------------------------------------------------------------
     // OP Codes
     //
     //--------------------------------------------------------------------------------------------------------
-    OP_CODE_LD              = 5000, OP_CODE_LDB             = 5001, OP_CODE_LDH             = 5002,
-    OP_CODE_LDW             = 5003, OP_CODE_LDR             = 5004, OP_CODE_LDA             = 5005, 
+    OP_CODE_LD              = 5000,     OP_CODE_LDB             = 5001,     OP_CODE_LDH             = 5002,
+    OP_CODE_LDW             = 5003,     OP_CODE_LDR             = 5004,     OP_CODE_LDA             = 5005,
 
-    OP_CODE_ST              = 5010, OP_CODE_STB             = 5011, OP_CODE_STH             = 5012,
-    OP_CODE_STW             = 5013, STC                     = 5014, OP_CODE_STA             = 5015, 
+    OP_CODE_ST              = 5010,     OP_CODE_STB             = 5011,     OP_CODE_STH             = 5012,
+    OP_CODE_STW             = 5013,     OP_CODE_STC             = 5014,     OP_CODE_STA             = 5015,
 
-    OP_CODE_ADD             = 5020, OP_CODE_ADDB            = 5021, OP_CODE_ADDH            = 5022,
-    OP_CODE_ADDW            = 5023, 
+    OP_CODE_ADD             = 5020,     OP_CODE_ADDB            = 5021,     OP_CODE_ADDH            = 5022,
+    OP_CODE_ADDW            = 5023,
 
-    OP_CODE_ADC             = 5025, OP_CODE_ADCB            = 5026, OP_CODE_ADCH            = 5027,
-    OP_CODE_ADCW            = 5028, 
+    OP_CODE_ADC             = 5025,     OP_CODE_ADCB            = 5026,     OP_CODE_ADCH            = 5027,
+    OP_CODE_ADCW            = 5028,
 
-    OP_CODE_SUB             = 5030, OP_CODE_SUBB            = 5031, OP_CODE_SUBH            = 5032,
-    OP_CODE_SUBW            = 5033, 
+    OP_CODE_SUB             = 5030,     OP_CODE_SUBB            = 5031,     OP_CODE_SUBH            = 5032,
+    OP_CODE_SUBW            = 5033,
 
-    OP_CODE_SBC             = 5035, OP_CODE_SBCB            = 5036, OP_CODE_SBCH            = 5037,
-    OP_CODE_SBCW            = 5038, 
+    OP_CODE_SBC             = 5035,     OP_CODE_SBCB            = 5036,     OP_CODE_SBCH            = 5037,
+    OP_CODE_SBCW            = 5038,
 
-    OP_CODE_AND             = 5040, OP_CODE_ANDB            = 5041, OP_CODE_ANDH            = 5042,
-    OP_CODE_ANDW            = 5043, 
+    OP_CODE_AND             = 5040,     OP_CODE_ANDB            = 5041,     OP_CODE_ANDH            = 5042,
+    OP_CODE_ANDW            = 5043,
 
-    OP_CODE_OR              = 5045, OP_CODE_ORB             = 5046, OP_CODE_ORH             = 5047,
-    OP_CODE_ORW             = 5048, 
+    OP_CODE_OR              = 5045,     OP_CODE_ORB             = 5046,     OP_CODE_ORH             = 5047,
+    OP_CODE_ORW             = 5048,
 
-    OP_CODE_XOR             = 5050, OP_CODE_XORB            = 5051, OP_CODE_XORH            = 5052,
+    OP_CODE_XOR             = 5050,     OP_CODE_XORB            = 5051,     OP_CODE_XORH            = 5052,
     OP_CODE_XORW            = 5053,
     
-    OP_CODE_CMP             = 5060, OP_CODE_CMPB            = 5061, OP_CODE_CMPH            = 5062,
+    OP_CODE_CMP             = 5060,     OP_CODE_CMPB            = 5061,     OP_CODE_CMPH            = 5062,
     OP_CODE_CMPW            = 5063,
 
-    OP_CODE_CMPU            = 5065, OP_CODE_CMPUB           = 5066, OP_CODE_CMPUH           = 5067,
+    OP_CODE_CMPU            = 5065,     OP_CODE_CMPUB           = 5066,     OP_CODE_CMPUH           = 5067,
     OP_CODE_CMPUW           = 5068,
     
-    OP_CODE_LSID            = 5070, OP_CODE_EXTR            = 5071, OP_CODE_DEP             = 5072,
-    OP_CODE_DSR             = 5073, OP_CODE_SHLA            = 5074, OP_CODE_CMR             = 5075,
-    OP_CODE_LDIL            = 5076, OP_CODE_ADDIL           = 5077, OP_CODE_LDO             = 5078,
+    OP_CODE_LSID            = 5070,     OP_CODE_EXTR            = 5071,     OP_CODE_DEP             = 5072,
+    OP_CODE_DSR             = 5073,     OP_CODE_SHLA            = 5074,     OP_CODE_CMR             = 5075,
+    OP_CODE_LDIL            = 5076,     OP_CODE_ADDIL           = 5077,     OP_CODE_LDO             = 5078,
 
-    OP_CODE_B               = 5080, OP_CODE_GATE            = 5081, OP_CODE_BR              = 5082,
-    OP_CODE_BV              = 5083, OP_CODE_BE              = 5084, OP_CODE_BVE             = 5085,
-    OP_CODE_CBR             = 5086, OP_CODE_CBRU            = 5087, 
+    OP_CODE_B               = 5080,     OP_CODE_GATE            = 5081,     OP_CODE_BR              = 5082,
+    OP_CODE_BV              = 5083,     OP_CODE_BE              = 5084,     OP_CODE_BVE             = 5085,
+    OP_CODE_CBR             = 5086,     OP_CODE_CBRU            = 5087,
 
-    OP_CODE_MR              = 5090, OP_CODE_MST             = 5091, OP_CODE_DS              = 5092,
-    OP_CODE_LDPA            = 5093, OP_CODE_PRB             = 5094, OP_CODE_ITLB            = 5095,
-    OP_CODE_PTLB            = 5096, OP_CODE_PCA             = 5097, OP_CODE_DIAG            = 5098,
+    OP_CODE_MR              = 5090,     OP_CODE_MST             = 5091,     OP_CODE_DS              = 5092,
+    OP_CODE_LDPA            = 5093,     OP_CODE_PRB             = 5094,     OP_CODE_ITLB            = 5095,
+    OP_CODE_PTLB            = 5096,     OP_CODE_PCA             = 5097,     OP_CODE_DIAG            = 5098,
     
-    OP_CODE_RFI             = 5100, OP_CODE_BRK             = 5101,
+    OP_CODE_RFI             = 5100,     OP_CODE_BRK             = 5101,
+    
+    OP_CODE_S_NOP           = 6000,
 
 };
 
@@ -309,19 +292,19 @@ enum TokId : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 enum ErrMsgId : uint16_t {
     
-    NO_ERR                      = 0,
-    INVALID_CMD_ERR             = 1,
-    NOT_IN_WIN_MODE_ERR         = 2,
-    OPEN_EXEC_FILE_ERR          = 3,
-    EXPECTED_FILE_NAME_ERR      = 4,
-    INVALID_WIN_STACK_ID        = 5,
-    INVALID_WIN_ID              = 6,
-    EXPECTED_WIN_ID             = 7,
-    INVALID_WIN_TYPE            = 8,
-    EXPECTED_WIN_TYPE           = 9,
-    EXPECTED_STACK_ID           = 10,
-    EXPECTED_FMT_OPT            = 11,
-    OUT_OF_WINDOWS_ERR          = 12
+    NO_ERR                          = 0,
+    ERR_INVALID_CMD                 = 1,
+    ERR_NOT_IN_WIN_MODE             = 2,
+    ERR_OPEN_EXEC_FILE              = 3,
+    ERR_EXPECTED_FILE_NAME          = 4,
+    ERR_INVALID_WIN_STACK_ID        = 5,
+    ERR_INVALID_WIN_ID              = 6,
+    ERR_EXPECTED_WIN_ID             = 7,
+    ERR_INVALID_WIN_TYPE            = 8,
+    ERR_EXPECTED_WIN_TYPE           = 9,
+    ERR_EXPECTED_STACK_ID           = 10,
+    ERR_EXPECTED_FMT_OPT            = 11,
+    ERR_OUT_OF_WINDOWS              = 12
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -341,30 +324,14 @@ struct DrvToken {
     char        name[ 16 ]; // ??? for now...
     TokId       tokGrpId;
     TokId       tokenId;
-
-    // ??? need to unify all our token table... ENV, CMD, and ASM
-
     uint32_t    val;
-    uint32_t    flags;
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The tokeinizer needs a table of resreved token identifiers. This tabkle is just an array of tokens
-// swhoch have a nam an Id, a grop Id, an opional value and flags for further data to keep with the token.
-//
-//------------------------------------------------------------------------------------------------------------
-struct DrvTokenTab {
-
-    uint16_t    size;
-    DrvToken    *map;
-    
-    // ??? all the lookup functions ?
 };
 
   
 //------------------------------------------------------------------------------------------------------------
-// Tokenizer object. The command line interface as well as the one line assembler parse their input line. The
-// tokenizer will return the tokens found in the line.
+// Tokenizer object. The command line interface as well as the one line assembler parse their buffer line.
+// The tokenizer will return the tokens found in the line. The tokenizer will will work with the global
+// token table found in the tokenizer source file.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvTokenizer {
@@ -373,7 +340,7 @@ struct DrvTokenizer {
 
     DrvTokenizer( );
 
-    uint8_t     setupTokenizer( char *lineBuf, DrvTokenTab *tokTab );
+    uint8_t     setupTokenizer( char *lineBuf );
     
     void        nextToken( );
     DrvToken    currentToken;
@@ -385,12 +352,12 @@ struct DrvTokenizer {
     void        parseString( );
     void        parseIdent( );
 
-    char        tokenLine[ 256 ]; // ??? for now ...
-    int         currentLineLen;
-    int         currentCharIndex;
-    int         currentTokCharIndex;
-    char        currentChar;
-
+    char        tokenLine[ 256 ]        = { 0 };
+    int         currentLineLen          = 0;
+    int         currentCharIndex        = 0;
+    int         currentTokCharIndex     = 0;
+    char        currentChar             = ' ';
+    uint8_t     currentTokErr           = NO_ERR;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1035,7 +1002,7 @@ private:
     
     VCPU32Globals   *glb       = nullptr;
     bool            winModeOn  = false;
-    TokId           currentCmd = TOK_INV;
+    TokId           currentCmd = TOK_NIL;
     
 };
 

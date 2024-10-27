@@ -88,7 +88,6 @@ const int   TOK_LARGE_STR_SIZE  = 256;
 const int   PATH_STR_SIZE       = 256;
 
 // ??? simplify, take out alias and make the owen token tab entries...
-
 struct {
     
     char    name[ TOK_NAME_SIZE ];
@@ -344,6 +343,8 @@ struct {
 
 const int   TOK_TAB_SIZE  = sizeof( tokTab ) / sizeof( *tokTab );
 
+
+
 //------------------------------------------------------------------------------------------------------------
 // The command line parser simply uses the "sscanf" library routine. Here are the formats for the various
 // command lines. "S" means a string input, "D" a numeric integer input, "U" an unsigned integer input.
@@ -532,18 +533,18 @@ void DrvCmds::printErrMsg( ErrMsgId errNum, char *argStr ) {
     
     switch ( errNum ) {
             
-        case NOT_IN_WIN_MODE_ERR:       fprintf( stdout, "Command only valid in Windows mode\n" ); break;
-        case OPEN_EXEC_FILE_ERR:        fprintf( stdout, "Error while opening file: \"%s\"\n", argStr ); break;
-        case EXPECTED_FILE_NAME_ERR:    fprintf( stdout, "Expected a file name\n" ); break;
-        case INVALID_CMD_ERR:           fprintf( stdout, "Invalid command, use help or whelp\n "); break;
-        case INVALID_WIN_STACK_ID:      fprintf( stdout, "Invalid window stack Id\n" ); break;
-        case EXPECTED_STACK_ID:         fprintf( stdout, "Expected stack Id\n" ); break;
-        case INVALID_WIN_ID:            fprintf( stdout, "Invalid window Id\n" ); break;
-        case EXPECTED_WIN_ID:           fprintf( stdout, "Expected a window Id\n" ); break;
-        case EXPECTED_FMT_OPT:          fprintf( stdout, "Expected a format option\n" ); break;
-        case INVALID_WIN_TYPE:          fprintf( stdout, "Invalid window type\n" ); break;
-        case EXPECTED_WIN_TYPE:         fprintf( stdout, "Expected a window type\n" ); break;
-        case OUT_OF_WINDOWS_ERR:        fprintf( stdout, "Cannot create more windows\n" ); break;
+        case ERR_NOT_IN_WIN_MODE:       fprintf( stdout, "Command only valid in Windows mode\n" ); break;
+        case ERR_OPEN_EXEC_FILE:        fprintf( stdout, "Error while opening file: \"%s\"\n", argStr ); break;
+        case ERR_EXPECTED_FILE_NAME:    fprintf( stdout, "Expected a file name\n" ); break;
+        case ERR_INVALID_CMD:           fprintf( stdout, "Invalid command, use help or whelp\n "); break;
+        case ERR_INVALID_WIN_STACK_ID:  fprintf( stdout, "Invalid window stack Id\n" ); break;
+        case ERR_EXPECTED_STACK_ID:     fprintf( stdout, "Expected stack Id\n" ); break;
+        case ERR_INVALID_WIN_ID:        fprintf( stdout, "Invalid window Id\n" ); break;
+        case ERR_EXPECTED_WIN_ID:       fprintf( stdout, "Expected a window Id\n" ); break;
+        case ERR_EXPECTED_FMT_OPT:      fprintf( stdout, "Expected a format option\n" ); break;
+        case ERR_INVALID_WIN_TYPE:      fprintf( stdout, "Invalid window type\n" ); break;
+        case ERR_EXPECTED_WIN_TYPE:     fprintf( stdout, "Expected a window type\n" ); break;
+        case ERR_OUT_OF_WINDOWS:        fprintf( stdout, "Cannot create more windows\n" ); break;
             
         default: {
             
@@ -695,9 +696,9 @@ void  DrvCmds::execCmdsFromFile( char* fileName ) {
                 dispatchCmd( cmdLineBuf );
             }
         }
-        else printErrMsg( OPEN_EXEC_FILE_ERR, fileName );
+        else printErrMsg( ERR_OPEN_EXEC_FILE, fileName );
     }
-    else printErrMsg( EXPECTED_FILE_NAME_ERR  );
+    else printErrMsg( ERR_EXPECTED_FILE_NAME  );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -810,7 +811,7 @@ void DrvCmds::winHelpCmd( char *cmdBuf ) {
 void DrvCmds::invalidCmd( char *cmdBuf ) {
     
     glb -> env -> setEnvVal( ENV_EXIT_CODE, -1 );
-    printErrMsg( INVALID_CMD_ERR );
+    printErrMsg( ERR_INVALID_CMD );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1896,7 +1897,7 @@ void DrvCmds::winOffCmd( char *cmdBuf ) {
         winModeOn = false;
         glb -> winDisplay -> windowsOff( );
     }
-    else printErrMsg( NOT_IN_WIN_MODE_ERR );
+    else printErrMsg( ERR_NOT_IN_WIN_MODE );
 }
 
 void DrvCmds::winDefCmd( char *cmdBuf ) {
@@ -1906,7 +1907,7 @@ void DrvCmds::winDefCmd( char *cmdBuf ) {
         glb -> winDisplay -> windowDefaults( );
         glb -> winDisplay -> reDraw( true );
     }
-    else printErrMsg( NOT_IN_WIN_MODE_ERR );
+    else printErrMsg( ERR_NOT_IN_WIN_MODE );
 }
 
 void DrvCmds::winStacksEnable( char *cmdBuf ) {
@@ -1916,7 +1917,7 @@ void DrvCmds::winStacksEnable( char *cmdBuf ) {
         glb -> winDisplay -> winStacksEnable( true );
         glb -> winDisplay -> reDraw( true );
     }
-    else printErrMsg( NOT_IN_WIN_MODE_ERR );
+    else printErrMsg( ERR_NOT_IN_WIN_MODE );
 }
 
 void DrvCmds::winStacksDisable( char *cmdBuf ) {
@@ -1926,7 +1927,7 @@ void DrvCmds::winStacksDisable( char *cmdBuf ) {
         glb -> winDisplay -> winStacksEnable( false );
         glb -> winDisplay -> reDraw( true );
     }
-    else printErrMsg( NOT_IN_WIN_MODE_ERR );
+    else printErrMsg( ERR_NOT_IN_WIN_MODE );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1943,19 +1944,19 @@ void DrvCmds::winCurrentCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 2 ) {
         
-        printErrMsg( EXPECTED_WIN_ID );
+        printErrMsg( ERR_EXPECTED_WIN_ID );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -1977,19 +1978,19 @@ void DrvCmds::winEnableCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 1 ) {
         
-        printErrMsg( EXPECTED_WIN_ID );
+        printErrMsg( ERR_EXPECTED_WIN_ID );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2005,19 +2006,19 @@ void DrvCmds::winDisableCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 1 ) {
         
-        printErrMsg( EXPECTED_WIN_ID );
+        printErrMsg( ERR_EXPECTED_WIN_ID );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2044,7 +2045,7 @@ void DrvCmds::winSetRadixCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
@@ -2053,7 +2054,7 @@ void DrvCmds::winSetRadixCmd( char *cmdBuf ) {
         TokId argId = matchFmtOptions( fmtStr );
         if ( argId == TOK_NIL ) {
             
-            printErrMsg( EXPECTED_FMT_OPT );
+            printErrMsg( ERR_EXPECTED_FMT_OPT );
             return;
         }
         else fmtId = argId;
@@ -2062,7 +2063,7 @@ void DrvCmds::winSetRadixCmd( char *cmdBuf ) {
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2089,13 +2090,13 @@ void DrvCmds::winForwardCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2113,13 +2114,13 @@ void DrvCmds::winBackwardCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2144,13 +2145,13 @@ void DrvCmds::winHomeCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2174,13 +2175,13 @@ void DrvCmds::winJumpCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2204,13 +2205,13 @@ void DrvCmds::winSetRowsCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2235,19 +2236,19 @@ void DrvCmds::winNewWinCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 2 ) {
         
-        printErrMsg( EXPECTED_WIN_TYPE );
+        printErrMsg( ERR_EXPECTED_WIN_TYPE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validUserWindowType( winType )) {
         
-        printErrMsg( INVALID_WIN_TYPE);
+        printErrMsg( ERR_INVALID_WIN_TYPE);
         return;
     }
     
@@ -2283,7 +2284,7 @@ void DrvCmds::winKillWinCmd( char * cmdBuf ) {
   
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
@@ -2303,7 +2304,7 @@ void DrvCmds::winKillWinCmd( char * cmdBuf ) {
             
             if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
                     
-                printErrMsg( INVALID_WIN_ID );
+                printErrMsg( ERR_INVALID_WIN_ID );
                 return;
             }
             
@@ -2315,13 +2316,13 @@ void DrvCmds::winKillWinCmd( char * cmdBuf ) {
         if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||
             ( ! glb -> winDisplay -> validWindowNum( winNumEnd ))) {
                 
-            printErrMsg( INVALID_WIN_ID );
+            printErrMsg( ERR_INVALID_WIN_ID );
             return;
         }
     }
     else {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2345,7 +2346,7 @@ void DrvCmds::winSetStackCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
@@ -2370,7 +2371,7 @@ void DrvCmds::winSetStackCmd( char *cmdBuf ) {
             
             if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
                     
-                printErrMsg( INVALID_WIN_ID );
+                printErrMsg( ERR_INVALID_WIN_ID );
                 return;
             }
             
@@ -2382,19 +2383,19 @@ void DrvCmds::winSetStackCmd( char *cmdBuf ) {
         if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||
             ( ! glb -> winDisplay -> validWindowNum( winNumEnd ))) {
                 
-            printErrMsg( INVALID_WIN_ID );
+            printErrMsg( ERR_INVALID_WIN_ID );
             return;
         }
     }
     else {
         
-        printErrMsg( EXPECTED_STACK_ID );
+        printErrMsg( ERR_EXPECTED_STACK_ID );
         return;
     }
     
      if ( ! glb -> winDisplay -> validWindowStackNum( stackNum )) {
          
-         printErrMsg( INVALID_WIN_STACK_ID );
+         printErrMsg( ERR_INVALID_WIN_STACK_ID );
          return;
      }
      
@@ -2417,19 +2418,19 @@ void  DrvCmds::winToggleCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 1 ) {
         
-        printErrMsg( EXPECTED_WIN_ID );
+        printErrMsg( ERR_EXPECTED_WIN_ID );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2450,19 +2451,19 @@ void  DrvCmds::winExchangeCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( NOT_IN_WIN_MODE_ERR );
+        printErrMsg( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 1 ) {
         
-        printErrMsg( EXPECTED_WIN_ID );
+        printErrMsg( ERR_EXPECTED_WIN_ID );
         return;
     }
     
     if ( ! glb -> winDisplay -> validUserWindowNum( winNum )) {
         
-        printErrMsg( INVALID_WIN_ID );
+        printErrMsg( ERR_INVALID_WIN_ID );
         return;
     }
     
