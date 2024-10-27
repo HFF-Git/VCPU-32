@@ -959,50 +959,7 @@ public:
     
 private:
     
-    bool parseLine( char *inputStr, uint32_t *instr );
-    bool parserError( char *errStr );
-    bool checkEOS( );
-    
-    bool parseFactor( Expr *rExpr );
-    bool parseTerm( Expr *rExpr);
-    bool parseExpr( Expr *rExpr);
-    
-    bool parseInstrOptions( uint32_t *instr, uint32_t *flags );
-    bool parseLogicalAdr( uint32_t *instr, uint32_t flags );
-    bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags );
-    bool parseModeTypeInstr( uint32_t *instr, uint32_t flags );
-    bool parseInstrLSID( uint32_t *instr, uint32_t flags );
-    bool parseInstrDEP( uint32_t *instr, uint32_t flags );
-    bool parseInstrDS( uint32_t *instr, uint32_t flags );
-    bool parseInstrDSR( uint32_t *instr, uint32_t flags );
-    bool parseInstrEXTR( uint32_t *instr, uint32_t flags );
-    bool parseInstrSHLA( uint32_t *instr, uint32_t flags );
-    bool parseInstrCMR( uint32_t *instr, uint32_t flags );
-    bool parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags );
-    bool parseInstrLDO( uint32_t *instr, uint32_t flags );
-    bool parseInstrBandGATE( uint32_t *instr, uint32_t flags );
-    bool parseInstrBR( uint32_t *instr, uint32_t flags );
-    bool parseInstrBV( uint32_t *instr, uint32_t flags );
-    bool parseInstrBE( uint32_t *instr, uint32_t flags );
-    bool parseInstrBVE( uint32_t *instr, uint32_t flags );
-    bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags );
-    bool parseInstrLoad( uint32_t *instr, uint32_t flags );
-    bool parseInstrStore( uint32_t *instr, uint32_t flags );
-    bool parseInstrMR( uint32_t *instr, uint32_t flags );
-    bool parseInstrMST( uint32_t *instr, uint32_t flags );
-    bool parseInstrLDPA( uint32_t *instr, uint32_t flags );
-    bool parseInstrPRB( uint32_t *instr, uint32_t flags );
-    bool parseInstrITLB( uint32_t *instr, uint32_t flags );
-    bool parseInstrPTLB( uint32_t *instr, uint32_t flags );
-    bool parseInstrPCA( uint32_t *instr, uint32_t flags );
-    bool parseInstrDIAG( uint32_t *instr, uint32_t flags );
-    bool parseInstrRFI( uint32_t *instr, uint32_t flags );
-    bool parseInstrBRK( uint32_t *instr, uint32_t flags );
-    
-    bool parseSynthInstrNop( uint32_t *instr, uint32_t flags );
-    
     VCPU32Globals   *glb = nullptr;
-    DrvTokenizer    *tok;
     char            *inputStr;
     
 };

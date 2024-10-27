@@ -33,6 +33,8 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+DrvTokenizer *tok = new DrvTokenizer( );
+
 //------------------------------------------------------------------------------------------------------------
 // Token flags. They are used to communicate additional information about the the token to the assembly
 // process. Examples are the data width encoded in the opCode and the instruction mask.
@@ -134,9 +136,6 @@ void upshiftStr( char *str ) {
     }
 }
 
-} // namespace
-
-
 //------------------------------------------------------------------------------------------------------------
 // "parserError" is a little helper that prints out the error encountered. We will print the original
 // input line, a caret marker where we found the error, and then return a false. Parsing errors typically
@@ -144,7 +143,7 @@ void upshiftStr( char *str ) {
 // into continuing reasonably with the parsing process.
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parserError( char *errStr ) {
+bool parserError( char *errStr ) {
     
     fprintf( stdout, "%s\n", tok -> tokenLineStr( ));
     
@@ -166,11 +165,13 @@ bool DrvOneLineAsm::parserError( char *errStr ) {
 // assembly line.
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::checkEOS( ) {
+bool checkEOS( ) {
     
     if ( tok -> tokId( ) == TOK_EOS ) return( true );
     else return( parserError((char *) "Extra tokens in the assembler line" ));
 }
+
+bool parseExpr( Expr *rExpr );
 
 //------------------------------------------------------------------------------------------------------------
 // "parseFactor" parses the factor syntax part of an expression.
@@ -184,7 +185,7 @@ bool DrvOneLineAsm::checkEOS( ) {
 //                  "(" <expr> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseFactor( Expr *rExpr ) {
+bool parseFactor( Expr *rExpr ) {
     
     rExpr -> typ  = ET_NIL;
     rExpr -> val1 = 0;
@@ -274,7 +275,7 @@ bool DrvOneLineAsm::parseFactor( Expr *rExpr ) {
 //      <termOp>    ->  "*" | "/" | "%" | "&"
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseTerm( Expr *rExpr ) {
+bool parseTerm( Expr *rExpr ) {
     
     Expr lExpr;
     bool rStat;
@@ -316,7 +317,7 @@ bool DrvOneLineAsm::parseTerm( Expr *rExpr ) {
 //      <exprOp>    ->  "+" | "-" | "|" | "^"
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseExpr( Expr *rExpr ) {
+bool parseExpr( Expr *rExpr ) {
     
     Expr lExpr;
     bool rStat;
@@ -376,7 +377,7 @@ bool DrvOneLineAsm::parseExpr( Expr *rExpr ) {
 //
 // ??? rework a little. The period is separate from this string...
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
+bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
     
     if ( tok -> tokId( ) != TOK_IDENT ) {
         
@@ -584,7 +585,7 @@ bool DrvOneLineAsm::parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
 //      "(" [ <segReg> "," ] <ofsReg> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseLogicalAdr( uint32_t *instr, uint32_t flags ) {
+bool parseLogicalAdr( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -620,7 +621,7 @@ bool DrvOneLineAsm::parseLogicalAdr( uint32_t *instr, uint32_t flags ) {
 // <storeInstr> [ "." <opt> ] <targetOperand>   "," <sourceReg>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
+bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -680,7 +681,7 @@ bool DrvOneLineAsm::parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
 //      opCode [ "." <opt> ] <targetReg> "," <indexReg> "(" <baseReg> ")"         - mode 2
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
+bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
     
     uint8_t targetRegId = 0;
     Expr    rExpr;
@@ -780,7 +781,7 @@ bool DrvOneLineAsm::parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
 //      <opCode> <targetReg> "," <sourceReg>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrLSID( uint32_t *instr, uint32_t flags ) {
+bool parseInstrLSID( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -813,7 +814,7 @@ bool DrvOneLineAsm::parseInstrLSID( uint32_t *instr, uint32_t flags ) {
 //      DEP [ "." "AI" <opt> ]  <targetReg> "," <val> "," <len>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrDEP( uint32_t *instr, uint32_t flags ) {
+bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -906,7 +907,7 @@ bool DrvOneLineAsm::parseInstrDEP( uint32_t *instr, uint32_t flags ) {
 //      DS <targetReg> "," <sourceRegA> "," <sourceRegB>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrDS( uint32_t *instr, uint32_t flags ) {
+bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -946,7 +947,7 @@ bool DrvOneLineAsm::parseInstrDS( uint32_t *instr, uint32_t flags ) {
 //      DSR [ ".“ "A"   ] <targetReg> "," <sourceRegA> "," <sourceRegB>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrDSR( uint32_t *instr, uint32_t flags ) {
+bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1004,7 +1005,7 @@ bool DrvOneLineAsm::parseInstrDSR( uint32_t *instr, uint32_t flags ) {
 //      EXTR "." "A" [ <opt> ]  <targetReg> "," <sourceReg> ", <len"
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
+bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1069,7 +1070,7 @@ bool DrvOneLineAsm::parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
 //      SHLA ".I" <targetReg> "," <sourceRegA> "," <val> "," <amt>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
+bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1138,7 +1139,7 @@ bool DrvOneLineAsm::parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
 //      CMR "." <cond> <targetReg> "," <regA> "," <regB>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrCMR( uint32_t *instr, uint32_t flags ) {
+bool parseInstrCMR( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1179,7 +1180,7 @@ bool DrvOneLineAsm::parseInstrCMR( uint32_t *instr, uint32_t flags ) {
 //      ADDIL <sourceReg> "," <val>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
+bool parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1209,7 +1210,7 @@ bool DrvOneLineAsm::parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
 //      LDO <targetReg> "," [ <ofs> "," ] "(" <baseReg> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrLDO( uint32_t *instr, uint32_t flags ) {
+bool parseInstrLDO( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1253,7 +1254,7 @@ bool DrvOneLineAsm::parseInstrLDO( uint32_t *instr, uint32_t flags ) {
 //      GATE    <offset> [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
+bool parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1285,7 +1286,7 @@ bool DrvOneLineAsm::parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
 //      BR "(" <branchReg> ")" [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrBR( uint32_t *instr, uint32_t flags ) {
+bool parseInstrBR( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> tokId( ) == TOK_LPAREN ) tok -> nextToken( );
     else return ( parserError((char *) "Expected a left paren" ));
@@ -1321,7 +1322,7 @@ bool DrvOneLineAsm::parseInstrBR( uint32_t *instr, uint32_t flags ) {
 //      BV "(" <targetAdrReg> ")" [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrBV( uint32_t *instr, uint32_t flags ) {
+bool parseInstrBV( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> tokId( ) == TOK_LPAREN ) tok -> nextToken( );
     else return( parserError((char *) "Expected a left paren" ));
@@ -1358,7 +1359,7 @@ bool DrvOneLineAsm::parseInstrBV( uint32_t *instr, uint32_t flags ) {
 //      BE [ <ofs> ] "(" <segReg> "," <ofsReg> ")" [ "," <retSeg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrBE( uint32_t *instr, uint32_t flags ) {
+bool parseInstrBE( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1400,7 +1401,7 @@ bool DrvOneLineAsm::parseInstrBE( uint32_t *instr, uint32_t flags ) {
 //      BVE [ <offsetReg> ] "(" <baseReg> ")" [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrBVE( uint32_t *instr, uint32_t flags ) {
+bool parseInstrBVE( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1440,7 +1441,7 @@ bool DrvOneLineAsm::parseInstrBVE( uint32_t *instr, uint32_t flags ) {
 //      CBRU .<cond> <a>, <b>, <ofs>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
+bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1484,7 +1485,7 @@ bool DrvOneLineAsm::parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
 //      <opCode>.<opt> <targetReg>, <sourceOperand>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrLoad( uint32_t *instr, uint32_t flags ) {
+bool parseInstrLoadAndStore( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1500,27 +1501,6 @@ bool DrvOneLineAsm::parseInstrLoad( uint32_t *instr, uint32_t flags ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseInstrSTx" will parse the store instruction family. The workhorse is the "parseLoadStoreOperand"
-// routine, which parses the target. General form:
-//
-//      <opCode>.<opt> <targetOperand>, <sourceReg>
-//
-//------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrStore( uint32_t *instr, uint32_t flags ) {
-    
-    if ( ! parseLoadStoreOperand( instr, flags )) return( false );
-    
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
-  
-    if ( tok -> tokGrp( ) == GR_SET ) setBitField( instr, 9, 4, tok -> tokVal( ) );
-    else return( parserError((char *) "Expected a general register" ));
-
-    tok -> nextToken( );
-    return( checkEOS( ));
-}
-
-//------------------------------------------------------------------------------------------------------------
 // The "MR" instruction is a move register instruction. We parse valid combination and assemble the
 // instruction. Note that the "MR" instruction is primarily used for moving segment and control registers
 // to and from a general register. However, the syntax can also be used to move between general registers.
@@ -1529,7 +1509,7 @@ bool DrvOneLineAsm::parseInstrStore( uint32_t *instr, uint32_t flags ) {
 //      MR <targetReg> "," <sourceReg>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrMR( uint32_t *instr, uint32_t flags ) {
+bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1612,7 +1592,7 @@ bool DrvOneLineAsm::parseInstrMR( uint32_t *instr, uint32_t flags ) {
 //      MST.C <val>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrMST( uint32_t *instr, uint32_t flags ) {
+bool parseInstrMST( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1658,7 +1638,7 @@ bool DrvOneLineAsm::parseInstrMST( uint32_t *instr, uint32_t flags ) {
 //      LDPA <targetReg> ","  <indexReg> "(" [ <segmentReg>, ] <offsetReg > ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
+bool parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1687,7 +1667,7 @@ bool DrvOneLineAsm::parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
 //      PRB [ "." <opt> ] <targetReg> "," "(" [ <segmentReg>, ] <offsetReg > ")" [ "," <argReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrPRB( uint32_t *instr, uint32_t flags ) {
+bool parseInstrPRB( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1731,7 +1711,7 @@ bool DrvOneLineAsm::parseInstrPRB( uint32_t *instr, uint32_t flags ) {
 //      ITLB [.<opt>] <tlbInfoReg> "," "(" <segmentReg> "," <offsetReg> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrITLB( uint32_t *instr, uint32_t flags ) {
+bool parseInstrITLB( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1767,7 +1747,7 @@ bool DrvOneLineAsm::parseInstrITLB( uint32_t *instr, uint32_t flags ) {
 //      PTLB [ "." <opt> ] [ <indexReg" ] "(" [ <segmentReg>, ] <offsetReg > ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrPTLB( uint32_t *instr, uint32_t flags ) {
+bool parseInstrPTLB( uint32_t *instr, uint32_t flags ) {
 
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1790,7 +1770,7 @@ bool DrvOneLineAsm::parseInstrPTLB( uint32_t *instr, uint32_t flags ) {
 //      PCA [ "." <opt> ] [ <indexReg" ] "(" [ <segmentReg>, ] <offsetReg > ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrPCA( uint32_t *instr, uint32_t flags ) {
+bool parseInstrPCA( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1813,7 +1793,7 @@ bool DrvOneLineAsm::parseInstrPCA( uint32_t *instr, uint32_t flags ) {
 //      DIAG <resultReg> "," <parmRegA> "," <parmRegB> "," <info>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
+bool parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1867,7 +1847,7 @@ bool DrvOneLineAsm::parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
 //      RFI
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrRFI( uint32_t *instr, uint32_t flags ) {
+bool parseInstrRFI( uint32_t *instr, uint32_t flags ) {
     
     return( checkEOS( ));
 }
@@ -1878,7 +1858,7 @@ bool DrvOneLineAsm::parseInstrRFI( uint32_t *instr, uint32_t flags ) {
 //      BRK <info1> "," <info2>
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseInstrBRK( uint32_t *instr, uint32_t flags ) {
+bool parseInstrBRK( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
@@ -1908,7 +1888,7 @@ bool DrvOneLineAsm::parseInstrBRK( uint32_t *instr, uint32_t flags ) {
 //      NOP
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseSynthInstrNop( uint32_t *instr, uint32_t flags ) {
+bool parseSynthInstrNop( uint32_t *instr, uint32_t flags ) {
     
     *instr = 0x0;
     
@@ -1932,7 +1912,7 @@ bool DrvOneLineAsm::parseSynthInstrNop( uint32_t *instr, uint32_t flags ) {
 // final instruction bit pattern.
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvOneLineAsm::parseLine( char *inputStr, uint32_t *instr ) {
+bool parseLine( char *inputStr, uint32_t *instr ) {
     
     uint32_t    flags   = 0;
     TokId       opCode  = TOK_NIL;
@@ -1982,16 +1962,21 @@ bool DrvOneLineAsm::parseLine( char *inputStr, uint32_t *instr ) {
                 return( parseModeTypeInstr( instr, flags | TF_HALF_INSTR ));
             }
                 
-            case OP_CODE_LD:    case OP_CODE_LDW:   case OP_CODE_LDA:   case OP_CODE_LDR: {
+            case OP_CODE_LD:    case OP_CODE_LDW:   case OP_CODE_LDA:   case OP_CODE_LDR:
+            case OP_CODE_ST:    case OP_CODE_STW:   case OP_CODE_STA:   case OP_CODE_STC: {
                 
-                return( parseInstrLoad( instr, flags | TF_WORD_INSTR ));
+                return( parseInstrLoadAndStore( instr, flags | TF_WORD_INSTR ));
             }
+            
+            case OP_CODE_STB:   case OP_CODE_LDB: {
                 
-            case OP_CODE_LDB:       return( parseInstrLoad( instr, flags | TF_BYTE_INSTR ));
-            case OP_CODE_LDH:       return( parseInstrLoad( instr, flags | TF_HALF_INSTR ));
-           
-            case OP_CODE_STB:       return( parseInstrStore( instr, flags | TF_BYTE_INSTR ));
-            case OP_CODE_STH:       return( parseInstrStore( instr, flags | TF_HALF_INSTR ));
+                return( parseInstrLoadAndStore( instr, flags | TF_BYTE_INSTR ));
+            }
+            
+            case OP_CODE_LDH:   case OP_CODE_STH: {
+                
+                return( parseInstrLoadAndStore( instr, flags | TF_HALF_INSTR ));
+            }
             
             case OP_CODE_LSID:      return( parseInstrLSID( instr, flags ));
             case OP_CODE_EXTR:      return( parseInstrEXTR( instr, flags ));
@@ -2051,6 +2036,8 @@ bool DrvOneLineAsm::parseLine( char *inputStr, uint32_t *instr ) {
 }
 
 
+} // namespace
+
 //------------------------------------------------------------------------------------------------------------
 // A simple one line assembler. This object is the counterpart to the disassembler. We will parse a one line
 // input string for a valid instruction, using the syntax of the real assembler. There will be no labels and
@@ -2060,8 +2047,7 @@ bool DrvOneLineAsm::parseLine( char *inputStr, uint32_t *instr ) {
 DrvOneLineAsm::DrvOneLineAsm( VCPU32Globals *glb ) {
     
     this -> glb = glb;
-    this -> tok = new DrvTokenizer( );
-};
+}
 
 bool DrvOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {
     
