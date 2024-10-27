@@ -47,14 +47,7 @@ const char  EOS_CHAR            = 0;
 //
 // ??? do some sorting, better readbility....
 //------------------------------------------------------------------------------------------------------------
-struct {
-    
-    char        name[ TOK_NAME_SIZE ];
-    TokId       tokGrpId;
-    TokId       tokId;
-    uint32_t    tokVal;
-    
-} const tokTab[ ] = {
+DrvToken const tokTab[ ] = {
     
     //--------------------------------------------------------------------------------------------------------
     //
@@ -482,9 +475,6 @@ struct {
 
 const int   TOK_TAB_SIZE  = sizeof( tokTab ) / sizeof( *tokTab );
 
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // The lokkup function. We just do a linear search for now.
 //
@@ -538,10 +528,24 @@ uint8_t DrvTokenizer::setupTokenizer( char *lineBuf ) {
     currentCharIndex        = 0;
     currentTokCharIndex     = 0;
     currentChar             = ' ';
+    
+    
     currentTokErr           = NO_ERR;
     
-    return( 0 );
+    return( NO_ERR );
 }
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t     DrvTokenizer::tokErr( )         { return( currentTokErr ); }
+TokId       DrvTokenizer::tokGrp( )         { return( currentTokGrpId ); }
+TokId       DrvTokenizer::tokId( )          { return( currentTokId ); }
+int         DrvTokenizer::tokVal( )         { return( currentTokVal ); }
+char        *DrvTokenizer::tokStr( )        { return( currentTokStr ); }
+int         DrvTokenizer::tokCharIndex( )   { return( currentCharIndex ); }
+char        *DrvTokenizer::tokenLineStr( )  { return(  tokenLine ); }
 
 //------------------------------------------------------------------------------------------------------------
 // "nextChar" returns the next character from the token line string.
@@ -563,8 +567,13 @@ void DrvTokenizer::nextChar( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::parseNum( int sign ) {
     
-    int  tmpRes = 0;
-    char tmpStr[ TOK_INPUT_LINE_SIZE ] = "";
+    char tmpStr[ TOK_INPUT_LINE_SIZE ]  = "";
+    
+    currentTokGrpId     = SET_NIL;
+    currentTokId        = TOK_NUM;
+    currentTokErr       = NO_ERR;
+    currentTokVal       = 0;
+    currentTokStr[ 0 ]  = '\0';
     
     do {
         
@@ -573,14 +582,15 @@ void DrvTokenizer::parseNum( int sign ) {
         
     } while ( isxdigit( currentChar ) || ( currentChar == 'X' ) || ( currentChar == 'O' ));
     
-    if ( sscanf( tmpStr, "%i", &tmpRes ) == 1 ) {
+    if ( sscanf( tmpStr, "%i", &currentTokVal ) == 1 ) {
         
-        currentToken.tokenId    = TOK_NUM;
-        currentToken.val        = tmpRes * sign;
+        currentTokVal   = currentTokVal * sign;
     }
-    else
-        // parserError((char *) "Invalid number" )
-        ;
+    else {
+        
+        currentTokVal   = 0;
+        currentTokErr   = ERR_INVALID_NUM;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -591,35 +601,39 @@ void DrvTokenizer::parseNum( int sign ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::parseString( ) {
 
-    char stringBuf[ TOK_INPUT_LINE_SIZE ] = "";
+    currentTokGrpId     = SET_NIL;
+    currentTokId        = TOK_STR;
+    currentTokErr       = NO_ERR;
+    currentTokVal       = 0;
+    currentTokStr[ 0 ]  = '\0';
 
     nextChar( );
           
     while (( currentChar != EOS_CHAR ) && ( currentChar != '"' )) {
 
         if ( currentChar == '\\' ) {
-
+            
             nextChar( );
             if ( currentChar != EOS_CHAR ) {
-
-                if      ( currentChar == 'n' )  strcat( stringBuf, (char *) "\n" );
-                else if ( currentChar == 't' )  strcat( stringBuf, (char *) "\t" );
-                else if ( currentChar == '\\' ) strcat( stringBuf, (char *) "\\" );
-                else                            strcat( stringBuf, &currentChar );
+                
+                if      ( currentChar == 'n' )  strcat( currentTokStr, (char *) "\n" );
+                else if ( currentChar == 't' )  strcat( currentTokStr, (char *) "\t" );
+                else if ( currentChar == '\\' ) strcat( currentTokStr, (char *) "\\" );
+                else                            strcat( currentTokStr, &currentChar );
             }
-            else
-                // parserError((char *) "Expected a \" for the string" )
-                ;
+            else {
+                
+                currentTokStr[ 0 ]  = '\0';
+                currentTokErr       = ERR_EXPECTED_CLOSING_QUOTE;
+                break;
+            }
         }
-        else strcat( stringBuf, &currentChar );
+        else strcat( currentTokStr, &currentChar );
 
         nextChar( );
     }
 
     nextChar( );
-
-    currentToken.tokenId    = TOK_STR;
-    currentToken.val        = 0;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -630,6 +644,12 @@ void DrvTokenizer::parseString( ) {
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::parseIdent( ) {
+    
+    currentTokGrpId     = SET_NIL;
+    currentTokId        = TOK_IDENT;
+    currentTokErr       = NO_ERR;
+    currentTokVal       = 0;
+    currentTokStr[ 0 ]  = '\0';
     
     char identBuf[ TOK_INPUT_LINE_SIZE ] = "";
     
@@ -646,12 +666,10 @@ void DrvTokenizer::parseIdent( ) {
             if ( isdigit( currentChar )) {
                 
                 parseNum( 1 );
-                currentToken.val &= 0xFFFFFC00;
+                currentTokVal &= 0xFFFFFC00;
                 return;
             }
-            else
-                // parserError((char *) "Invalid char in identifier" )
-                ;
+            else currentTokErr = ERR_INVALID_CHAR_IN_IDENT;
         }
     }
     else if ( currentChar == 'R' ) {
@@ -667,12 +685,10 @@ void DrvTokenizer::parseIdent( ) {
             if ( isdigit( currentChar )) {
                 
                 parseNum( 1 );
-                currentToken.val &= 0x3FF;
+                currentTokVal &= 0x3FF;
                 return;
             }
-            else
-                //parserError((char *) "Invalid char in identifier" )
-                ;
+            else currentTokErr = ERR_INVALID_CHAR_IN_IDENT;
         }
     }
     
@@ -686,12 +702,18 @@ void DrvTokenizer::parseIdent( ) {
     
     if ( index == -1 ) {
         
-        strcpy( currentToken.name, identBuf );
-        currentToken.tokGrpId   = TOK_NIL;
-        currentToken.tokenId    = TOK_IDENT;
-        currentToken.val        = 0;
+        currentTokGrpId     = SET_NIL;
+        currentTokId        = TOK_IDENT;
+        currentTokVal       = 0;
+        strcpy( currentTokStr, identBuf );
     }
-    else currentToken = tokTab[ index ];
+    else {
+        
+        currentTokGrpId     = tokTab[ index ].tokGrpId;
+        currentTokId        = tokTab[ index ].tokenId;
+        currentTokVal       = tokTab[ index ].val;
+        strcpy( currentTokStr, identBuf );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -700,10 +722,11 @@ void DrvTokenizer::parseIdent( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::nextToken( ) {
 
-    currentToken.name[ 0 ]      = 0;
-    currentToken.tokGrpId       = TOK_NIL;
-    currentToken.tokenId        = TOK_EOS;
-    currentToken.val            = 0;
+    currentTokGrpId     = SET_NIL;
+    currentTokId        = TOK_NIL;
+    currentTokErr       = NO_ERR;
+    currentTokVal       = 0;
+    currentTokStr[ 0 ]  = '\0';
     
     while (( currentChar == ' ' ) || ( currentChar == '\n' ) || ( currentChar == '\n' )) nextChar( );
     
@@ -721,108 +744,77 @@ void DrvTokenizer::nextToken( ) {
         
         parseString( );
     }
+    
+    // ??? this needs to change in the poarser, it is: "." <opt>
     else if ( currentChar == '.' ) {
         
-        currentToken.tokenId = TOK_PERIOD;
+        currentTokId = TOK_PERIOD;
         
         nextChar( );
         while ( isalnum( currentChar )) {
             
-            strcat( currentToken.name, &currentChar );
+            strcat( currentTokStr, &currentChar );
             nextChar( );
         }
     }
     else if ( currentChar == '+' ) {
         
-        currentToken.tokenId = TOK_PLUS;
+        currentTokId = TOK_PLUS;
         nextChar( );
     }
     else if ( currentChar == '-' ) {
         
-        currentToken.tokenId = TOK_MINUS;
+        currentTokId = TOK_MINUS;
         nextChar( );
     }
     else if ( currentChar == '*' ) {
         
-        currentToken.tokenId = TOK_MULT;
+        currentTokId = TOK_MULT;
         nextChar( );
     }
     else if ( currentChar == '/' ) {
         
-        currentToken.tokenId = TOK_DIV;
+        currentTokId = TOK_DIV;
         nextChar( );
     }
     else if ( currentChar == '%' ) {
         
-        currentToken.tokenId = TOK_MOD;
+        currentTokId = TOK_MOD;
         nextChar( );
     }
     else if ( currentChar == '|' ) {
         
-        currentToken.tokenId = TOK_OR;
+        currentTokId = TOK_OR;
         nextChar( );
     }
     else if ( currentChar == '^' ) {
         
-        currentToken.tokenId = TOK_XOR;
+        currentTokId = TOK_XOR;
         nextChar( );
     }
     else if ( currentChar == '~' ) {
         
-        currentToken.tokenId = TOK_NEG;
+        currentTokId = TOK_NEG;
         nextChar( );
     }
     else if ( currentChar == '(' ) {
         
-        currentToken.tokenId = TOK_LPAREN;
+        currentTokId = TOK_LPAREN;
         nextChar( );
     }
     else if ( currentChar == ')' ) {
         
-        currentToken.tokenId = TOK_RPAREN;
+        currentTokId = TOK_RPAREN;
         nextChar( );
     }
     else if ( currentChar == ',' ) {
         
-        currentToken.tokenId = TOK_COMMA;
+        currentTokId = TOK_COMMA;
         nextChar( );
     }
     else if ( currentChar == EOS_CHAR ) {
         
-        currentToken.name[ 0 ]  = 0;
-        currentToken.tokenId    = TOK_EOS;
-        currentToken.val        = 0;
+        currentTokId = TOK_EOS;
     }
-    else currentToken.tokenId = TOK_ERR;
+    else currentTokId = TOK_ERR;
 }
-
-#if 0
-
-
-// ??? how to best deal with errors ?
-
-//------------------------------------------------------------------------------------------------------------
-// "parserError" is a little helper that prints out the error encountered. We will print the original
-// input line, a caret marker where we found the error, and then return a false. Parsing errors typically
-// result in aborting the parsing process. As this is a one line assembly, we do not need to be put effort
-// into continuing reasonably with the parsing process.
-//
-//------------------------------------------------------------------------------------------------------------
-bool parserError( char *errStr ) {
-    
-    fprintf( stdout, "%s\n", tokenLine );
-    
-    int i = 0;
-    while ( i < currentTokCharIndex ) {
-        
-        fprintf( stdout, " " );
-        i ++;
-    }
-    
-    fprintf( stdout, "^\n" "%s\n", errStr );
-    return( false );
-}
-
-
-#endif
-

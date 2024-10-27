@@ -304,7 +304,11 @@ enum ErrMsgId : uint16_t {
     ERR_EXPECTED_WIN_TYPE           = 9,
     ERR_EXPECTED_STACK_ID           = 10,
     ERR_EXPECTED_FMT_OPT            = 11,
-    ERR_OUT_OF_WINDOWS              = 12
+    ERR_OUT_OF_WINDOWS              = 12,
+    
+    ERR_INVALID_NUM                 = 20,
+    ERR_EXPECTED_CLOSING_QUOTE      = 21,
+    ERR_INVALID_CHAR_IN_IDENT       = 22,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -314,6 +318,7 @@ enum ErrMsgId : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals;
 
+
 //------------------------------------------------------------------------------------------------------------
 // The command line interpreter as well as the one line assembler work the command line or assembley line
 // processed as a list of tokens. A token found in a string is recorded using the token structure.
@@ -321,17 +326,17 @@ struct VCPU32Globals;
 //------------------------------------------------------------------------------------------------------------
 struct DrvToken {
 
-    char        name[ 16 ]; // ??? for now...
+    char        name[ 32 ];
     TokId       tokGrpId;
     TokId       tokenId;
     uint32_t    val;
 };
 
-  
 //------------------------------------------------------------------------------------------------------------
 // Tokenizer object. The command line interface as well as the one line assembler parse their buffer line.
 // The tokenizer will return the tokens found in the line. The tokenizer will will work with the global
-// token table found in the tokenizer source file.
+// token table found in the tokenizer source file. When the tokenizer detects an error, it is available in
+// the currentTokErr variable.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvTokenizer {
@@ -341,9 +346,15 @@ struct DrvTokenizer {
     DrvTokenizer( );
 
     uint8_t     setupTokenizer( char *lineBuf );
-    
     void        nextToken( );
-    DrvToken    currentToken;
+    
+    uint8_t     tokErr( );
+    TokId       tokGrp( );
+    TokId       tokId( );
+    int         tokVal( );
+    char        *tokStr( );
+    int         tokCharIndex( );
+    char        *tokenLineStr( );
 
     private: 
 
@@ -357,7 +368,12 @@ struct DrvTokenizer {
     int         currentCharIndex        = 0;
     int         currentTokCharIndex     = 0;
     char        currentChar             = ' ';
+    
     uint8_t     currentTokErr           = NO_ERR;
+    TokId       currentTokGrpId         = SET_NIL;
+    TokId       currentTokId            = TOK_NIL;
+    int         currentTokVal           = 0;
+    char        currentTokStr[ 256 ]    = { 0 };
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -900,6 +916,34 @@ private:
     VCPU32Globals *glb = nullptr;
 };
 
+
+// ??? generalize this tooo ....
+//------------------------------------------------------------------------------------------------------------
+// The assembly line has tokens, some of result in an expression when parsed. Examples are the numeric type
+// expressions but also addresses such as "seg:ofs". During parsing the expression type and value is stored
+// in the expression structure. While most expressions have just one value, the extended address "seg.ofs"
+// will use two values. Finally, the "parseExpr" routine needs to be declared forward, as the parser is
+// recursively working its way through the expressions.
+//
+//------------------------------------------------------------------------------------------------------------
+enum ExprTyp {
+    
+    ET_NIL      = 0,
+    ET_NUM      = 1,
+    ET_GREG     = 2,
+    ET_SREG     = 3,
+    ET_CREG     = 4,
+    ET_ADR      = 5,
+    ET_EXT_ADR  = 6
+};
+
+struct Expr {
+    
+    uint8_t     typ;
+    uint32_t    val1;
+    uint32_t    val2;
+};
+
 //------------------------------------------------------------------------------------------------------------
 // A simple one line assembler. This object is the counter part to the disassembler. We will parse a one
 // line input string for a valid instruction, using the syntax of the real assembler. There will be no
@@ -915,7 +959,51 @@ public:
     
 private:
     
-    VCPU32Globals *glb = nullptr;
+    bool parseLine( char *inputStr, uint32_t *instr );
+    bool parserError( char *errStr );
+    bool checkEOS( );
+    
+    bool parseFactor( Expr *rExpr );
+    bool parseTerm( Expr *rExpr);
+    bool parseExpr( Expr *rExpr);
+    
+    bool parseInstrOptions( uint32_t *instr, uint32_t *flags );
+    bool parseLogicalAdr( uint32_t *instr, uint32_t flags );
+    bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags );
+    bool parseModeTypeInstr( uint32_t *instr, uint32_t flags );
+    bool parseInstrLSID( uint32_t *instr, uint32_t flags );
+    bool parseInstrDEP( uint32_t *instr, uint32_t flags );
+    bool parseInstrDS( uint32_t *instr, uint32_t flags );
+    bool parseInstrDSR( uint32_t *instr, uint32_t flags );
+    bool parseInstrEXTR( uint32_t *instr, uint32_t flags );
+    bool parseInstrSHLA( uint32_t *instr, uint32_t flags );
+    bool parseInstrCMR( uint32_t *instr, uint32_t flags );
+    bool parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags );
+    bool parseInstrLDO( uint32_t *instr, uint32_t flags );
+    bool parseInstrBandGATE( uint32_t *instr, uint32_t flags );
+    bool parseInstrBR( uint32_t *instr, uint32_t flags );
+    bool parseInstrBV( uint32_t *instr, uint32_t flags );
+    bool parseInstrBE( uint32_t *instr, uint32_t flags );
+    bool parseInstrBVE( uint32_t *instr, uint32_t flags );
+    bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags );
+    bool parseInstrLoad( uint32_t *instr, uint32_t flags );
+    bool parseInstrStore( uint32_t *instr, uint32_t flags );
+    bool parseInstrMR( uint32_t *instr, uint32_t flags );
+    bool parseInstrMST( uint32_t *instr, uint32_t flags );
+    bool parseInstrLDPA( uint32_t *instr, uint32_t flags );
+    bool parseInstrPRB( uint32_t *instr, uint32_t flags );
+    bool parseInstrITLB( uint32_t *instr, uint32_t flags );
+    bool parseInstrPTLB( uint32_t *instr, uint32_t flags );
+    bool parseInstrPCA( uint32_t *instr, uint32_t flags );
+    bool parseInstrDIAG( uint32_t *instr, uint32_t flags );
+    bool parseInstrRFI( uint32_t *instr, uint32_t flags );
+    bool parseInstrBRK( uint32_t *instr, uint32_t flags );
+    
+    bool parseSynthInstrNop( uint32_t *instr, uint32_t flags );
+    
+    VCPU32Globals   *glb = nullptr;
+    DrvTokenizer    *tok;
+    char            *inputStr;
     
 };
 
