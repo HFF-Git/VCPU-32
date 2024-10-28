@@ -53,8 +53,6 @@ DrvToken const tokTab[ ] = {
     //
     //
     //--------------------------------------------------------------------------------------------------------
-    { "COMMENT",            CMD_SET,            CMD_COMMENT,                0               },
-    { "#",                  CMD_SET,            CMD_COMMENT,                0               },
     { "ENV",                CMD_SET,            CMD_ENV,                    0               },
     { "EXIT",               CMD_SET,            CMD_EXIT,                   0               },
     { "E",                  CMD_SET,            CMD_EXIT,                   0               },
@@ -528,18 +526,35 @@ uint8_t DrvTokenizer::setupTokenizer( char *lineBuf ) {
     currentCharIndex        = 0;
     currentTokCharIndex     = 0;
     currentChar             = ' ';
-    
-    
-    currentTokErr           = NO_ERR;
-    
     return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// "parserError" is a little helper that prints out the error encountered. We will print the original
+// input line, a caret marker where we found the error, and then return a false. Parsing errors typically
+// result in aborting the parsing process. As this is a one line assembly, we do not need to be put effort
+// into continuing reasonably with the parsing process.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t     DrvTokenizer::tokErr( )         { return( currentTokErr ); }
+void DrvTokenizer::tokenError( char *errStr ) {
+    
+    fprintf( stdout, "%s\n", tokenLine );
+    
+    int i = 0;
+
+    while ( i < currentTokCharIndex ) {
+        
+        fprintf( stdout, " " );
+        i ++;
+    }
+    
+    fprintf( stdout, "^\n" "%s\n", errStr );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Getter functions.
+//
+//------------------------------------------------------------------------------------------------------------
 TokId       DrvTokenizer::tokGrp( )         { return( currentTokGrpId ); }
 TokId       DrvTokenizer::tokId( )          { return( currentTokId ); }
 int         DrvTokenizer::tokVal( )         { return( currentTokVal ); }
@@ -571,7 +586,6 @@ void DrvTokenizer::parseNum( int sign ) {
     
     currentTokGrpId     = SET_NIL;
     currentTokId        = TOK_NUM;
-    currentTokErr       = NO_ERR;
     currentTokVal       = 0;
     currentTokStr[ 0 ]  = '\0';
     
@@ -589,7 +603,7 @@ void DrvTokenizer::parseNum( int sign ) {
     else {
         
         currentTokVal   = 0;
-        currentTokErr   = ERR_INVALID_NUM;
+        tokenError((char *) "Invalid number" );
     }
 }
 
@@ -603,7 +617,6 @@ void DrvTokenizer::parseString( ) {
 
     currentTokGrpId     = SET_NIL;
     currentTokId        = TOK_STR;
-    currentTokErr       = NO_ERR;
     currentTokVal       = 0;
     currentTokStr[ 0 ]  = '\0';
 
@@ -624,7 +637,7 @@ void DrvTokenizer::parseString( ) {
             else {
                 
                 currentTokStr[ 0 ]  = '\0';
-                currentTokErr       = ERR_EXPECTED_CLOSING_QUOTE;
+                tokenError((char *) "Expected a closing quote" );
                 break;
             }
         }
@@ -647,7 +660,6 @@ void DrvTokenizer::parseIdent( ) {
     
     currentTokGrpId     = SET_NIL;
     currentTokId        = TOK_IDENT;
-    currentTokErr       = NO_ERR;
     currentTokVal       = 0;
     currentTokStr[ 0 ]  = '\0';
     
@@ -669,7 +681,7 @@ void DrvTokenizer::parseIdent( ) {
                 currentTokVal &= 0xFFFFFC00;
                 return;
             }
-            else currentTokErr = ERR_INVALID_CHAR_IN_IDENT;
+            else tokenError((char *) "Invalid character in identifier" );
         }
     }
     else if ( currentChar == 'R' ) {
@@ -688,7 +700,7 @@ void DrvTokenizer::parseIdent( ) {
                 currentTokVal &= 0x3FF;
                 return;
             }
-            else currentTokErr = ERR_INVALID_CHAR_IN_IDENT;
+            else tokenError((char *) "Invalid character in identifier" );
         }
     }
     
@@ -724,7 +736,6 @@ void DrvTokenizer::nextToken( ) {
 
     currentTokGrpId     = SET_NIL;
     currentTokId        = TOK_NIL;
-    currentTokErr       = NO_ERR;
     currentTokVal       = 0;
     currentTokStr[ 0 ]  = '\0';
     
@@ -744,18 +755,10 @@ void DrvTokenizer::nextToken( ) {
         
         parseString( );
     }
-    
-    // ??? this needs to change in the poarser, it is: "." <opt>
     else if ( currentChar == '.' ) {
         
         currentTokId = TOK_PERIOD;
-        
         nextChar( );
-        while ( isalnum( currentChar )) {
-            
-            strcat( currentTokStr, &currentChar );
-            nextChar( );
-        }
     }
     else if ( currentChar == '+' ) {
         
@@ -816,5 +819,9 @@ void DrvTokenizer::nextToken( ) {
         
         currentTokId = TOK_EOS;
     }
-    else currentTokId = TOK_ERR;
+    else {
+        
+        tokenError((char *) "Invalid character in input string" );
+        currentTokId = TOK_ERR;
+    }
 }

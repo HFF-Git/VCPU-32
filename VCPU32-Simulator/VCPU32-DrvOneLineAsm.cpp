@@ -171,6 +171,44 @@ bool checkEOS( ) {
     else return( parserError((char *) "Extra tokens in the assembler line" ));
 }
 
+//------------------------------------------------------------------------------------------------------------
+// Quite often the syntax has a construct that test the token and if correct get the next one.
+//
+//------------------------------------------------------------------------------------------------------------
+bool acceptComma( ) {
+    
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        tok -> nextToken( );
+        return( true );
+    }
+    else return( parserError((char *) "Expected a comma" ));
+}
+
+bool acceptLparen( ) {
+    
+    if ( tok -> tokId( ) == TOK_LPAREN ) {
+        
+        tok -> nextToken( );
+        return( true );
+    }
+    else return( parserError((char *) "Expected a left paren" ));
+}
+
+bool acceptRparen( ) {
+    
+    if ( tok -> tokId( ) == TOK_RPAREN ) {
+        
+        tok -> nextToken( );
+        return( true );
+    }
+    else return( parserError((char *) "Expected a right paren" ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "parseExpr" needs to be declared forward.
+//
+//------------------------------------------------------------------------------------------------------------
 bool parseExpr( Expr *rExpr );
 
 //------------------------------------------------------------------------------------------------------------
@@ -234,9 +272,8 @@ bool parseFactor( Expr *rExpr ) {
             rExpr -> val1   = tok -> tokVal( );
             
             tok -> nextToken( );
-            if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-            else return( parserError((char *) "Expected a comma" ));
-            
+            if ( ! acceptComma( )) return( false );
+           
             if ( tok -> tokGrp( ) == GR_SET ) {
                 
                 rExpr -> val2 = tok -> tokVal( );
@@ -251,10 +288,8 @@ bool parseFactor( Expr *rExpr ) {
             tok -> nextToken( );
         }
         else if ( ! parseExpr( rExpr )) return( false );
-            
-        if ( tok -> tokId( ) == TOK_RPAREN ) tok -> nextToken( );
-        else return( parserError((char *) "Expected a right paren" ));
         
+        if ( ! acceptRparen( )) return( false );
         return( true );
     }
     else {
@@ -694,8 +729,7 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
  
     if ( ! parseExpr( &rExpr )) return( false );
     
@@ -790,8 +824,7 @@ bool parseInstrLSID( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -825,8 +858,7 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( ! parseExpr( &rExpr )) return( false );
     
@@ -834,9 +866,7 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
        
-        if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-        else return( parserError((char *) "Expected a Comma" ));
-        
+        if ( ! acceptComma( ))      return( false );
         if ( ! parseExpr( &rExpr )) return( false );
         
         if ( rExpr.typ == ET_NUM ) {
@@ -852,9 +882,7 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
         
         if ( ! getBit( *instr, 11 )) {
             
-            if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-            else return( parserError((char *) "Expected a Comma" ));
-            
+            if ( ! acceptComma( ))      return( false );
             if ( ! parseExpr( &rExpr )) return( false );
             
             if ( rExpr.typ == ET_NUM ) {
@@ -872,8 +900,7 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
             if ( isInRangeForBitField( rExpr.val1, 4 )) setBitField( instr, 31, 4, rExpr.val1 );
             else return( parserError((char *) "Immediate value out of range" ));
             
-            if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-            else return( parserError((char *) "Expected a Comma" ));
+            if ( ! acceptComma( )) return( false );
             
             if ( ! getBit( *instr, 11 )) {
                
@@ -881,8 +908,7 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
                 else return( parserError((char *) "Pos value out of range" ));
                 
                 tok -> nextToken( );
-                if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-                else return( parserError((char *) "Expected a Comma" ));
+                if ( ! acceptComma( )) return( false );
             }
             
             if ( ! parseExpr( &rExpr )) return( false );
@@ -916,8 +942,7 @@ bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -926,8 +951,7 @@ bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -958,8 +982,7 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -968,8 +991,7 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -980,9 +1002,7 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
     
     if ( ! getBit( *instr, 11 )) {
         
-        if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-        else return( parserError((char *) "Expected a Comma" ));
-        
+        if ( ! acceptComma( ))      return( false );
         if ( ! parseExpr( &rExpr )) return( false );
         
         if ( rExpr.typ == ET_NUM ) {
@@ -1016,8 +1036,7 @@ bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1026,9 +1045,7 @@ bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
-    
+    if ( ! acceptComma( ))      return( false );
     if ( ! parseExpr( &rExpr )) return( false );
     
     if ( rExpr.typ == ET_NUM ) {
@@ -1044,9 +1061,7 @@ bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
     
     if ( ! getBit( *instr, 11 )) {
         
-        if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-        else return( parserError((char *) "Expected a Comma" ));
-        
+        if ( ! acceptComma( ))      return( false );
         if ( ! parseExpr( &rExpr )) return( false );
         
         if ( rExpr.typ == ET_NUM ) {
@@ -1081,8 +1096,7 @@ bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1091,9 +1105,7 @@ bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
-    
+    if ( ! acceptComma( ))      return( false );
     if ( ! parseExpr( &rExpr )) return( false );
     
     if ( rExpr.typ == ET_GREG ) {
@@ -1118,9 +1130,7 @@ bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register or immediate value" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
-    
+    if ( ! acceptComma( ))      return( false );
     if ( ! parseExpr( &rExpr )) return( false );
     
     if ( rExpr.typ == ET_NUM ) {
@@ -1148,8 +1158,7 @@ bool parseInstrCMR( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1158,8 +1167,7 @@ bool parseInstrCMR( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1191,8 +1199,7 @@ bool parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if (( parseExpr( &rExpr )) && ( rExpr.typ == ET_NUM )) {
 
@@ -1221,9 +1228,7 @@ bool parseInstrLDO( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a Comma" ));
-    
+    if ( ! acceptComma( ))      return( false );
     if ( ! parseExpr( &rExpr )) return( false );
     
     if ( rExpr.typ == ET_NUM ) {
@@ -1288,8 +1293,7 @@ bool parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrBR( uint32_t *instr, uint32_t flags ) {
     
-    if ( tok -> tokId( ) == TOK_LPAREN ) tok -> nextToken( );
-    else return ( parserError((char *) "Expected a left paren" ));
+    if ( ! acceptLparen( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1298,8 +1302,7 @@ bool parseInstrBR( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_RPAREN ) tok -> nextToken( );
-    else return ( parserError((char *) "Expected a right paren" ));
+    if ( ! acceptRparen( )) return( false );
     
     if ( tok -> tokId( ) == TOK_COMMA ) {
         
@@ -1324,8 +1327,7 @@ bool parseInstrBR( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrBV( uint32_t *instr, uint32_t flags ) {
     
-    if ( tok -> tokId( ) == TOK_LPAREN ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a left paren" ));
+    if ( ! acceptLparen( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1334,8 +1336,7 @@ bool parseInstrBV( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_RPAREN ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a right paren" ));
+    if ( ! acceptRparen( )) return( false );
     
     if ( tok -> tokId( ) == TOK_COMMA ) {
         
@@ -1451,8 +1452,7 @@ bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1461,8 +1461,7 @@ bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if (( parseExpr( &rExpr )) && ( rExpr.typ == ET_NUM )) {
     
@@ -1494,8 +1493,7 @@ bool parseInstrLoadAndStore( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
+    if ( ! acceptComma( )) return( false );
     
     return( parseLoadStoreOperand( instr, flags ));
 }
@@ -1516,8 +1514,7 @@ bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
         uint8_t tRegId = tok -> tokVal( );
         
         tok -> nextToken( );
-        if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-        else return( parserError((char *) "Expected a comma" ));
+        if ( ! acceptComma( )) return( false );
         
         if ( tok -> tokGrp( ) == GR_SET ) {
             
@@ -1548,8 +1545,7 @@ bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
         uint8_t tRegId = tok -> tokVal( );
         
         tok -> nextToken( );
-        if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-        else return( parserError((char *) "Expected a comma" ));
+        if ( ! acceptComma( )) return( false );
     
         if ( tok -> tokGrp( ) == GR_SET ) {
             
@@ -1565,8 +1561,7 @@ bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
         uint8_t tRegId = tok -> tokVal( );
         
         tok -> nextToken( );
-        if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-        else return( parserError((char *) "Expected a comma" ));
+        if ( ! acceptComma( )) return( false );
         
         if ( tok -> tokGrp( ) == GR_SET ) {
             
@@ -1603,9 +1598,7 @@ bool parseInstrMST( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
-    
+    if ( ! acceptComma( ))      return( false );
     if ( ! parseExpr( &rExpr )) return( false );
     
     if ( rExpr.typ == ET_GREG ) {
@@ -1648,8 +1641,7 @@ bool parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1677,15 +1669,10 @@ bool parseInstrPRB( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
-    
+    if ( ! acceptComma( ))                  return( false );
     if ( ! parseLogicalAdr( instr, flags )) return( false );
-    
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
-    
-    if ( ! parseExpr( &rExpr )) return( false );
+    if ( ! acceptComma( ))                  return( false );
+    if ( ! parseExpr( &rExpr ))             return( false );
     
     if ( getBit( *instr, 11 )) {
         
@@ -1719,23 +1706,18 @@ bool parseInstrITLB( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
-    
-    if ( tok -> tokId( ) == TOK_LPAREN ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a lparen" ));
+    if ( ! acceptComma( ))  return( false );
+    if ( ! acceptLparen( )) return( false );
     
     if ( tok -> tokGrp( ) == SR_SET ) setBitField( instr, 27, 4, tok -> tokVal( ));
     else return( parserError((char *) "Expected a segement register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) setBitField( instr, 31, 4, tok -> tokVal( ));
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_LPAREN ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a rparen" ));
+    if ( ! acceptRparen( )) return( false );
    
     return( checkEOS( ));
 }
@@ -1759,7 +1741,7 @@ bool parseInstrPTLB( uint32_t *instr, uint32_t flags ) {
         
         if ( ! parseLogicalAdr( instr, flags )) return( false );
     }
-    else return( parserError((char *) "Expected an index register" ));
+    else return( parserError((char *) "Expected an index register or address" ));
         
     return( checkEOS( ));
 }
@@ -1803,8 +1785,7 @@ bool parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1813,8 +1794,7 @@ bool parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if ( tok -> tokGrp( ) == GR_SET ) {
         
@@ -1823,8 +1803,7 @@ bool parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if (( parseExpr( &rExpr )) && ( rExpr.typ == ET_NUM )) {
             
@@ -1869,8 +1848,7 @@ bool parseInstrBRK( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected the info1 parm" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
-    else return( parserError((char *) "Expected a comma" ));
+    if ( ! acceptComma( )) return( false );
     
     if (( parseExpr( &rExpr )) && ( rExpr.typ == ET_NUM )) {
     

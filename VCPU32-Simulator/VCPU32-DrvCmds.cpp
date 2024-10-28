@@ -76,6 +76,9 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+
+
+// ??? phase out when the all commands are fully convrted to the new parser...
 //------------------------------------------------------------------------------------------------------------
 // Token table. There is a large number of reserved tokens. Each token has a name and an optional alias name.
 // Each token also belongs to a group, which allows to do a faster match during command line parsing. The
@@ -97,7 +100,6 @@ struct {
     
 } const tokTab[ ] = {
     
-    { "COMMENT",            "#",        CMD_SET,            CMD_COMMENT             },
     { "ENV",                "",         CMD_SET,            CMD_ENV                 },
     { "EXIT",               "E",        CMD_SET,            CMD_EXIT                },
     { "HELP",               "?",        CMD_SET,            CMD_HELP                },
@@ -344,7 +346,7 @@ struct {
 const int   TOK_TAB_SIZE  = sizeof( tokTab ) / sizeof( *tokTab );
 
 
-
+// ??? mal also go away when we have the parser ready...
 //------------------------------------------------------------------------------------------------------------
 // The command line parser simply uses the "sscanf" library routine. Here are the formats for the various
 // command lines. "S" means a string input, "D" a numeric integer input, "U" an unsigned integer input.
@@ -365,12 +367,12 @@ const char  FMT_STR_2S_4D[ ]    = "%32s %32s %i %i %i %i";
 const char  FMT_STR_2S_LS[ ]    = "%32s %32s %256s";
 const char  FMT_STR_CMD_LINE[ ] = "%256s";
 
+
 //------------------------------------------------------------------------------------------------------------
-// The command line size. The command line is rather long so that we can read in long lines form perhaps
-// future script files.
+// The command line is broken into tokens by the tokenizer opbject.
 //
 //------------------------------------------------------------------------------------------------------------
-const int   CMD_LINE_BUF_SIZE  = 256;
+DrvTokenizer *tok = new DrvTokenizer( );
 
 //------------------------------------------------------------------------------------------------------------
 // A little helper function to upshift a string in place.
@@ -390,7 +392,6 @@ void upshiftStr( char *str ) {
 // A little helper function to remove the comment part of a command line. We do the changes on the buffer
 // passed in by just setting the ed of string at the position of the ";" comment indicator.
 //
-// ??? a bit sloppy, we should ignore "#" inside a string.... also we do not catch more than one "#" ...
 //------------------------------------------------------------------------------------------------------------
 void removeComment( char *cmdBuf ) {
     
@@ -401,6 +402,7 @@ void removeComment( char *cmdBuf ) {
     }
 }
 
+// ??? goes away ...
 //------------------------------------------------------------------------------------------------------------
 // Token Table management. There are a functions to lookup a token by its name or alias name, returning the
 // tokenId or token group Id. There is also a function to get the name for a token Id. Straightforward.
@@ -491,7 +493,351 @@ TokId matchReg( char *argStr, TokId def = TOK_NIL ) {
     return(( tmpGrpGrp == REG_SET ) ? tmpReg : def );
 }
 
+
+//------------------------------------------------------------------------------------------------------------
+// Print out an error message text with an optional argument.
+//
+//------------------------------------------------------------------------------------------------------------
+void printErrMsg( ErrMsgId errNum, char *argStr = nullptr ) {
+    
+    switch ( errNum ) {
+            
+        case ERR_NOT_IN_WIN_MODE:       fprintf( stdout, "Command only valid in Windows mode\n" ); break;
+        case ERR_OPEN_EXEC_FILE:        fprintf( stdout, "Error while opening file: \"%s\"\n", argStr ); break;
+        case ERR_EXPECTED_FILE_NAME:    fprintf( stdout, "Expected a file name\n" ); break;
+        case ERR_INVALID_CMD:           fprintf( stdout, "Invalid command, use help or whelp\n "); break;
+        case ERR_INVALID_WIN_STACK_ID:  fprintf( stdout, "Invalid window stack Id\n" ); break;
+        case ERR_EXPECTED_STACK_ID:     fprintf( stdout, "Expected stack Id\n" ); break;
+        case ERR_INVALID_WIN_ID:        fprintf( stdout, "Invalid window Id\n" ); break;
+        case ERR_EXPECTED_WIN_ID:       fprintf( stdout, "Expected a window Id\n" ); break;
+            
+        case ERR_EXTRA_TOKEN_IN_STR:    fprintf( stdout, "Extra tokens in command line\n" );
+        case ERR_EXPECTED_LPAREN:       fprintf( stdout, "Expected a left paren\n" );
+        case ERR_EXPECTED_RPAREN:       fprintf( stdout, "Expected a right paren\n" );
+        case ERR_EXPECTED_COMMA:        fprintf( stdout, "Expected a comma\n" );
+            
+        case ERR_EXPECTED_NUMERIC:      fprintf( stdout, "Expected a numric value\n" );
+        case ERR_EXPR_TYPE_MATCH:       fprintf( stdout, "Expresion type mismatch\n" );
+        case ERR_EXPR_FACTOR:           fprintf( stdout, "Expresion error: factor\n" );
+        case ERR_EXPECTED_GENERAL_REG:  fprintf( stdout, "Expresion a general reg\n" );
+            
+        case ERR_INVALID_ARG:           fprintf( stdout, "Invalid command aergument\n" );
+                    
+            
+        case ERR_INVALID_FMT_OPT:       fprintf( stdout, "Invalid format option\n" );
+        case ERR_EXPECTED_FMT_OPT:      fprintf( stdout, "Expected a format option\n" ); break;
+        case ERR_INVALID_WIN_TYPE:      fprintf( stdout, "Invalid window type\n" ); break;
+        case ERR_EXPECTED_WIN_TYPE:     fprintf( stdout, "Expected a window type\n" ); break;
+        case ERR_OUT_OF_WINDOWS:        fprintf( stdout, "Cannot create more windows\n" ); break;
+            
+        default: {
+            
+            fprintf( stdout, "Error: %d", errNum );
+            if ( argStr != nullptr ) fprintf( stdout, "%32s", argStr );
+            fprintf( stdout, "/n" );
+        }
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "commandLineError" is a little helper that prints out the error encountered. We will print a caret marker
+// where we found the error, and then return a false. Parsing errors typically result in aborting the parsing
+// process.
+//
+//------------------------------------------------------------------------------------------------------------
+bool cmdLineError( ErrMsgId errNum, char *argStr = nullptr) {
+    
+    int i           = 0;
+    int tokIndex    = tok -> tokCharIndex( );
+    
+    while ( i < tokIndex ) {
+        
+        fprintf( stdout, " " );
+        i ++;
+    }
+    
+    fprintf( stdout, "^\n" );
+    printErrMsg( errNum, argStr );
+    return( false );
+}
+
+
+
+
+
+//------------------------------------------------------------------------------------------------------------
+// "promptYesNoCancel" is a simple function to print a prompt string with a decision question. The answer can
+//  be yes/no or cancel. A positive result is a "yes" a negative result a "no", anything else a "cancel".
+//
+//------------------------------------------------------------------------------------------------------------
+int promptYesNoCancel( char *promptStr ) {
+    
+    fprintf( stdout, "%s -> ", promptStr );
+    fflush( stdout );
+    
+    char buf[ 8 ] = "";
+    
+    if ( fgets( buf, 8, stdin ) != nullptr ) {
+        
+        if      (( buf[ 0 ] == 'Y' ) ||  ( buf[ 0 ] == 'y' ))   return( 1 );
+        else if (( buf[ 0 ] == 'N' ) ||  ( buf[ 0 ] == 'n' ))   return( -1 );
+        else                                                    return( 0 );
+    }
+    else return( 0 );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Check that the command line does not contain any extra tokens when the parser completed the analysis of the
+// command.
+//
+//------------------------------------------------------------------------------------------------------------
+bool checkEOS( ) {
+    
+    if ( tok -> tokId( ) == TOK_EOS ) return( true );
+    else return( cmdLineError( ERR_EXTRA_TOKEN_IN_STR ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Quite often the syntax has a construct that test the token and if correct get the next one.
+//
+//------------------------------------------------------------------------------------------------------------
+bool acceptComma( ) {
+    
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        tok -> nextToken( );
+        return( true );
+    }
+    else return( cmdLineError( ERR_EXPECTED_COMMA ));
+}
+
+bool acceptLparen( ) {
+    
+    if ( tok -> tokId( ) == TOK_LPAREN ) {
+        
+        tok -> nextToken( );
+        return( true );
+    }
+    else return( cmdLineError( ERR_EXPECTED_LPAREN ));
+}
+
+bool acceptRparen( ) {
+    
+    if ( tok -> tokId( ) == TOK_RPAREN ) {
+        
+        tok -> nextToken( );
+        return( true );
+    }
+    else return( cmdLineError( ERR_EXPECTED_LPAREN ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "parseExpr" needs to be declared forward.
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseExpr( Expr *rExpr );
+
+//------------------------------------------------------------------------------------------------------------
+// "parseFactor" parses the factor syntax part of an expression.
+//
+//      <factor> -> <number>                        |
+//                  <gregId>                        |
+//                  <sregId>                        |
+//                  <cregId>                        |
+//                  "~" <factor>                    |
+//                  "(" [ <sreg> "," ] <greg> ")"   |
+//                  "(" <expr> ")"
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseFactor( Expr *rExpr ) {
+    
+    rExpr -> typ  = ET_NIL;
+    rExpr -> val1 = 0;
+    rExpr -> val2 = 0;
+   
+    if ( tok -> tokId( ) == TOK_NUM )  {
+        
+        rExpr -> typ = ET_NUM;
+        rExpr -> val1 = tok -> tokVal( );
+        tok -> nextToken( );
+        return( true );
+    }
+    else  if ( tok -> tokGrp( ) == GR_SET )  {
+        
+        rExpr -> typ = ET_GREG;
+        rExpr -> val1 = tok -> tokVal( );
+        tok -> nextToken( );
+        return( true );
+    }
+    else  if ( tok -> tokGrp( ) == SR_SET    )  {
+        
+        rExpr -> typ = ET_SREG;
+        rExpr -> val1 = tok -> tokVal( );
+        tok -> nextToken( );
+        return( true );
+    }
+    else  if ( tok -> tokGrp( ) == CR_SET    )  {
+        
+        rExpr -> typ = ET_CREG;
+        rExpr -> val1 = tok -> tokVal( );
+        tok -> nextToken( );
+        return( true );
+    }
+    else if ( tok -> tokId( ) == TOK_NEG ) {
+        
+        parseFactor( rExpr );
+        rExpr -> val1 = ~ rExpr -> val1;
+        return( true );
+    }
+    else if ( tok -> tokId( ) == TOK_LPAREN) {
+        
+        tok -> nextToken( );
+        if ( tok -> tokGrp( ) == SR_SET ) {
+            
+            rExpr -> typ    = ET_EXT_ADR;
+            rExpr -> val1   = tok -> tokVal( );
+            
+            tok -> nextToken( );
+            if ( ! acceptComma( )) return( false );
+           
+            if ( tok -> tokGrp( ) == GR_SET ) {
+                
+                rExpr -> val2 = tok -> tokVal( );
+                tok -> nextToken( );
+            }
+            else return( cmdLineError( ERR_EXPECTED_GENERAL_REG ));
+        }
+        else if ( tok -> tokGrp( ) == GR_SET) {
+            
+            rExpr -> typ = ET_ADR;
+            rExpr -> val1 = tok -> tokVal( );
+            tok -> nextToken( );
+        }
+        else if ( ! parseExpr( rExpr )) return( false );
+        
+        if ( ! acceptRparen( )) return( false );
+        return( true );
+    }
+    else {
+        
+        cmdLineError( ERR_EXPR_FACTOR );
+        rExpr -> typ = ET_NUM;
+        rExpr -> val1 = 0;
+        tok -> nextToken( );
+        
+        return( false );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "parseTerm" parses the term syntax.
+//
+//      <term>      ->  <factor> { <termOp> <factor> }
+//      <termOp>    ->  "*" | "/" | "%" | "&"
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseTerm( Expr *rExpr ) {
+    
+    Expr lExpr;
+    bool rStat;
+    
+    rStat = parseFactor( rExpr );
+    
+    while (( tok -> tokId( ) == TOK_MULT )   ||
+           ( tok -> tokId( ) == TOK_DIV  )   ||
+           ( tok -> tokId( ) == TOK_MOD  )   ||
+           ( tok -> tokId( ) == TOK_AND  ))  {
+        
+        uint8_t op = tok -> tokId( );
+        
+        tok -> nextToken( );
+        rStat = parseFactor( &lExpr );
+        
+        if ( rExpr -> typ != lExpr.typ ) {
+            
+            return ( cmdLineError( ERR_EXPR_TYPE_MATCH ));
+        }
+       
+        switch( op ) {
+                
+            case TOK_MULT:   rExpr -> val1 = rExpr -> val1 * lExpr.val1; break;
+            case TOK_DIV:    rExpr -> val1 = rExpr -> val1 / lExpr.val1; break;
+            case TOK_MOD:    rExpr -> val1 = rExpr -> val1 % lExpr.val1; break;
+            case TOK_AND:    rExpr -> val1 = rExpr -> val1 & lExpr.val1; break;
+        }
+    }
+    
+    return( true );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "parseExpr" parses the expression syntax. The one line assembler parser routines use this call in many
+// places where a numeric expression or an address is needed.
+//
+//      <expr>      ->  [ ( "+" | "-" ) ] <term> { <exprOp> <term> }
+//      <exprOp>    ->  "+" | "-" | "|" | "^"
+//
+//------------------------------------------------------------------------------------------------------------
+bool parseExpr( Expr *rExpr ) {
+    
+    Expr lExpr;
+    bool rStat;
+    
+    if ( tok -> tokId( ) == TOK_PLUS ) {
+        
+        tok -> nextToken( );
+        rStat = parseTerm( rExpr );
+        
+        if ( ! ( rExpr -> typ == ET_NUM )) {
+            
+            return( cmdLineError( ERR_EXPECTED_NUMERIC ));
+        }
+    }
+    else if ( tok -> tokId( ) == TOK_MINUS ) {
+        
+        tok -> nextToken( );
+        rStat = parseTerm( rExpr );
+        
+        if ( rExpr -> typ == ET_NUM ) rExpr -> val1 = - rExpr -> val1;
+        else return( cmdLineError( ERR_EXPECTED_NUMERIC ));
+    }
+    else rStat = parseTerm( rExpr );
+    
+    while (( tok -> tokId( ) == TOK_PLUS    ) ||
+           ( tok -> tokId( ) == TOK_MINUS   ) ||
+           ( tok -> tokId( ) == TOK_OR      ) ||
+           ( tok -> tokId( ) == TOK_XOR     )) {
+        
+        uint8_t op = tok -> tokId( );
+        
+        tok -> nextToken( );
+        rStat = parseTerm( &lExpr );
+        
+        if ( rExpr -> typ != lExpr.typ ) {
+            
+            return ( cmdLineError( ERR_EXPR_TYPE_MATCH ));
+        }
+        
+        switch ( op ) {
+                
+            case TOK_PLUS:   rExpr -> val1 = rExpr -> val1 + lExpr.val1; break;
+            case TOK_MINUS:  rExpr -> val1 = rExpr -> val1 - lExpr.val1; break;
+            case TOK_OR:     rExpr -> val1 = rExpr -> val1 | lExpr.val1; break;
+            case TOK_XOR:    rExpr -> val1 = rExpr -> val1 ^ lExpr.val1; break;
+        }
+    }
+    
+    return( true );
+}
+
 }; // namespace
+
+
+
+
+
+
+
 
 //************************************************************************************************************
 // Object methods.
@@ -524,36 +870,6 @@ char *DrvCmds::tokIdToName( TokId tokId ) {
     return( ::lookupTokenName( tokId ));
 }
 
-//------------------------------------------------------------------------------------------------------------
-// Print out an error message.
-//
-// ??? add all the other text over time ....
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::printErrMsg( ErrMsgId errNum, char *argStr ) {
-    
-    switch ( errNum ) {
-            
-        case ERR_NOT_IN_WIN_MODE:       fprintf( stdout, "Command only valid in Windows mode\n" ); break;
-        case ERR_OPEN_EXEC_FILE:        fprintf( stdout, "Error while opening file: \"%s\"\n", argStr ); break;
-        case ERR_EXPECTED_FILE_NAME:    fprintf( stdout, "Expected a file name\n" ); break;
-        case ERR_INVALID_CMD:           fprintf( stdout, "Invalid command, use help or whelp\n "); break;
-        case ERR_INVALID_WIN_STACK_ID:  fprintf( stdout, "Invalid window stack Id\n" ); break;
-        case ERR_EXPECTED_STACK_ID:     fprintf( stdout, "Expected stack Id\n" ); break;
-        case ERR_INVALID_WIN_ID:        fprintf( stdout, "Invalid window Id\n" ); break;
-        case ERR_EXPECTED_WIN_ID:       fprintf( stdout, "Expected a window Id\n" ); break;
-        case ERR_EXPECTED_FMT_OPT:      fprintf( stdout, "Expected a format option\n" ); break;
-        case ERR_INVALID_WIN_TYPE:      fprintf( stdout, "Invalid window type\n" ); break;
-        case ERR_EXPECTED_WIN_TYPE:     fprintf( stdout, "Expected a window type\n" ); break;
-        case ERR_OUT_OF_WINDOWS:        fprintf( stdout, "Cannot create more windows\n" ); break;
-            
-        default: {
-            
-            fprintf( stdout, "Error: %d", errNum );
-            if ( argStr != nullptr ) fprintf( stdout, "%32s", argStr );
-            fprintf( stdout, "/n" );
-        }
-    }
-}
 
 //------------------------------------------------------------------------------------------------------------
 // Our friendly welcome message with the actual program version. We also set some of the environment variables
@@ -609,27 +925,6 @@ void DrvCmds::promptCmdLine( ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
-// "promptYesNoCancel" is a simple function to print a prompt string with a decision question. The answer can
-//  be yes/no or cancel. A positive result is a "yes" a negative result a "no", anything else a "cancel".
-//
-//------------------------------------------------------------------------------------------------------------
-int DrvCmds::promptYesNoCancel( char *promptStr ) {
-    
-    fprintf( stdout, FMT_STR_1S, promptStr );
-    fprintf( stdout, " -> " );
-    fflush( stdout );
-    
-    char buf[ 8 ] = "";
-    
-    if ( fgets( buf, 8, stdin ) != nullptr ) {
-        
-        if      (( buf[ 0 ] == 'Y' ) ||  ( buf[ 0 ] == 'y' ))   return( 1 );
-        else if (( buf[ 0 ] == 'N' ) ||  ( buf[ 0 ] == 'n' ))   return( -1 );
-        else                                                    return( 0 );
-    }
-    else return( 0 );
-}
 
 //------------------------------------------------------------------------------------------------------------
 // "readCmdLine" reads in the command line. For a valid command line, the trailing carriage return and/or
@@ -693,6 +988,7 @@ void  DrvCmds::execCmdsFromFile( char* fileName ) {
                     fprintf( stdout, "%s\n", cmdLineBuf );
                 }
             
+                removeComment( cmdLineBuf );
                 dispatchCmd( cmdLineBuf );
             }
         }
@@ -839,13 +1135,6 @@ void DrvCmds::exitCmd( char *cmdBuf ) {
         exit(( exitVal > 255 ) ? 255 : exitVal );
     }
 }
-
-//------------------------------------------------------------------------------------------------------------
-// Comment command. For the interactve mode we do nothing, since the command was already displayed when we
-// typed it in. For batch file input, the batch routine will optionally print these lines.
-//
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::commentCmd( char *cmdBuf ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // ENV command. The test driver has a few global environment variables for data format, command count and so
@@ -1129,32 +1418,42 @@ void DrvCmds::disAssembleCmd( char *cmdBuf ) {
 // ASM <instr-str> [ fmt ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::assembleCmd( char *cmdBuf ) {
+
+    TokId       fmtId           = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+    uint32_t    instr           = 0;
+    char        asmStr[ 256 ]   = { 0 };
     
-    char        cmdStr[ TOK_NAME_SIZE ]     = "";
-    uint32_t    instr                       = 0;
-    TokId       fmtId                       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
-    char        arg1Str[ TOK_NAME_SIZE ]    = "";
-    char        arg2Str[ TOK_NAME_SIZE ]    = "";
-    int         args = sscanf( cmdBuf, "%s \"%[^\"]\" %s", cmdStr, arg1Str, arg2Str );
+    tok -> nextToken( );
     
-    if ( args < 2 ) {
+    if ( tok -> tokId( ) == TOK_STR ) {
         
-        fprintf( stdout, "Expected the assemble string\n" );
-        return;
-    }
-   
-    if ( args > 2 ) {
+        strncpy( asmStr, tok -> tokStr( ), sizeof( asmStr ));
         
-        TokId argId = matchFmtOptions( arg2Str );
-        if ( argId == TOK_NIL ) {
+        tok -> nextToken( );
+        
+        if (( tok -> tokId( ) == TOK_HEX ) ||
+            ( tok -> tokId( ) == TOK_OCT ) ||
+            ( tok -> tokId( ) == TOK_DEC )) {
             
-            fprintf( stdout, "Invalid format option\n" );
+            fmtId = tok -> tokId( );
+        }
+        else if ( tok -> tokId( ) == TOK_EOS ) {
+            
+            fmtId = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+        }
+        else {
+            
+            cmdLineError( ERR_INVALID_FMT_OPT );
             return;
         }
-        else fmtId = argId;
+    }
+    else {
+        
+        cmdLineError( ERR_INVALID_ARG );
+        return;
     }
     
-    if ( glb -> oneLineAsm -> parseAsmLine( arg1Str, &instr )) {
+    if ( glb -> oneLineAsm -> parseAsmLine( asmStr, &instr )) {
         
         glb -> lineDisplay -> displayWord( instr, fmtId );
         fprintf( stdout, "\n" );
@@ -2478,87 +2777,80 @@ void  DrvCmds::winExchangeCmd( char *cmdBuf ) {
 void DrvCmds::dispatchCmd( char *cmdBuf ) {
     
     if ( strlen( cmdBuf ) > 0 ) {
+       
+        tok -> setupTokenizer( cmdBuf );
+        tok -> nextToken( );
         
-        char cmdStr[ CMD_LINE_BUF_SIZE ];
-        if ( sscanf( cmdBuf, FMT_STR_CMD_LINE, cmdStr ) > 0 ) {
-            
-            currentCmd = lookupTokId( cmdStr, TOK_INV );
-            
-            switch( currentCmd ) {
-                    
-                case TOK_NIL:                                               break;
-                case CMD_COMMENT:       commentCmd( cmdBuf );               break;
-                case CMD_EXIT:          exitCmd( cmdBuf );                  break;
-                case CMD_HELP:          helpCmd( cmdBuf);                   break;
-                case CMD_WHELP:         winHelpCmd( cmdBuf);                break;
-                case CMD_ENV:           envCmd( cmdBuf);                    break;
-                case CMD_XF:            execFileCmd( cmdBuf );              break;
-                case CMD_RESET:         resetCmd( cmdBuf);                  break;
-                case CMD_RUN:           runCmd( cmdBuf );                   break;
-                case CMD_STEP:          stepCmd( cmdBuf);                   break;
-                case CMD_B:             setBreakPointCmd( cmdBuf );         break;
-                case CMD_BD:            deleteBreakPointCmd( cmdBuf );      break;
-                case CMD_BL:            listBreakPointsCmd( cmdBuf );       break;
-                case CMD_DIS_ASM:       disAssembleCmd( cmdBuf );           break;
-                case CMD_ASM:           assembleCmd( cmdBuf );              break;
-                case CMD_DR:            displayRegCmd( cmdBuf);             break;
-                case CMD_MR:            modifyRegCmd( cmdBuf);              break;
-                case CMD_HASH_VA:       hashVACmd( cmdBuf);                 break;
-                case CMD_D_TLB:         displayTLBCmd( cmdBuf );            break;
-                case CMD_I_TLB:         insertTLBCmd( cmdBuf );             break;
-                case CMD_P_TLB:         purgeTLBCmd( cmdBuf );              break;
-                case CMD_D_CACHE:       displayCacheCmd( cmdBuf );          break;
-                case CMD_P_CACHE:       purgeCacheCmd( cmdBuf );            break;
-                case CMD_DA:            displayAbsMemCmd( cmdBuf );         break;
-                case CMD_DAA:           displayAbsMemAsCodeCmd( cmdBuf );   break;
-                case CMD_MA:            modifyAbsMemCmd( cmdBuf);           break;
-                case CMD_MAA:           modifyAbsMemAsCodeCmd( cmdBuf);      break;
-                case CMD_LMF:           loadPhysMemCmd( cmdBuf);            break;
-                case CMD_SMF:           savePhysMemCmd( cmdBuf);            break;
-                    
-                case CMD_WON:           winOnCmd( cmdBuf );                 break;
-                case CMD_WOFF:          winOffCmd( cmdBuf );                break;
-                case CMD_WDEF:          winDefCmd( cmdBuf );                break;
-                case CMD_WC:            winCurrentCmd( cmdBuf );            break;
-                case CMD_WSE:           winStacksEnable( cmdBuf );          break;
-                case CMD_WSD:           winStacksDisable( cmdBuf );         break;
-                case CMD_WN:            winNewWinCmd( cmdBuf );             break;
-                case CMD_WK:            winKillWinCmd( cmdBuf );            break;
-                case CMD_WS:            winSetStackCmd( cmdBuf );           break;
-                case CMD_WT:            winToggleCmd( cmdBuf );             break;
-                case CMD_WX:            winExchangeCmd( cmdBuf );           break;
-                    
-                case CMD_WF:            winForwardCmd( cmdBuf );            break;
-                case CMD_WB:            winBackwardCmd( cmdBuf );           break;
-                case CMD_WH:            winHomeCmd( cmdBuf );               break;
-                case CMD_WJ:            winJumpCmd( cmdBuf );               break;
-                    
-                case CMD_PSE:   case CMD_SRE:   case CMD_PLE:   case CMD_SWE:   case CMD_WE: {
-                    
-                    winEnableCmd( cmdBuf );
-                    
-                } break;
-                    
-                case CMD_PSD:   case CMD_SRD:   case CMD_PLD:   case CMD_SWD:   case CMD_WD: {
-                    
-                    winDisableCmd( cmdBuf );
-                    
-                } break;
-                    
-                case CMD_PSR:   case CMD_SRR:   case CMD_PLR:   case CMD_SWR:   case CMD_WR: {
-                    
-                    winSetRadixCmd( cmdBuf );
-                    
-                } break;
-                    
-                case CMD_CWL:   case CMD_WL: {
-                    
-                    winSetRowsCmd( cmdBuf );
-                    
-                } break;
-                    
-                default: invalidCmd( cmdBuf );
-            }
+        switch ( tok -> tokId( )) {
+                
+            case TOK_NIL:                                               break;
+            case CMD_EXIT:          exitCmd( cmdBuf );                  break;
+            case CMD_HELP:          helpCmd( cmdBuf);                   break;
+            case CMD_WHELP:         winHelpCmd( cmdBuf);                break;
+            case CMD_ENV:           envCmd( cmdBuf);                    break;
+            case CMD_XF:            execFileCmd( cmdBuf );              break;
+            case CMD_RESET:         resetCmd( cmdBuf);                  break;
+            case CMD_RUN:           runCmd( cmdBuf );                   break;
+            case CMD_STEP:          stepCmd( cmdBuf);                   break;
+            case CMD_B:             setBreakPointCmd( cmdBuf );         break;
+            case CMD_BD:            deleteBreakPointCmd( cmdBuf );      break;
+            case CMD_BL:            listBreakPointsCmd( cmdBuf );       break;
+            case CMD_DIS_ASM:       disAssembleCmd( cmdBuf );           break;
+            case CMD_ASM:           assembleCmd( cmdBuf );              break;
+            case CMD_DR:            displayRegCmd( cmdBuf);             break;
+            case CMD_MR:            modifyRegCmd( cmdBuf);              break;
+            case CMD_HASH_VA:       hashVACmd( cmdBuf);                 break;
+            case CMD_D_TLB:         displayTLBCmd( cmdBuf );            break;
+            case CMD_I_TLB:         insertTLBCmd( cmdBuf );             break;
+            case CMD_P_TLB:         purgeTLBCmd( cmdBuf );              break;
+            case CMD_D_CACHE:       displayCacheCmd( cmdBuf );          break;
+            case CMD_P_CACHE:       purgeCacheCmd( cmdBuf );            break;
+            case CMD_DA:            displayAbsMemCmd( cmdBuf );         break;
+            case CMD_DAA:           displayAbsMemAsCodeCmd( cmdBuf );   break;
+            case CMD_MA:            modifyAbsMemCmd( cmdBuf);           break;
+            case CMD_MAA:           modifyAbsMemAsCodeCmd( cmdBuf);      break;
+            case CMD_LMF:           loadPhysMemCmd( cmdBuf);            break;
+            case CMD_SMF:           savePhysMemCmd( cmdBuf);            break;
+                
+            case CMD_WON:           winOnCmd( cmdBuf );                 break;
+            case CMD_WOFF:          winOffCmd( cmdBuf );                break;
+            case CMD_WDEF:          winDefCmd( cmdBuf );                break;
+            case CMD_WC:            winCurrentCmd( cmdBuf );            break;
+            case CMD_WSE:           winStacksEnable( cmdBuf );          break;
+            case CMD_WSD:           winStacksDisable( cmdBuf );         break;
+            case CMD_WN:            winNewWinCmd( cmdBuf );             break;
+            case CMD_WK:            winKillWinCmd( cmdBuf );            break;
+            case CMD_WS:            winSetStackCmd( cmdBuf );           break;
+            case CMD_WT:            winToggleCmd( cmdBuf );             break;
+            case CMD_WX:            winExchangeCmd( cmdBuf );           break;
+                
+            case CMD_WF:            winForwardCmd( cmdBuf );            break;
+            case CMD_WB:            winBackwardCmd( cmdBuf );           break;
+            case CMD_WH:            winHomeCmd( cmdBuf );               break;
+            case CMD_WJ:            winJumpCmd( cmdBuf );               break;
+                
+            case CMD_PSE:
+            case CMD_SRE:
+            case CMD_PLE:
+            case CMD_SWE:
+            case CMD_WE:            winEnableCmd( cmdBuf );             break;
+                
+            case CMD_PSD:
+            case CMD_SRD:
+            case CMD_PLD:
+            case CMD_SWD:
+            case CMD_WD:            winDisableCmd( cmdBuf );            break;
+                
+            case CMD_PSR:
+            case CMD_SRR:
+            case CMD_PLR:
+            case CMD_SWR:
+            case CMD_WR:            winSetRadixCmd( cmdBuf );           break;
+                
+            case CMD_CWL:
+            case CMD_WL:            winSetRowsCmd( cmdBuf );            break;
+                
+            default:                invalidCmd( cmdBuf );
         }
     }
 }

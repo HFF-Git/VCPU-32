@@ -2934,8 +2934,8 @@ Stores a general register value into memory using a logical address.
 #### Format
 
 ```
-   STw [.M] ofs ([s,] b), r         w = B|H|W
-   STw [.M] a ([s,] b), r           w = B|H|W
+   STw [.M] r, ofs ([s,] b)         w = B|H|W
+   STw [.M] r, a ([s,] b)           w = B|H|W
 
 ```
 
@@ -3020,8 +3020,8 @@ Stores a general register value into memory using an absolute physical address.
 #### Format
 
 ```
-   STA [.M] ofs (b), r
-   STA [.M] a (b), r
+   STA [.M] r, ofs (b)
+   STA [.M] r, a (b)
 ```
 
 ```
@@ -3095,7 +3095,7 @@ Conditionally store a value to memory.
 #### Format
 
 ```
-   STC ofs ( [s,] b),  r
+   STC r, ofs ( [s,] b)
 ```
 
 ```

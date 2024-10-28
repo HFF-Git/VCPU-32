@@ -138,7 +138,8 @@ enum TokId : uint16_t {
     // Line Commands.
     //
     //--------------------------------------------------------------------------------------------------------
-    CMD_COMMENT             = 1000,     CMD_ENV                 = 1001,     CMD_EXIT                = 1002,
+ //   CMD_COMMENT             = 1000,
+    CMD_ENV                 = 1001,     CMD_EXIT                = 1002,
     CMD_HELP                = 1003,     CMD_WHELP               = 1004,
     
     CMD_RESET               = 1010,     CMD_RUN                 = 1011,     CMD_STEP                = 1012,
@@ -303,13 +304,36 @@ enum ErrMsgId : uint16_t {
     ERR_INVALID_WIN_TYPE            = 8,
     ERR_EXPECTED_WIN_TYPE           = 9,
     ERR_EXPECTED_STACK_ID           = 10,
-    ERR_EXPECTED_FMT_OPT            = 11,
-    ERR_OUT_OF_WINDOWS              = 12,
+    
+    ERR_EXTRA_TOKEN_IN_STR          = 100,
+    ERR_EXPECTED_LPAREN             = 101,
+    ERR_EXPECTED_RPAREN             = 102,
+    ERR_EXPECTED_COMMA              = 103,
+    ERR_EXPECTED_NUMERIC            = 104,
+    ERR_EXPR_TYPE_MATCH             = 105,
+    ERR_EXPR_FACTOR                 = 106,
+    ERR_EXPECTED_GENERAL_REG        = 107,
+    
+    ERR_INVALID_ARG                 = 108,
+    
+    
+    
+    ERR_INVALID_FMT_OPT             = 11,
+    ERR_EXPECTED_FMT_OPT            = 12,
+    
+    ERR_OUT_OF_WINDOWS              = 13,
     
     ERR_INVALID_NUM                 = 20,
     ERR_EXPECTED_CLOSING_QUOTE      = 21,
     ERR_INVALID_CHAR_IN_IDENT       = 22,
 };
+
+//------------------------------------------------------------------------------------------------------------
+// The command line size. The command line is rather long so that we can read in long lines form perhaps
+// future script files.
+//
+//------------------------------------------------------------------------------------------------------------
+const int   CMD_LINE_BUF_SIZE  = 256;
 
 //------------------------------------------------------------------------------------------------------------
 // Forward declaration of the globals structure. Every object will have access to the globals structure, so
@@ -347,8 +371,7 @@ struct DrvTokenizer {
 
     uint8_t     setupTokenizer( char *lineBuf );
     void        nextToken( );
-    
-    uint8_t     tokErr( );
+
     TokId       tokGrp( );
     TokId       tokId( );
     int         tokVal( );
@@ -358,6 +381,7 @@ struct DrvTokenizer {
 
     private: 
 
+    void        tokenError( char *errMsg );
     void        nextChar( );
     void        parseNum( int sign );
     void        parseString( );
@@ -369,7 +393,6 @@ struct DrvTokenizer {
     int         currentTokCharIndex     = 0;
     char        currentChar             = ' ';
     
-    uint8_t     currentTokErr           = NO_ERR;
     TokId       currentTokGrpId         = SET_NIL;
     TokId       currentTokId            = TOK_NIL;
     int         currentTokVal           = 0;
@@ -985,12 +1008,9 @@ public:
 private:
     
     void            promptCmdLine( );
-    int             promptYesNoCancel( char *promptStr );
     bool            readCmdLine( char *cmdBuf );
     void            dispatchCmd( char *cmdBuf );
     void            execCmdsFromFile( char* fileName );
-    
-    void            printErrMsg( ErrMsgId errNum, char *argStr = nullptr );
     
     void            invalidCmd( char *cmdBuf );
     void            commentCmd( char *cmdBuf );
