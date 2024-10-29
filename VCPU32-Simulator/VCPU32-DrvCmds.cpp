@@ -100,250 +100,597 @@ struct {
     
 } const tokTab[ ] = {
     
-    { "ENV",                "",         CMD_SET,            CMD_ENV                 },
-    { "EXIT",               "E",        CMD_SET,            CMD_EXIT                },
-    { "HELP",               "?",        CMD_SET,            CMD_HELP                },
-    { "WHELP",              "",         CMD_SET,            CMD_WHELP               },
-    { "RESET",              "",         CMD_SET,            CMD_RESET               },
-    { "RUN",                "",         CMD_SET,            CMD_RUN                 },
-    { "STEP",               "S",        CMD_SET,            CMD_STEP                },
-    { "DIS",                "",         CMD_SET,            CMD_DIS_ASM             },
-    { "ASM",                "",         CMD_SET,            CMD_ASM                 },
-    { "B",                  "",         CMD_SET,            CMD_B                   },
-    { "BD",                 "",         CMD_SET,            CMD_BD                  },
-    { "BL",                 "",         CMD_SET,            CMD_BL                  },
-    { "EXEC-F",             "XF",       CMD_SET,            CMD_XF                  },
+    { "ENV",                "",         TOK_TYP_CMD,            CMD_ENV                 },
+    { "EXIT",               "E",        TOK_TYP_CMD,            CMD_EXIT                },
+    { "HELP",               "?",        TOK_TYP_CMD,            CMD_HELP                },
+    { "WHELP",              "",         TOK_TYP_CMD,            CMD_WHELP               },
+    { "RESET",              "",         TOK_TYP_CMD,            CMD_RESET               },
+    { "RUN",                "",         TOK_TYP_CMD,            CMD_RUN                 },
+    { "STEP",               "S",        TOK_TYP_CMD,            CMD_STEP                },
+    { "DIS",                "",         TOK_TYP_CMD,            CMD_DIS_ASM             },
+    { "ASM",                "",         TOK_TYP_CMD,            CMD_ASM                 },
+    { "B",                  "",         TOK_TYP_CMD,            CMD_B                   },
+    { "BD",                 "",         TOK_TYP_CMD,            CMD_BD                  },
+    { "BL",                 "",         TOK_TYP_CMD,            CMD_BL                  },
+    { "EXEC-F",             "XF",       TOK_TYP_CMD,            CMD_XF                  },
     
-    { "D-REG",              "DR",       CMD_SET,            CMD_DR                  },
-    { "M-REG",              "MR",       CMD_SET,            CMD_MR                  },
+    { "D-REG",              "DR",       TOK_TYP_CMD,            CMD_DR                  },
+    { "M-REG",              "MR",       TOK_TYP_CMD,            CMD_MR                  },
     
-    { "HASH-VA",            "HVA",      CMD_SET,            CMD_HASH_VA             },
+    { "HASH-VA",            "HVA",      TOK_TYP_CMD,            CMD_HASH_VA             },
     
-    { "I-TLB",              "ITLB",     CMD_SET,            CMD_I_TLB               },
-    { "D-TLB",              "DTLB",     CMD_SET,            CMD_D_TLB               },
-    { "P-TLB",              "PTLB",     CMD_SET,            CMD_P_TLB               },
+    { "I-TLB",              "ITLB",     TOK_TYP_CMD,            CMD_I_TLB               },
+    { "D-TLB",              "DTLB",     TOK_TYP_CMD,            CMD_D_TLB               },
+    { "P-TLB",              "PTLB",     TOK_TYP_CMD,            CMD_P_TLB               },
     
-    { "D-CACHE",            "DCA",      CMD_SET,            CMD_D_CACHE             },
-    { "P-CACHE",            "PCA",      CMD_SET,            CMD_P_CACHE             },
+    { "D-CACHE",            "DCA",      TOK_TYP_CMD,            CMD_D_CACHE             },
+    { "P-CACHE",            "PCA",      TOK_TYP_CMD,            CMD_P_CACHE             },
     
-    { "D-ABS",              "DA",       CMD_SET,            CMD_DA                  },
-    { "M-ABS",              "MA",       CMD_SET,            CMD_MA                  },
-    { "D-ABS-ASM",          "DAA",      CMD_SET,            CMD_DAA                 },
-    { "M-ABS-ASM",          "MAA",      CMD_SET,            CMD_MAA                 },
+    { "D-ABS",              "DA",       TOK_TYP_CMD,            CMD_DA                  },
+    { "M-ABS",              "MA",       TOK_TYP_CMD,            CMD_MA                  },
+    { "D-ABS-ASM",          "DAA",      TOK_TYP_CMD,            CMD_DAA                 },
+    { "M-ABS-ASM",          "MAA",      TOK_TYP_CMD,            CMD_MAA                 },
     
-    { "LOAD-MEM",           "LMF",      CMD_SET,            CMD_LMF                 },
-    { "SAVE-MEM",           "SMF",      CMD_SET,            CMD_SMF                 },
+    { "LOAD-MEM",           "LMF",      TOK_TYP_CMD,            CMD_LMF                 },
+    { "SAVE-MEM",           "SMF",      TOK_TYP_CMD,            CMD_SMF                 },
     
-    { "WON",                "",         CMD_SET,            CMD_WON                 },
-    { "WOFF",               "",         CMD_SET,            CMD_WOFF                },
-    { "WDEF",               "",         CMD_SET,            CMD_WDEF                },
-    { "WSE",                "",         CMD_SET,            CMD_WSE                 },
-    { "WSD",                "",         CMD_SET,            CMD_WSD                 },
+    { "WON",                "",         TOK_TYP_CMD,            CMD_WON                 },
+    { "WOFF",               "",         TOK_TYP_CMD,            CMD_WOFF                },
+    { "WDEF",               "",         TOK_TYP_CMD,            CMD_WDEF                },
+    { "WSE",                "",         TOK_TYP_CMD,            CMD_WSE                 },
+    { "WSD",                "",         TOK_TYP_CMD,            CMD_WSD                 },
     
-    { "PSE",                "",         CMD_SET,            CMD_PSE                 },
-    { "PSD",                "",         CMD_SET,            CMD_PSD                 },
-    { "PSR",                "",         CMD_SET,            CMD_PSR                 },
+    { "PSE",                "",         TOK_TYP_CMD,            CMD_PSE                 },
+    { "PSD",                "",         TOK_TYP_CMD,            CMD_PSD                 },
+    { "PSR",                "",         TOK_TYP_CMD,            CMD_PSR                 },
     
-    { "SRE",                "",         CMD_SET,            CMD_SRE                 },
-    { "SRD",                "",         CMD_SET,            CMD_SRD                 },
-    { "SRR",                "",         CMD_SET,            CMD_SRR                 },
+    { "SRE",                "",         TOK_TYP_CMD,            CMD_SRE                 },
+    { "SRD",                "",         TOK_TYP_CMD,            CMD_SRD                 },
+    { "SRR",                "",         TOK_TYP_CMD,            CMD_SRR                 },
     
-    { "PLE",                "",         CMD_SET,            CMD_PLE                 },
-    { "PLD",                "",         CMD_SET,            CMD_PLD                 },
-    { "PLR",                "",         CMD_SET,            CMD_PLR                 },
+    { "PLE",                "",         TOK_TYP_CMD,            CMD_PLE                 },
+    { "PLD",                "",         TOK_TYP_CMD,            CMD_PLD                 },
+    { "PLR",                "",         TOK_TYP_CMD,            CMD_PLR                 },
     
-    { "SWE",                "",         CMD_SET,            CMD_SWE                 },
-    { "SWD",                "",         CMD_SET,            CMD_SWD                 },
-    { "SWR",                "",         CMD_SET,            CMD_SWR                 },
+    { "SWE",                "",         TOK_TYP_CMD,            CMD_SWE                 },
+    { "SWD",                "",         TOK_TYP_CMD,            CMD_SWD                 },
+    { "SWR",                "",         TOK_TYP_CMD,            CMD_SWR                 },
     
-    { "CWL",                "",         CMD_SET,            CMD_CWL                 },
+    { "CWL",                "",         TOK_TYP_CMD,            CMD_CWL                 },
     
-    { "WE",                 "",         CMD_SET,            CMD_WE                  },
-    { "WD",                 "",         CMD_SET,            CMD_WD                  },
-    { "WR",                 "",         CMD_SET,            CMD_WR                  },
-    { "WF",                 "",         CMD_SET,            CMD_WF                  },
-    { "WB",                 "",         CMD_SET,            CMD_WB                  },
-    { "WH",                 "",         CMD_SET,            CMD_WH                  },
-    { "WJ",                 "",         CMD_SET,            CMD_WJ                  },
-    { "WL",                 "",         CMD_SET,            CMD_WL                  },
-    { "WN",                 "",         CMD_SET,            CMD_WN                  },
-    { "WK",                 "",         CMD_SET,            CMD_WK                  },
-    { "WC",                 "",         CMD_SET,            CMD_WC                  },
-    { "WS",                 "",         CMD_SET,            CMD_WS                  },
-    { "WT",                 "",         CMD_SET,            CMD_WT                  },
-    { "WX",                 "",         CMD_SET,            CMD_WX                  },
+    { "WE",                 "",         TOK_TYP_CMD,            CMD_WE                  },
+    { "WD",                 "",         TOK_TYP_CMD,            CMD_WD                  },
+    { "WR",                 "",         TOK_TYP_CMD,            CMD_WR                  },
+    { "WF",                 "",         TOK_TYP_CMD,            CMD_WF                  },
+    { "WB",                 "",         TOK_TYP_CMD,            CMD_WB                  },
+    { "WH",                 "",         TOK_TYP_CMD,            CMD_WH                  },
+    { "WJ",                 "",         TOK_TYP_CMD,            CMD_WJ                  },
+    { "WL",                 "",         TOK_TYP_CMD,            CMD_WL                  },
+    { "WN",                 "",         TOK_TYP_CMD,            CMD_WN                  },
+    { "WK",                 "",         TOK_TYP_CMD,            CMD_WK                  },
+    { "WC",                 "",         TOK_TYP_CMD,            CMD_WC                  },
+    { "WS",                 "",         TOK_TYP_CMD,            CMD_WS                  },
+    { "WT",                 "",         TOK_TYP_CMD,            CMD_WT                  },
+    { "WX",                 "",         TOK_TYP_CMD,            CMD_WX                  },
     
-    { "TRUE",               "",         SET_NIL,            TOK_TRUE                },
-    { "FALSE",              "",         SET_NIL,            TOK_FALSE               },
-    { "ALL",                "",         SET_NIL,            TOK_ALL                 },
-    { "CPU",                "",         SET_NIL,            TOK_CPU                 },
-    { "MEM",                "",         SET_NIL,            TOK_MEM                 },
-    { "C",                  "",         SET_NIL,            TOK_C                   },
-    { "D",                  "",         SET_NIL,            TOK_D                   },
-    { "F",                  "",         SET_NIL,            TOK_F                   },
-    { "I",                  "",         SET_NIL,            TOK_I                   },
-    { "T",                  "",         SET_NIL,            TOK_T                   },
-    { "U",                  "",         SET_NIL,            TOK_U                   },
+    { "TRUE",               "",         TOK_TYP_NIL,            TOK_TRUE                },
+    { "FALSE",              "",         TOK_TYP_NIL,            TOK_FALSE               },
+    { "ALL",                "",         TOK_TYP_NIL,            TOK_ALL                 },
+    { "CPU",                "",         TOK_TYP_NIL,            TOK_CPU                 },
+    { "MEM",                "",         TOK_TYP_NIL,            TOK_MEM                 },
+    { "C",                  "",         TOK_TYP_NIL,            TOK_C                   },
+    { "D",                  "",         TOK_TYP_NIL,            TOK_D                   },
+    { "F",                  "",         TOK_TYP_NIL,            TOK_F                   },
+    { "I",                  "",         TOK_TYP_NIL,            TOK_I                   },
+    { "T",                  "",         TOK_TYP_NIL,            TOK_T                   },
+    { "U",                  "",         TOK_TYP_NIL,            TOK_U                   },
     
     { "DEC",                "",         FMT_SET,            TOK_DEC                 },
     { "HEX",                "",         FMT_SET,            TOK_HEX                 },
     { "OCT",                "",         FMT_SET,            TOK_OCT                 },
     
-    { "PM",                 "",         SET_NIL,            TOK_PM                  },
-    { "PC",                 "",         SET_NIL,            TOK_PC                  },
-    { "IT",                 "",         SET_NIL,            TOK_IT                  },
-    { "DT",                 "",         SET_NIL,            TOK_DT                  },
-    { "IC",                 "",         SET_NIL,            TOK_IC                  },
-    { "DC",                 "",         SET_NIL,            TOK_DC                  },
-    { "UC",                 "",         SET_NIL,            TOK_UC                  },
-    { "ICR",                "",         SET_NIL,            TOK_ICR                 },
-    { "DCR",                "",         SET_NIL,            TOK_DCR                 },
-    { "UCR",                "",         SET_NIL,            TOK_UCR                 },
-    { "MCR",                "",         SET_NIL,            TOK_MCR                 },
-    { "ITR",                "",         SET_NIL,            TOK_ITR                 },
-    { "DTR",                "",         SET_NIL,            TOK_DTR                 },
-    { "PCR",                "",         SET_NIL,            TOK_PCR                 },
-    { "IOR",                "",         SET_NIL,            TOK_IOR                 },
-    { "TX",                 "",         SET_NIL,            TOK_TX                  },
+    { "PM",                 "",         TOK_TYP_NIL,            TOK_PM                  },
+    { "PC",                 "",         TOK_TYP_NIL,            TOK_PC                  },
+    { "IT",                 "",         TOK_TYP_NIL,            TOK_IT                  },
+    { "DT",                 "",         TOK_TYP_NIL,            TOK_DT                  },
+    { "IC",                 "",         TOK_TYP_NIL,            TOK_IC                  },
+    { "DC",                 "",         TOK_TYP_NIL,            TOK_DC                  },
+    { "UC",                 "",         TOK_TYP_NIL,            TOK_UC                  },
+    { "ICR",                "",         TOK_TYP_NIL,            TOK_ICR                 },
+    { "DCR",                "",         TOK_TYP_NIL,            TOK_DCR                 },
+    { "UCR",                "",         TOK_TYP_NIL,            TOK_UCR                 },
+    { "MCR",                "",         TOK_TYP_NIL,            TOK_MCR                 },
+    { "ITR",                "",         TOK_TYP_NIL,            TOK_ITR                 },
+    { "DTR",                "",         TOK_TYP_NIL,            TOK_DTR                 },
+    { "PCR",                "",         TOK_TYP_NIL,            TOK_PCR                 },
+    { "IOR",                "",         TOK_TYP_NIL,            TOK_IOR                 },
+    { "TX",                 "",         TOK_TYP_NIL,            TOK_TX                  },
     
-    { "R0",                 "TMP",      GR_SET,             GR_0                    },
-    { "R1",                 "T1",       GR_SET,             GR_1                    },
-    { "R2",                 "T2",       GR_SET,             GR_2                    },
-    { "R3",                 "T3",       GR_SET,             GR_3                    },
-    { "R4",                 "T4",       GR_SET,             GR_4                    },
-    { "R5",                 "",         GR_SET,             GR_5                    },
-    { "R6",                 "",         GR_SET,             GR_6                    },
-    { "R7",                 "",         GR_SET,             GR_7                    },
-    { "R8",                 "",         GR_SET,             GR_8                    },
-    { "R9",                 "",         GR_SET,             GR_9                    },
-    { "R10",                "",         GR_SET,             GR_10                   },
-    { "R11",                "",         GR_SET,             GR_11                   },
-    { "R12",                "",         GR_SET,             GR_12                   },
-    { "R13",                "DP",       GR_SET,             GR_13                   },
-    { "R14",                "RL",       GR_SET,             GR_14                   },
-    { "R15",                "SP",       GR_SET,             GR_15                   },
+    { "R0",                 "TMP",      TOK_TYP_GREG,             GR_0                    },
+    { "R1",                 "T1",       TOK_TYP_GREG,             GR_1                    },
+    { "R2",                 "T2",       TOK_TYP_GREG,             GR_2                    },
+    { "R3",                 "T3",       TOK_TYP_GREG,             GR_3                    },
+    { "R4",                 "T4",       TOK_TYP_GREG,             GR_4                    },
+    { "R5",                 "",         TOK_TYP_GREG,             GR_5                    },
+    { "R6",                 "",         TOK_TYP_GREG,             GR_6                    },
+    { "R7",                 "",         TOK_TYP_GREG,             GR_7                    },
+    { "R8",                 "",         TOK_TYP_GREG,             GR_8                    },
+    { "R9",                 "",         TOK_TYP_GREG,             GR_9                    },
+    { "R10",                "",         TOK_TYP_GREG,             GR_10                   },
+    { "R11",                "",         TOK_TYP_GREG,             GR_11                   },
+    { "R12",                "",         TOK_TYP_GREG,             GR_12                   },
+    { "R13",                "DP",       TOK_TYP_GREG,             GR_13                   },
+    { "R14",                "RL",       TOK_TYP_GREG,             GR_14                   },
+    { "R15",                "SP",       TOK_TYP_GREG,             GR_15                   },
 
-    { "S0",                 "",         SR_SET,             SR_0                    },
-    { "S1",                 "",         SR_SET,             SR_1                    },
-    { "S2",                 "",         SR_SET,             SR_2                    },
-    { "S3",                 "",         SR_SET,             SR_3                    },
-    { "S4",                 "",         SR_SET,             SR_4                    },
-    { "S5",                 "",         SR_SET,             SR_5                    },
-    { "S6",                 "",         SR_SET,             SR_6                    },
-    { "S7",                 "",         SR_SET,             SR_7                    },
+    { "S0",                 "",         TOK_TYP_SREG,             SR_0                    },
+    { "S1",                 "",         TOK_TYP_SREG,             SR_1                    },
+    { "S2",                 "",         TOK_TYP_SREG,             SR_2                    },
+    { "S3",                 "",         TOK_TYP_SREG,             SR_3                    },
+    { "S4",                 "",         TOK_TYP_SREG,             SR_4                    },
+    { "S5",                 "",         TOK_TYP_SREG,             SR_5                    },
+    { "S6",                 "",         TOK_TYP_SREG,             SR_6                    },
+    { "S7",                 "",         TOK_TYP_SREG,             SR_7                    },
     
-    { "C0",                 "",         CR_SET,             CR_0                    },
-    { "C1",                 "",         CR_SET,             CR_1                    },
-    { "C2",                 "",         CR_SET,             CR_2                    },
-    { "C3",                 "",         CR_SET,             CR_3                    },
-    { "C4",                 "",         CR_SET,             CR_4                    },
-    { "C5",                 "",         CR_SET,             CR_5                    },
-    { "C6",                 "",         CR_SET,             CR_6                    },
-    { "C7",                 "",         CR_SET,             CR_7                    },
-    { "C8",                 "",         CR_SET,             CR_8                    },
-    { "C9",                 "",         CR_SET,             CR_9                    },
-    { "C10",                "",         CR_SET,             CR_10                   },
-    { "C11",                "",         CR_SET,             CR_11                   },
-    { "C12",                "",         CR_SET,             CR_12                   },
-    { "C13",                "",         CR_SET,             CR_13                   },
-    { "C14",                "",         CR_SET,             CR_14                   },
-    { "C15",                "",         CR_SET,             CR_15                   },
-    { "C16",                "",         CR_SET,             CR_16                   },
-    { "C17",                "",         CR_SET,             CR_17                   },
-    { "C18",                "",         CR_SET,             CR_18                   },
-    { "C19",                "",         CR_SET,             CR_19                   },
-    { "C20",                "",         CR_SET,             CR_20                   },
-    { "C21",                "",         CR_SET,             CR_21                   },
-    { "C22",                "",         CR_SET,             CR_22                   },
-    { "C23",                "",         CR_SET,             CR_23                   },
-    { "C24",                "TMP-0",    CR_SET,             CR_24                   },
-    { "C25",                "TMP-1",    CR_SET,             CR_25                   },
-    { "C26",                "TMP-2",    CR_SET,             CR_26                   },
-    { "C27",                "TMP-3",    CR_SET,             CR_27                   },
-    { "C28",                "TMP-4",    CR_SET,             CR_28                   },
-    { "C29",                "TMP-5",    CR_SET,             CR_29                   },
-    { "C30",                "TMP-6",    CR_SET,             CR_30                   },
-    { "C31",                "TMP-7",    CR_SET,             CR_31                   },
+    { "C0",                 "",         TOK_TYP_CREG,             CR_0                    },
+    { "C1",                 "",         TOK_TYP_CREG,             CR_1                    },
+    { "C2",                 "",         TOK_TYP_CREG,             CR_2                    },
+    { "C3",                 "",         TOK_TYP_CREG,             CR_3                    },
+    { "C4",                 "",         TOK_TYP_CREG,             CR_4                    },
+    { "C5",                 "",         TOK_TYP_CREG,             CR_5                    },
+    { "C6",                 "",         TOK_TYP_CREG,             CR_6                    },
+    { "C7",                 "",         TOK_TYP_CREG,             CR_7                    },
+    { "C8",                 "",         TOK_TYP_CREG,             CR_8                    },
+    { "C9",                 "",         TOK_TYP_CREG,             CR_9                    },
+    { "C10",                "",         TOK_TYP_CREG,             CR_10                   },
+    { "C11",                "",         TOK_TYP_CREG,             CR_11                   },
+    { "C12",                "",         TOK_TYP_CREG,             CR_12                   },
+    { "C13",                "",         TOK_TYP_CREG,             CR_13                   },
+    { "C14",                "",         TOK_TYP_CREG,             CR_14                   },
+    { "C15",                "",         TOK_TYP_CREG,             CR_15                   },
+    { "C16",                "",         TOK_TYP_CREG,             CR_16                   },
+    { "C17",                "",         TOK_TYP_CREG,             CR_17                   },
+    { "C18",                "",         TOK_TYP_CREG,             CR_18                   },
+    { "C19",                "",         TOK_TYP_CREG,             CR_19                   },
+    { "C20",                "",         TOK_TYP_CREG,             CR_20                   },
+    { "C21",                "",         TOK_TYP_CREG,             CR_21                   },
+    { "C22",                "",         TOK_TYP_CREG,             CR_22                   },
+    { "C23",                "",         TOK_TYP_CREG,             CR_23                   },
+    { "C24",                "TMP-0",    TOK_TYP_CREG,             CR_24                   },
+    { "C25",                "TMP-1",    TOK_TYP_CREG,             CR_25                   },
+    { "C26",                "TMP-2",    TOK_TYP_CREG,             CR_26                   },
+    { "C27",                "TMP-3",    TOK_TYP_CREG,             CR_27                   },
+    { "C28",                "TMP-4",    TOK_TYP_CREG,             CR_28                   },
+    { "C29",                "TMP-5",    TOK_TYP_CREG,             CR_29                   },
+    { "C30",                "TMP-6",    TOK_TYP_CREG,             CR_30                   },
+    { "C31",                "TMP-7",    TOK_TYP_CREG,             CR_31                   },
    
-    { "IA-SEG",             "",         PS_SET,             PS_IA_SEG               },
-    { "IA-OFS",             "",         PS_SET,             PS_IA_OFS               },
-    { "ST-REG",             "",         PS_SET,             PS_STATUS               },
+    { "IA-SEG",             "",         TOK_TYP_PSTATE_PREG,             PS_IA_SEG               },
+    { "IA-OFS",             "",         TOK_TYP_PSTATE_PREG,             PS_IA_OFS               },
+    { "ST-REG",             "",         TOK_TYP_PSTATE_PREG,             PS_STATUS               },
     
-    { "FD-IA-SEG",          "",         FD_SET,             FD_IA_SEG               },
-    { "FD-IA-OFS",          "",         FD_SET,             FD_IA_OFS               },
-    { "FD-INSTR",           "",         FD_SET,             FD_INSTR                },
-    { "FD-A",               "",         FD_SET,             FD_A                    },
-    { "FD-B",               "",         FD_SET,             FD_B                    },
-    { "FD-X",               "",         FD_SET,             FD_X                    },
+    { "FD-IA-SEG",          "",         TOK_TYP_FD_PREG,             FD_IA_SEG               },
+    { "FD-IA-OFS",          "",         TOK_TYP_FD_PREG,             FD_IA_OFS               },
+    { "FD-INSTR",           "",         TOK_TYP_FD_PREG,             FD_INSTR                },
+    { "FD-A",               "",         TOK_TYP_FD_PREG,             FD_A                    },
+    { "FD-B",               "",         TOK_TYP_FD_PREG,             FD_B                    },
+    { "FD-X",               "",         TOK_TYP_FD_PREG,             FD_X                    },
     
-    { "OF-IA-SEG",          "",         OF_SET,             MA_IA_SEG               },
-    { "OF-IA-OFS",          "",         OF_SET,             MA_IA_OFS               },
-    { "OF-INSTR",           "",         OF_SET,             MA_INSTR                },
-    { "OF-A",               "",         OF_SET,             MA_A                    },
-    { "OF-B",               "",         OF_SET,             MA_B                    },
-    { "OF-X",               "",         OF_SET,             MA_X                    },
-    { "OF-S",               "",         OF_SET,             MA_S                    },
+    { "OF-IA-SEG",          "",         TOK_TYP_OF_PREG,             OF_IA_SEG               },
+    { "OF-IA-OFS",          "",         TOK_TYP_OF_PREG,             OF_IA_OFS               },
+    { "OF-INSTR",           "",         TOK_TYP_OF_PREG,             OF_INSTR                },
+    { "OF-A",               "",         TOK_TYP_OF_PREG,             OF_A                    },
+    { "OF-B",               "",         TOK_TYP_OF_PREG,             OF_B                    },
+    { "OF-X",               "",         TOK_TYP_OF_PREG,             OF_X                    },
+    { "OF-S",               "",         TOK_TYP_OF_PREG,             OF_S                    },
     
-    { "IC-L1-STATE",        "",         IC_L1_SET,          IC_L1_STATE             },
-    { "IC-L1-REQ",          "",         IC_L1_SET,          IC_L1_REQ               },
-    { "IC-L1-REQ-SEG",      "",         IC_L1_SET,          IC_L1_REQ_SEG           },
-    { "IC-L1-REQ-OFS",      "",         IC_L1_SET,          IC_L1_REQ_OFS           },
-    { "IC-L1-REQ-TAG",      "",         IC_L1_SET,          IC_L1_REQ_TAG           },
-    { "IC-L1-REQ-LEN",      "",         IC_L1_SET,          IC_L1_REQ_LEN           },
-    { "IC-L1-REQ-LAT",      "",         IC_L1_SET,          IC_L1_LATENCY           },
-    { "IC-L1-SETS",         "",         IC_L1_SET,          IC_L1_SETS              },
-    { "IC-L1-ENTRIES",      "",         IC_L1_SET,          IC_L1_BLOCK_ENTRIES     },
-    { "IC-L1-B-SIZE",       "",         IC_L1_SET,          IC_L1_BLOCK_SIZE        },
+    { "IC-L1-STATE",        "",         TOK_TYP_IC_L1_REG,          IC_L1_STATE             },
+    { "IC-L1-REQ",          "",         TOK_TYP_IC_L1_REG,          IC_L1_REQ               },
+    { "IC-L1-REQ-SEG",      "",         TOK_TYP_IC_L1_REG,          IC_L1_REQ_SEG           },
+    { "IC-L1-REQ-OFS",      "",         TOK_TYP_IC_L1_REG,          IC_L1_REQ_OFS           },
+    { "IC-L1-REQ-TAG",      "",         TOK_TYP_IC_L1_REG,          IC_L1_REQ_TAG           },
+    { "IC-L1-REQ-LEN",      "",         TOK_TYP_IC_L1_REG,          IC_L1_REQ_LEN           },
+    { "IC-L1-REQ-LAT",      "",         TOK_TYP_IC_L1_REG,          IC_L1_LATENCY           },
+    { "IC-L1-SETS",         "",         TOK_TYP_IC_L1_REG,          IC_L1_SETS              },
+    { "IC-L1-ENTRIES",      "",         TOK_TYP_IC_L1_REG,          IC_L1_BLOCK_ENTRIES     },
+    { "IC-L1-B-SIZE",       "",         TOK_TYP_IC_L1_REG,          IC_L1_BLOCK_SIZE        },
    
-    { "DC-L1-STATE",        "",         DC_L1_SET,          DC_L1_STATE             },
-    { "DC-L1-REQ",          "",         DC_L1_SET,          DC_L1_REQ               },
-    { "DC-L1-REQ-SEG",      "",         DC_L1_SET,          DC_L1_REQ_SEG           },
-    { "DC-L1-REQ-OFS",      "",         DC_L1_SET,          DC_L1_REQ_OFS           },
-    { "DC-L1-REQ-TAG",      "",         DC_L1_SET,          DC_L1_REQ_TAG           },
-    { "DC-L1-REQ-LEN",      "",         DC_L1_SET,          DC_L1_REQ_LEN           },
-    { "DC-L1-REQ-LAT",      "",         DC_L1_SET,          DC_L1_LATENCY           },
-    { "DC-L1-SETS",         "",         DC_L1_SET,          DC_L1_SETS              },
-    { "DC-L1-ENTRIES",      "",         DC_L1_SET,          DC_L1_BLOCK_ENTRIES     },
-    { "DC-L1-B-SIZE",       "",         DC_L1_SET,          DC_L1_BLOCK_SIZE        },
+    { "DC-L1-STATE",        "",         TOK_TYP_DC_L1_REG,          DC_L1_STATE             },
+    { "DC-L1-REQ",          "",         TOK_TYP_DC_L1_REG,          DC_L1_REQ               },
+    { "DC-L1-REQ-SEG",      "",         TOK_TYP_DC_L1_REG,          DC_L1_REQ_SEG           },
+    { "DC-L1-REQ-OFS",      "",         TOK_TYP_DC_L1_REG,          DC_L1_REQ_OFS           },
+    { "DC-L1-REQ-TAG",      "",         TOK_TYP_DC_L1_REG,          DC_L1_REQ_TAG           },
+    { "DC-L1-REQ-LEN",      "",         TOK_TYP_DC_L1_REG,          DC_L1_REQ_LEN           },
+    { "DC-L1-REQ-LAT",      "",         TOK_TYP_DC_L1_REG,          DC_L1_LATENCY           },
+    { "DC-L1-SETS",         "",         TOK_TYP_DC_L1_REG,          DC_L1_SETS              },
+    { "DC-L1-ENTRIES",      "",         TOK_TYP_DC_L1_REG,          DC_L1_BLOCK_ENTRIES     },
+    { "DC-L1-B-SIZE",       "",         TOK_TYP_DC_L1_REG,          DC_L1_BLOCK_SIZE        },
   
-    { "UC-L2-STATE",        "",         UC_L2_SET,          UC_L2_STATE             },
-    { "UC-L2-REQ",          "",         UC_L2_SET,          UC_L2_REQ               },
-    { "UC-L2-REQ-SEG",      "",         UC_L2_SET,          UC_L2_REQ_SEG           },
-    { "UC-L2-REQ-OFS",      "",         UC_L2_SET,          UC_L2_REQ_OFS           },
-    { "UC-L2-REQ-TAG",      "",         UC_L2_SET,          UC_L2_REQ_TAG           },
-    { "UC-L2-REQ-LEN",      "",         UC_L2_SET,          UC_L2_REQ_LEN           },
-    { "UC-L2-REQ-LAT",      "",         UC_L2_SET,          UC_L2_LATENCY           },
-    { "UC-L2-SETS",         "",         UC_L2_SET,          UC_L2_SETS              },
-    { "UC-L2-ENTRIES",      "",         UC_L2_SET,          UC_L2_BLOCK_ENTRIES     },
-    { "UC-L2-B-SIZE",       "",         UC_L2_SET,          UC_L2_BLOCK_SIZE        },
+    { "UC-L2-STATE",        "",         TOK_TYP_UC_L2_REG,          UC_L2_STATE             },
+    { "UC-L2-REQ",          "",         TOK_TYP_UC_L2_REG,          UC_L2_REQ               },
+    { "UC-L2-REQ-SEG",      "",         TOK_TYP_UC_L2_REG,          UC_L2_REQ_SEG           },
+    { "UC-L2-REQ-OFS",      "",         TOK_TYP_UC_L2_REG,          UC_L2_REQ_OFS           },
+    { "UC-L2-REQ-TAG",      "",         TOK_TYP_UC_L2_REG,          UC_L2_REQ_TAG           },
+    { "UC-L2-REQ-LEN",      "",         TOK_TYP_UC_L2_REG,          UC_L2_REQ_LEN           },
+    { "UC-L2-REQ-LAT",      "",         TOK_TYP_UC_L2_REG,          UC_L2_LATENCY           },
+    { "UC-L2-SETS",         "",         TOK_TYP_UC_L2_REG,          UC_L2_SETS              },
+    { "UC-L2-ENTRIES",      "",         TOK_TYP_UC_L2_REG,          UC_L2_BLOCK_ENTRIES     },
+    { "UC-L2-B-SIZE",       "",         TOK_TYP_UC_L2_REG,          UC_L2_BLOCK_SIZE        },
     
-    { "ITLB-STATE",         "",         ITLB_SET,           ITLB_STATE              },
-    { "ITLB-REQ",           "",         ITLB_SET,           ITLB_REQ                },
-    { "ITLB-REQ-SEG",       "",         ITLB_SET,           ITLB_REQ_SEG            },
-    { "ITLB-REQ-OFS",       "",         ITLB_SET,           ITLB_REQ_OFS            },
+    { "ITLB-STATE",         "",         TOK_TYP_ITLB_REG,           ITLB_STATE              },
+    { "ITLB-REQ",           "",         TOK_TYP_ITLB_REG,           ITLB_REQ                },
+    { "ITLB-REQ-SEG",       "",         TOK_TYP_ITLB_REG,           ITLB_REQ_SEG            },
+    { "ITLB-REQ-OFS",       "",         TOK_TYP_ITLB_REG,           ITLB_REQ_OFS            },
     
-    { "DTLB-STATE",         "",         DTLB_SET,           DTLB_STATE              },
-    { "DTLB-REQ",           "",         DTLB_SET,           DTLB_REQ                },
-    { "DTLB-REQ-SEG",       "",         DTLB_SET,           DTLB_REQ_SEG            },
-    { "DTLB-REQ-OFS",       "",         DTLB_SET,           DTLB_REQ_OFS            },
+    { "DTLB-STATE",         "",         TOK_TYP_DTLB_REG,           DTLB_STATE              },
+    { "DTLB-REQ",           "",         TOK_TYP_DTLB_REG,           DTLB_REQ                },
+    { "DTLB-REQ-SEG",       "",         TOK_TYP_DTLB_REG,           DTLB_REQ_SEG            },
+    { "DTLB-REQ-OFS",       "",         TOK_TYP_DTLB_REG,           DTLB_REQ_OFS            },
     
-    { "GR-SET",             "GR",       REG_SET,            GR_SET                  },
-    { "SR-SET",             "SR",       REG_SET,            SR_SET                  },
-    { "CR-SET",             "CR",       REG_SET,            CR_SET                  },
-    { "PS-SET",             "PS",       REG_SET,            PS_SET                  },
+    { "GR-SET",             "GR",       REG_SET,            TOK_TYP_GREG                  },
+    { "SR-SET",             "SR",       REG_SET,            TOK_TYP_SREG                  },
+    { "CR-SET",             "CR",       REG_SET,            TOK_TYP_CREG                  },
+    { "PS-SET",             "PS",       REG_SET,            TOK_TYP_PSTATE_PREG                  },
     { "PR-SET",             "PR",       REG_SET,            PR_SET                  },
-    { "FD-SET",             "PR",       REG_SET,            FD_SET                  },
-    { "MA-SET",             "PR",       REG_SET,            OF_SET                  },
-    { "IC-L1-SET",          "ICL1",     REG_SET,            IC_L1_SET               },
-    { "DC-L1-SET",          "DCL1",     REG_SET,            DC_L1_SET               },
-    { "UC-L2-SET",          "UCl2",     REG_SET,            UC_L2_SET               },
-    { "ITLB-SET",           "ITRS",     REG_SET,            ITLB_SET                },
-    { "DTLB-SET",           "DTRS",     REG_SET,            DTLB_SET                },
+    { "FD-SET",             "PR",       REG_SET,            TOK_TYP_FD_PREG                  },
+    { "MA-SET",             "PR",       REG_SET,            TOK_TYP_OF_PREG                  },
+    { "IC-L1-SET",          "ICL1",     REG_SET,            TOK_TYP_IC_L1_REG               },
+    { "DC-L1-SET",          "DCL1",     REG_SET,            TOK_TYP_DC_L1_REG               },
+    { "UC-L2-SET",          "UCl2",     REG_SET,            TOK_TYP_UC_L2_REG               },
+    { "ITLB-SET",           "ITRS",     REG_SET,            TOK_TYP_ITLB_REG                },
+    { "DTLB-SET",           "DTRS",     REG_SET,            TOK_TYP_DTLB_REG                },
     
     { "REG-SET-ALL",        "RS",       REG_SET,            REG_SET_ALL             }
+    
+    
 };
 
 const int   TOK_TAB_SIZE  = sizeof( tokTab ) / sizeof( *tokTab );
+
+
+
+// ??? the new table .....
+//------------------------------------------------------------------------------------------------------------
+// The global token table. All reserved words are allocated in this table. Each entry has the token name,
+// the token id, the token tye id, i.e. its type, and a value associatd with the token. The value allows
+// for a constant token. The parser can directly use the value in expressions.
+//
+// ??? do some sorting, better readbility....
+//------------------------------------------------------------------------------------------------------------
+DrvToken const cmdTokTab[ ] = {
+    
+    //--------------------------------------------------------------------------------------------------------
+    //
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "ENV",        .typ = TOK_TYP_CMD,     .tid = CMD_ENV                              },
+    { "EXIT",               TOK_TYP_CMD,            CMD_EXIT,                   0               },
+    { "E",                  TOK_TYP_CMD,            CMD_EXIT,                   0               },
+    { "HELP",               TOK_TYP_CMD,            CMD_HELP,                   0               },
+    { "?",                  TOK_TYP_CMD,            CMD_HELP,                   0               },
+    { "WHELP",              TOK_TYP_CMD,            CMD_WHELP,                  0               },
+    { "RESET",              TOK_TYP_CMD,            CMD_RESET,                  0               },
+    { "RUN",                TOK_TYP_CMD,            CMD_RUN,                    0               },
+    { "STEP",               TOK_TYP_CMD,            CMD_STEP,                   0               },
+    { "S",                  TOK_TYP_CMD,            CMD_STEP,                   0               },
+    { "DIS",                TOK_TYP_CMD,            CMD_DIS_ASM,                0               },
+    { "ASM",                TOK_TYP_CMD,            CMD_ASM,                    0               },
+    
+    { "EXEC-F",             TOK_TYP_CMD,            CMD_XF,                     0               },
+    { "XF",                 TOK_TYP_CMD,            CMD_XF,                     0               },
+    
+    { "D-REG",              TOK_TYP_CMD,            CMD_DR,                     0               },
+    { "DR",                 TOK_TYP_CMD,            CMD_DR,                     0               },
+    
+    { "M-REG",              TOK_TYP_CMD,            CMD_MR,                     0               },
+    { "MR",                 TOK_TYP_CMD,            CMD_MR,                     0               },
+    
+    { "HASH-VA",            TOK_TYP_CMD,            CMD_HASH_VA,                0               },
+    { "HVA",                TOK_TYP_CMD,            CMD_HASH_VA,                0               },
+    
+    { "I-TLB",              TOK_TYP_CMD,            CMD_I_TLB,                  0               },
+    { "ITLB",               TOK_TYP_CMD,            CMD_I_TLB,                  0               },
+    
+    { "D-TLB",              TOK_TYP_CMD,            CMD_D_TLB,                  0               },
+    { "DTLB",               TOK_TYP_CMD,            CMD_D_TLB,                  0               },
+    
+    { "P-TLB",              TOK_TYP_CMD,            CMD_P_TLB,                  0               },
+    { "PTLB",               TOK_TYP_CMD,            CMD_P_TLB,                  0               },
+    
+    { "D-CACHE",            TOK_TYP_CMD,            CMD_D_CACHE,                0               },
+    { "DCA",                TOK_TYP_CMD,            CMD_D_CACHE,                0               },
+    
+    { "P-CACHE",            TOK_TYP_CMD,            CMD_P_CACHE,                0               },
+    { "PCA",                TOK_TYP_CMD,            CMD_P_CACHE,                0               },
+
+    { "D-ABS",              TOK_TYP_CMD,            CMD_DA,                     0               },
+    { "DA",                 TOK_TYP_CMD,            CMD_DA,                     0               },
+    
+    { "M-ABS",              TOK_TYP_CMD,            CMD_MA,                     0               },
+    { "MA",                 TOK_TYP_CMD,            CMD_MA,                     0               },
+    
+    { "D-ABS-ASM",          TOK_TYP_CMD,            CMD_DAA,                    0               },
+    { "DAA",                TOK_TYP_CMD,            CMD_DAA,                    0               },
+    
+    { "M-ABS-ASM",          TOK_TYP_CMD,            CMD_MAA,                    0               },
+    { "MAA",                TOK_TYP_CMD,            CMD_MAA,                    0               },
+    
+    { "LOAD-MEM",           TOK_TYP_CMD,            CMD_LMF,                    0               },
+    { "SAVE-MEM",           TOK_TYP_CMD,            CMD_SMF,                    0               },
+    
+    //--------------------------------------------------------------------------------------------------------
+    //
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "TRUE",               TOK_TYP_NIL,            TOK_TRUE,                   0               },
+    { .name = "FALSE",              TOK_TYP_NIL,            TOK_FALSE,                  0               },
+    { .name = "ALL",                TOK_TYP_NIL,            TOK_ALL,                    0               },
+    { .name = "CPU",                TOK_TYP_NIL,            TOK_CPU,                    0               },
+    { .name = "MEM",                TOK_TYP_NIL,            TOK_MEM,                    0               },
+    { .name = "C",                  TOK_TYP_NIL,            TOK_C,                      0               },
+    { .name = "D",                  TOK_TYP_NIL,            TOK_D,                      0               },
+    { .name = "F",                  TOK_TYP_NIL,            TOK_F,                      0               },
+    { .name = "I",                  TOK_TYP_NIL,            TOK_I,                      0               },
+    { .name = "T",                  TOK_TYP_NIL,            TOK_T,                      0               },
+    { .name = "U",                  TOK_TYP_NIL,            TOK_U,                      0               },
+    
+    { .name = "DEC",                FMT_SET,            TOK_DEC,                    0               },
+    { .name = "HEX",                FMT_SET,            TOK_HEX,                    0               },
+    { .name = "OCT",                FMT_SET,            TOK_OCT,                    0               },
+   
+    //--------------------------------------------------------------------------------------------------------
+    // Windows.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "WON",                TOK_TYP_CMD,            CMD_WON,                    0               },
+    { .name = "WOFF",               TOK_TYP_CMD,            CMD_WOFF,                   0               },
+    { .name = "WDEF",               TOK_TYP_CMD,            CMD_WDEF,                   0               },
+    { .name = "WSE",                TOK_TYP_CMD,            CMD_WSE,                    0               },
+    { .name = "WSD",                TOK_TYP_CMD,            CMD_WSD,                    0               },
+    
+    { .name = "PSE",                TOK_TYP_CMD,            CMD_PSE,                    0               },
+    { .name = "PSD",                TOK_TYP_CMD,            CMD_PSD,                    0               },
+    { .name = "PSR",                TOK_TYP_CMD,            CMD_PSR,                    0               },
+    
+    { .name = "SRE",                TOK_TYP_CMD,            CMD_SRE,                    0               },
+    { .name = "SRD",                TOK_TYP_CMD,            CMD_SRD,                    0               },
+    { .name = "SRR",                TOK_TYP_CMD,            CMD_SRR,                    0               },
+        
+    { .name = "PLE",                TOK_TYP_CMD,            CMD_PLE,                    0               },
+    { .name = "PLD",                TOK_TYP_CMD,            CMD_PLD,                    0               },
+    { .name = "PLR",                TOK_TYP_CMD,            CMD_PLR,                    0               },
+
+    { .name = "SWE",                TOK_TYP_CMD,            CMD_SWE,                    0               },
+    { .name = "SWD",                TOK_TYP_CMD,            CMD_SWD,                    0               },
+    { .name = "SWR",                TOK_TYP_CMD,            CMD_SWR,                    0               },
+    
+    { .name = "CWL",                TOK_TYP_CMD,            CMD_CWL,                    0               },
+    
+    { .name = "WE",                 TOK_TYP_CMD,            CMD_WE,                     0               },
+    { .name = "WD",                 TOK_TYP_CMD,            CMD_WD,                     0               },
+    { .name = "WR",                 TOK_TYP_CMD,            CMD_WR,                     0               },
+    { .name = "WF",                 TOK_TYP_CMD,            CMD_WF,                     0               },
+    { .name = "WB",                 TOK_TYP_CMD,            CMD_WB,                     0               },
+    { .name = "WH",                 TOK_TYP_CMD,            CMD_WH,                     0               },
+    { .name = "WJ",                 TOK_TYP_CMD,            CMD_WJ,                     0               },
+    { .name = "WL",                 TOK_TYP_CMD,            CMD_WL,                     0               },
+    { .name = "WN",                 TOK_TYP_CMD,            CMD_WN,                     0               },
+    { .name = "WK",                 TOK_TYP_CMD,            CMD_WK,                     0               },
+    { .name = "WC",                 TOK_TYP_CMD,            CMD_WC,                     0               },
+    { .name = "WS",                 TOK_TYP_CMD,            CMD_WS,                     0               },
+    { .name = "WT",                 TOK_TYP_CMD,            CMD_WT,                     0               },
+    { .name = "WX",                 TOK_TYP_CMD,            CMD_WX,                     0               },
+    
+    { .name = "PM",                 TOK_TYP_NIL,            TOK_PM,                     0               },
+    { .name = "PC",                 TOK_TYP_NIL,            TOK_PC,                     0               },
+    { .name = "IT",                 TOK_TYP_NIL,            TOK_IT,                     0               },
+    { .name = "DT",                 TOK_TYP_NIL,            TOK_DT,                     0               },
+    { .name = "IC",                 TOK_TYP_NIL,            TOK_IC,                     0               },
+    { .name = "DC",                 TOK_TYP_NIL,            TOK_DC,                     0               },
+    { .name = "UC",                 TOK_TYP_NIL,            TOK_UC,                     0               },
+    { .name = "ICR",                TOK_TYP_NIL,            TOK_ICR,                    0               },
+    { .name = "DCR",                TOK_TYP_NIL,            TOK_DCR,                    0               },
+    { .name = "UCR",                TOK_TYP_NIL,            TOK_UCR,                    0               },
+    { .name = "MCR",                TOK_TYP_NIL,            TOK_MCR,                    0               },
+    { .name = "ITR",                TOK_TYP_NIL,            TOK_ITR,                    0               },
+    { .name = "DTR",                TOK_TYP_NIL,            TOK_DTR,                    0               },
+    { .name = "PCR",                TOK_TYP_NIL,            TOK_PCR,                    0               },
+    { .name = "IOR",                TOK_TYP_NIL,            TOK_IOR,                    0               },
+    { .name = "TX",                 TOK_TYP_NIL,            TOK_TX,                     0               },
+    
+    //--------------------------------------------------------------------------------------------------------
+    // General registers.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "R0",                 TOK_TYP_GREG,             GR_0,                       0               },
+    { .name = "R1",                 TOK_TYP_GREG,             GR_1,                       1               },
+    { .name = "R2",                 TOK_TYP_GREG,             GR_2,                       2               },
+    { .name = "R3",                 TOK_TYP_GREG,             GR_3,                       3               },
+    { .name = "R4",                 TOK_TYP_GREG,             GR_4,                       4               },
+    { .name = "R5",                 TOK_TYP_GREG,             GR_5,                       5               },
+    { .name = "R6",                 TOK_TYP_GREG,             GR_6,                       6               },
+    { .name = "R7",                 TOK_TYP_GREG,             GR_7,                       7               },
+    { .name = "R8",                 TOK_TYP_GREG,             GR_8,                       8               },
+    { .name = "R9",                 TOK_TYP_GREG,             GR_9,                       9               },
+    { .name = "R10",                TOK_TYP_GREG,             GR_10,                      10              },
+    { .name = "R11",                TOK_TYP_GREG,             GR_11,                      11              },
+    { .name = "R12",                TOK_TYP_GREG,             GR_12,                      12              },
+    { .name = "R13",                TOK_TYP_GREG,             GR_13,                      13              },
+    { .name = "R14",                TOK_TYP_GREG,             GR_14,                      14              },
+    { .name = "R15",                TOK_TYP_GREG,             GR_15,                      15              },
+
+    //--------------------------------------------------------------------------------------------------------
+    // Segment registers.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "S0",                 TOK_TYP_SREG,             SR_0,                       0               },
+    { .name = "S1",                 TOK_TYP_SREG,             SR_1,                       1               },
+    { .name = "S2",                 TOK_TYP_SREG,             SR_2,                       2               },
+    { .name = "S3",                 TOK_TYP_SREG,             SR_3,                       3               },
+    { .name = "S4",                 TOK_TYP_SREG,             SR_4,                       4               },
+    { .name = "S5",                 TOK_TYP_SREG,             SR_5,                       5               },
+    { .name = "S6",                 TOK_TYP_SREG,             SR_6,                       6               },
+    { .name = "S7",                 TOK_TYP_SREG,             SR_7,                       7               },
+    
+    //--------------------------------------------------------------------------------------------------------
+    // Control registers.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "C0",                 TOK_TYP_CREG,             CR_0,                       0               },
+    { .name = "C1",                 TOK_TYP_CREG,             CR_1,                       1               },
+    { .name = "C2",                 TOK_TYP_CREG,             CR_2,                       2               },
+    { .name = "C3",                 TOK_TYP_CREG,             CR_3,                       3               },
+    { .name = "C4",                 TOK_TYP_CREG,             CR_4,                       4               },
+    { .name = "C5",                 TOK_TYP_CREG,             CR_5,                       5               },
+    { .name = "C6",                 TOK_TYP_CREG,             CR_6,                       6               },
+    { .name = "C7",                 TOK_TYP_CREG,             CR_7,                       7               },
+    { .name = "C8",                 TOK_TYP_CREG,             CR_8,                       8               },
+    { .name = "C9",                 TOK_TYP_CREG,             CR_9,                       9               },
+    { .name = "C10",                TOK_TYP_CREG,             CR_10,                      10              },
+    { .name = "C11",                TOK_TYP_CREG,             CR_11,                      11              },
+    { .name = "C12",                TOK_TYP_CREG,             CR_12,                      12              },
+    { .name = "C13",                TOK_TYP_CREG,             CR_13,                      13              },
+    { .name = "C14",                TOK_TYP_CREG,             CR_14,                      14              },
+    { .name = "C15",                TOK_TYP_CREG,             CR_15,                      15              },
+    { .name = "C16",                TOK_TYP_CREG,             CR_16,                      16              },
+    { .name = "C17",                TOK_TYP_CREG,             CR_17,                      17              },
+    { .name = "C18",                TOK_TYP_CREG,             CR_18,                      18              },
+    { .name = "C19",                TOK_TYP_CREG,             CR_19,                      19              },
+    { .name = "C20",                TOK_TYP_CREG,             CR_20,                      20              },
+    { .name = "C21",                TOK_TYP_CREG,             CR_21,                      21              },
+    { .name = "C22",                TOK_TYP_CREG,             CR_22,                      22              },
+    { .name = "C23",                TOK_TYP_CREG,             CR_23,                      23              },
+    { .name = "C24",                TOK_TYP_CREG,             CR_24,                      24              },
+    { .name = "C25",                TOK_TYP_CREG,             CR_25,                      25              },
+    { .name = "C26",                TOK_TYP_CREG,             CR_26,                      26              },
+    { .name = "C27",                TOK_TYP_CREG,             CR_27,                      27              },
+    { .name = "C28",                TOK_TYP_CREG,             CR_28,                      28              },
+    { .name = "C29",                TOK_TYP_CREG,             CR_29,                      29              },
+    { .name = "C30",                TOK_TYP_CREG,             CR_30,                      30              },
+    { .name = "C31",                TOK_TYP_CREG,             CR_31,                      31              },
+        
+    //--------------------------------------------------------------------------------------------------------
+    //
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "IA-SEG",             TOK_TYP_PSTATE_PREG,             PS_IA_SEG,                  0               },
+    { .name = "IA-OFS",             TOK_TYP_PSTATE_PREG,             PS_IA_OFS,                  0               },
+    { .name = "ST-REG",             TOK_TYP_PSTATE_PREG,             PS_STATUS,                  0               },
+    
+    { .name = "FD-IA-SEG",          TOK_TYP_FD_PREG,             FD_IA_SEG,                  0               },
+    { .name = "FD-IA-OFS",          TOK_TYP_FD_PREG,             FD_IA_OFS,                  0               },
+    { .name = "FD-INSTR",           TOK_TYP_FD_PREG,             FD_INSTR,                   0               },
+    { .name = "FD-A",               TOK_TYP_FD_PREG,             FD_A,                       0               },
+    { .name = "FD-B",               TOK_TYP_FD_PREG,             FD_B,                       0               },
+    { .name = "FD-X",               TOK_TYP_FD_PREG,             FD_X,                       0               },
+    
+    { .name = "OF-IA-SEG",          TOK_TYP_OF_PREG,             OF_IA_SEG,                  0               },
+    { .name = "OF-IA-OFS",          TOK_TYP_OF_PREG,             OF_IA_OFS,                  0               },
+    { .name = "OF-INSTR",           TOK_TYP_OF_PREG,             OF_INSTR,                   0               },
+    { .name = "OF-A",               TOK_TYP_OF_PREG,             OF_A,                       0               },
+    { .name = "OF-B",               TOK_TYP_OF_PREG,             OF_B,                       0               },
+    { .name = "OF-X",               TOK_TYP_OF_PREG,             OF_X,                       0               },
+    { .name = "OF-S",               TOK_TYP_OF_PREG,             OF_S,                       0               },
+    
+    { .name = "IC-L1-STATE",        TOK_TYP_IC_L1_REG,          IC_L1_STATE,                0               },
+    { .name = "IC-L1-REQ",          TOK_TYP_IC_L1_REG,          IC_L1_REQ,                  0               },
+    { .name = "IC-L1-REQ-SEG",      TOK_TYP_IC_L1_REG,          IC_L1_REQ_SEG,              0               },
+    { .name = "IC-L1-REQ-OFS",      TOK_TYP_IC_L1_REG,          IC_L1_REQ_OFS,              0               },
+    { .name = "IC-L1-REQ-TAG",      TOK_TYP_IC_L1_REG,          IC_L1_REQ_TAG,              0               },
+    { .name = "IC-L1-REQ-LEN",      TOK_TYP_IC_L1_REG,          IC_L1_REQ_LEN,              0               },
+    { .name = "IC-L1-REQ-LAT",      TOK_TYP_IC_L1_REG,          IC_L1_LATENCY,              0               },
+    { .name = "IC-L1-SETS",         TOK_TYP_IC_L1_REG,          IC_L1_SETS,                 0               },
+    { .name = "IC-L1-ENTRIES",      TOK_TYP_IC_L1_REG,          IC_L1_BLOCK_ENTRIES,        0               },
+    { .name = "IC-L1-B-SIZE",       TOK_TYP_IC_L1_REG,          IC_L1_BLOCK_SIZE,           0               },
+   
+    { .name = "DC-L1-STATE",        TOK_TYP_DC_L1_REG,          DC_L1_STATE,                0               },
+    { .name = "DC-L1-REQ",          TOK_TYP_DC_L1_REG,          DC_L1_REQ,                  0               },
+    { .name = "DC-L1-REQ-SEG",      TOK_TYP_DC_L1_REG,          DC_L1_REQ_SEG,              0               },
+    { .name = "DC-L1-REQ-OFS",      TOK_TYP_DC_L1_REG,          DC_L1_REQ_OFS,              0               },
+    { .name = "DC-L1-REQ-TAG",      TOK_TYP_DC_L1_REG,          DC_L1_REQ_TAG,              0               },
+    { .name = "DC-L1-REQ-LEN",      TOK_TYP_DC_L1_REG,          DC_L1_REQ_LEN,              0               },
+    { .name = "DC-L1-REQ-LAT",      TOK_TYP_DC_L1_REG,          DC_L1_LATENCY,              0               },
+    { .name = "DC-L1-SETS",         TOK_TYP_DC_L1_REG,          DC_L1_SETS,                 0               },
+    { .name = "DC-L1-ENTRIES",      TOK_TYP_DC_L1_REG,          DC_L1_BLOCK_ENTRIES,        0               },
+    { .name = "DC-L1-B-SIZE",       TOK_TYP_DC_L1_REG,          DC_L1_BLOCK_SIZE,           0               },
+  
+    { .name = "UC-L2-STATE",        TOK_TYP_UC_L2_REG,          UC_L2_STATE,                0               },
+    { .name = "UC-L2-REQ",          TOK_TYP_UC_L2_REG,          UC_L2_REQ,                  0               },
+    { .name = "UC-L2-REQ-SEG",      TOK_TYP_UC_L2_REG,          UC_L2_REQ_SEG,              0               },
+    { .name = "UC-L2-REQ-OFS",      TOK_TYP_UC_L2_REG,          UC_L2_REQ_OFS,              0               },
+    { .name = "UC-L2-REQ-TAG",      TOK_TYP_UC_L2_REG,          UC_L2_REQ_TAG,              0               },
+    { .name = "UC-L2-REQ-LEN",      TOK_TYP_UC_L2_REG,          UC_L2_REQ_LEN,              0               },
+    { .name = "UC-L2-REQ-LAT",      TOK_TYP_UC_L2_REG,          UC_L2_LATENCY,              0               },
+    { .name = "UC-L2-SETS",         TOK_TYP_UC_L2_REG,          UC_L2_SETS,                 0               },
+    { .name = "UC-L2-ENTRIES",      TOK_TYP_UC_L2_REG,          UC_L2_BLOCK_ENTRIES,        0               },
+    { .name = "UC-L2-B-SIZE",       TOK_TYP_UC_L2_REG,          UC_L2_BLOCK_SIZE,           0               },
+    
+    { .name = "ITLB-STATE",         TOK_TYP_ITLB_REG,           ITLB_STATE,                 0               },
+    { .name = "ITLB-REQ",           TOK_TYP_ITLB_REG,           ITLB_REQ,                   0               },
+    { .name = "ITLB-REQ-SEG",       TOK_TYP_ITLB_REG,           ITLB_REQ_SEG,               0               },
+    { .name = "ITLB-REQ-OFS",       TOK_TYP_ITLB_REG,           ITLB_REQ_OFS,               0               },
+    
+    { .name = "DTLB-STATE",         TOK_TYP_DTLB_REG,           DTLB_STATE,                 0               },
+    { .name = "DTLB-REQ",           TOK_TYP_DTLB_REG,           DTLB_REQ,                   0               },
+    { .name = "DTLB-REQ-SEG",       TOK_TYP_DTLB_REG,           DTLB_REQ_SEG,               0               },
+    { .name = "DTLB-REQ-OFS",       TOK_TYP_DTLB_REG,           DTLB_REQ_OFS,               0               },
+    
+    //--------------------------------------------------------------------------------------------------------
+    //
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { "GR-SET",             REG_SET,            TOK_TYP_GREG,                     0               },
+    { "GR",                 REG_SET,            TOK_TYP_GREG,                     0               },
+    
+    { "SR-SET",             REG_SET,            TOK_TYP_SREG,                     0               },
+    { "SR",                 REG_SET,            TOK_TYP_SREG,                     0               },
+    
+    { "CR-SET",             REG_SET,            TOK_TYP_CREG,                     0               },
+    { "CR",                 REG_SET,            TOK_TYP_CREG,                     0               },
+    
+    { "PS-SET",             REG_SET,            TOK_TYP_PSTATE_PREG,                     0               },
+    { "PS",                 REG_SET,            TOK_TYP_PSTATE_PREG,                     0               },
+   
+    { "PR-SET",             REG_SET,            PR_SET,                     0               },
+    { "PR",                 REG_SET,            PR_SET,                     0               },
+    
+    { "FD-SET",             REG_SET,            TOK_TYP_FD_PREG,                     0               },
+    { "PR",                 REG_SET,            TOK_TYP_FD_PREG,                     0               },
+    
+    { "MA-SET",             REG_SET,            TOK_TYP_OF_PREG,                     0               },
+    { "PR",                 REG_SET,            TOK_TYP_OF_PREG,                     0               },
+    
+    { "IC-L1-SET",          REG_SET,            TOK_TYP_IC_L1_REG,                  0               },
+    { "ICL1",               REG_SET,            TOK_TYP_IC_L1_REG,                  0               },
+
+    { "DC-L1-SET",          REG_SET,            TOK_TYP_DC_L1_REG,                  0               },
+    { "DCL1",               REG_SET,            TOK_TYP_DC_L1_REG,                  0               },
+    
+    { "UC-L2-SET",          REG_SET,            TOK_TYP_UC_L2_REG,                  0               },
+    { "UCl2",               REG_SET,            TOK_TYP_UC_L2_REG,                  0               },
+    
+    { "ITLB-SET",           REG_SET,            TOK_TYP_ITLB_REG,                   0               },
+    { "ITRS",               REG_SET,            TOK_TYP_ITLB_REG,                   0               },
+    
+    { "DTLB-SET",           REG_SET,            TOK_TYP_DTLB_REG,                   0               },
+    { "DTRS",               REG_SET,            TOK_TYP_DTLB_REG,                   0               },
+    
+    { "REG-SET-ALL",        REG_SET,            REG_SET_ALL,                0               },
+    { "RS",                 REG_SET,            REG_SET_ALL,                0               },
+    
+    { "",                   TOK_TYP_NIL,            TOK_NIL,                    0               },
+    
+    //--------------------------------------------------------------------------------------------------------
+    // The last token to mark the list end.
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "",               .typ = TOK_NIL,             .tid = TOK_LAST,           .val =  0           }
+    
+};
+
+
+
+
+
 
 
 // ??? mal also go away when we have the parser ready...
@@ -352,7 +699,6 @@ const int   TOK_TAB_SIZE  = sizeof( tokTab ) / sizeof( *tokTab );
 // command lines. "S" means a string input, "D" a numeric integer input, "U" an unsigned integer input.
 //
 //------------------------------------------------------------------------------------------------------------
-const char  FMT_STR_1S[ ]       = "%32s";
 const char  FMT_STR_1S_1D[ ]    = "%32s %i";
 const char  FMT_STR_1S_2D[ ]    = "%32s %i %i";
 const char  FMT_STR_1S_3D[ ]    = "%32s %i %i %i";
@@ -365,7 +711,6 @@ const char  FMT_STR_2S_2U_1S[ ] = "%32s %32s %i %i %32s";
 const char  FMT_STR_2S_2D[ ]    = "%32s %32s %i %i";
 const char  FMT_STR_2S_4D[ ]    = "%32s %32s %i %i %i %i";
 const char  FMT_STR_2S_LS[ ]    = "%32s %32s %256s";
-const char  FMT_STR_CMD_LINE[ ] = "%256s";
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -494,6 +839,11 @@ TokId matchReg( char *argStr, TokId def = TOK_NIL ) {
 }
 
 
+
+
+
+
+
 //------------------------------------------------------------------------------------------------------------
 // Print out an error message text with an optional argument.
 //
@@ -561,10 +911,6 @@ bool cmdLineError( ErrMsgId errNum, char *argStr = nullptr) {
     return( false );
 }
 
-
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // "promptYesNoCancel" is a simple function to print a prompt string with a decision question. The answer can
 //  be yes/no or cancel. A positive result is a "yes" a negative result a "no", anything else a "cancel".
@@ -593,7 +939,7 @@ int promptYesNoCancel( char *promptStr ) {
 //------------------------------------------------------------------------------------------------------------
 bool checkEOS( ) {
     
-    if ( tok -> tokId( ) == TOK_EOS ) return( true );
+    if ( tok -> isToken( TOK_EOS )) return( true );
     else return( cmdLineError( ERR_EXTRA_TOKEN_IN_STR ));
 }
 
@@ -603,7 +949,7 @@ bool checkEOS( ) {
 //------------------------------------------------------------------------------------------------------------
 bool acceptComma( ) {
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> isToken( TOK_COMMA )) {
         
         tok -> nextToken( );
         return( true );
@@ -613,7 +959,7 @@ bool acceptComma( ) {
 
 bool acceptLparen( ) {
     
-    if ( tok -> tokId( ) == TOK_LPAREN ) {
+    if ( tok -> isToken( TOK_LPAREN )) {
         
         tok -> nextToken( );
         return( true );
@@ -623,7 +969,7 @@ bool acceptLparen( ) {
 
 bool acceptRparen( ) {
     
-    if ( tok -> tokId( ) == TOK_RPAREN ) {
+    if ( tok -> isToken( TOK_RPAREN )) {
         
         tok -> nextToken( );
         return( true );
@@ -655,44 +1001,44 @@ bool parseFactor( Expr *rExpr ) {
     rExpr -> val1 = 0;
     rExpr -> val2 = 0;
    
-    if ( tok -> tokId( ) == TOK_NUM )  {
+    if ( tok -> isTokenTyp( TOK_NUM ))  {
         
         rExpr -> typ = ET_NUM;
         rExpr -> val1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else  if ( tok -> tokGrp( ) == GR_SET )  {
+    else  if ( tok -> isTokenTyp( TOK_TYP_GREG ))  {
         
         rExpr -> typ = ET_GREG;
         rExpr -> val1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else  if ( tok -> tokGrp( ) == SR_SET    )  {
+    else  if ( tok -> isTokenTyp( TOK_TYP_SREG ))  {
         
         rExpr -> typ = ET_SREG;
         rExpr -> val1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else  if ( tok -> tokGrp( ) == CR_SET    )  {
+    else  if ( tok -> isTokenTyp( TOK_TYP_CREG ))  {
         
         rExpr -> typ = ET_CREG;
         rExpr -> val1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else if ( tok -> tokId( ) == TOK_NEG ) {
+    else if ( tok -> isToken( TOK_NEG )) {
         
         parseFactor( rExpr );
         rExpr -> val1 = ~ rExpr -> val1;
         return( true );
     }
-    else if ( tok -> tokId( ) == TOK_LPAREN) {
+    else if ( tok -> isToken( TOK_LPAREN )) {
         
         tok -> nextToken( );
-        if ( tok -> tokGrp( ) == SR_SET ) {
+        if ( tok -> isTokenTyp( TOK_TYP_SREG )) {
             
             rExpr -> typ    = ET_EXT_ADR;
             rExpr -> val1   = tok -> tokVal( );
@@ -700,14 +1046,14 @@ bool parseFactor( Expr *rExpr ) {
             tok -> nextToken( );
             if ( ! acceptComma( )) return( false );
            
-            if ( tok -> tokGrp( ) == GR_SET ) {
+            if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
                 
                 rExpr -> val2 = tok -> tokVal( );
                 tok -> nextToken( );
             }
             else return( cmdLineError( ERR_EXPECTED_GENERAL_REG ));
         }
-        else if ( tok -> tokGrp( ) == GR_SET) {
+        else if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
             
             rExpr -> typ = ET_ADR;
             rExpr -> val1 = tok -> tokVal( );
@@ -783,7 +1129,7 @@ bool parseExpr( Expr *rExpr ) {
     Expr lExpr;
     bool rStat;
     
-    if ( tok -> tokId( ) == TOK_PLUS ) {
+    if ( tok -> isToken( TOK_PLUS )) {
         
         tok -> nextToken( );
         rStat = parseTerm( rExpr );
@@ -793,7 +1139,7 @@ bool parseExpr( Expr *rExpr ) {
             return( cmdLineError( ERR_EXPECTED_NUMERIC ));
         }
     }
-    else if ( tok -> tokId( ) == TOK_MINUS ) {
+    else if ( tok -> isToken( TOK_MINUS )) {
         
         tok -> nextToken( );
         rStat = parseTerm( rExpr );
@@ -803,10 +1149,10 @@ bool parseExpr( Expr *rExpr ) {
     }
     else rStat = parseTerm( rExpr );
     
-    while (( tok -> tokId( ) == TOK_PLUS    ) ||
-           ( tok -> tokId( ) == TOK_MINUS   ) ||
-           ( tok -> tokId( ) == TOK_OR      ) ||
-           ( tok -> tokId( ) == TOK_XOR     )) {
+    while (( tok -> isToken( TOK_PLUS   )) ||
+           ( tok -> isToken( TOK_MINUS  )) ||
+           ( tok -> isToken( TOK_OR     )) ||
+           ( tok -> isToken( TOK_XOR    ))) {
         
         uint8_t op = tok -> tokId( );
         
@@ -1417,7 +1763,7 @@ void DrvCmds::disAssembleCmd( char *cmdBuf ) {
 //
 // ASM <instr-str> [ fmt ]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::assembleCmd( char *cmdBuf ) {
+uint8_t DrvCmds::assembleCmd( ) {
 
     TokId       fmtId           = glb -> env -> getEnvValTok( ENV_FMT_DEF );
     uint32_t    instr           = 0;
@@ -1441,23 +1787,17 @@ void DrvCmds::assembleCmd( char *cmdBuf ) {
             
             fmtId = glb -> env -> getEnvValTok( ENV_FMT_DEF );
         }
-        else {
-            
-            cmdLineError( ERR_INVALID_FMT_OPT );
-            return;
-        }
+        else return( cmdLineError( ERR_INVALID_FMT_OPT ));
     }
-    else {
-        
-        cmdLineError( ERR_INVALID_ARG );
-        return;
-    }
+    else return( cmdLineError( ERR_INVALID_ARG ));
     
     if ( glb -> oneLineAsm -> parseAsmLine( asmStr, &instr )) {
         
         glb -> lineDisplay -> displayWord( instr, fmtId );
         fprintf( stdout, "\n" );
     }
+    
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1475,7 +1815,7 @@ void DrvCmds::displayRegCmd( char *cmdBuf ) {
     
     if ( args < 1 ) return;
     
-    TokId   regSetId    = GR_SET;
+    TokId   regSetId    = TOK_TYP_GREG;
     TokId   regId       = TOK_NIL;
     TokId   fmtId       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
     
@@ -1517,49 +1857,49 @@ void DrvCmds::displayRegCmd( char *cmdBuf ) {
     
     switch( regSetId ) {
             
-        case GR_SET: {
+        case TOK_TYP_GREG: {
             
             if ( regId == TOK_NIL ) glb -> lineDisplay -> displayGeneralRegSet( fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_GEN_REG_SET, ( regId - GR_0 )), fmtId );
             
         } break;
             
-        case SR_SET: {
+        case TOK_TYP_SREG: {
             
             if ( regId == TOK_NIL ) glb -> lineDisplay -> displaySegmentRegSet( fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_SEG_REG_SET, ( regId - SR_0 )), fmtId );
             
         } break;
             
-        case CR_SET: {
+        case TOK_TYP_CREG: {
             
             if ( regId == TOK_NIL ) glb -> lineDisplay -> displayControlRegSet( fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_CTRL_REG_SET, ( regId - CR_0 )), fmtId );
             
         } break;
             
-        case PS_SET: {
+        case TOK_TYP_PSTATE_PREG: {
             
             if ( regId == TOK_NIL ) glb -> lineDisplay -> displayPStateRegSet( fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_PROG_STATE, ( regId - PS_IA_SEG )), fmtId );
             
         } break;
             
-        case IC_L1_SET: {
+        case TOK_TYP_IC_L1_REG: {
             
             if ( regId == TOK_NIL ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> iCacheL1, fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_IC_L1_OBJ, ( regId - IC_L1_STATE )), fmtId );
             
         } break;
             
-        case DC_L1_SET: {
+        case TOK_TYP_DC_L1_REG: {
             
             if ( regId == TOK_NIL ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> dCacheL1, fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_DC_L1_OBJ, ( regId - DC_L1_STATE )), fmtId );
             
         } break;
             
-        case UC_L2_SET: {
+        case TOK_TYP_UC_L2_REG: {
             
             if ( glb -> cpu -> uCacheL2 != nullptr ) {
                 
@@ -1570,14 +1910,14 @@ void DrvCmds::displayRegCmd( char *cmdBuf ) {
             
         } break;
             
-        case ITLB_SET: {
+        case TOK_TYP_ITLB_REG: {
             
             if ( regId == TOK_NIL ) glb -> lineDisplay -> displayTlbObjRegSet( glb -> cpu -> iTlb, fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_ITLB_OBJ, ( regId - ITLB_STATE )), fmtId );
             
         } break;
             
-        case DTLB_SET: {
+        case TOK_TYP_DTLB_REG: {
             
             if ( regId == TOK_NIL ) glb -> lineDisplay -> displayTlbObjRegSet( glb -> cpu -> dTlb, fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_DTLB_OBJ, ( regId - DTLB_STATE )), fmtId );
@@ -1633,15 +1973,15 @@ void DrvCmds::modifyRegCmd( char *cmdBuf ) {
     
     switch( regSetId ) {
             
-        case GR_SET:    glb -> cpu -> setReg( RC_GEN_REG_SET, ( regId - GR_0 ), val );  break;
-        case SR_SET:    glb -> cpu -> setReg( RC_SEG_REG_SET, ( regId - SR_0 ), val );  break;
-        case CR_SET:    glb -> cpu -> setReg( RC_CTRL_REG_SET, ( regId - CR_0 ), val ); break;
-        case PS_SET:    glb -> cpu -> setReg( RC_PROG_STATE, regId - PS_IA_SEG, val );  break;
-        case IC_L1_SET: glb -> cpu -> setReg( RC_IC_L1_OBJ, regId - IC_L1_STATE, val ); break;
-        case DC_L1_SET: glb -> cpu -> setReg( RC_DC_L1_OBJ, regId - DC_L1_STATE, val ); break;
-        case UC_L2_SET: glb -> cpu -> setReg( RC_UC_L2_OBJ, regId - UC_L2_STATE, val ); break;
-        case ITLB_SET:  glb -> cpu -> setReg( RC_ITLB_OBJ, regId - ITLB_STATE, val );   break;
-        case DTLB_SET:  glb -> cpu -> setReg( RC_DTLB_OBJ, regId - DTLB_STATE, val );   break;
+        case TOK_TYP_GREG:    glb -> cpu -> setReg( RC_GEN_REG_SET, ( regId - GR_0 ), val );  break;
+        case TOK_TYP_SREG:    glb -> cpu -> setReg( RC_SEG_REG_SET, ( regId - SR_0 ), val );  break;
+        case TOK_TYP_CREG:    glb -> cpu -> setReg( RC_CTRL_REG_SET, ( regId - CR_0 ), val ); break;
+        case TOK_TYP_PSTATE_PREG:    glb -> cpu -> setReg( RC_PROG_STATE, regId - PS_IA_SEG, val );  break;
+        case TOK_TYP_IC_L1_REG: glb -> cpu -> setReg( RC_IC_L1_OBJ, regId - IC_L1_STATE, val ); break;
+        case TOK_TYP_DC_L1_REG: glb -> cpu -> setReg( RC_DC_L1_OBJ, regId - DC_L1_STATE, val ); break;
+        case TOK_TYP_UC_L2_REG: glb -> cpu -> setReg( RC_UC_L2_OBJ, regId - UC_L2_STATE, val ); break;
+        case TOK_TYP_ITLB_REG:  glb -> cpu -> setReg( RC_ITLB_OBJ, regId - ITLB_STATE, val );   break;
+        case TOK_TYP_DTLB_REG:  glb -> cpu -> setReg( RC_DTLB_OBJ, regId - DTLB_STATE, val );   break;
             
         case PR_SET:
         case REG_SET_ALL: fprintf( stdout, "Invalid Reg Set for operation\n" ); return;
@@ -2774,11 +3114,11 @@ void  DrvCmds::winExchangeCmd( char *cmdBuf ) {
 // respective handler.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::dispatchCmd( char *cmdBuf ) {
+uint8_t DrvCmds::dispatchCmd( char *cmdBuf ) {
     
     if ( strlen( cmdBuf ) > 0 ) {
        
-        tok -> setupTokenizer( cmdBuf );
+        tok -> setupTokenizer( cmdBuf, (DrvToken *) cmdTokTab );
         tok -> nextToken( );
         
         switch ( tok -> tokId( )) {
@@ -2796,7 +3136,7 @@ void DrvCmds::dispatchCmd( char *cmdBuf ) {
             case CMD_BD:            deleteBreakPointCmd( cmdBuf );      break;
             case CMD_BL:            listBreakPointsCmd( cmdBuf );       break;
             case CMD_DIS_ASM:       disAssembleCmd( cmdBuf );           break;
-            case CMD_ASM:           assembleCmd( cmdBuf );              break;
+            case CMD_ASM:           return( assembleCmd( ));
             case CMD_DR:            displayRegCmd( cmdBuf);             break;
             case CMD_MR:            modifyRegCmd( cmdBuf);              break;
             case CMD_HASH_VA:       hashVACmd( cmdBuf);                 break;
@@ -2853,6 +3193,8 @@ void DrvCmds::dispatchCmd( char *cmdBuf ) {
             default:                invalidCmd( cmdBuf );
         }
     }
+    
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------

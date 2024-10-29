@@ -42,27 +42,35 @@
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
-// Tokens are the labels for reserved words and symbols recognized by the tokenizer. Tokens are further
-// grouped in sets. The tokenizer file has a global table with all tokens known to the simulator.
+// Tokens are the labels for reserved words and symbols recognized by the tokenizer objects. Tokens have a
+// name, a token id, a token type and an optional value with further data.
 //
 //------------------------------------------------------------------------------------------------------------
 enum TokId : uint16_t {
     
     //--------------------------------------------------------------------------------------------------------
-    // Token Sets.
+    // Token Types. A token has an ID and a type. For example registers have a type such as "general reg" and
+    // so on. The types are used by the parser routines to check types and operations on types.
     //
     //--------------------------------------------------------------------------------------------------------
-    SET_NIL                 = 900,      ENV_SET                 = 901,      CMD_SET                 = 902,
-    FMT_SET                 = 903,      REG_SET                 = 904,      REG_SET_ALL             = 905,
+    TOK_TYP_NIL             = 900,      TOK_TYP_SYM             = 901,      TOK_TYP_IDENT           = 902,
+    TOK_TYP_NUM             = 903,      TOK_TYP_STR             = 904,      TOK_TYP_BOOL            = 905,
+    TOK_TYP_ADR             = 906,      TOK_TYP_EXT_ADR         = 907,      TOK_TYP_CMD             = 908,
+    TOK_TYP_FUNC            = 909,      TOK_TYPE_TYPE           = 999,
     
-    GR_SET                  = 910,      SR_SET                  = 911,      CR_SET                  = 912,
-    PS_SET                  = 913,      FD_SET                  = 914,      OF_SET                  = 915,
-    PR_SET                  = 916,
+    TOK_TYP_GREG            = 910,      TOK_TYP_SREG            = 911,      TOK_TYP_CREG            = 912,
+    TOK_TYP_PSTATE_PREG     = 913,      TOK_TYP_FD_PREG         = 914,      TOK_TYP_OF_PREG         = 915,
+    TOK_TYP_IC_L1_REG       = 916,      TOK_TYP_DC_L1_REG       = 917,      TOK_TYP_UC_L2_REG       = 918,
+    TOK_TYP_MEM_REG         = 919,      TOK_TYP_ITLB_REG        = 920,      TOK_TYP_DTLB_REG        = 921,
     
-    IC_L1_SET               = 917,      DC_L1_SET               = 918,      UC_L2_SET               = 919,
-    MEM_SET                 = 920,      ITLB_SET                = 921,      DTLB_SET                = 922,
-
-    OP_CODE_SET             = 930,      OP_CODE_SET_S           = 931,
+    TOK_TYP_OP_CODE         = 930,      TOK_TYP_OP_CODE_S       = 931,
+    
+    
+    // ??? all needed anymore ? They are used in the commands, but perhaps go away...
+    ENV_SET                 = 990,
+    FMT_SET                 = 991,      REG_SET                 = 994,      REG_SET_ALL             = 995,
+    PR_SET                  = 996,
+    
     
     //--------------------------------------------------------------------------------------------------------
     // General tokens and smybols.
@@ -138,7 +146,6 @@ enum TokId : uint16_t {
     // Line Commands.
     //
     //--------------------------------------------------------------------------------------------------------
- //   CMD_COMMENT             = 1000,
     CMD_ENV                 = 1001,     CMD_EXIT                = 1002,
     CMD_HELP                = 1003,     CMD_WHELP               = 1004,
     
@@ -206,9 +213,9 @@ enum TokId : uint16_t {
     FD_IA_SEG               = 4500,     FD_IA_OFS               = 4501,     FD_INSTR                = 4502,
     FD_A                    = 4503,     FD_B                    = 4504,     FD_X                    = 4505,
     
-    MA_IA_SEG               = 4600,     MA_IA_OFS               = 4601,     MA_INSTR                = 4602,
-    MA_A                    = 4603,     MA_B                    = 4604,     MA_X                    = 4605,
-    MA_S                    = 4606,
+    OF_IA_SEG               = 4600,     OF_IA_OFS               = 4601,     OF_INSTR                = 4602,
+    OF_A                    = 4603,     OF_B                    = 4604,     OF_X                    = 4605,
+    OF_S                    = 4606,
     
     IC_L1_STATE             = 4700,     IC_L1_REQ               = 4701,     IC_L1_REQ_SEG           = 4702,
     IC_L1_REQ_OFS           = 4703,     IC_L1_REQ_TAG           = 4704,     IC_L1_REQ_LEN           = 4705,
@@ -282,12 +289,23 @@ enum TokId : uint16_t {
     
     OP_CODE_RFI             = 5100,     OP_CODE_BRK             = 5101,
     
-    OP_CODE_S_NOP           = 6000,
-
+    //--------------------------------------------------------------------------------------------------------
+    // Synthetic OP Codes
+    //
+    //--------------------------------------------------------------------------------------------------------
+    OP_CODE_S_NOP           = 6000,     OP_CODE_S_SHL           = 6001,     OP_CODE_S_SHR           = 6002,
+    OP_CODE_S_ASL           = 6003,     OP_CODE_S_ASR           = 6004,     OP_CODE_S_ROR           = 6005,
+    OP_CODE_S_ROL           = 6006,
+    
+    //--------------------------------------------------------------------------------------------------------
+    // The last token ID. This ID is used to terminate a token table list.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    TOK_LAST                = 9999
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Our error messages IDs. There is a routine that maps the ID to a text.
+// Our error messages IDs. There is a routine that maps the ID to a text string.
 //
 // ??? need to put all error messages here.... do a little when there is time...
 //------------------------------------------------------------------------------------------------------------
@@ -333,7 +351,7 @@ enum ErrMsgId : uint16_t {
 // future script files.
 //
 //------------------------------------------------------------------------------------------------------------
-const int   CMD_LINE_BUF_SIZE  = 256;
+const int CMD_LINE_BUF_SIZE  = 256;
 
 //------------------------------------------------------------------------------------------------------------
 // Forward declaration of the globals structure. Every object will have access to the globals structure, so
@@ -342,7 +360,6 @@ const int   CMD_LINE_BUF_SIZE  = 256;
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals;
 
-
 //------------------------------------------------------------------------------------------------------------
 // The command line interpreter as well as the one line assembler work the command line or assembley line
 // processed as a list of tokens. A token found in a string is recorded using the token structure.
@@ -350,17 +367,16 @@ struct VCPU32Globals;
 //------------------------------------------------------------------------------------------------------------
 struct DrvToken {
 
-    char        name[ 32 ];
-    TokId       tokGrpId;
-    TokId       tokenId;
-    uint32_t    val;
+    char        name[ 32 ]  = { };
+    TokId       typ         = TOK_TYP_NIL;
+    TokId       tid         = TOK_NIL;
+    uint32_t    val         = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
 // Tokenizer object. The command line interface as well as the one line assembler parse their buffer line.
 // The tokenizer will return the tokens found in the line. The tokenizer will will work with the global
-// token table found in the tokenizer source file. When the tokenizer detects an error, it is available in
-// the currentTokErr variable.
+// token table found in the tokenizer source file.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvTokenizer {
@@ -369,13 +385,17 @@ struct DrvTokenizer {
 
     DrvTokenizer( );
 
-    uint8_t     setupTokenizer( char *lineBuf );
+    uint8_t     setupTokenizer( char *lineBuf, DrvToken *tokTab );
     void        nextToken( );
+    
+    bool        isToken( TokId tokId );
+    bool        isTokenTyp( TokId typId );
 
-    TokId       tokGrp( );
+    TokId       tokTyp( );
     TokId       tokId( );
     int         tokVal( );
     char        *tokStr( );
+    
     int         tokCharIndex( );
     char        *tokenLineStr( );
 
@@ -387,15 +407,17 @@ struct DrvTokenizer {
     void        parseString( );
     void        parseIdent( );
 
+    DrvToken    *tokTab                 = nullptr;
     char        tokenLine[ 256 ]        = { 0 };
     int         currentLineLen          = 0;
     int         currentCharIndex        = 0;
     int         currentTokCharIndex     = 0;
     char        currentChar             = ' ';
     
-    TokId       currentTokGrpId         = SET_NIL;
+    TokId       currentTokTyp           = TOK_TYP_NIL;
     TokId       currentTokId            = TOK_NIL;
     int         currentTokVal           = 0;
+    
     char        currentTokStr[ 256 ]    = { 0 };
 };
 
@@ -1009,7 +1031,7 @@ private:
     
     void            promptCmdLine( );
     bool            readCmdLine( char *cmdBuf );
-    void            dispatchCmd( char *cmdBuf );
+    uint8_t         dispatchCmd( char *cmdBuf );
     void            execCmdsFromFile( char* fileName );
     
     void            invalidCmd( char *cmdBuf );
@@ -1027,7 +1049,7 @@ private:
     void            deleteBreakPointCmd( char *cmdBuf );
     void            listBreakPointsCmd( char *cmdBuf );
     void            disAssembleCmd( char *cmdBuf );
-    void            assembleCmd( char *cmdBuf );
+    uint8_t         assembleCmd( );
     void            displayRegCmd( char *cmdBuf );
     void            modifyRegCmd( char *cmdBuf );
     void            modifyPstageRegCmd( char *cmdBuf );

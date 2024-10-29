@@ -33,6 +33,210 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+//------------------------------------------------------------------------------------------------------------
+// The global token table or the one line assembler. All reserved words are allocated in this table. Each
+// entry has the token name, the token id, the token tye id, i.e. its type, and a value associatd with the
+// token. The value allows for a constant token. The parser can directly use the value in expressions.
+//
+//------------------------------------------------------------------------------------------------------------
+DrvToken const asmTokTab[ ] = {
+    
+    //--------------------------------------------------------------------------------------------------------
+    // General registers.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "R0",             .typ = TOK_TYP_GREG,         .tid = GR_0,                .val = 0           },
+    { .name = "R1",             .typ = TOK_TYP_GREG,         .tid = GR_1,                .val = 1           },
+    { .name = "R2",             .typ = TOK_TYP_GREG,         .tid = GR_2,                .val = 2           },
+    { .name = "R3",             .typ = TOK_TYP_GREG,         .tid = GR_3,                .val = 3           },
+    { .name = "R4",             .typ = TOK_TYP_GREG,         .tid = GR_4,                .val = 4           },
+    { .name = "R5",             .typ = TOK_TYP_GREG,         .tid = GR_5,                .val = 5           },
+    { .name = "R6",             .typ = TOK_TYP_GREG,         .tid = GR_6,                .val = 6           },
+    { .name = "R7",             .typ = TOK_TYP_GREG,         .tid = GR_7,                .val = 7           },
+    { .name = "R8",             .typ = TOK_TYP_GREG,         .tid = GR_8,                .val = 8           },
+    { .name = "R9",             .typ = TOK_TYP_GREG,         .tid = GR_9,                .val = 9           },
+    { .name = "R10",            .typ = TOK_TYP_GREG,         .tid = GR_10,               .val = 10          },
+    { .name = "R11",            .typ = TOK_TYP_GREG,         .tid = GR_11,               .val = 11          },
+    { .name = "R12",            .typ = TOK_TYP_GREG,         .tid = GR_12,               .val = 12          },
+    { .name = "R13",            .typ = TOK_TYP_GREG,         .tid = GR_13,               .val = 13          },
+    { .name = "R14",            .typ = TOK_TYP_GREG,         .tid = GR_14,               .val = 14          },
+    { .name = "R15",            .typ = TOK_TYP_GREG,         .tid = GR_15,               .val = 15          },
+
+    //--------------------------------------------------------------------------------------------------------
+    // Segment registers.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "S0",             .typ = TOK_TYP_SREG,         .tid = SR_0,                .val = 0           },
+    { .name = "S1",             .typ = TOK_TYP_SREG,         .tid = SR_1,                .val = 1           },
+    { .name = "S2",             .typ = TOK_TYP_SREG,         .tid = SR_2,                .val = 2           },
+    { .name = "S3",             .typ = TOK_TYP_SREG,         .tid = SR_3,                .val = 3           },
+    { .name = "S4",             .typ = TOK_TYP_SREG,         .tid = SR_4,                .val = 4           },
+    { .name = "S5",             .typ = TOK_TYP_SREG,         .tid = SR_5,                .val = 5           },
+    { .name = "S6",             .typ = TOK_TYP_SREG,         .tid = SR_6,                .val = 6           },
+    { .name = "S7",             .typ = TOK_TYP_SREG,         .tid = SR_7,                .val = 7           },
+    
+    //--------------------------------------------------------------------------------------------------------
+    // Control registers.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "C0",             .typ = TOK_TYP_CREG,        .tid = CR_0,                .val = 0            },
+    { .name = "C1",             .typ = TOK_TYP_CREG,        .tid = CR_1,                .val = 1            },
+    { .name = "C2",             .typ = TOK_TYP_CREG,        .tid = CR_2,                .val = 2            },
+    { .name = "C3",             .typ = TOK_TYP_CREG,        .tid = CR_3,                .val = 3            },
+    { .name = "C4",             .typ = TOK_TYP_CREG,        .tid = CR_4,                .val = 4            },
+    { .name = "C5",             .typ = TOK_TYP_CREG,        .tid = CR_5,                .val = 5            },
+    { .name = "C6",             .typ = TOK_TYP_CREG,        .tid = CR_6,                .val = 6            },
+    { .name = "C7",             .typ = TOK_TYP_CREG,        .tid = CR_7,                .val = 7            },
+    { .name = "C8",             .typ = TOK_TYP_CREG,        .tid = CR_8,                .val = 8            },
+    { .name = "C9",             .typ = TOK_TYP_CREG,        .tid = CR_9,                .val = 9            },
+    { .name = "C10",            .typ = TOK_TYP_CREG,        .tid = CR_10,               .val = 10           },
+    { .name = "C11",            .typ = TOK_TYP_CREG,        .tid = CR_11,               .val = 11           },
+    { .name = "C12",            .typ = TOK_TYP_CREG,        .tid = CR_12,               .val = 12           },
+    { .name = "C13",            .typ = TOK_TYP_CREG,        .tid = CR_13,               .val = 13           },
+    { .name = "C14",            .typ = TOK_TYP_CREG,        .tid = CR_14,               .val = 14           },
+    { .name = "C15",            .typ = TOK_TYP_CREG,        .tid = CR_15,               .val = 15           },
+    { .name = "C16",            .typ = TOK_TYP_CREG,        .tid = CR_16,               .val = 16           },
+    { .name = "C17",            .typ = TOK_TYP_CREG,        .tid = CR_17,               .val = 17           },
+    { .name = "C18",            .typ = TOK_TYP_CREG,        .tid = CR_18,               .val = 18           },
+    { .name = "C19",            .typ = TOK_TYP_CREG,        .tid = CR_19,               .val = 19           },
+    { .name = "C20",            .typ = TOK_TYP_CREG,        .tid = CR_20,               .val = 20           },
+    { .name = "C21",            .typ = TOK_TYP_CREG,        .tid = CR_21,               .val = 21           },
+    { .name = "C22",            .typ = TOK_TYP_CREG,        .tid = CR_22,               .val = 22           },
+    { .name = "C23",            .typ = TOK_TYP_CREG,        .tid = CR_23,               .val = 23           },
+    { .name = "C24",            .typ = TOK_TYP_CREG,        .tid = CR_24,               .val = 24           },
+    { .name = "C25",            .typ = TOK_TYP_CREG,        .tid = CR_25,               .val = 25           },
+    { .name = "C26",            .typ = TOK_TYP_CREG,        .tid = CR_26,               .val = 26           },
+    { .name = "C27",            .typ = TOK_TYP_CREG,        .tid = CR_27,               .val = 27           },
+    { .name = "C28",            .typ = TOK_TYP_CREG,        .tid = CR_28,               .val = 28           },
+    { .name = "C29",            .typ = TOK_TYP_CREG,        .tid = CR_29,               .val = 29           },
+    { .name = "C30",            .typ = TOK_TYP_CREG,        .tid = CR_30,               .val = 30           },
+    { .name = "C31",            .typ = TOK_TYP_CREG,        .tid = CR_31,               .val = 31           },
+        
+    //--------------------------------------------------------------------------------------------------------
+    // Assembler mnemonics.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "LD",             .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_LD,          .val = 0xC0000000   },
+    { .name = "LDB",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_LDB,         .val = 0xC0000000   },
+    { .name = "LDH",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_LDH,         .val = 0xC0000000   },
+    { .name = "LDW",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_LDW,         .val = 0xC0000000   },
+    { .name = "LDR",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_LDR,         .val = 0xD0000000   },
+    { .name = "LDA",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_LDA,         .val = 0xC8000000   },
+        
+    { .name = "ST",             .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ST,          .val = 0xC4000000   },
+    { .name = "STB",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_STB,         .val = 0xC4000000   },
+    { .name = "STH",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_STH,         .val = 0xC4000000   },
+    { .name = "STW",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_STW,         .val = 0xC4000000   },
+    { .name = "STC",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_STC,         .val = 0xD4000000   },
+    { .name = "STA",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_STA,         .val = 0xCC000000   },
+        
+    { .name = "ADD",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ADD,         .val = 0x40000000   },
+    { .name = "ADDB",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ADDB,        .val = 0x40000000   },
+    { .name = "ADDH",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ADDH,        .val = 0x40000000   },
+    { .name = "ADDW",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ADDW,        .val = 0x40000000   },
+        
+    { .name = "ADC",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ADC,         .val = 0x44000000   },
+    { .name = "ADCB",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ADCB,        .val = 0x44000000   },
+    { .name = "ADCH",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ADCH,        .val = 0x44000000   },
+    { .name = "ADCW",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ADCW,        .val = 0x44000000   },
+        
+    { .name = "SUB",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_SUB,         .val = 0x48000000   },
+    { .name = "SUBB",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_SUBB,        .val = 0x48000000   },
+    { .name = "SUBH",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_SUBH,        .val = 0x48000000   },
+    { .name = "SUBW",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_SUBW,        .val = 0x48000000   },
+        
+    { .name = "SBC",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_SBC,         .val = 0x4C000000   },
+    { .name = "SBCB",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_SBCB,        .val = 0x4C000000   },
+    { .name = "SBCH",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_SBCH,        .val = 0x4C000000   },
+    { .name = "SBCW",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_SBCW,        .val = 0x4C000000   },
+        
+    { .name = "AND",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_AND,         .val = 0x50000000   },
+    { .name = "ANDB",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ANDB,        .val = 0x50000000   },
+    { .name = "ANDH",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ANDH,        .val = 0x50000000   },
+    { .name = "ANDW",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ANDW,        .val = 0x50000000   },
+        
+    { .name = "OR" ,            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_OR,          .val = 0x54000000   },
+    { .name = "ORB",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ORB,         .val = 0x54000000   },
+    { .name = "ORH",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ORH,         .val = 0x54000000   },
+    { .name = "ORW",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ORW,         .val = 0x54000000   },
+        
+    { .name = "XOR" ,           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_XOR,         .val = 0x58000000   },
+    { .name = "XORB",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_XORB,        .val = 0x58000000   },
+    { .name = "XORH",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_XORH,        .val = 0x58000000   },
+    { .name = "XORW",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_XORW,        .val = 0x58000000   },
+        
+    { .name = "CMP" ,           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_CMP,         .val = 0x5C000000   },
+    { .name = "CMPB",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_CMPB,        .val = 0x5C000000   },
+    { .name = "CMPH",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_CMPH,        .val = 0x5C000000   },
+    { .name = "CMPW",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_CMPW,        .val = 0x5C000000   },
+        
+    { .name = "CMPU" ,          .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_CMPU,        .val = 0x60000000   },
+    { .name = "CMPUB",          .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_CMPUB,       .val = 0x60000000   },
+    { .name = "CMPUH",          .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_CMPUH,       .val = 0x60000000   },
+    { .name = "CMPUW",          .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_CMPUW,       .val = 0x60000000   },
+    
+    { .name = "LSID",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_LSID,        .val = 0x10000000   },
+    { .name = "EXTR",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_EXTR,        .val = 0x14000000   },
+    { .name = "DEP",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_DEP,         .val = 0x18000000   },
+    { .name = "DSR",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_DSR,         .val = 0x1C000000   },
+    { .name = "SHLA",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_SHLA,        .val = 0x20000000   },
+    { .name = "CMR",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_CMR,         .val = 0x24000000   },
+        
+    { .name = "LDIL",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_LDIL,        .val = 0x04000000   },
+    { .name = "ADDIL",          .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ADDIL,       .val = 0x08000000   },
+    { .name = "LDO",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_LDO,         .val = 0x0C000000   },
+    
+    { .name = "B",              .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_B,           .val = 0x80000000   },
+    { .name = "GATE",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_GATE,        .val = 0x84000000   },
+    { .name = "BR",             .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_BR,          .val = 0x88000000   },
+    { .name = "BV",             .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_BV,          .val = 0x8C000000   },
+    { .name = "BE",             .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_BE,          .val = 0x90000000   },
+    { .name = "BVE",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_BVE,         .val = 0x94000000   },
+    { .name = "CBR",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_CBR,         .val = 0x98000000   },
+    { .name = "CBRU",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_CBRU,        .val = 0x9C000000   },
+        
+    { .name = "MR",             .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_MR,          .val = 0x28000000   },
+    { .name = "MST",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_MST,         .val = 0x2C000000   },
+    { .name = "DS",             .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_DS,          .val = 0x30000000   },
+    { .name = "LDPA",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_LDPA,        .val = 0xE4000000   },
+    { .name = "PRB",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_PRB,         .val = 0xE8000000   },
+    { .name = "ITLB",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_ITLB,        .val = 0xEC000000   },
+    { .name = "PTLB",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_PTLB,        .val = 0xF0000000   },
+    { .name = "PCA",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_PCA,         .val = 0xF4000000   },
+    { .name = "DIAG",           .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_DIAG,        .val = 0xF8000000   },
+    { .name = "RFI",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_RFI,         .val = 0xFC000000   },
+    { .name = "BRK",            .typ = TOK_TYP_OP_CODE,     .tid = OP_CODE_BRK,         .val = 0x00000000   },
+        
+    //--------------------------------------------------------------------------------------------------------
+    // Synthetic instruction mnemonics.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "NOP",            .typ = TOK_TYP_OP_CODE_S,   .tid = OP_CODE_S_NOP,       .val =  0           },
+    { .name = "SHL",            .typ = TOK_TYP_OP_CODE_S,   .tid = OP_CODE_S_SHL,       .val =  0           },
+    { .name = "SHR",            .typ = TOK_TYP_OP_CODE_S,   .tid = OP_CODE_S_SHR,       .val =  0           },
+    { .name = "ASL",            .typ = TOK_TYP_OP_CODE_S,   .tid = OP_CODE_S_ASL,       .val =  0           },
+    { .name = "ASR",            .typ = TOK_TYP_OP_CODE_S,   .tid = OP_CODE_S_ASR,       .val =  0           },
+    { .name = "ROR",            .typ = TOK_TYP_OP_CODE_S,   .tid = OP_CODE_S_ROR,       .val =  0           },
+    { .name = "ROL",            .typ = TOK_TYP_OP_CODE_S,   .tid = OP_CODE_S_ROL,       .val =  0           },
+    
+    //--------------------------------------------------------------------------------------------------------
+    // Runtime register mnemonics.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    // ??? to fill in ...
+    
+    //--------------------------------------------------------------------------------------------------------
+    // The last token to mark the list end.
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "",               .typ = TOK_NIL,             .tid = TOK_LAST,           .val =  0           }
+    
+};
+
+//------------------------------------------------------------------------------------------------------------
+// We need a tokenizer object. It is allocated only once. On each call to assmble an instruction, the
+// tokenizer input is set for the current work task.
+//
+//------------------------------------------------------------------------------------------------------------
 DrvTokenizer *tok = new DrvTokenizer( );
 
 //------------------------------------------------------------------------------------------------------------
@@ -126,16 +330,6 @@ bool isInRangeForBitFieldU( uint32_t val, uint8_t bitLen ) {
     return( val <= max );
 }
 
-void upshiftStr( char *str ) {
-    
-    size_t len = strlen( str );
-    
-    if ( len > 0 ) {
-        
-        for ( size_t i = 0; i < len; i++ ) str[ i ] = (char) toupper((int) str[ i ] );
-    }
-}
-
 //------------------------------------------------------------------------------------------------------------
 // "parserError" is a little helper that prints out the error encountered. We will print the original
 // input line, a caret marker where we found the error, and then return a false. Parsing errors typically
@@ -167,7 +361,7 @@ bool parserError( char *errStr ) {
 //------------------------------------------------------------------------------------------------------------
 bool checkEOS( ) {
     
-    if ( tok -> tokId( ) == TOK_EOS ) return( true );
+    if ( tok -> isToken( TOK_EOS )) return( true );
     else return( parserError((char *) "Extra tokens in the assembler line" ));
 }
 
@@ -177,7 +371,7 @@ bool checkEOS( ) {
 //------------------------------------------------------------------------------------------------------------
 bool acceptComma( ) {
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> isToken( TOK_COMMA )) {
         
         tok -> nextToken( );
         return( true );
@@ -187,7 +381,7 @@ bool acceptComma( ) {
 
 bool acceptLparen( ) {
     
-    if ( tok -> tokId( ) == TOK_LPAREN ) {
+    if ( tok -> isToken( TOK_LPAREN )) {
         
         tok -> nextToken( );
         return( true );
@@ -197,7 +391,7 @@ bool acceptLparen( ) {
 
 bool acceptRparen( ) {
     
-    if ( tok -> tokId( ) == TOK_RPAREN ) {
+    if ( tok -> isToken( TOK_RPAREN )) {
         
         tok -> nextToken( );
         return( true );
@@ -229,44 +423,44 @@ bool parseFactor( Expr *rExpr ) {
     rExpr -> val1 = 0;
     rExpr -> val2 = 0;
    
-    if ( tok -> tokId( ) == TOK_NUM )  {
+    if ( tok -> isTokenTyp( TOK_TYP_NUM ))  {
         
         rExpr -> typ = ET_NUM;
         rExpr -> val1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else  if ( tok -> tokGrp( ) == GR_SET )  {
+    else  if ( tok -> isTokenTyp( TOK_TYP_GREG ))  {
         
         rExpr -> typ = ET_GREG;
         rExpr -> val1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else  if ( tok -> tokGrp( ) == SR_SET    )  {
+    else  if ( tok -> isTokenTyp( TOK_TYP_SREG ))  {
         
         rExpr -> typ = ET_SREG;
         rExpr -> val1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else  if ( tok -> tokGrp( ) == CR_SET    )  {
+    else  if ( tok -> isTokenTyp( TOK_TYP_CREG ))  {
         
         rExpr -> typ = ET_CREG;
         rExpr -> val1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else if ( tok -> tokId( ) == TOK_NEG ) {
+    else if ( tok -> isToken( TOK_NEG )) {
         
         parseFactor( rExpr );
         rExpr -> val1 = ~ rExpr -> val1;
         return( true );
     }
-    else if ( tok -> tokId( ) == TOK_LPAREN) {
+    else if ( tok -> isToken( TOK_LPAREN )) {
         
         tok -> nextToken( );
-        if ( tok -> tokGrp( ) == SR_SET ) {
+        if ( tok ->  isTokenTyp( TOK_TYP_SREG )) {
             
             rExpr -> typ    = ET_EXT_ADR;
             rExpr -> val1   = tok -> tokVal( );
@@ -274,14 +468,14 @@ bool parseFactor( Expr *rExpr ) {
             tok -> nextToken( );
             if ( ! acceptComma( )) return( false );
            
-            if ( tok -> tokGrp( ) == GR_SET ) {
+            if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
                 
                 rExpr -> val2 = tok -> tokVal( );
                 tok -> nextToken( );
             }
             else return( parserError((char *) "Expected a general reg" ));
         }
-        else if ( tok -> tokGrp( ) == GR_SET) {
+        else if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
             
             rExpr -> typ = ET_ADR;
             rExpr -> val1 = tok -> tokVal( );
@@ -294,11 +488,10 @@ bool parseFactor( Expr *rExpr ) {
     }
     else {
         
-        parserError((char *) "Expected.... (factor)" );
-        rExpr -> typ = ET_NUM;
-        rExpr -> val1 = 0;
+        parserError((char *) "Invalid factor in expression" );
+        rExpr -> typ    = ET_NUM;
+        rExpr -> val1   = 0;
         tok -> nextToken( );
-        
         return( false );
     }
 }
@@ -357,7 +550,7 @@ bool parseExpr( Expr *rExpr ) {
     Expr lExpr;
     bool rStat;
     
-    if ( tok -> tokId( ) == TOK_PLUS ) {
+    if ( tok -> isToken( TOK_PLUS )) {
         
         tok -> nextToken( );
         rStat = parseTerm( rExpr );
@@ -367,7 +560,7 @@ bool parseExpr( Expr *rExpr ) {
             return( parserError((char *) "Expected a numeric constant" ));
         }
     }
-    else if ( tok -> tokId( ) == TOK_MINUS ) {
+    else if ( tok -> isToken( TOK_MINUS )) {
         
         tok -> nextToken( );
         rStat = parseTerm( rExpr );
@@ -414,7 +607,7 @@ bool parseExpr( Expr *rExpr ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
     
-    if ( tok -> tokId( ) != TOK_IDENT ) {
+    if ( ! tok -> isToken( TOK_IDENT )) {
         
         return( parserError((char *) "Expected the option qualifier(s)" ));
     }
@@ -721,7 +914,7 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
     uint8_t targetRegId = 0;
     Expr    rExpr;
    
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         targetRegId = tok -> tokVal( );
         setBitField( instr, 9, 4, tok -> tokVal( ));
@@ -735,7 +928,7 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == ET_NUM ) {
      
-        if ( tok -> tokId( ) == TOK_EOS ) {
+        if ( tok -> isToken( TOK_EOS )) {
             
             if ( isInRangeForBitField( rExpr.val1, 18 )) setImmVal( instr, 31, 18, rExpr.val1 );
             else return( parserError((char *) "Immediate value out of range" ));
@@ -761,19 +954,19 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
     }
     else if ( rExpr.typ == ET_GREG ) {
     
-        if ( tok -> tokId( ) == TOK_EOS ) {
+        if ( tok -> isToken( TOK_EOS )) {
             
             setBitField( instr, 13, 2, 1 );
             setBitField( instr, 27, 4, targetRegId );
             setBitField( instr, 31, 4, rExpr.val1 );
         }
-        else if ( tok -> tokId( ) == TOK_COMMA ) {
+        else if ( tok -> isToken( TOK_COMMA )) {
             
             setBitField( instr, 13, 2, 1 );
             setBitField( instr, 27, 4, rExpr.val1 );
             
             tok -> nextToken( );
-            if ( tok -> tokGrp( ) == GR_SET ) {
+            if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
                 
                 setBitField( instr, 13, 2, 1 );
                 setBitField( instr, 27, 4, rExpr.val1 );
@@ -782,7 +975,7 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
             }
             else return( parserError((char *) "Expected a general reg" ));
         }
-        else if ( tok -> tokId( ) == TOK_LPAREN ) {
+        else if ( tok -> isToken( TOK_LPAREN )) {
             
             setBitField( instr, 27, 4, rExpr.val1 );
             
@@ -817,7 +1010,7 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrLSID( uint32_t *instr, uint32_t flags ) {
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -826,7 +1019,7 @@ bool parseInstrLSID( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -851,15 +1044,14 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
     else return( parserError((char *) "Expected a general register" ));
     
-    if ( ! acceptComma( )) return( false );
-    
+    if ( ! acceptComma( ))      return( false );
     if ( ! parseExpr( &rExpr )) return( false );
     
     if ( rExpr.typ == ET_GREG ) {
@@ -935,7 +1127,7 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -944,7 +1136,7 @@ bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -953,7 +1145,7 @@ bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -975,7 +1167,7 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -984,7 +1176,7 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -993,7 +1185,7 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1029,7 +1221,7 @@ bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1038,7 +1230,7 @@ bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1089,7 +1281,7 @@ bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1098,7 +1290,7 @@ bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1151,7 +1343,7 @@ bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrCMR( uint32_t *instr, uint32_t flags ) {
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1160,7 +1352,7 @@ bool parseInstrCMR( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1169,7 +1361,7 @@ bool parseInstrCMR( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1192,7 +1384,7 @@ bool parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1221,7 +1413,7 @@ bool parseInstrLDO( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1270,10 +1462,10 @@ bool parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError(( char *) "Expected an offset value" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> isToken( TOK_COMMA )) {
         
         tok -> nextToken( );
-        if ( tok -> tokGrp( ) == GR_SET ) {
+        if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
             
             setBitField( instr, 9, 4, tok -> tokVal( ));
             tok -> nextToken( );
@@ -1295,7 +1487,7 @@ bool parseInstrBR( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptLparen( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ) );
         tok -> nextToken( );
@@ -1304,10 +1496,10 @@ bool parseInstrBR( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptRparen( )) return( false );
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> isToken( TOK_COMMA )) {
         
         tok -> nextToken( );
-        if ( tok -> tokGrp( ) == GR_SET ) {
+        if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
             
             setBitField( instr, 9, 4, tok -> tokVal( ));
             tok -> nextToken( );
@@ -1329,7 +1521,7 @@ bool parseInstrBV( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptLparen( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1338,10 +1530,10 @@ bool parseInstrBV( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptRparen( )) return( false );
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> isToken( TOK_COMMA )) {
         
         tok -> nextToken( );
-        if ( tok -> tokGrp( ) == GR_SET ) {
+        if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
             
             setBitField( instr, 31, 4, tok -> tokVal( ));
             tok -> nextToken( );
@@ -1381,10 +1573,10 @@ bool parseInstrBE( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a virtual address" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> isToken( TOK_COMMA )) {
         
         tok -> nextToken( );
-        if ( tok -> tokGrp( ) == GR_SET ) {
+        if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
             
             setBitField( instr, 9, 4, tok -> tokVal( ));
             tok -> nextToken( );
@@ -1406,7 +1598,7 @@ bool parseInstrBVE( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ) );
         tok -> nextToken( );
@@ -1420,10 +1612,10 @@ bool parseInstrBVE( uint32_t *instr, uint32_t flags ) {
     }
     else return( parserError((char *) "Expected a logical address" ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> isToken( TOK_COMMA )) {
         
         tok -> nextToken( );
-        if ( tok -> tokGrp( ) == GR_SET ) {
+        if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
             
             setBitField( instr, 9, 4, tok -> tokVal( ));
             tok -> nextToken( );
@@ -1446,7 +1638,7 @@ bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ) );
         tok -> nextToken( );
@@ -1454,7 +1646,7 @@ bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1486,7 +1678,7 @@ bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrLoadAndStore( uint32_t *instr, uint32_t flags ) {
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
@@ -1509,14 +1701,14 @@ bool parseInstrLoadAndStore( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         uint8_t tRegId = tok -> tokVal( );
         
         tok -> nextToken( );
         if ( ! acceptComma( )) return( false );
         
-        if ( tok -> tokGrp( ) == GR_SET ) {
+        if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
             
             *instr = 0;
             setBitField( instr, 5, 6, OP_OR );
@@ -1526,13 +1718,13 @@ bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
             setBitField( instr, 31, 4, tok -> tokVal( ));
             tok -> nextToken( );
         }
-        else if ( tok -> tokGrp( ) == SR_SET ) {
+        else if ( tok -> isTokenTyp( TOK_TYP_SREG )) {
           
             setBitField( instr, 31, 3, tok -> tokVal( ));
             setBitField( instr, 9, 4, tRegId );
             tok -> nextToken( );
         }
-        else if ( tok -> tokGrp( ) == CR_SET ) {
+        else if ( tok -> isTokenTyp( TOK_TYP_CREG )) {
            
             setBit( instr, 11 );
             setBitField( instr, 31, 5, tok -> tokVal( ));
@@ -1540,14 +1732,14 @@ bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
             tok -> nextToken( );
         }
     }
-    else if ( tok -> tokGrp( ) == SR_SET ) {
+    else if ( tok -> isTokenTyp( TOK_TYP_SREG )) {
         
         uint8_t tRegId = tok -> tokVal( );
         
         tok -> nextToken( );
         if ( ! acceptComma( )) return( false );
     
-        if ( tok -> tokGrp( ) == GR_SET ) {
+        if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
             
             setBit( instr, 10 );
             setBitField( instr, 31, 3, tRegId );
@@ -1556,14 +1748,14 @@ bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
         }
         else return( parserError((char *) "Only SREG <- GREG is allowed" ));
     }
-    else if ( tok -> tokGrp( ) == CR_SET ) {
+    else if ( tok -> isTokenTyp( TOK_TYP_CREG )) {
         
         uint8_t tRegId = tok -> tokVal( );
         
         tok -> nextToken( );
         if ( ! acceptComma( )) return( false );
         
-        if ( tok -> tokGrp( ) == GR_SET ) {
+        if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
             
             setBit( instr, 10 );
             setBit( instr, 11 );
@@ -1591,7 +1783,7 @@ bool parseInstrMST( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ) );
         tok -> nextToken( );
@@ -1635,7 +1827,7 @@ bool parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ) );
         tok -> nextToken( );
@@ -1643,7 +1835,7 @@ bool parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 27, 4, rExpr.val1 );
         tok -> nextToken( );
@@ -1663,7 +1855,7 @@ bool parseInstrPRB( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ) );
         tok -> nextToken( );
@@ -1700,7 +1892,7 @@ bool parseInstrPRB( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrITLB( uint32_t *instr, uint32_t flags ) {
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ) );
         tok -> nextToken( );
@@ -1709,12 +1901,12 @@ bool parseInstrITLB( uint32_t *instr, uint32_t flags ) {
     if ( ! acceptComma( ))  return( false );
     if ( ! acceptLparen( )) return( false );
     
-    if ( tok -> tokGrp( ) == SR_SET ) setBitField( instr, 27, 4, tok -> tokVal( ));
+    if ( tok -> isTokenTyp( TOK_TYP_SREG )) setBitField( instr, 27, 4, tok -> tokVal( ));
     else return( parserError((char *) "Expected a segement register" ));
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) setBitField( instr, 31, 4, tok -> tokVal( ));
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) setBitField( instr, 31, 4, tok -> tokVal( ));
     else return( parserError((char *) "Expected a general register" ));
     
     if ( ! acceptRparen( )) return( false );
@@ -1731,13 +1923,13 @@ bool parseInstrITLB( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrPTLB( uint32_t *instr, uint32_t flags ) {
 
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ) );
         tok -> nextToken( );
     }
     
-    if ( tok -> tokId( ) == TOK_LPAREN ) {
+    if ( tok -> isToken( TOK_LPAREN )) {
         
         if ( ! parseLogicalAdr( instr, flags )) return( false );
     }
@@ -1754,13 +1946,13 @@ bool parseInstrPTLB( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 bool parseInstrPCA( uint32_t *instr, uint32_t flags ) {
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ) );
         tok -> nextToken( );
     }
     
-    if ( tok -> tokId( ) == TOK_LPAREN ) {
+    if ( tok -> isToken( TOK_LPAREN )) {
         
         if ( ! parseLogicalAdr( instr, flags )) return( false );
     }
@@ -1779,7 +1971,7 @@ bool parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
     
     Expr rExpr;
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ) );
         tok -> nextToken( );
@@ -1787,7 +1979,7 @@ bool parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ) );
         tok -> nextToken( );
@@ -1796,7 +1988,7 @@ bool parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> tokGrp( ) == GR_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ) );
         tok -> nextToken( );
@@ -1874,6 +2066,8 @@ bool parseSynthInstrNop( uint32_t *instr, uint32_t flags ) {
     return( checkEOS( ));
 }
 
+// ??? add shift and rotate synthetic ops....
+
 //------------------------------------------------------------------------------------------------------------
 // "parseLine" will take the input string and parse the line for an instruction. In the simplified case, there
 // is only the opCode mnemonic and the argument list. No labels, no comments. For each instruction, there is
@@ -1895,17 +2089,17 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
     uint32_t    flags   = 0;
     TokId       opCode  = TOK_NIL;
     
-    tok -> setupTokenizer( inputStr );
+    tok -> setupTokenizer( inputStr, (DrvToken *) asmTokTab );
     tok -> nextToken( );
     
-    if ( tok -> tokGrp( ) == OP_CODE_SET ) {
+    if ( tok -> isTokenTyp( TOK_TYP_OP_CODE )) {
         
         flags   = 0;
         opCode  = tok -> tokId( );
         *instr  = tok -> tokVal( );
        
         tok -> nextToken( );
-        while ( tok -> tokId( ) == TOK_PERIOD ) {
+        while ( tok -> isToken( TOK_PERIOD )) {
             
             tok -> nextToken( );
             if ( ! parseInstrOptions( instr, &flags )) return( false );
@@ -1997,7 +2191,7 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
             default: return( parserError((char *) "Invalid opcode" ));
         }
     }
-    else if ( tok -> tokGrp( ) == OP_CODE_SET_S ) {
+    else if ( tok -> isTokenTyp( TOK_TYP_OP_CODE_S )) {
         
         flags   = 0;
         opCode  = tok -> tokId( );
@@ -2012,7 +2206,6 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
     }
     else return( parserError((char *) "Expected an opcode" ));
 }
-
 
 } // namespace
 
