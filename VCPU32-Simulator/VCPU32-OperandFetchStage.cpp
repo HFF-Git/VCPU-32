@@ -14,7 +14,7 @@
 // This file contains the methods for the memory access pipeline stage. Each stage is a structure with
 // the pipeline register data and the methods to call from the CPU24 core object for controlling the stages.
 // Each stage also has access to all other stages. We need this access for implementing stalling and bypassing
-// capabilities. There is a common include file, CPU24PipeLine.hpp, with all declarations of all stages.
+// capabilities. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -228,7 +228,7 @@ void OperandFetchStage::setStalled( bool arg ) {
 // simulator works. To look into ...
 //
 // One other approach would be to stall the entire pipeline while we have a cache miss. This would for sure
-// solve these kind of issues bit at the expense of performance. Consider an unconditional branch. Whne we
+// solve these kind of issues bit at the expense of performance. Consider an unconditional branch. When we
 // can only determine the target in the MA stage, the FD stage already fetches the next - wrong - instruction.
 // When this instruction will cause an instruction cache miss, we wait many cycles for the cache to be filled
 // just to flush the fetched instruction. If a cache line hold four words, chances are 25% that will hit
@@ -236,7 +236,7 @@ void OperandFetchStage::setStalled( bool arg ) {
 //
 // Yet another approach is to stall in the FD stage itself. Assume that we can determine in the FD stage
 // that we will branch for sure and need to stall for one cycle until the OF stage has the new target ready.
-// This would thenmean that the branch instruction is simply processed again in the FD stage, no harm done.
+// This would mean that the branch instruction is simply processed again in the FD stage, no harm done.
 // We would then perhaps need not to abort the cache for this reason, perhaps for other reasons.
 // To be tried out ...
 //
@@ -473,7 +473,7 @@ bool OperandFetchStage::checkProtectId( uint16_t segId ) {
 // For the conditional branch instruction, the predicted branch target based in the offset was already
 // processed in the FD stage. In this stage, the branch target address for the alternative target will
 // be computed by adding B and X, which were set accordingly in the FD stage. When the EX stage evaluates
-// the branch condition and determines that the branch was mispredicted, this address will be used to
+// the branch condition and determines that the branch was mis-predicted, this address will be used to
 // continue the instruction stream and flushing instructions fetched wrongly from the pipeline.
 //
 // In general, the stall logic will always inhibit the update of the current and any previous pipeline

@@ -14,7 +14,7 @@
 // This file contains the methods for the fetch and decode pipeline stage. Each stage is a structure with
 // the pipeline register data and the methods to call from the CPU24 core object for controlling the stages.
 // Each stage also has access to all other stages. We need this access for implementing stalling and bypassing
-// capabilities. There is a common include file, CPU24PipeLine.hpp, with all declarations of all stages.
+// capabilities.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -474,11 +474,11 @@ bool FetchDecodeStage::checkProtectId( uint16_t segId ) {
 //
 // The CBR instruction uses a static branch prediction scheme. A backward branch address is considered as a
 // branch taken a positive address is considered as a branch not taken. When we actually evaluate the
-// condition in the EX stage, the branch decision needs to be corrected when mispredicted. For this to work,
+// condition in the EX stage, the branch decision needs to be corrected when mis-predicted. For this to work,
 // the alternate branch address needs to make its way to the EX stage. The MA stage will actually create
 // the alternate branch target address and pass in "X" to the EX stage. Since a backward branch has a negative
 // offset and is predicted as branch taken, the sign bit of the effect os used in the EX stage to figure out
-// whether we mispredicted.
+// whether we mis-predicted.
 //
 // For instruction that will do arithmetic in the MA stage, we will check if the previous instruction is
 // an instruction that sets a general register. If the register matches one of our just fetched registers,

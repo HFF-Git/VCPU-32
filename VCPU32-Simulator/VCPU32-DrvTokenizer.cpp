@@ -43,10 +43,10 @@ const char  EOS_CHAR            = 0;
 #if 0
 //------------------------------------------------------------------------------------------------------------
 // The global token table. All reserved words are allocated in this table. Each entry has the token name,
-// the token id, the token tye id, i.e. its type, and a value associatd with the token. The value allows
+// the token id, the token type id, i.e. its type, and a value associated with the token. The value allows
 // for a constant token. The parser can directly use the value in expressions.
 //
-// ??? do some sorting, better readbility....
+// ??? do some sorting, better readability....
 //------------------------------------------------------------------------------------------------------------
 DrvToken const tokTab[ ] = {
     
@@ -479,7 +479,7 @@ const int   TOK_TAB_SIZE  = sizeof( tokTab ) / sizeof( *tokTab );
 #endif
 
 //------------------------------------------------------------------------------------------------------------
-// The lokkup function. We just do a linear search for now. Note that we expect the last entry in the token
+// The lookup function. We just do a linear search for now. Note that we expect the last entry in the token
 // table to be the NIL token, otherwise bad things will happen.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -589,8 +589,10 @@ void DrvTokenizer::nextChar( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseNum" will parse a number. We leave the heavy lifting of converting the numeric value to the C library.
+// "parseNum" will parse a number. We leave the heavy lifting of converting the numeric value to the C
+// library.
 //
+// ??? should we detect an address pair here ? <seg>.<ofs> ?
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::parseNum( int sign ) {
     
@@ -617,6 +619,13 @@ void DrvTokenizer::parseNum( int sign ) {
         currentTokVal   = 0;
         tokenError((char *) "Invalid number" );
     }
+    
+    if ( currentChar == '.' ) {
+        
+        // ??? we would need to parse the next number. How to store them in the return ?
+        
+    }
+    
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -662,10 +671,11 @@ void DrvTokenizer::parseString( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseIdent" parses an identifier. It is a sequence of characters starting with an alpha character. We do
-// not really have user defined identifiers, only reserved words. As a qualified constant also begins with
-// a character, the parsing of an identifier also needs to manage the parsing of constants with a qualifier,
-// such as "L%nnn".  We first check for these kind of qualifiers and if found hand over to parse a number.
+// "parseIdent" parses an identifier. It is a sequence of characters starting with an alpha character. An
+// identifier found in the token table will assume the type and value of the token found. Any other identifier
+// is just an identifier symbol. There is one more thing. There are qualified constants that begin with a
+// character followed by a percent character, followed by the value. During the character analysis, We first
+// check for these kind of qualifiers and if found hand over to parse a number.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::parseIdent( ) {

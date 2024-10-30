@@ -3,8 +3,7 @@
 // VCPU32 - A 32-bit CPU - Simulator Commands
 //
 //------------------------------------------------------------------------------------------------------------
-// Welcome to the test driver commands. This a rather simple command loop resting on the "sscanf" C library
-// routine to do the parsing.
+// Welcome to the test driver commands. 
 //
 //
 //------------------------------------------------------------------------------------------------------------
@@ -78,7 +77,7 @@ namespace {
 
 
 
-// ??? phase out when the all commands are fully convrted to the new parser...
+// ??? phase out when the all commands are fully converted to the new parser...
 //------------------------------------------------------------------------------------------------------------
 // Token table. There is a large number of reserved tokens. Each token has a name and an optional alias name.
 // Each token also belongs to a group, which allows to do a faster match during command line parsing. The
@@ -90,7 +89,7 @@ const int   TOK_ALIAS_NAME_SIZE = 8;
 const int   TOK_LARGE_STR_SIZE  = 256;
 const int   PATH_STR_SIZE       = 256;
 
-// ??? simplify, take out alias and make the owen token tab entries...
+// ??? simplify, take out alias and make the own token tab entries...
 struct {
     
     char    name[ TOK_NAME_SIZE ];
@@ -352,10 +351,10 @@ const int   TOK_TAB_SIZE  = sizeof( tokTab ) / sizeof( *tokTab );
 // ??? the new table .....
 //------------------------------------------------------------------------------------------------------------
 // The global token table. All reserved words are allocated in this table. Each entry has the token name,
-// the token id, the token tye id, i.e. its type, and a value associatd with the token. The value allows
+// the token id, the token type id, i.e. its type, and a value associated with the token. The value allows
 // for a constant token. The parser can directly use the value in expressions.
 //
-// ??? do some sorting, better readbility....
+// ??? do some sorting, better readability....
 //------------------------------------------------------------------------------------------------------------
 DrvToken const cmdTokTab[ ] = {
     
@@ -693,7 +692,7 @@ DrvToken const cmdTokTab[ ] = {
 
 
 
-// ??? mal also go away when we have the parser ready...
+// ??? may also go away when we have the parser ready...
 //------------------------------------------------------------------------------------------------------------
 // The command line parser simply uses the "sscanf" library routine. Here are the formats for the various
 // command lines. "S" means a string input, "D" a numeric integer input, "U" an unsigned integer input.
@@ -714,7 +713,7 @@ const char  FMT_STR_2S_LS[ ]    = "%32s %32s %256s";
 
 
 //------------------------------------------------------------------------------------------------------------
-// The command line is broken into tokens by the tokenizer opbject.
+// The command line is broken into tokens by the tokenizer object.
 //
 //------------------------------------------------------------------------------------------------------------
 DrvTokenizer *tok = new DrvTokenizer( );
@@ -866,12 +865,12 @@ void printErrMsg( ErrMsgId errNum, char *argStr = nullptr ) {
         case ERR_EXPECTED_RPAREN:       fprintf( stdout, "Expected a right paren\n" );
         case ERR_EXPECTED_COMMA:        fprintf( stdout, "Expected a comma\n" );
             
-        case ERR_EXPECTED_NUMERIC:      fprintf( stdout, "Expected a numric value\n" );
-        case ERR_EXPR_TYPE_MATCH:       fprintf( stdout, "Expresion type mismatch\n" );
-        case ERR_EXPR_FACTOR:           fprintf( stdout, "Expresion error: factor\n" );
-        case ERR_EXPECTED_GENERAL_REG:  fprintf( stdout, "Expresion a general reg\n" );
+        case ERR_EXPECTED_NUMERIC:      fprintf( stdout, "Expected a numeric value\n" );
+        case ERR_EXPR_TYPE_MATCH:       fprintf( stdout, "Expression type mismatch\n" );
+        case ERR_EXPR_FACTOR:           fprintf( stdout, "Expression error: factor\n" );
+        case ERR_EXPECTED_GENERAL_REG:  fprintf( stdout, "Expression a general reg\n" );
             
-        case ERR_INVALID_ARG:           fprintf( stdout, "Invalid command aergument\n" );
+        case ERR_INVALID_ARG:           fprintf( stdout, "Invalid command argument\n" );
                     
             
         case ERR_INVALID_FMT_OPT:       fprintf( stdout, "Invalid format option\n" );
@@ -977,11 +976,13 @@ bool acceptRparen( ) {
     else return( cmdLineError( ERR_EXPECTED_LPAREN ));
 }
 
+
+// ??? could become an own file "DrvExprEval", it will become more complex with types, etc.
 //------------------------------------------------------------------------------------------------------------
 // "parseExpr" needs to be declared forward.
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseExpr( Expr *rExpr );
+bool parseExpr( DrvExpr *rExpr );
 
 //------------------------------------------------------------------------------------------------------------
 // "parseFactor" parses the factor syntax part of an expression.
@@ -995,44 +996,44 @@ bool parseExpr( Expr *rExpr );
 //                  "(" <expr> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseFactor( Expr *rExpr ) {
+bool parseFactor( DrvExpr *rExpr ) {
     
-    rExpr -> typ  = ET_NIL;
-    rExpr -> val1 = 0;
-    rExpr -> val2 = 0;
+    rExpr -> typ        = ET_NIL;
+    rExpr -> numVal1    = 0;
+    rExpr -> numVal2    = 0;
    
     if ( tok -> isTokenTyp( TOK_NUM ))  {
         
         rExpr -> typ = ET_NUM;
-        rExpr -> val1 = tok -> tokVal( );
+        rExpr -> numVal1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
     else  if ( tok -> isTokenTyp( TOK_TYP_GREG ))  {
         
         rExpr -> typ = ET_GREG;
-        rExpr -> val1 = tok -> tokVal( );
+        rExpr -> numVal1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
     else  if ( tok -> isTokenTyp( TOK_TYP_SREG ))  {
         
         rExpr -> typ = ET_SREG;
-        rExpr -> val1 = tok -> tokVal( );
+        rExpr -> numVal1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
     else  if ( tok -> isTokenTyp( TOK_TYP_CREG ))  {
         
         rExpr -> typ = ET_CREG;
-        rExpr -> val1 = tok -> tokVal( );
+        rExpr -> numVal1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
     else if ( tok -> isToken( TOK_NEG )) {
         
         parseFactor( rExpr );
-        rExpr -> val1 = ~ rExpr -> val1;
+        rExpr -> numVal1 = ~ rExpr -> numVal1;
         return( true );
     }
     else if ( tok -> isToken( TOK_LPAREN )) {
@@ -1040,15 +1041,15 @@ bool parseFactor( Expr *rExpr ) {
         tok -> nextToken( );
         if ( tok -> isTokenTyp( TOK_TYP_SREG )) {
             
-            rExpr -> typ    = ET_EXT_ADR;
-            rExpr -> val1   = tok -> tokVal( );
+            rExpr -> typ        = ET_EXT_ADR;
+            rExpr -> numVal1    = tok -> tokVal( );
             
             tok -> nextToken( );
             if ( ! acceptComma( )) return( false );
            
             if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
                 
-                rExpr -> val2 = tok -> tokVal( );
+                rExpr -> numVal2 = tok -> tokVal( );
                 tok -> nextToken( );
             }
             else return( cmdLineError( ERR_EXPECTED_GENERAL_REG ));
@@ -1056,7 +1057,7 @@ bool parseFactor( Expr *rExpr ) {
         else if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
             
             rExpr -> typ = ET_ADR;
-            rExpr -> val1 = tok -> tokVal( );
+            rExpr -> numVal1 = tok -> tokVal( );
             tok -> nextToken( );
         }
         else if ( ! parseExpr( rExpr )) return( false );
@@ -1068,7 +1069,7 @@ bool parseFactor( Expr *rExpr ) {
         
         cmdLineError( ERR_EXPR_FACTOR );
         rExpr -> typ = ET_NUM;
-        rExpr -> val1 = 0;
+        rExpr -> numVal1 = 0;
         tok -> nextToken( );
         
         return( false );
@@ -1082,9 +1083,9 @@ bool parseFactor( Expr *rExpr ) {
 //      <termOp>    ->  "*" | "/" | "%" | "&"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseTerm( Expr *rExpr ) {
+bool parseTerm( DrvExpr *rExpr ) {
     
-    Expr lExpr;
+    DrvExpr lExpr;
     bool rStat;
     
     rStat = parseFactor( rExpr );
@@ -1106,10 +1107,10 @@ bool parseTerm( Expr *rExpr ) {
        
         switch( op ) {
                 
-            case TOK_MULT:   rExpr -> val1 = rExpr -> val1 * lExpr.val1; break;
-            case TOK_DIV:    rExpr -> val1 = rExpr -> val1 / lExpr.val1; break;
-            case TOK_MOD:    rExpr -> val1 = rExpr -> val1 % lExpr.val1; break;
-            case TOK_AND:    rExpr -> val1 = rExpr -> val1 & lExpr.val1; break;
+            case TOK_MULT:   rExpr -> numVal1 = rExpr -> numVal1 * lExpr.numVal1; break;
+            case TOK_DIV:    rExpr -> numVal1 = rExpr -> numVal1 / lExpr.numVal1; break;
+            case TOK_MOD:    rExpr -> numVal1 = rExpr -> numVal1 % lExpr.numVal1; break;
+            case TOK_AND:    rExpr -> numVal1 = rExpr -> numVal1 & lExpr.numVal1; break;
         }
     }
     
@@ -1124,9 +1125,9 @@ bool parseTerm( Expr *rExpr ) {
 //      <exprOp>    ->  "+" | "-" | "|" | "^"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseExpr( Expr *rExpr ) {
+bool parseExpr( DrvExpr *rExpr ) {
     
-    Expr lExpr;
+    DrvExpr lExpr;
     bool rStat;
     
     if ( tok -> isToken( TOK_PLUS )) {
@@ -1144,7 +1145,7 @@ bool parseExpr( Expr *rExpr ) {
         tok -> nextToken( );
         rStat = parseTerm( rExpr );
         
-        if ( rExpr -> typ == ET_NUM ) rExpr -> val1 = - rExpr -> val1;
+        if ( rExpr -> typ == ET_NUM ) rExpr -> numVal1 = - rExpr -> numVal1;
         else return( cmdLineError( ERR_EXPECTED_NUMERIC ));
     }
     else rStat = parseTerm( rExpr );
@@ -1166,10 +1167,10 @@ bool parseExpr( Expr *rExpr ) {
         
         switch ( op ) {
                 
-            case TOK_PLUS:   rExpr -> val1 = rExpr -> val1 + lExpr.val1; break;
-            case TOK_MINUS:  rExpr -> val1 = rExpr -> val1 - lExpr.val1; break;
-            case TOK_OR:     rExpr -> val1 = rExpr -> val1 | lExpr.val1; break;
-            case TOK_XOR:    rExpr -> val1 = rExpr -> val1 ^ lExpr.val1; break;
+            case TOK_PLUS:   rExpr -> numVal1 = rExpr -> numVal1 + lExpr.numVal1; break;
+            case TOK_MINUS:  rExpr -> numVal1 = rExpr -> numVal1 - lExpr.numVal1; break;
+            case TOK_OR:     rExpr -> numVal1 = rExpr -> numVal1 | lExpr.numVal1; break;
+            case TOK_XOR:    rExpr -> numVal1 = rExpr -> numVal1 ^ lExpr.numVal1; break;
         }
     }
     
@@ -1254,7 +1255,7 @@ void DrvCmds::processCmdLineArgs( int argc, const char *argv[ ] ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "promtpCmdLine" lists out the prompt string. For now this is just a "->". As development goes on the prompt
+// "promptCmdLine" lists out the prompt string. For now this is just a "->". As development goes on the prompt
 // string will contain some more info about the current CPU state. The prompt is only printed when the input
 // comes from a terminal and not an input file.
 //
@@ -1278,9 +1279,9 @@ void DrvCmds::promptCmdLine( ) {
 // found, an invalid command or an empty command line status. We loop inside the routine until we receive
 // a valid command line or an EOF.
 //
-// Warning: on a Mac, fgets does read in a string. On the terminal program configuration, the erase character
-// needs to be set to NOT send a control-H to the input. The cursor keys are just echoed to the input line
-// and I do not know a way to make them actually move around in the input line.
+// Warning: on a Mac, "fgets" does read in a string. On the terminal program configuration, the erase 
+// character needs to be set to NOT send a control-H to the input. The cursor keys are just echoed to the 
+// input line and I do not know a way to make them actually move around in the input line.
 //
 //------------------------------------------------------------------------------------------------------------
 bool DrvCmds::readCmdLine( char *cmdBuf ) {
@@ -3201,6 +3202,8 @@ uint8_t DrvCmds::dispatchCmd( char *cmdBuf ) {
 // "cmdLoop" is the command interpreter. The basic loop is to prompt for the next command, read the command
 // input and dispatch the command. If we are in windows mode, we also redraw the screen.
 //
+// ??? this should become a "read / eval" loop. We would accept numeric expressions, commands, functions, etc.
+// ??? when is the best point to redraw the windows... exactly once ?
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::cmdLoop( ) {
     

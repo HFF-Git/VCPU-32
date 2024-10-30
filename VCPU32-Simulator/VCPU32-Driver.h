@@ -21,8 +21,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#ifndef VCPU32TestDriver_hpp
-#define VCPU32TestDriver_hpp
+#ifndef VCPU32TestDriver_h
+#define VCPU32TestDriver_h
 
 //------------------------------------------------------------------------------------------------------------
 // Mac and Windows know different include files and procedure names for some POSIX routines.
@@ -41,6 +41,7 @@
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
 
+// ??? once more stable, sort the numbers...
 //------------------------------------------------------------------------------------------------------------
 // Tokens are the labels for reserved words and symbols recognized by the tokenizer objects. Tokens have a
 // name, a token id, a token type and an optional value with further data.
@@ -58,6 +59,8 @@ enum TokId : uint16_t {
     TOK_TYP_ADR             = 906,      TOK_TYP_EXT_ADR         = 907,      TOK_TYP_CMD             = 908,
     TOK_TYP_FUNC            = 909,      TOK_TYPE_TYPE           = 999,
     
+    // ??? need a TOK_TYP_NUM_PAIR ?
+    
     TOK_TYP_GREG            = 910,      TOK_TYP_SREG            = 911,      TOK_TYP_CREG            = 912,
     TOK_TYP_PSTATE_PREG     = 913,      TOK_TYP_FD_PREG         = 914,      TOK_TYP_OF_PREG         = 915,
     TOK_TYP_IC_L1_REG       = 916,      TOK_TYP_DC_L1_REG       = 917,      TOK_TYP_UC_L2_REG       = 918,
@@ -73,7 +76,7 @@ enum TokId : uint16_t {
     
     
     //--------------------------------------------------------------------------------------------------------
-    // General tokens and smybols.
+    // General tokens and symbols.
     //
     //--------------------------------------------------------------------------------------------------------
     TOK_NIL                 = 0,    TOK_ERR                 = 6,    TOK_EOS                 = 7,
@@ -90,21 +93,16 @@ enum TokId : uint16_t {
     
     
     //--------------------------------------------------------------------------------------------------------
-    //
+    // Token symbols. They are just reserved names used in commands and functions. Their type and optional
+    // value is defined in the token tables.
     //
     //--------------------------------------------------------------------------------------------------------
-    
-    TOK_DEF                 = 5,
-    TOK_INV                 = 1,        TOK_ALL                 = 2,
-    
     TOK_TRUE                = 3,        TOK_FALSE               = 4,
     
     TOK_CPU                 = 6,        TOK_MEM                 = 7,        TOK_STATS               = 8,
     
     TOK_C                   = 100,      TOK_D                   = 101,      TOK_F                   = 102,
     TOK_I                   = 103,      TOK_T                   = 104,      TOK_U                   = 105,
-    
-    TOK_DEC                 = 12,       TOK_OCT                 = 13,       TOK_HEX                 = 14,
     
     TOK_PM                  = 20,       TOK_PC                  = 21,       TOK_IT                  = 22,
     TOK_DT                  = 23,       TOK_IC                  = 24,       TOK_DC                  = 25,
@@ -114,13 +112,19 @@ enum TokId : uint16_t {
     TOK_ITR                 = 31,       TOK_DTR                 = 32,       TOK_MCR                 = 33,
     TOK_PCR                 = 34,       TOK_IOR                 = 35,
     
-   
+    TOK_DEC                 = 12,       TOK_OCT                 = 13,       TOK_HEX                 = 14,
+    
+    
+    TOK_DEF                 = 5,
+    TOK_INV                 = 1,        TOK_ALL                 = 2,
     
     
    
     //--------------------------------------------------------------------------------------------------------
     // Environment variable tokens.
     //
+    // ??? should this become a separate list ?
+    // ??? perhaps we want to also allow users to create their own environment variables...
     //--------------------------------------------------------------------------------------------------------
     ENV_TYP_INT             = 500,      ENV_TYP_UINT            = 501,      ENV_TYP_STR             = 502,
     ENV_TYP_BOOL            = 503,      ENV_TYP_TOK             = 504,
@@ -164,7 +168,7 @@ enum TokId : uint16_t {
     CMD_D_CACHE             = 1037,     CMD_P_CACHE             = 1038,
     
     //--------------------------------------------------------------------------------------------------------
-    // Window Commands.
+    // Window Commands Tokens.
     //
     //--------------------------------------------------------------------------------------------------------
     CMD_WON                 = 2000,     CMD_WOFF                = 2001,     CMD_WDEF                = 2002,
@@ -182,7 +186,14 @@ enum TokId : uint16_t {
     CMD_WT                  = 2062,     CMD_WX                  = 2063,
     
     //--------------------------------------------------------------------------------------------------------
-    // General, Segment and Control Registers
+    // Predefined Function Tokens.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    // ??? assign 3000 number range ...
+    
+    
+    //--------------------------------------------------------------------------------------------------------
+    // General, Segment and Control Registers Tokens.
     //
     //--------------------------------------------------------------------------------------------------------
     GR_0                    = 4100,     GR_1                    = 4101,     GR_2                    = 4102,
@@ -232,14 +243,14 @@ enum TokId : uint16_t {
     UC_L2_LATENCY           = 4726,     UC_L2_BLOCK_ENTRIES     = 4727,     UC_L2_BLOCK_SIZE        = 4728,
     UC_L2_SETS              = 4729,
     
-    ITLB_STATE              = 4730,     ITLB_REQ                = 4731,     ITLB_REQ_SEG            = 4732,
-    ITLB_REQ_OFS            = 4733,
+    ITLB_STATE              = 4800,     ITLB_REQ                = 4801,     ITLB_REQ_SEG            = 4802,
+    ITLB_REQ_OFS            = 4803,
     
-    DTLB_STATE              = 4740,     DTLB_REQ                = 4741,     DTLB_REQ_SEG            = 4742,
-    DTLB_REQ_OFS            = 4743,
+    DTLB_STATE              = 4810,     DTLB_REQ                = 4811,     DTLB_REQ_SEG            = 4812,
+    DTLB_REQ_OFS            = 4813,
 
     //--------------------------------------------------------------------------------------------------------
-    // OP Codes
+    // OP Code Tokens.
     //
     //--------------------------------------------------------------------------------------------------------
     OP_CODE_LD              = 5000,     OP_CODE_LDB             = 5001,     OP_CODE_LDH             = 5002,
@@ -290,7 +301,7 @@ enum TokId : uint16_t {
     OP_CODE_RFI             = 5100,     OP_CODE_BRK             = 5101,
     
     //--------------------------------------------------------------------------------------------------------
-    // Synthetic OP Codes
+    // Synthetic OP Code Tokens.
     //
     //--------------------------------------------------------------------------------------------------------
     OP_CODE_S_NOP           = 6000,     OP_CODE_S_SHL           = 6001,     OP_CODE_S_SHR           = 6002,
@@ -361,7 +372,7 @@ const int CMD_LINE_BUF_SIZE  = 256;
 struct VCPU32Globals;
 
 //------------------------------------------------------------------------------------------------------------
-// The command line interpreter as well as the one line assembler work the command line or assembley line
+// The command line interpreter as well as the one line assembler work the command line or assembly line
 // processed as a list of tokens. A token found in a string is recorded using the token structure.
 //  
 //------------------------------------------------------------------------------------------------------------
@@ -420,6 +431,73 @@ struct DrvTokenizer {
     
     char        currentTokStr[ 256 ]    = { 0 };
 };
+
+//------------------------------------------------------------------------------------------------------------
+// The command interpreter and the one line assembler work with expressions. Expressions have a type. There
+// are numeric, string, register and address types.
+//
+//------------------------------------------------------------------------------------------------------------
+enum DrvExprTyp {
+    
+    ET_NIL      = 0,
+    ET_NUM      = 1,
+    ET_STR      = 2,
+    ET_BOOL     = 3,
+    
+    ET_CMD      = 10,
+    ET_GREG     = 11,
+    ET_SREG     = 12,
+    ET_CREG     = 13,
+    ET_REG_PAIR = 14,
+    
+    ET_ADR      = 20,
+    ET_EXT_ADR  = 21
+    
+};
+
+//------------------------------------------------------------------------------------------------------------
+// Expression value. The analysis of an expression results in a value. Depending on the expression type, the
+// values are simple scalar values or a structured value, such as a register pair or virtual address.
+//
+//------------------------------------------------------------------------------------------------------------
+struct DrvExpr {
+    
+    DrvExprTyp typ;
+   
+    union {
+        
+        uint32_t    numVal1;
+        char        strVal[ 256 ];
+        
+        struct {
+            
+            uint32_t seg;
+            uint32_t ofs;
+            
+        } extAdr;
+        
+        struct {
+            
+            uint32_t ofs;
+            
+        } adr;
+        
+        struct {
+            
+            uint8_t sReg;
+            uint8_t gReg;
+            
+        } regPair;
+        
+    };
+    
+    // ??? should go away... when we use extAdr.
+    union {
+        
+        uint32_t    numVal2;
+    };
+};
+
 
 //------------------------------------------------------------------------------------------------------------
 // Driver environment variables. There is a simple "name=value" dictionary.
@@ -961,34 +1039,6 @@ private:
     VCPU32Globals *glb = nullptr;
 };
 
-
-// ??? generalize this tooo ....
-//------------------------------------------------------------------------------------------------------------
-// The assembly line has tokens, some of result in an expression when parsed. Examples are the numeric type
-// expressions but also addresses such as "seg:ofs". During parsing the expression type and value is stored
-// in the expression structure. While most expressions have just one value, the extended address "seg.ofs"
-// will use two values. Finally, the "parseExpr" routine needs to be declared forward, as the parser is
-// recursively working its way through the expressions.
-//
-//------------------------------------------------------------------------------------------------------------
-enum ExprTyp {
-    
-    ET_NIL      = 0,
-    ET_NUM      = 1,
-    ET_GREG     = 2,
-    ET_SREG     = 3,
-    ET_CREG     = 4,
-    ET_ADR      = 5,
-    ET_EXT_ADR  = 6
-};
-
-struct Expr {
-    
-    uint8_t     typ;
-    uint32_t    val1;
-    uint32_t    val2;
-};
-
 //------------------------------------------------------------------------------------------------------------
 // A simple one line assembler. This object is the counter part to the disassembler. We will parse a one
 // line input string for a valid instruction, using the syntax of the real assembler. There will be no
@@ -1112,4 +1162,4 @@ struct VCPU32Globals {
     CpuCore             *cpu            = nullptr;
 };
 
-#endif /* CPU24Driver_hpp */
+#endif /* CPU24Driver_h */

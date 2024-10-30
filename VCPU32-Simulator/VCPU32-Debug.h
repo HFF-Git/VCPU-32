@@ -24,8 +24,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#ifndef VCPU32Debug_hpp
-#define VCPU32Debug_hpp
+#ifndef VCPU32Debug_h
+#define VCPU32Debug_h
 
 #include "VCPU32-Types.h"
 
@@ -94,4 +94,4 @@ private:
     CpuCore         * core         = nullptr;
 };
 
-#endif /* VCPU32Debug_hpp */
+#endif /* VCPU32Debug_h */

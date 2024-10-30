@@ -233,8 +233,7 @@ template<typename... Args>  int winPrintf( FILE* stream, const char* fmt, Args&&
     } while ( len < 0 );
     
     do {
-        
-        // len = write( fileno( stdout ), buf, len );
+    
         len = fwrite( buf, 1, len, stdout );
        
         if (( len < 0 ) && ( errno != EINTR )) {
@@ -2761,7 +2760,6 @@ void DrvWinDisplay::windowJump( TokId winCmd, int pos, int winNum ) {
 // dependent and the actual window will sort it out. We are passed an optional windows number, which is used
 // when there are user defined windows for locating the window object.
 //
-// ??? a switch statement is perhaps an overkill, but one day we may also toggle fixed windows...
 //-----------------------------------------------------------------------------------------------------------
 void DrvWinDisplay::windowToggle( TokId winCmd, int winNum ) {
     

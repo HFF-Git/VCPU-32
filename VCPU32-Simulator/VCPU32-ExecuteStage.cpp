@@ -13,8 +13,7 @@
 //
 // This file contains the methods for the execute pipeline stage. Each stage is a structure with the
 // pipeline register data and the methods to call for controlling the stages. Each stage also has access to
-// all other stages. We need this access for implementing stalling and bypassing capabilities. There is a
-// common include file, CPU24PipeLine.hpp, with all declarations of all stages.
+// all other stages. We need this access for implementing stalling and bypassing capabilities. 
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -293,7 +292,7 @@ bool CpuCore::isPrivRegForAccMode( RegClass regClass, uint32_t regId, AccessMode
 // by a pipeline stall in the FD stage.
 //
 // For the CBR conditional branch instruction, we need to evaluate the condition and then compare the result
-// to the branch prediction decision taken in the FD stage. If we mispredicted the pipeline needs to be
+// to the branch prediction decision taken in the FD stage. If we mis-predicted the pipeline needs to be
 // flushed and instruction fetching continues from the alternate address passed forward through the pipeline
 // "X" register.
 //

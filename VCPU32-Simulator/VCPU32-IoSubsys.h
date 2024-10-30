@@ -22,8 +22,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#ifndef VCPU32_IoSubsys_hpp
-#define VCPU32_IoSubsys_hpp
+#ifndef VCPU32_IoSubsys_h
+#define VCPU32_IoSubsys_h
 
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
@@ -80,4 +80,4 @@ private:
     
 };
 
-#endif /* VCPU32_IoSubsys_hpp */
+#endif /* VCPU32_IoSubsys_h */
