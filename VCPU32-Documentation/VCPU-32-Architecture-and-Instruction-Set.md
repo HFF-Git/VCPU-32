@@ -284,7 +284,7 @@ VCPU-32 implements a **register memory architecture** offering few addressing mo
    REG <- REG op OPERAND
 ```
 
-In contrast to similar historical register-memory designs, there is no operation which does a read and write operation to memory in the same instruction. For example, there is no "increment memory" instruction, since this would require two memory operations and is in general not pipeline friendly. Memory data access is performed on a machine word, half-word or byte basis. Besides the implicit operand fetch in an instruction, there are dedicated memory load / store instructions. In addition to the register-immediate operand and register memory-operand mode, one operand mode supports the three operand model ( Rs = Ra OP Rb ), specifying two registers and a result register, which allows to perform three address register for computational operations as well. The machine can therefore operate in a memory register model as well as a load / store register model.
+In contrast to similar historical register-memory designs, there is no operation which does a read and write operation to memory in the same instruction. For example, there is no "increment memory" instruction, since this would require two memory operations and is in general not pipeline friendly. Memory data access is performed on a machine word, half-word or byte basis. Besides the implicit operand fetch in a computational instruction, there are dedicated memory load / store instructions. In addition to the register-immediate operand and register memory-operand mode, one operand mode supports the three operand model ( Rs = Ra OP Rb ), specifying two registers and a result register, which allows to perform three address register for computational operations as well. The machine can therefore operate in a memory register model as well as a load / store register model.
 
 ### Data Types
 
@@ -1012,7 +1012,7 @@ Performs a bitwise AND of the operand and the target register and stores the res
 
 #### Description
 
-The instruction fetches the data specified by the operand and performs a bitwise AND of the general register "r" and the operand fetched. The result is stored in general register "r". The "N" bit negates the result making the AND a NAND operation. The "C" allows to complement ( 1's complement ) the operand input, which is the "b" register. Using both "C" and "N" is an undefined operation. See the section on operand encoding for the defined operand modes.
+The instruction performs a bitwise AND operation storing the result in general register "r". The "N" bit negates the result making the AND a NAND operation. The "C" allows to complement ( 1's complement ) the operand input, which is the "b" register. Using both "C" and "N" is an undefined operation. See the section on operand encoding for the defined operand modes.
 
 #### Operation
 
@@ -2503,7 +2503,7 @@ Performs a bitwise OR of the operand and the target register and stores the resu
 
 #### Description
 
-The instruction fetches the data specified by the operand and performs a bitwise OR of the general register "r" and the operand fetched. The result is stored in general register "r". The N bit negates the result making the AND a NAND operation. The C allows to complement ( 1's complement ) the operand input, which is the "b" register. Using both C and N is an undefined operation. See the section on operand encoding for the defined operand modes.
+The instruction performs a bitwise OR operation storing the result in general register "r". The N bit negates the result making the AND a NAND operation. The C allows to complement ( 1's complement ) the operand input, which is the "b" register. Using both C and N is an undefined operation. See the section on operand encoding for the defined operand modes.
 
 #### Operation
 
@@ -3239,7 +3239,7 @@ Performs a bitwise XORing the operand and the target register and stores the res
 
 #### Description
 
-The instruction fetches the data specified by the operand and performs a bitwise XOR of the general register "r" and the operand fetched. The result is stored in general register "r". The "N" bit allows to negate the result making the XOR a XNOR operation. See the section on operand encoding for the defined operand modes.
+The instruction performs a bitwise XOR operation storing the result in general register "r". The "N" bit allows to negate the result making the XOR a XNOR operation. See the section on operand encoding for the defined operand modes.
 
 #### Operation
 
@@ -4359,11 +4359,11 @@ The VCPU-32 instruction set and runtime architecture has been designed with a pi
 
 ### A three-stage pipelined CPU model
 
-The VCPU-32 pipelined reference implementation also can be found in the simulator, which uses a three stage pipeline model. The stages are the **instruction fetch and decode stage**, the **operand fetch** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
+The VCPU-32 pipelined reference implementation also can be found in the simulator, which uses a three stage pipeline model. The stages are the **instruction fetch and decode stage**, the **memory access** stage and the **execute** stage. This section gives a brief overview on the pipelining considerations using the three-stage model. The architecture does not demand that particular model. It is just the first implementation of VCPU-32. The typical challenges such as structural hazards and data hazards will be identified and discussed.
 
 - **Instruction fetch and decode**. The first stage will fetch the instruction word from memory and decode it. There are two parts. The first part of the stage will use the instruction address and attempt to fetch the instruction word from the instruction cache. At the same time the translation look-aside buffer will be checked whether the virtual to physical translation is available and if so whether the access rights match. The second part of the stage will decode the instruction and also read the general registers from the register file.
 
-- **Operand fetch**. The operand fetch stage will take the instruction decoded in the previous stage and compute the address for the memory data access. This also the stage where a segment or control register are accessed. In addition, unconditional branches are handled at this stage. Memory data item are read or stored depending on the instruction. Due to the nature of a register/memory architecture, the memory access has to be performed before the execute stage. This also implies that there needs to be an address arithmetic unit at this state. The classical 5-stage RISC pipeline with memory access past the execute stage uses the ALU for this purpose.
+- **Memory access**. The memory access stage will take the instruction decoded in the previous stage and for memory access type instructions compute the address for the memory data access. This also the stage where a segment or control register are accessed. In addition, unconditional branches using a general register in the target address calculation process are handled at this stage. Memory data item are read or stored depending on the instruction. Due to the nature of a register/memory architecture, the memory access has to be performed before the execute stage. This also implies that there needs to be an address arithmetic unit at this state. The classical 5-stage RISC pipeline with memory access past the execute stage uses the ALU for this purpose.
 
 - **Execute**. The Execute Stage will primarily do the computational work using the values passed from the MA stage. The computational result will be written back to the registers on the next clock cycle. Within the execute stage, there is the computational half followed by the result committing half. In addition, instructions that need to commit two results push one result to the first half of the instruction fetch and decode stage. Currently, the base register modification option of the load instructions will commit the loaded value in the EXECUTE stage but push the base register update to the instruction fetch half of the next instruction.
 
@@ -4445,7 +4445,7 @@ As pipelines grow larger and superscalar, branch prediction becomes imminent. An
 
 The **decode** stage will decode the instruction and fetch the required data from the register file. Due to the nature of address translation in VCPU-32 the general register file as well as the segment register file need to be accessed in serial order. First, the general register will provide the address offsets and accessing the segment register file using the upper two bits of the offset will provide the segment part of the virtual address.
 
-The **operand fetch** stage will access memory for reading or storing data. Like the fetch stage, it will primarily just access memory. Since both instruction fetch and data fetch or write will access memory overlapping for instructions in flight, separate L1 caches are required. It is envisioned that both L1 caches connect to a unified L2 cache.
+The **memory access** stage will access memory for reading or storing data. Like the fetch stage, it will primarily just access memory. Since both instruction fetch and data fetch or write will access memory overlapping for instructions in flight, separate L1 caches are required. It is envisioned that both L1 caches connect to a unified L2 cache.
 
 The **execute** stage will perform the computation tasks as before. It also manages exception handing. VCPU-32 provides a precise exception model. A misprediction of a conditional branch is also resolved at the execute stage.
 
@@ -4531,6 +4531,12 @@ VLIW architectures group instructions in a bundle fetched by the instruction fet
 ### A larger physical memory space
 
 The description of the TLB fields and the ITLB instruction already allow for a 16 GigaByte physical address space with the caveat that the LDA / STA instruction only reaches the first 4 Giga-bytes. Conceptually, this scheme of a 4 Giga-byte lower physical memory and a large upper physical memory space can be enlarged even further. However, the ITLB instruction in its current form will not be able to accommodate the larger physical page number. Such a system would simply use the DIAG instruction with appropriate arguments for this purposes. 
+
+### System calls
+
+System calls are function calls from a user code segment to services offered by the kernel. Typically, such services are called via a trap mechanism. The user program loads the arguments on the stack and then issues a software trap. VCPU32 can easily implement this scheme via the BRK instruction, rasing a trap. Also, the BRK instruction could be enhanced such that the hardware computes a trap vector and simply continues execution at the trap vector location. Note that this type of trap handling is very simualar to the architural traps defined.
+
+The downside of such a trap mechamismn, although quite clean and straightforward, is that each call to a kernal sevice will have to store the context and return via the RFI instruction restoring this context. The processor pipeline is flushed twice wi th an impact to overall performance. VCPU32 offsers an addtional method based on teh conecpt of a GATE instructution as described in the architectire section. Each task would however need a geteway page which holds teh stubs for the kernal services.
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->

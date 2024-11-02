@@ -54,7 +54,7 @@ enum RegClass : uint32_t {
     RC_CTRL_REG_SET     = 3,
     RC_PROG_STATE       = 4,
     RC_FD_PSTAGE        = 5,
-    RC_OF_PSTAGE        = 6,
+    RC_MA_PSTAGE        = 6,
     RC_EX_PSTAGE        = 7,
     RC_IC_L1_OBJ        = 8,
     RC_DC_L1_OBJ        = 9,
@@ -117,13 +117,13 @@ enum MemoryObjRegId : uint32_t {
 //------------------------------------------------------------------------------------------------------------
 // We support two types of TLB. The split instruction and data TLB and a unified, dual ported TLB.
 //
-// ??? not clear how a dual ported will be modeled yet ...
 //------------------------------------------------------------------------------------------------------------
 enum TlbType : uint32_t {
     
     TLB_T_NIL           = 0,
     TLB_T_L1_INSTR      = 1,
-    TLB_T_L1_DATA       = 2
+    TLB_T_L1_DATA       = 2,
+    TLB_T_L1_DUAL       = 3
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -209,6 +209,8 @@ struct CpuMemDesc {
 // contains the overall memory model, i.e. whether it is a split or unified model for L1 caches or TLB, and
 // descriptors for each building block.
 //
+// ??? should the core have knowledge of L2 and MEM or just an abstract memory intreface ? COnsider the
+// case where we have several cores ...
 //------------------------------------------------------------------------------------------------------------
 struct CpuCoreDesc {
     
@@ -641,9 +643,9 @@ private:
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The operand fetch stage first prepares the address from where to get the operand for the instruction. The
-// instruction decode stage stored the A, B and X values in the pipeline register of this stage, as well as
-// the instruction address and instruction.
+// The memory access stage first prepares the address from where to get the operand for the instruction for
+// memory access type instructions. The instruction decode stage stored the A, B and X values in the pipeline
+// register of this stage, as well as the instruction address and instruction.
 //
 // This stage now decodes any address computation for the operand and generates the final virtual address by
 // selecting the segment register based on this information. Next, this stage fetches the necessary data from
@@ -656,11 +658,11 @@ private:
 // For the TLB and Cache related instructions, this stage is also the starting point of operation.
 //
 //------------------------------------------------------------------------------------------------------------
-struct OperandFetchStage {
+struct MemoryAccessStage {
     
 public:
     
-    OperandFetchStage( struct CpuCore *core );
+    MemoryAccessStage( struct CpuCore *core );
     
     void            reset( );
     void            tick( );
@@ -818,11 +820,11 @@ private:
     //
     //--------------------------------------------------------------------------------------------------------
     friend struct   FetchDecodeStage;
-    friend struct   OperandFetchStage;
+    friend struct   MemoryAccessStage;
     friend struct   ExecuteStage;
     
     struct          FetchDecodeStage    *fdStage    = nullptr;
-    struct          OperandFetchStage   *ofStage    = nullptr;
+    struct          MemoryAccessStage   *maStage    = nullptr;
     struct          ExecuteStage        *exStage    = nullptr;
 };
 

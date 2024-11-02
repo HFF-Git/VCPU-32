@@ -224,9 +224,9 @@ enum TokId : uint16_t {
     FD_IA_SEG               = 4500,     FD_IA_OFS               = 4501,     FD_INSTR                = 4502,
     FD_A                    = 4503,     FD_B                    = 4504,     FD_X                    = 4505,
     
-    OF_IA_SEG               = 4600,     OF_IA_OFS               = 4601,     OF_INSTR                = 4602,
-    OF_A                    = 4603,     OF_B                    = 4604,     OF_X                    = 4605,
-    OF_S                    = 4606,
+    MA_IA_SEG               = 4600,     MA_IA_OFS               = 4601,     MA_INSTR                = 4602,
+    MA_A                    = 4603,     MA_B                    = 4604,     MA_X                    = 4605,
+    MA_S                    = 4606,
     
     IC_L1_STATE             = 4700,     IC_L1_REQ               = 4701,     IC_L1_REQ_SEG           = 4702,
     IC_L1_REQ_OFS           = 4703,     IC_L1_REQ_TAG           = 4704,     IC_L1_REQ_LEN           = 4705,

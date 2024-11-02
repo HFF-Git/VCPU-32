@@ -161,7 +161,7 @@ void ExecuteStage::tick( ) {
 void ExecuteStage::stallPipeLine( ) {
     
     setStalled( true );
-    core -> ofStage -> setStalled( true );
+    core -> maStage -> setStalled( true );
     core -> fdStage -> setStalled( true );
 }
 
@@ -188,7 +188,7 @@ void ExecuteStage::flushPipeLine( ) {
     psValA.set( 0 );
     psValB.set( 0 );
     psValX.set( 0 );
-    core -> ofStage -> flushPipeLine( );
+    core -> maStage -> flushPipeLine( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -314,7 +314,7 @@ void ExecuteStage::process( ) {
     uint32_t            instr       = psInstr.get( );
     uint8_t             opCode      = getBitField( psInstr.get( ), 5, 6 );
    
-    OperandFetchStage   *ofStage    = core -> ofStage;
+    MemoryAccessStage   *maStage    = core -> maStage;
     FetchDecodeStage    *fdStage    = core -> fdStage;
    
     //--------------------------------------------------------------------------------------------------------
@@ -355,7 +355,7 @@ void ExecuteStage::process( ) {
                 
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpU );
                 fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
-                ofStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
                 psPstate0.setBit( ST_CARRY, tmpC );
             }
             else {
@@ -380,7 +380,7 @@ void ExecuteStage::process( ) {
                     
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpS );
                 fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
-                ofStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
                 psPstate0.setBit( ST_CARRY, tmpC );
             }
             
@@ -693,7 +693,7 @@ void ExecuteStage::process( ) {
                 
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpU );
                 fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
-                ofStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
                 psPstate0.setBit( ST_CARRY, tmpC );
             }
             else {
@@ -718,7 +718,7 @@ void ExecuteStage::process( ) {
                 
                 core -> gReg[ getBitField( instr, 9, 4 ) ].set((uint32_t) tmpS );
                 fdStage -> psPstate0.setBit( ST_CARRY, tmpC );
-                ofStage -> psPstate0.setBit( ST_CARRY, tmpC );
+                maStage -> psPstate0.setBit( ST_CARRY, tmpC );
                 psPstate0.setBit( ST_CARRY, tmpC );
             }
             
@@ -764,11 +764,11 @@ void ExecuteStage::process( ) {
         printf( "OF - ValB: %d\n", maStage -> dependencyValB( regIdForValR ));
 #endif
         
-        if ( fdStage -> dependencyValA( regIdForValR )) ofStage -> psValA.set( valR );
-        if ( fdStage -> dependencyValB( regIdForValR )) ofStage -> psValB.set( valR );
-        if ( fdStage -> dependencyValX( regIdForValR )) ofStage -> psValX.set( valR );
+        if ( fdStage -> dependencyValA( regIdForValR )) maStage -> psValA.set( valR );
+        if ( fdStage -> dependencyValB( regIdForValR )) maStage -> psValB.set( valR );
+        if ( fdStage -> dependencyValX( regIdForValR )) maStage -> psValX.set( valR );
         
-        if ( ofStage -> dependencyValA( regIdForValR )) psValA.set( valR );
-        if ( ofStage -> dependencyValB( regIdForValR )) psValB.set( valR );
+        if ( maStage -> dependencyValA( regIdForValR )) psValA.set( valR );
+        if ( maStage -> dependencyValB( regIdForValR )) psValB.set( valR );
     }
 }

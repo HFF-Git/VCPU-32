@@ -8,7 +8,7 @@
 // stage pipeline:
 //
 //  FD  - instruction fetch and decode
-//  DA  - memory access
+//  MA  - memory access
 //  EX  - execute
 //
 // This file contains the methods for the memory access pipeline stage. Each stage is a structure with
@@ -146,7 +146,7 @@ bool checkAlignment( uint32_t instr, uint32_t adr ) {
 // The address generation and memory access stage object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-OperandFetchStage::OperandFetchStage( CpuCore *core ) {
+MemoryAccessStage::MemoryAccessStage( CpuCore *core ) {
     
     this -> core = core;
 }
@@ -156,7 +156,7 @@ OperandFetchStage::OperandFetchStage( CpuCore *core ) {
 // there is no stall.
 //
 //------------------------------------------------------------------------------------------------------------
-void OperandFetchStage::reset( )  {
+void MemoryAccessStage::reset( )  {
     
     stalled = false;
     psPstate0.reset( );
@@ -167,7 +167,7 @@ void OperandFetchStage::reset( )  {
     psValX.reset( );
 }
 
-void OperandFetchStage::tick( ) {
+void MemoryAccessStage::tick( ) {
     
     if ( ! stalled ) {
         
@@ -186,7 +186,7 @@ void OperandFetchStage::tick( ) {
 // we also have to make sure that the FD stage is also stalled. The same is true for resuming the pipeline.
 //
 //------------------------------------------------------------------------------------------------------------
-void OperandFetchStage::stallPipeLine( ) {
+void MemoryAccessStage::stallPipeLine( ) {
     
     setStalled( true );
     core -> fdStage -> setStalled( true );
@@ -199,12 +199,12 @@ void OperandFetchStage::stallPipeLine( ) {
     core -> exStage -> psValX.set( 0 );
 }
 
-bool OperandFetchStage::isStalled( ) {
+bool MemoryAccessStage::isStalled( ) {
     
     return( stalled );
 }
 
-void OperandFetchStage::setStalled( bool arg ) {
+void MemoryAccessStage::setStalled( bool arg ) {
     
     stalled = arg;
 }
@@ -242,7 +242,7 @@ void OperandFetchStage::setStalled( bool arg ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void OperandFetchStage::flushPipeLine( ) {
+void MemoryAccessStage::flushPipeLine( ) {
     
     psInstr.set( NOP_INSTR );
     psValA.set( 0 );
@@ -273,7 +273,7 @@ void OperandFetchStage::flushPipeLine( ) {
 // encountering the trap simply flush the pipeline.
 //
 //------------------------------------------------------------------------------------------------------------
-void OperandFetchStage::setupTrapData( uint32_t trapId,
+void MemoryAccessStage::setupTrapData( uint32_t trapId,
                                       uint32_t psw0,
                                       uint32_t psw1,
                                       uint32_t p1,
@@ -296,7 +296,7 @@ void OperandFetchStage::setupTrapData( uint32_t trapId,
 // definition no dependency.
 //
 //------------------------------------------------------------------------------------------------------------
-bool OperandFetchStage::dependencyValA( uint32_t regId ) {
+bool MemoryAccessStage::dependencyValA( uint32_t regId ) {
     
     if ( regId == 0 ) return( false );
   
@@ -341,7 +341,7 @@ bool OperandFetchStage::dependencyValA( uint32_t regId ) {
 // ??? what about segment and control registers ?
 //
 //------------------------------------------------------------------------------------------------------------
-bool OperandFetchStage::dependencyValB( uint32_t regId ) {
+bool MemoryAccessStage::dependencyValB( uint32_t regId ) {
     
     if ( regId == 0 ) return( false );
     
@@ -373,7 +373,7 @@ bool OperandFetchStage::dependencyValB( uint32_t regId ) {
 //
 // ??? do we have this case that "X" has a dependency to be checked in the MA stage ?
 //------------------------------------------------------------------------------------------------------------
-bool OperandFetchStage::dependencyValX( uint32_t regId ) {
+bool MemoryAccessStage::dependencyValX( uint32_t regId ) {
     
     if ( regId == 0 ) return( false );
    
@@ -398,7 +398,7 @@ bool OperandFetchStage::dependencyValX( uint32_t regId ) {
 // a carry bit. If the follow-on instruction is an ADC, the carry bit is not set yet and needs to be bypassed.
 //
 //------------------------------------------------------------------------------------------------------------
-bool OperandFetchStage::dependencyValST( ) {
+bool MemoryAccessStage::dependencyValST( ) {
     
     uint32_t instr = psInstr.get( );
     
@@ -414,7 +414,7 @@ bool OperandFetchStage::dependencyValST( ) {
 // Utility function to set and get the the pipeline register data.
 //
 //------------------------------------------------------------------------------------------------------------
-uint32_t OperandFetchStage::getPipeLineReg( uint8_t pReg ) {
+uint32_t MemoryAccessStage::getPipeLineReg( uint8_t pReg ) {
     
     switch ( pReg ) {
             
@@ -429,7 +429,7 @@ uint32_t OperandFetchStage::getPipeLineReg( uint8_t pReg ) {
     }
 }
 
-void OperandFetchStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
+void MemoryAccessStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
     
     switch ( pReg ) {
             
@@ -448,7 +448,7 @@ void OperandFetchStage::setPipeLineReg( uint8_t pReg, uint32_t val ) {
 // value of true when one field matches.
 //
 //------------------------------------------------------------------------------------------------------------
-bool OperandFetchStage::checkProtectId( uint16_t segId ) {
+bool MemoryAccessStage::checkProtectId( uint16_t segId ) {
     
     return((( segId  == core -> cReg[ CR_SEG_ID_0_1 ].getBitField( 15, 16 )) ||
             ( segId  == core -> cReg[ CR_SEG_ID_0_1 ].getBitField( 31, 16 )) ||
@@ -501,7 +501,7 @@ bool OperandFetchStage::checkProtectId( uint16_t segId ) {
 //
 // Note: this is a rather long routine. Perhaps we should split this into smaller portions.
 //------------------------------------------------------------------------------------------------------------
-void OperandFetchStage::process( ) {
+void MemoryAccessStage::process( ) {
     
     uint32_t            instr       = psInstr.get( );
     uint8_t             opCode      = getBitField( instr, 5, 6 );

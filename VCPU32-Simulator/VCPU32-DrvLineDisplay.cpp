@@ -168,22 +168,22 @@ void DrvLineDisplay::displayPlIFetchDecodeRegSet( TokId fmt ) {
 
 void DrvLineDisplay::displayPlMemoryAccessRegSet( TokId fmt ) {
     
-    if ( glb -> cpu -> getReg( RC_OF_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
-        fprintf( stdout, "OF(S): PSW=" );
+    if ( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
+        fprintf( stdout, "MA(S): PSW=" );
     else
-        fprintf( stdout, "OF:    PSW=" );
+        fprintf( stdout, "MA:    PSW=" );
     
-    displayWord( glb -> cpu -> getReg( RC_OF_PSTAGE, PSTAGE_REG_ID_PSW_0 ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_0 ), fmt );
     fprintf( stdout, "." );
-    displayWord( glb -> cpu -> getReg( RC_OF_PSTAGE, PSTAGE_REG_ID_PSW_1 ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_1 ), fmt );
     fprintf( stdout, " I=" );
-    displayWord( glb -> cpu -> getReg( RC_OF_PSTAGE, PSTAGE_REG_ID_INSTR ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_INSTR ), fmt );
     fprintf( stdout, " A=" );
-    displayWord( glb -> cpu -> getReg( RC_OF_PSTAGE, PSTAGE_REG_ID_VAL_A ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_A ), fmt );
     fprintf( stdout, " B=" );
-    displayWord( glb -> cpu -> getReg( RC_OF_PSTAGE, PSTAGE_REG_ID_VAL_B ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_B ), fmt );
     fprintf( stdout, " X=" );
-    displayWord( glb -> cpu -> getReg( RC_OF_PSTAGE, PSTAGE_REG_ID_VAL_X ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_X ), fmt );
     fprintf( stdout, "\n" );
 }
 
