@@ -210,7 +210,7 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
 // function, which it cannot identify as a string literal. After all, "fmt" could be anything. Since we
 // only use the "winPrintf" function in this file, no one else could do stupid things with it, except me.
 //
-// So far, the error not returned...
+// So far, the error not returned..... still not returned .... :-)
 //-----------------------------------------------------------------------------------------------------------
 
 // template<typename... Args> int winPrintf( FILE *stream, const char *fmt, Args... args) {
