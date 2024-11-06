@@ -414,7 +414,7 @@ struct DrvTokenizer {
 
     void        tokenError( char *errMsg );
     void        nextChar( );
-    void        parseNum( int sign );
+    void        parseNum( );
     void        parseString( );
     void        parseIdent( );
 
@@ -451,8 +451,9 @@ enum DrvExprTyp {
     ET_REG_PAIR = 14,
     
     ET_ADR      = 20,
-    ET_EXT_ADR  = 21
+    ET_EXT_ADR  = 21,
     
+    ET_FUNC     = 30
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -468,6 +469,8 @@ struct DrvExpr {
         
         uint32_t    numVal1;
         char        strVal[ 256 ];
+        
+        TokId       tokId;
         
         struct {
             
@@ -1080,8 +1083,8 @@ public:
 private:
     
     void            promptCmdLine( );
-    bool            readCmdLine( char *cmdBuf );
-    uint8_t         dispatchCmd( char *cmdBuf );
+    bool            readInputLine( char *cmdBuf );
+    uint8_t         evalInputLine( char *cmdBuf );
     void            execCmdsFromFile( char* fileName );
     
     void            invalidCmd( char *cmdBuf );

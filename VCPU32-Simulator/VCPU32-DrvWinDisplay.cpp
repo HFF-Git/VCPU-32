@@ -212,11 +212,9 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
 //
 // So far, the error not returned..... still not returned .... :-)
 //-----------------------------------------------------------------------------------------------------------
-
-// template<typename... Args> int winPrintf( FILE *stream, const char *fmt, Args... args) {
 template<typename... Args>  int winPrintf( FILE* stream, const char* fmt, Args&&... args ) {
     
-    static char buf[ 256 ];
+    static char buf[ 512 ];
     size_t      len = 0;
     
     do {
@@ -226,6 +224,7 @@ template<typename... Args>  int winPrintf( FILE* stream, const char* fmt, Args&&
         if (( len < 0 ) && ( errno != EINTR )) {
             
             fprintf( stderr, "winPrintf (snprintf) error, errno: %d, %s\n", errno, strerror(errno));
+            fflush( stdout );
             exit( errno );
         }
         
@@ -233,11 +232,14 @@ template<typename... Args>  int winPrintf( FILE* stream, const char* fmt, Args&&
     
     do {
     
-        len = fwrite( buf, 1, len, stdout );
+        
+        len = write( fileno( stdout ), buf, len );
+        fflush( stdout );
        
         if (( len < 0 ) && ( errno != EINTR )) {
             
             fprintf( stderr, "myPrintf (write) error, errno: %lu, %s\n", len, strerror( errno ));
+            fflush( stdout );
             exit( errno );
         }
         
@@ -1481,6 +1483,8 @@ void DrvWinAbsMem::drawLine( uint32_t itemAdr ) {
 //------------------------------------------------------------------------------------------------------------
 // Object constructor.
 //
+//
+// ??? need to rework for viertual addresses ? We need to work with segment and offset !!!!
 //------------------------------------------------------------------------------------------------------------
 DrvWinCode::DrvWinCode( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
 
@@ -1498,7 +1502,7 @@ void DrvWinCode::setDefaults( ) {
     setRows( 9 );
 
     setHomeItemAdr( 0 );
-    setCurrentItemAdr( 0 );
+    setCurrentItemAdr( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_1 ) );
     setLineIncrement( 4 );
     setLimitItemAdr( 0 );
     setWinType( WT_PC_WIN );
