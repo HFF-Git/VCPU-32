@@ -232,7 +232,6 @@ template<typename... Args>  int winPrintf( FILE* stream, const char* fmt, Args&&
     
     do {
     
-        
         len = write( fileno( stdout ), buf, len );
         fflush( stdout );
        
