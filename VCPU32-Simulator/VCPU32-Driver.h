@@ -450,6 +450,8 @@ enum DrvExprTyp {
     ET_CREG     = 13,
     ET_REG_PAIR = 14,
     
+    ET_IDENT    = 99,  // ??? an expression should actually return the tye of the identifier... rework...
+    
     ET_ADR      = 20,
     ET_EXT_ADR  = 21,
     

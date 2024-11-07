@@ -174,7 +174,8 @@ void DrvTokenizer::parseNum( ) {
         strcat( tmpStr, &currentChar );
         nextChar( );
         
-    } while ( isxdigit( currentChar ) || ( currentChar == 'X' ) || ( currentChar == 'O' ));
+    } while ( isxdigit( currentChar )   || ( currentChar == 'X' ) || ( currentChar == 'O' )
+                                        || ( currentChar == 'x' ) || ( currentChar == 'o' ));
     
     if ( sscanf( tmpStr, "%i", &currentTokVal ) != 1 )
       tokenError((char *) "Invalid number" );

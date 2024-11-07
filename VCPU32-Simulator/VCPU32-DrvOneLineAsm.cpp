@@ -868,7 +868,7 @@ bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
     }
     else if ( rExpr.typ == ET_GREG ) {
         
-        if (( getBitField( *instr, 5, 6 ) == OP_LDR ) || ( getBitField( *instr, 5, 6 ) == OP_LDR ))
+        if (( getBitField( *instr, 5, 6 ) == OP_LDR ) || ( getBitField( *instr, 5, 6 ) == OP_STC ))
             return( parserError((char *) "Register based offset is not allowed for this instruction" ));
         
         setBit( instr, 10 );
@@ -1901,12 +1901,20 @@ bool parseInstrITLB( uint32_t *instr, uint32_t flags ) {
     if ( ! acceptComma( ))  return( false );
     if ( ! acceptLparen( )) return( false );
     
-    if ( tok -> isTokenTyp( TOK_TYP_SREG )) setBitField( instr, 27, 4, tok -> tokVal( ));
+    if ( tok -> isTokenTyp( TOK_TYP_SREG )) {
+        
+        setBitField( instr, 27, 4, tok -> tokVal( ));
+        tok -> nextToken( );
+    }
     else return( parserError((char *) "Expected a segment register" ));
     
     if ( ! acceptComma( )) return( false );
     
-    if ( tok -> isTokenTyp( TOK_TYP_GREG )) setBitField( instr, 31, 4, tok -> tokVal( ));
+    if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
+        
+        setBitField( instr, 31, 4, tok -> tokVal( ));
+        tok -> nextToken( );
+    }
     else return( parserError((char *) "Expected a general register" ));
     
     if ( ! acceptRparen( )) return( false );

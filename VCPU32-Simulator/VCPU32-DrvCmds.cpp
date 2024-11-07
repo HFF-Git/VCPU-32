@@ -854,26 +854,26 @@ void printErrMsg( ErrMsgId errNum, char *argStr = nullptr ) {
         case ERR_NOT_IN_WIN_MODE:       fprintf( stdout, "Command only valid in Windows mode\n" ); break;
         case ERR_OPEN_EXEC_FILE:        fprintf( stdout, "Error while opening file: \"%s\"\n", argStr ); break;
         case ERR_EXPECTED_FILE_NAME:    fprintf( stdout, "Expected a file name\n" ); break;
-        case ERR_INVALID_CMD:           fprintf( stdout, "Invalid command, use help or whelp\n "); break;
+        case ERR_INVALID_CMD:           fprintf( stdout, "Invalid command, use help or whelp\n"); break;
         case ERR_INVALID_WIN_STACK_ID:  fprintf( stdout, "Invalid window stack Id\n" ); break;
         case ERR_EXPECTED_STACK_ID:     fprintf( stdout, "Expected stack Id\n" ); break;
         case ERR_INVALID_WIN_ID:        fprintf( stdout, "Invalid window Id\n" ); break;
         case ERR_EXPECTED_WIN_ID:       fprintf( stdout, "Expected a window Id\n" ); break;
             
-        case ERR_EXTRA_TOKEN_IN_STR:    fprintf( stdout, "Extra tokens in command line\n" );
-        case ERR_EXPECTED_LPAREN:       fprintf( stdout, "Expected a left paren\n" );
-        case ERR_EXPECTED_RPAREN:       fprintf( stdout, "Expected a right paren\n" );
-        case ERR_EXPECTED_COMMA:        fprintf( stdout, "Expected a comma\n" );
+        case ERR_EXTRA_TOKEN_IN_STR:    fprintf( stdout, "Extra tokens in command line\n" ); break;
+        case ERR_EXPECTED_LPAREN:       fprintf( stdout, "Expected a left paren\n" ); break;
+        case ERR_EXPECTED_RPAREN:       fprintf( stdout, "Expected a right paren\n" ); break;
+        case ERR_EXPECTED_COMMA:        fprintf( stdout, "Expected a comma\n" ); break;
             
-        case ERR_EXPECTED_NUMERIC:      fprintf( stdout, "Expected a numeric value\n" );
-        case ERR_EXPR_TYPE_MATCH:       fprintf( stdout, "Expression type mismatch\n" );
-        case ERR_EXPR_FACTOR:           fprintf( stdout, "Expression error: factor\n" );
-        case ERR_EXPECTED_GENERAL_REG:  fprintf( stdout, "Expression a general reg\n" );
+        case ERR_EXPECTED_NUMERIC:      fprintf( stdout, "Expected a numeric value\n" ); break;
+        case ERR_EXPR_TYPE_MATCH:       fprintf( stdout, "Expression type mismatch\n" ); break;
+        case ERR_EXPR_FACTOR:           fprintf( stdout, "Expression error: factor\n" ); break;
+        case ERR_EXPECTED_GENERAL_REG:  fprintf( stdout, "Expression a general reg\n" ); break;
             
-        case ERR_INVALID_ARG:           fprintf( stdout, "Invalid command argument\n" );
+        case ERR_INVALID_ARG:           fprintf( stdout, "Invalid command argument\n" ); break;
             
             
-        case ERR_INVALID_FMT_OPT:       fprintf( stdout, "Invalid format option\n" );
+        case ERR_INVALID_FMT_OPT:       fprintf( stdout, "Invalid format option\n" ); break;
         case ERR_EXPECTED_FMT_OPT:      fprintf( stdout, "Expected a format option\n" ); break;
         case ERR_INVALID_WIN_TYPE:      fprintf( stdout, "Invalid window type\n" ); break;
         case ERR_EXPECTED_WIN_TYPE:     fprintf( stdout, "Expected a window type\n" ); break;
@@ -1041,6 +1041,13 @@ bool parseFactor( DrvExpr *rExpr ) {
         
         rExpr -> typ = ET_CREG;
         rExpr -> numVal1 = tok -> tokVal( );
+        tok -> nextToken( );
+        return( true );
+    }
+    else if ( tok -> isTokenTyp( TOK_TYP_IDENT )) {
+        
+        rExpr -> typ    = ET_IDENT;
+        rExpr -> tokId  = tok -> tokId( );
         tok -> nextToken( );
         return( true );
     }
