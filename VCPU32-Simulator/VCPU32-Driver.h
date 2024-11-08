@@ -41,7 +41,31 @@
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
 
+
+
 // ??? once more stable, sort the numbers...
+
+//------------------------------------------------------------------------------------------------------------
+// Tokens and Expression have a type.
+//
+//------------------------------------------------------------------------------------------------------------
+enum TypeId : uint16_t {
+
+    TYP_NIL                 = 0,        TYP_SYM             = 1,            TYP_IDENT           = 2,
+    TYP_NUM                 = 3,        TYP_STR             = 4,            TYP_BOOL            = 5,
+    TYP_ADR                 = 6,        TYP_EXT_ADR         = 7,            TYP_CMD             = 8,
+    TYP_FUNC                = 9,        TYP_TYPE            = 10,           TYP_OP_CODE         = 11,
+    TYP_OP_CODE_S           = 12,
+    
+    TYP_REG                 = 20,       TYP_REG_PAIR        = 21,
+    
+    TYP_GREG                = 30,       TYP_SREG            = 31,           TYP_CREG            = 32,
+    TYP_PSTATE_PREG         = 33,       TYP_FD_PREG         = 34,           TYP_MA_PREG         = 35,
+    TYP_IC_L1_REG           = 40,       TYP_DC_L1_REG       = 41,           TYP_UC_L2_REG       = 42,
+    TYP_MEM_REG             = 43,       TYP_ITLB_REG        = 44,           TYP_DTLB_REG        = 45
+    
+};
+
 //------------------------------------------------------------------------------------------------------------
 // Tokens are the labels for reserved words and symbols recognized by the tokenizer objects. Tokens have a
 // name, a token id, a token type and an optional value with further data.
@@ -58,8 +82,6 @@ enum TokId : uint16_t {
     TOK_TYP_NUM             = 903,      TOK_TYP_STR             = 904,      TOK_TYP_BOOL            = 905,
     TOK_TYP_ADR             = 906,      TOK_TYP_EXT_ADR         = 907,      TOK_TYP_CMD             = 908,
     TOK_TYP_FUNC            = 909,      TOK_TYPE_TYPE           = 999,
-    
-    // ??? need a TOK_TYP_NUM_PAIR ?
     
     TOK_TYP_GREG            = 910,      TOK_TYP_SREG            = 911,      TOK_TYP_CREG            = 912,
     TOK_TYP_PSTATE_PREG     = 913,      TOK_TYP_FD_PREG         = 914,      TOK_TYP_OF_PREG         = 915,
@@ -80,7 +102,6 @@ enum TokId : uint16_t {
     //
     //--------------------------------------------------------------------------------------------------------
     TOK_NIL                 = 0,    TOK_ERR                 = 6,    TOK_EOS                 = 7,
-    
     TOK_COMMA               = 60,   TOK_PERIOD              = 61,   TOK_LPAREN              = 62,
     TOK_RPAREN              = 63,   TOK_QUOTE               = 64,   TOK_PLUS                = 65,
     TOK_MINUS               = 66,   TOK_MULT                = 67,   TOK_DIV                 = 68,
@@ -89,14 +110,13 @@ enum TokId : uint16_t {
     TOK_EQ                  = 40,   TOK_NE                  = 41,   TOK_LT                  = 42,
     TOK_GT                  = 43,   TOK_LE                  = 44,   TOK_GE                  = 45,
     
-    TOK_IDENT               = 50,   TOK_NUM                 = 51,   TOK_STR                 = 52,
-    
-    
     //--------------------------------------------------------------------------------------------------------
     // Token symbols. They are just reserved names used in commands and functions. Their type and optional
     // value is defined in the token tables.
     //
     //--------------------------------------------------------------------------------------------------------
+    TOK_IDENT               = 50,   TOK_NUM                 = 51,   TOK_STR                 = 52,
+    
     TOK_TRUE                = 3,        TOK_FALSE               = 4,
     
     TOK_CPU                 = 6,        TOK_MEM                 = 7,        TOK_STATS               = 8,
@@ -156,7 +176,7 @@ enum TokId : uint16_t {
     CMD_RESET               = 1010,     CMD_RUN                 = 1011,     CMD_STEP                = 1012,
     CMD_XF                  = 1013,     CMD_DIS_ASM             = 1014,     CMD_ASM                 = 1015,
     
-    CMD_B                   = 1016,     CMD_BD                  = 1017,     CMD_BL                  = 1018,
+   // CMD_B                   = 1016,     CMD_BD                  = 1017,     CMD_BL                  = 1018,
     
     CMD_DR                  = 1020,     CMD_MR                  = 1021,
     CMD_DA                  = 1027,     CMD_MA                  = 1028,
@@ -201,11 +221,11 @@ enum TokId : uint16_t {
     GR_6                    = 4106,     GR_7                    = 4107,     GR_8                    = 4108,
     GR_9                    = 4109,     GR_10                   = 4110,     GR_11                   = 4111,
     GR_12                   = 4112,     GR_13                   = 4113,     GR_14                   = 4114,
-    GR_15                   = 4115,
+    GR_15                   = 4115,     GR_SET                  = 4116,
     
     SR_0                    = 4200,     SR_1                    = 4201,     SR_2                    = 4202,
     SR_3                    = 4203,     SR_4                    = 4204,     SR_5                    = 4205,
-    SR_6                    = 4206,     SR_7                    = 4207,
+    SR_6                    = 4206,     SR_7                    = 4207,     SR_SET                  = 4208,
     
     CR_0                    = 4300,     CR_1                    = 4301,     CR_2                    = 4302,
     CR_3                    = 4303,     CR_4                    = 4304,     CR_5                    = 4305,
@@ -217,37 +237,39 @@ enum TokId : uint16_t {
     CR_21                   = 4321,     CR_22                   = 4322,     CR_23                   = 4323,
     CR_24                   = 4324,     CR_25                   = 4325,     CR_26                   = 4326,
     CR_27                   = 4327,     CR_28                   = 4328,     CR_29                   = 4329,
-    CR_30                   = 4330,     CR_31                   = 4331,
+    CR_30                   = 4330,     CR_31                   = 4331,     CR_SET                  = 4332,
     
     PS_IA_SEG               = 4400,     PS_IA_OFS               = 4401,     PS_STATUS               = 4402,
+    PS_SET                  = 4403,
     
     FD_IA_SEG               = 4500,     FD_IA_OFS               = 4501,     FD_INSTR                = 4502,
     FD_A                    = 4503,     FD_B                    = 4504,     FD_X                    = 4505,
+    FD_SET                  = 4506,
     
     MA_IA_SEG               = 4600,     MA_IA_OFS               = 4601,     MA_INSTR                = 4602,
     MA_A                    = 4603,     MA_B                    = 4604,     MA_X                    = 4605,
-    MA_S                    = 4606,
+    MA_S                    = 4606,     MA_SET                  = 4607,
     
     IC_L1_STATE             = 4700,     IC_L1_REQ               = 4701,     IC_L1_REQ_SEG           = 4702,
     IC_L1_REQ_OFS           = 4703,     IC_L1_REQ_TAG           = 4704,     IC_L1_REQ_LEN           = 4705,
     IC_L1_LATENCY           = 4706,     IC_L1_BLOCK_ENTRIES     = 4707,     IC_L1_BLOCK_SIZE        = 4708,
-    IC_L1_SETS              = 4709,
+    IC_L1_SETS              = 4709,     IC_L1_SET               = 4710,
     
-    DC_L1_STATE             = 4710,     DC_L1_REQ               = 4711,     DC_L1_REQ_SEG           = 4712,
-    DC_L1_REQ_OFS           = 4713,     DC_L1_REQ_TAG           = 4714,     DC_L1_REQ_LEN           = 4715,
-    DC_L1_LATENCY           = 4716,     DC_L1_BLOCK_ENTRIES     = 4717,     DC_L1_BLOCK_SIZE        = 4718,
-    DC_L1_SETS              = 4719,
+    DC_L1_STATE             = 4720,     DC_L1_REQ               = 4721,     DC_L1_REQ_SEG           = 4722,
+    DC_L1_REQ_OFS           = 4723,     DC_L1_REQ_TAG           = 4724,     DC_L1_REQ_LEN           = 4725,
+    DC_L1_LATENCY           = 4726,     DC_L1_BLOCK_ENTRIES     = 4727,     DC_L1_BLOCK_SIZE        = 4728,
+    DC_L1_SETS              = 4729,     DC_L1_SET               = 4730,
     
-    UC_L2_STATE             = 4720,     UC_L2_REQ               = 4721,     UC_L2_REQ_SEG           = 4722,
-    UC_L2_REQ_OFS           = 4723,     UC_L2_REQ_TAG           = 4724,     UC_L2_REQ_LEN           = 4725,
-    UC_L2_LATENCY           = 4726,     UC_L2_BLOCK_ENTRIES     = 4727,     UC_L2_BLOCK_SIZE        = 4728,
-    UC_L2_SETS              = 4729,
+    UC_L2_STATE             = 4740,     UC_L2_REQ               = 4741,     UC_L2_REQ_SEG           = 4742,
+    UC_L2_REQ_OFS           = 47243,     UC_L2_REQ_TAG          = 4744,     UC_L2_REQ_LEN           = 4745,
+    UC_L2_LATENCY           = 4746,     UC_L2_BLOCK_ENTRIES     = 4747,     UC_L2_BLOCK_SIZE        = 4748,
+    UC_L2_SETS              = 4749,     UC_L2_SET               = 4750,
     
     ITLB_STATE              = 4800,     ITLB_REQ                = 4801,     ITLB_REQ_SEG            = 4802,
-    ITLB_REQ_OFS            = 4803,
+    ITLB_REQ_OFS            = 4803,     ITLB_SET                = 4804,
     
     DTLB_STATE              = 4810,     DTLB_REQ                = 4811,     DTLB_REQ_SEG            = 4812,
-    DTLB_REQ_OFS            = 4813,
+    DTLB_REQ_OFS            = 4813,     DTLB_SET                = 4814,
 
     //--------------------------------------------------------------------------------------------------------
     // OP Code Tokens.
@@ -379,7 +401,7 @@ struct VCPU32Globals;
 struct DrvToken {
 
     char        name[ 32 ]  = { };
-    TokId       typ         = TOK_TYP_NIL;
+    TypeId      typ         = TYP_NIL;
     TokId       tid         = TOK_NIL;
     uint32_t    val         = 0;
 };
@@ -400,9 +422,9 @@ struct DrvTokenizer {
     void        nextToken( );
     
     bool        isToken( TokId tokId );
-    bool        isTokenTyp( TokId typId );
+    bool        isTokenTyp( TypeId typId );
 
-    TokId       tokTyp( );
+    TypeId      tokTyp( );
     TokId       tokId( );
     int         tokVal( );
     char        *tokStr( );
@@ -425,38 +447,14 @@ struct DrvTokenizer {
     int         currentTokCharIndex     = 0;
     char        currentChar             = ' ';
     
-    TokId       currentTokTyp           = TOK_TYP_NIL;
+    TypeId      currentTokTyp           = TYP_NIL;
     TokId       currentTokId            = TOK_NIL;
     int         currentTokVal           = 0;
     
     char        currentTokStr[ 256 ]    = { 0 };
 };
 
-//------------------------------------------------------------------------------------------------------------
-// The command interpreter and the one line assembler work with expressions. Expressions have a type. There
-// are numeric, string, register and address types.
-//
-//------------------------------------------------------------------------------------------------------------
-enum DrvExprTyp {
-    
-    ET_NIL      = 0,
-    ET_NUM      = 1,
-    ET_STR      = 2,
-    ET_BOOL     = 3,
-    
-    ET_CMD      = 10,
-    ET_GREG     = 11,
-    ET_SREG     = 12,
-    ET_CREG     = 13,
-    ET_REG_PAIR = 14,
-    
-    ET_IDENT    = 99,  // ??? an expression should actually return the tye of the identifier... rework...
-    
-    ET_ADR      = 20,
-    ET_EXT_ADR  = 21,
-    
-    ET_FUNC     = 30
-};
+
 
 //------------------------------------------------------------------------------------------------------------
 // Expression value. The analysis of an expression results in a value. Depending on the expression type, the
@@ -465,7 +463,7 @@ enum DrvExprTyp {
 //------------------------------------------------------------------------------------------------------------
 struct DrvExpr {
     
-    DrvExprTyp typ;
+    TypeId typ;
    
     union {
         
@@ -1087,27 +1085,26 @@ private:
     void            promptCmdLine( );
     bool            readInputLine( char *cmdBuf );
     uint8_t         evalInputLine( char *cmdBuf );
-    void            execCmdsFromFile( char* fileName );
+    uint8_t         execCmdsFromFile( char* fileName );
     
-    void            invalidCmd( char *cmdBuf );
-    void            commentCmd( char *cmdBuf );
-    void            exitCmd( char *cmdBuf );
-    void            helpCmd( char *cmdBuf );
-    void            winHelpCmd( char *cmdBuf );
+    uint8_t         invalidCmd( );
+    uint8_t         exitCmd( );
+    uint8_t         helpCmd( );
+    uint8_t         winHelpCmd( );
     void            envCmd( char *cmdBuf );
-    void            execFileCmd( char *cmdBuf );
-    void            initCmd( char *cmdBuf );
-    void            resetCmd( char *cmdBuf );
-    void            runCmd( char *cmdBuf );
-    void            stepCmd( char *cmdBuf );
-    void            setBreakPointCmd( char *cmdBuf );
-    void            deleteBreakPointCmd( char *cmdBuf );
-    void            listBreakPointsCmd( char *cmdBuf );
-    void            disAssembleCmd( char *cmdBuf );
+    uint8_t         execFileCmd( );
+    uint8_t         resetCmd( );
+    uint8_t         runCmd( );
+    uint8_t         stepCmd( );
+    uint8_t         setBreakPointCmd( );
+    uint8_t         deleteBreakPointCmd( );
+    uint8_t         listBreakPointsCmd( );
+    uint8_t         disAssembleCmd( );
     uint8_t         assembleCmd( );
-    void            displayRegCmd( char *cmdBuf );
-    void            modifyRegCmd( char *cmdBuf );
-    void            modifyPstageRegCmd( char *cmdBuf );
+    uint8_t         displayRegCmd( );
+    uint8_t         modifyRegCmd( );
+    
+   
     void            hashVACmd( char *cmdBuf );
     void            displayTLBCmd( char *cmdBuf );
     void            purgeTLBCmd( char *cmdBuf );

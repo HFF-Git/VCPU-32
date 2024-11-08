@@ -64,8 +64,6 @@
 // The token table becomes a kind of dictionary with name, type and values.
 // The environment table needs to enhanced to allow for user defined variables.
 //
-// This is a bit of a rewrite of the command interpreter. Maybe later....
-//
 //------------------------------------------------------------------------------------------------------------
 
 
@@ -108,9 +106,6 @@ struct {
     { "STEP",               "S",        TOK_TYP_CMD,            CMD_STEP                },
     { "DIS",                "",         TOK_TYP_CMD,            CMD_DIS_ASM             },
     { "ASM",                "",         TOK_TYP_CMD,            CMD_ASM                 },
-    { "B",                  "",         TOK_TYP_CMD,            CMD_B                   },
-    { "BD",                 "",         TOK_TYP_CMD,            CMD_BD                  },
-    { "BL",                 "",         TOK_TYP_CMD,            CMD_BL                  },
     { "EXEC-F",             "XF",       TOK_TYP_CMD,            CMD_XF                  },
     
     { "D-REG",              "DR",       TOK_TYP_CMD,            CMD_DR                  },
@@ -348,343 +343,300 @@ const int   TOK_TAB_SIZE  = sizeof( tokTab ) / sizeof( *tokTab );
 
 
 
+
+
+
+
+
 // ??? the new table .....
 //------------------------------------------------------------------------------------------------------------
 // The global token table. All reserved words are allocated in this table. Each entry has the token name,
 // the token id, the token type id, i.e. its type, and a value associated with the token. The value allows
 // for a constant token. The parser can directly use the value in expressions.
 //
-// ??? do some sorting, better readability....
 //------------------------------------------------------------------------------------------------------------
 DrvToken const cmdTokTab[ ] = {
-    
-    //--------------------------------------------------------------------------------------------------------
-    //
-    //
-    //--------------------------------------------------------------------------------------------------------
-    { .name = "ENV",        .typ = TOK_TYP_CMD,     .tid = CMD_ENV                              },
-    { "EXIT",               TOK_TYP_CMD,            CMD_EXIT,                   0               },
-    { "E",                  TOK_TYP_CMD,            CMD_EXIT,                   0               },
-    { "HELP",               TOK_TYP_CMD,            CMD_HELP,                   0               },
-    { "?",                  TOK_TYP_CMD,            CMD_HELP,                   0               },
-    { "WHELP",              TOK_TYP_CMD,            CMD_WHELP,                  0               },
-    { "RESET",              TOK_TYP_CMD,            CMD_RESET,                  0               },
-    { "RUN",                TOK_TYP_CMD,            CMD_RUN,                    0               },
-    { "STEP",               TOK_TYP_CMD,            CMD_STEP,                   0               },
-    { "S",                  TOK_TYP_CMD,            CMD_STEP,                   0               },
-    { "DIS",                TOK_TYP_CMD,            CMD_DIS_ASM,                0               },
-    { "ASM",                TOK_TYP_CMD,            CMD_ASM,                    0               },
-    
-    { "EXEC-F",             TOK_TYP_CMD,            CMD_XF,                     0               },
-    { "XF",                 TOK_TYP_CMD,            CMD_XF,                     0               },
-    
-    { "D-REG",              TOK_TYP_CMD,            CMD_DR,                     0               },
-    { "DR",                 TOK_TYP_CMD,            CMD_DR,                     0               },
-    
-    { "M-REG",              TOK_TYP_CMD,            CMD_MR,                     0               },
-    { "MR",                 TOK_TYP_CMD,            CMD_MR,                     0               },
-    
-    { "HASH-VA",            TOK_TYP_CMD,            CMD_HASH_VA,                0               },
-    { "HVA",                TOK_TYP_CMD,            CMD_HASH_VA,                0               },
-    
-    { "I-TLB",              TOK_TYP_CMD,            CMD_I_TLB,                  0               },
-    { "ITLB",               TOK_TYP_CMD,            CMD_I_TLB,                  0               },
-    
-    { "D-TLB",              TOK_TYP_CMD,            CMD_D_TLB,                  0               },
-    { "DTLB",               TOK_TYP_CMD,            CMD_D_TLB,                  0               },
-    
-    { "P-TLB",              TOK_TYP_CMD,            CMD_P_TLB,                  0               },
-    { "PTLB",               TOK_TYP_CMD,            CMD_P_TLB,                  0               },
-    
-    { "D-CACHE",            TOK_TYP_CMD,            CMD_D_CACHE,                0               },
-    { "DCA",                TOK_TYP_CMD,            CMD_D_CACHE,                0               },
-    
-    { "P-CACHE",            TOK_TYP_CMD,            CMD_P_CACHE,                0               },
-    { "PCA",                TOK_TYP_CMD,            CMD_P_CACHE,                0               },
-    
-    { "D-ABS",              TOK_TYP_CMD,            CMD_DA,                     0               },
-    { "DA",                 TOK_TYP_CMD,            CMD_DA,                     0               },
-    
-    { "M-ABS",              TOK_TYP_CMD,            CMD_MA,                     0               },
-    { "MA",                 TOK_TYP_CMD,            CMD_MA,                     0               },
-    
-    { "D-ABS-ASM",          TOK_TYP_CMD,            CMD_DAA,                    0               },
-    { "DAA",                TOK_TYP_CMD,            CMD_DAA,                    0               },
-    
-    { "M-ABS-ASM",          TOK_TYP_CMD,            CMD_MAA,                    0               },
-    { "MAA",                TOK_TYP_CMD,            CMD_MAA,                    0               },
-    
-    { "LOAD-MEM",           TOK_TYP_CMD,            CMD_LMF,                    0               },
-    { "SAVE-MEM",           TOK_TYP_CMD,            CMD_SMF,                    0               },
     
     //--------------------------------------------------------------------------------------------------------
     // General tokens.
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "TRUE",               .typ = TOK_TYP_NIL,            .tid = TOK_TRUE,                 1       },
-    { .name = "FALSE",              .typ = TOK_TYP_NIL,            .tid = TOK_FALSE,                0       },
-    { .name = "ALL",                .typ = TOK_TYP_NIL,            .tid = TOK_ALL                           },
-    { .name = "CPU",                .typ = TOK_TYP_NIL,            .tid = TOK_CPU                           },
-    { .name = "MEM",                .typ = TOK_TYP_NIL,            .tid = TOK_MEM                           },
-    { .name = "C",                  .typ = TOK_TYP_NIL,            .tid = TOK_C                             },
-    { .name = "D",                  .typ = TOK_TYP_NIL,            .tid = TOK_D                             },
-    { .name = "F",                  .typ = TOK_TYP_NIL,            .tid = TOK_F                             },
-    { .name = "I",                  .typ = TOK_TYP_NIL,            .tid = TOK_I                             },
-    { .name = "T",                  .typ = TOK_TYP_NIL,            .tid = TOK_T                             },
-    { .name = "U",                  .typ = TOK_TYP_NIL,            .tid = TOK_U                             },
+    { .name = "TRUE",               .typ = TYP_BOOL,                .tid = TOK_TRUE,                 1       },
+    { .name = "FALSE",              .typ = TYP_BOOL,                .tid = TOK_FALSE,                0       },
     
-    { .name = "DEC",                .typ = FMT_SET,                 .tid = TOK_DEC,                 10      },
-    { .name = "DECIMAL",            .typ = FMT_SET,                 .tid = TOK_DEC,                 10      },
-    { .name = "HEX",                .typ = FMT_SET,                 .tid = TOK_HEX,                 16      },
-    { .name = "OCT",                .typ = FMT_SET,                 .tid = TOK_OCT,                 8       },
-    { .name = "OCTAL",              .typ = FMT_SET,                 .tid = TOK_OCT,                 8       },
+    { .name = "ALL",                .typ = TYP_NIL,                 .tid = TOK_ALL                           },
+    { .name = "CPU",                .typ = TYP_NIL,                 .tid = TOK_CPU                           },
+    { .name = "MEM",                .typ = TYP_NIL,                 .tid = TOK_MEM                           },
+    { .name = "C",                  .typ = TYP_NIL,                 .tid = TOK_C                             },
+    { .name = "D",                  .typ = TYP_NIL,                 .tid = TOK_D                             },
+    { .name = "F",                  .typ = TYP_NIL,                 .tid = TOK_F                             },
+    { .name = "I",                  .typ = TYP_NIL,                 .tid = TOK_I                             },
+    { .name = "T",                  .typ = TYP_NIL,                 .tid = TOK_T                             },
+    { .name = "U",                  .typ = TYP_NIL,                 .tid = TOK_U                             },
+    
+    { .name = "DEC",                .typ = TYP_NIL,                 .tid = TOK_DEC,                 10      },
+    { .name = "DECIMAL",            .typ = TYP_NIL,                 .tid = TOK_DEC,                 10      },
+    { .name = "HEX",                .typ = TYP_NIL,                 .tid = TOK_HEX,                 16      },
+    { .name = "OCT",                .typ = TYP_NIL,                 .tid = TOK_OCT,                 8       },
+    { .name = "OCTAL",              .typ = TYP_NIL,                 .tid = TOK_OCT,                 8       },
+    
+    
+    //--------------------------------------------------------------------------------------------------------
+    // Command Line tokens.
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "ENV",                .typ = TYP_CMD,                 .tid = CMD_ENV                              },
+    
+    { .name = "EXIT",               .typ = TYP_CMD,                 .tid = CMD_EXIT             },
+    { .name = "E",                  .typ = TYP_CMD,                 .tid = CMD_EXIT            },
+    { .name = "HELP",               .typ = TYP_CMD,                 .tid = CMD_HELP              },
+    { .name = "?",                  .typ = TYP_CMD,                 .tid = CMD_HELP             },
+    { .name = "WHELP",              .typ = TYP_CMD,                 .tid = CMD_WHELP              },
+    
+    { .name = "RESET",              .typ = TYP_CMD,                 .tid = CMD_RESET              },
+    { .name = "RUN",                .typ = TYP_CMD,                 .tid = CMD_RUN               },
+    { .name = "STEP",               .typ = TYP_CMD,                 .tid = CMD_STEP             },
+    { .name = "S",                  .typ = TYP_CMD,                 .tid = CMD_STEP              },
+    
+    { .name = "DIS",                .typ = TYP_CMD,                 .tid = CMD_DIS_ASM             },
+    { .name = "ASM",                .typ = TYP_CMD,                 .tid = CMD_ASM            },
+    
+    { .name = "XF",                 .typ = TYP_CMD,                 .tid = CMD_XF              },
+    
+    { .name = "DR",                 .typ = TYP_CMD,                 .tid = CMD_DR               },
+    { .name = "MR",                 .typ = TYP_CMD,                 .tid = CMD_MR              },
+    
+    { .name = "DA",                 .typ = TYP_CMD,                 .tid = CMD_DA              },
+    { .name = "MA",                 .typ = TYP_CMD,                 .tid = CMD_MA              },
+    
+    { .name = "DAA",                .typ = TYP_CMD,                 .tid = CMD_DAA         },
+    { .name = "MAA",                .typ = TYP_CMD,                 .tid = CMD_MAA              },
+   
+    { .name = "ITLB",               .typ = TYP_CMD,                 .tid = CMD_I_TLB            },
+    { .name = "DTLB",               .typ = TYP_CMD,                 .tid = CMD_D_TLB               },
+    { .name = "PTLB",               .typ = TYP_CMD,                 .tid = CMD_P_TLB            },
+    
+    { .name = "DCA",                .typ = TYP_CMD,                 .tid = CMD_D_CACHE           },
+    { .name = "PCA",                .typ = TYP_CMD,                 .tid = CMD_P_CACHE               },
+    
+    { .name = "HVA",                .typ = TYP_CMD,                 .tid = CMD_HASH_VA              },
+    
+    { .name = "LOAD-MEM",           .typ = TYP_CMD,                 .tid = CMD_LMF           },
+    { .name = "SAVE-MEM",           .typ = TYP_CMD,                 .tid = CMD_SMF             },
     
     //--------------------------------------------------------------------------------------------------------
     // Window command tokens.
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "WON",                .typ = TOK_TYP_CMD,            .tid = CMD_WON                           },
-    { .name = "WOFF",               .typ = TOK_TYP_CMD,            .tid = CMD_WOFF                          },
-    { .name = "WDEF",               .typ = TOK_TYP_CMD,            .tid = CMD_WDEF,                   0               },
-    { .name = "WSE",                .typ = TOK_TYP_CMD,            .tid = CMD_WSE,                    0               },
-    { .name = "WSD",                .typ = TOK_TYP_CMD,            .tid = CMD_WSD,                    0               },
+    { .name = "WON",                .typ = TYP_CMD,                 .tid = CMD_WON                           },
+    { .name = "WOFF",               .typ = TYP_CMD,                 .tid = CMD_WOFF                          },
+    { .name = "WDEF",               .typ = TYP_CMD,                 .tid = CMD_WDEF               },
+    { .name = "WSE",                .typ = TYP_CMD,                 .tid = CMD_WSE              },
+    { .name = "WSD",                .typ = TYP_CMD,                 .tid = CMD_WSD              },
     
-    { .name = "PSE",                .typ = TOK_TYP_CMD,            .tid = CMD_PSE,                    0               },
-    { .name = "PSD",                .typ = TOK_TYP_CMD,            .tid = CMD_PSD,                    0               },
-    { .name = "PSR",                .typ = TOK_TYP_CMD,            .tid = CMD_PSR,                    0               },
+    { .name = "PSE",                .typ = TYP_CMD,                 .tid = CMD_PSE              },
+    { .name = "PSD",                .typ = TYP_CMD,                 .tid = CMD_PSD              },
+    { .name = "PSR",                .typ = TYP_CMD,                 .tid = CMD_PSR              },
     
-    { .name = "SRE",                .typ = TOK_TYP_CMD,            .tid = CMD_SRE,                    0               },
-    { .name = "SRD",                .typ = TOK_TYP_CMD,            .tid = CMD_SRD,                    0               },
-    { .name = "SRR",                .typ = TOK_TYP_CMD,            .tid = CMD_SRR,                    0               },
+    { .name = "SRE",                .typ = TYP_CMD,                 .tid = CMD_SRE              },
+    { .name = "SRD",                .typ = TYP_CMD,                 .tid = CMD_SRE         },
+    { .name = "SRR",                .typ = TYP_CMD,                 .tid = CMD_SRR              },
     
-    { .name = "PLE",                .typ = TOK_TYP_CMD,            .tid = CMD_PLE,                    0               },
-    { .name = "PLD",                .typ = TOK_TYP_CMD,            .tid = CMD_PLD,                    0               },
-    { .name = "PLR",                .typ = TOK_TYP_CMD,            .tid = CMD_PLR,                    0               },
+    { .name = "PLE",                .typ = TYP_CMD,                 .tid = CMD_PLE               },
+    { .name = "PLD",                .typ = TYP_CMD,                 .tid = CMD_PLD               },
+    { .name = "PLR",                .typ = TYP_CMD,                 .tid = CMD_PLR              },
     
-    { .name = "SWE",                .typ = TOK_TYP_CMD,            .tid = CMD_SWE,                    0               },
-    { .name = "SWD",                .typ = TOK_TYP_CMD,            .tid = CMD_SWD,                    0               },
-    { .name = "SWR",                .typ = TOK_TYP_CMD,            .tid = CMD_SWR,                    0               },
+    { .name = "SWE",                .typ = TYP_CMD,                 .tid = CMD_SWE             },
+    { .name = "SWD",                .typ = TYP_CMD,                 .tid = CMD_SWD             },
+    { .name = "SWR",                .typ = TYP_CMD,                 .tid = CMD_SWR            },
     
-    { .name = "CWL",                .typ = TOK_TYP_CMD,            .tid = CMD_CWL,                    0               },
+    { .name = "CWL",                .typ = TYP_CMD,                 .tid = CMD_CWL              },
     
-    { .name = "WE",                 .typ = TOK_TYP_CMD,            .tid = CMD_WE,                     0               },
-    { .name = "WD",                 .typ = TOK_TYP_CMD,            .tid = CMD_WD,                     0               },
-    { .name = "WR",                 .typ = TOK_TYP_CMD,            .tid = CMD_WR,                     0               },
-    { .name = "WF",                 .typ = TOK_TYP_CMD,            .tid = CMD_WF,                     0               },
-    { .name = "WB",                 .typ = TOK_TYP_CMD,            .tid = CMD_WB,                     0               },
-    { .name = "WH",                 .typ = TOK_TYP_CMD,            .tid = CMD_WH,                     0               },
-    { .name = "WJ",                 .typ = TOK_TYP_CMD,            .tid = CMD_WJ,                     0               },
-    { .name = "WL",                 .typ = TOK_TYP_CMD,            .tid = CMD_WL,                     0               },
-    { .name = "WN",                 .typ = TOK_TYP_CMD,            .tid = CMD_WN,                     0               },
-    { .name = "WK",                 .typ = TOK_TYP_CMD,            .tid = CMD_WK,                     0               },
-    { .name = "WC",                 .typ = TOK_TYP_CMD,            .tid = CMD_WC,                     0               },
-    { .name = "WS",                 .typ = TOK_TYP_CMD,            .tid = CMD_WS,                     0               },
-    { .name = "WT",                 .typ = TOK_TYP_CMD,            .tid = CMD_WT,                     0               },
-    { .name = "WX",                 .typ = TOK_TYP_CMD,           .tid =  CMD_WX,                     0               },
+    { .name = "WE",                 .typ = TYP_CMD,                 .tid = CMD_WE            },
+    { .name = "WD",                 .typ = TYP_CMD,                 .tid = CMD_WD             },
+    { .name = "WR",                 .typ = TYP_CMD,                 .tid = CMD_WR               },
+    { .name = "WF",                 .typ = TYP_CMD,                 .tid = CMD_WF             },
+    { .name = "WB",                 .typ = TYP_CMD,                 .tid = CMD_WB          },
+    { .name = "WH",                 .typ = TYP_CMD,                 .tid = CMD_WH               },
+    { .name = "WJ",                 .typ = TYP_CMD,                 .tid = CMD_WJ              },
+    { .name = "WL",                 .typ = TYP_CMD,                 .tid = CMD_WL             },
+    { .name = "WN",                 .typ = TYP_CMD,                 .tid = CMD_WN              },
+    { .name = "WK",                 .typ = TYP_CMD,                 .tid = CMD_WK               },
+    { .name = "WC",                 .typ = TYP_CMD,                 .tid = CMD_WC             },
+    { .name = "WS",                 .typ = TYP_CMD,                 .tid = CMD_WS               },
+    { .name = "WT",                 .typ = TYP_CMD,                 .tid = CMD_WT          },
+    { .name = "WX",                 .typ = TYP_CMD,                 .tid = CMD_WX            },
     
-    { .name = "PM",                 .typ = TOK_TYP_NIL,            .tid = TOK_PM,                     0               },
-    { .name = "PC",                 .typ = TOK_TYP_NIL,            .tid = TOK_PC,                     0               },
-    { .name = "IT",                 .typ = TOK_TYP_NIL,            .tid = TOK_IT,                     0               },
-    { .name = "DT",                 .typ = TOK_TYP_NIL,            .tid = TOK_DT,                     0               },
-    { .name = "IC",                 .typ = TOK_TYP_NIL,            .tid = TOK_IC,                     0               },
-    { .name = "DC",                 .typ = TOK_TYP_NIL,            .tid = TOK_DC,                     0               },
-    { .name = "UC",                 .typ = TOK_TYP_NIL,            .tid = TOK_UC,                     0               },
-    { .name = "ICR",                .typ = TOK_TYP_NIL,            .tid = TOK_ICR,                    0               },
-    { .name = "DCR",                .typ = TOK_TYP_NIL,            .tid = TOK_DCR,                    0               },
-    { .name = "UCR",                .typ = TOK_TYP_NIL,            .tid = TOK_UCR,                    0               },
-    { .name = "MCR",                .typ = TOK_TYP_NIL,            .tid = TOK_MCR,                    0               },
-    { .name = "ITR",                .typ = TOK_TYP_NIL,            .tid = TOK_ITR,                    0               },
-    { .name = "DTR",                .typ = TOK_TYP_NIL,            .tid = TOK_DTR,                    0               },
-    { .name = "PCR",                .typ = TOK_TYP_NIL,            .tid = TOK_PCR,                    0               },
-    { .name = "IOR",                .typ = TOK_TYP_NIL,            .tid = TOK_IOR,                    0               },
-    { .name = "TX",                 .typ = TOK_TYP_NIL,            .tid = TOK_TX,                     0               },
+    { .name = "PM",                 .typ = TYP_NIL,                 .tid = TOK_PM               },
+    { .name = "PC",                 .typ = TYP_NIL,                 .tid = TOK_PC           },
+    { .name = "IT",                 .typ = TYP_NIL,                 .tid = TOK_IT               },
+    { .name = "DT",                 .typ = TYP_NIL,                 .tid = TOK_DT             },
+    { .name = "IC",                 .typ = TYP_NIL,                 .tid = TOK_IC             },
+    { .name = "DC",                 .typ = TYP_NIL,                 .tid = TOK_DC              },
+    { .name = "UC",                 .typ = TYP_NIL,                 .tid = TOK_UC               },
+    { .name = "ICR",                .typ = TYP_NIL,                 .tid = TOK_ICR              },
+    { .name = "DCR",                .typ = TYP_NIL,                 .tid = TOK_DCR             },
+    { .name = "UCR",                .typ = TYP_NIL,                 .tid = TOK_UCR             },
+    { .name = "MCR",                .typ = TYP_NIL,                 .tid = TOK_MCR             },
+    { .name = "ITR",                .typ = TYP_NIL,                 .tid = TOK_ITR              },
+    { .name = "DTR",                .typ = TYP_NIL,                 .tid = TOK_DTR             },
+    { .name = "PCR",                .typ = TYP_NIL,                 .tid = TOK_PCR              },
+    { .name = "IOR",                .typ = TYP_NIL,                 .tid = TOK_IOR          },
+    { .name = "TX",                 .typ = TYP_NIL,                 .tid = TOK_TX            },
     
     //--------------------------------------------------------------------------------------------------------
     // General registers.
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "R0",                 .typ = TOK_TYP_GREG,             .tid = GR_0,                       0               },
-    { .name = "R1",                 .typ = TOK_TYP_GREG,             .tid = GR_1,                       1               },
-    { .name = "R2",                 .typ = TOK_TYP_GREG,             .tid = GR_2,                       2               },
-    { .name = "R3",                 .typ = TOK_TYP_GREG,             .tid = GR_3,                       3               },
-    { .name = "R4",                 .typ = TOK_TYP_GREG,             .tid = GR_4,                       4               },
-    { .name = "R5",                 .typ = TOK_TYP_GREG,             .tid = GR_5,                       5               },
-    { .name = "R6",                 .typ = TOK_TYP_GREG,             .tid = GR_6,                       6               },
-    { .name = "R7",                 .typ = TOK_TYP_GREG,             .tid = GR_7,                       7               },
-    { .name = "R8",                 .typ = TOK_TYP_GREG,             .tid = GR_8,                       8               },
-    { .name = "R9",                 .typ = TOK_TYP_GREG,             .tid = GR_9,                       9               },
-    { .name = "R10",                .typ = TOK_TYP_GREG,             .tid = GR_10,                      10              },
-    { .name = "R11",                .typ = TOK_TYP_GREG,             .tid = GR_11,                      11              },
-    { .name = "R12",                .typ = TOK_TYP_GREG,             .tid = GR_12,                      12              },
-    { .name = "R13",                .typ = TOK_TYP_GREG,             .tid = GR_13,                      13              },
-    { .name = "R14",                .typ = TOK_TYP_GREG,             .tid = GR_14,                      14              },
-    { .name = "R15",                .typ = TOK_TYP_GREG,             .tid = GR_15,                      15              },
+    { .name = "R0",                 .typ = TYP_GREG,                .tid = GR_0,                    0               },
+    { .name = "R1",                 .typ = TYP_GREG,                .tid = GR_1,                    1               },
+    { .name = "R2",                 .typ = TYP_GREG,                .tid = GR_2,                    2               },
+    { .name = "R3",                 .typ = TYP_GREG,                .tid = GR_3,                    3               },
+    { .name = "R4",                 .typ = TYP_GREG,                .tid = GR_4,                    4               },
+    { .name = "R5",                 .typ = TYP_GREG,                .tid = GR_5,                    5               },
+    { .name = "R6",                 .typ = TYP_GREG,                .tid = GR_6,                    6               },
+    { .name = "R7",                 .typ = TYP_GREG,                .tid = GR_7,                    7               },
+    { .name = "R8",                 .typ = TYP_GREG,                .tid = GR_8,                    8               },
+    { .name = "R9",                 .typ = TYP_GREG,                .tid = GR_9,                    9               },
+    { .name = "R10",                .typ = TYP_GREG,                .tid = GR_10,                   10              },
+    { .name = "R11",                .typ = TYP_GREG,                .tid = GR_11,                   11              },
+    { .name = "R12",                .typ = TYP_GREG,                .tid = GR_12,                   12              },
+    { .name = "R13",                .typ = TYP_GREG,                .tid = GR_13,                   13              },
+    { .name = "R14",                .typ = TYP_GREG,                .tid = GR_14,                   14              },
+    { .name = "R15",                .typ = TYP_GREG,                .tid = GR_15,                   15              },
+    { .name = "GRSET",              .typ = TYP_GREG,                .tid = GR_SET,                  0               },
     
     //--------------------------------------------------------------------------------------------------------
     // Segment registers.
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "S0",                 .typ = TOK_TYP_SREG,             .tid = SR_0,                       0               },
-    { .name = "S1",                 .typ = TOK_TYP_SREG,             .tid = SR_1,                       1               },
-    { .name = "S2",                 .typ = TOK_TYP_SREG,             .tid = SR_2,                       2               },
-    { .name = "S3",                 .typ = TOK_TYP_SREG,             .tid = SR_3,                       3               },
-    { .name = "S4",                 .typ = TOK_TYP_SREG,             .tid = SR_4,                       4               },
-    { .name = "S5",                 .typ = TOK_TYP_SREG,             .tid = SR_5,                       5               },
-    { .name = "S6",                 .typ = TOK_TYP_SREG,             .tid = SR_6,                       6               },
-    { .name = "S7",                 .typ = TOK_TYP_SREG,             .tid = SR_7,                       7               },
+    { .name = "S0",                 .typ = TYP_SREG,                .tid = SR_0,                    0               },
+    { .name = "S1",                 .typ = TYP_SREG,                .tid = SR_1,                    1               },
+    { .name = "S2",                 .typ = TYP_SREG,                .tid = SR_2,                    2               },
+    { .name = "S3",                 .typ = TYP_SREG,                .tid = SR_3,                    3               },
+    { .name = "S4",                 .typ = TYP_SREG,                .tid = SR_4,                    4               },
+    { .name = "S5",                 .typ = TYP_SREG,                .tid = SR_5,                    5               },
+    { .name = "S6",                 .typ = TYP_SREG,                .tid = SR_6,                    6               },
+    { .name = "S7",                 .typ = TYP_SREG,                .tid = SR_7,                    7               },
+    { .name = "SRSET",              .typ = TYP_SREG,                .tid = SR_SET,                  0               },
     
     //--------------------------------------------------------------------------------------------------------
     // Control registers.
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "C0",                 .typ = TOK_TYP_CREG,             .tid = CR_0,                       0               },
-    { .name = "C1",                 .typ = TOK_TYP_CREG,             .tid = CR_1,                       1               },
-    { .name = "C2",                 .typ = TOK_TYP_CREG,             .tid = CR_2,                       2               },
-    { .name = "C3",                 .typ = TOK_TYP_CREG,             .tid = CR_3,                       3               },
-    { .name = "C4",                 .typ = TOK_TYP_CREG,             .tid = CR_4,                       4               },
-    { .name = "C5",                 .typ = TOK_TYP_CREG,             .tid = CR_5,                       5               },
-    { .name = "C6",                 .typ = TOK_TYP_CREG,             .tid = CR_6,                       6               },
-    { .name = "C7",                 .typ = TOK_TYP_CREG,             .tid = CR_7,                       7               },
-    { .name = "C8",                 .typ = TOK_TYP_CREG,             .tid = CR_8,                       8               },
-    { .name = "C9",                 .typ = TOK_TYP_CREG,             .tid = CR_9,                       9               },
-    { .name = "C10",                .typ = TOK_TYP_CREG,             .tid = CR_10,                      10              },
-    { .name = "C11",                .typ = TOK_TYP_CREG,             .tid = CR_11,                      11              },
-    { .name = "C12",                .typ = TOK_TYP_CREG,             .tid = CR_12,                      12              },
-    { .name = "C13",                .typ = TOK_TYP_CREG,             .tid = CR_13,                      13              },
-    { .name = "C14",                .typ = TOK_TYP_CREG,             .tid = CR_14,                      14              },
-    { .name = "C15",                .typ = TOK_TYP_CREG,             .tid = CR_15,                      15              },
-    { .name = "C16",                .typ = TOK_TYP_CREG,             .tid = CR_16,                      16              },
-    { .name = "C17",                .typ = TOK_TYP_CREG,             .tid = CR_17,                      17              },
-    { .name = "C18",                .typ = TOK_TYP_CREG,             .tid = CR_18,                      18              },
-    { .name = "C19",                .typ = TOK_TYP_CREG,             .tid = CR_19,                      19              },
-    { .name = "C20",                .typ = TOK_TYP_CREG,             .tid = CR_20,                      20              },
-    { .name = "C21",                .typ = TOK_TYP_CREG,             .tid = CR_21,                      21              },
-    { .name = "C22",                .typ = TOK_TYP_CREG,             .tid = CR_22,                      22              },
-    { .name = "C23",                .typ = TOK_TYP_CREG,             .tid = CR_23,                      23              },
-    { .name = "C24",                .typ = TOK_TYP_CREG,             .tid = CR_24,                      24              },
-    { .name = "C25",                .typ = TOK_TYP_CREG,             .tid = CR_25,                      25              },
-    { .name = "C26",                .typ = TOK_TYP_CREG,             .tid = CR_26,                      26              },
-    { .name = "C27",                .typ = TOK_TYP_CREG,             .tid = CR_27,                      27              },
-    { .name = "C28",                .typ = TOK_TYP_CREG,             .tid = CR_28,                      28              },
-    { .name = "C29",                .typ = TOK_TYP_CREG,             .tid = CR_29,                      29              },
-    { .name = "C30",                .typ = TOK_TYP_CREG,             .tid = CR_30,                      30              },
-    { .name = "C31",                .typ = TOK_TYP_CREG,             .tid = CR_31,                      31              },
+    { .name = "C0",                 .typ = TYP_CREG,                .tid = CR_0,                    0               },
+    { .name = "C1",                 .typ = TYP_CREG,                .tid = CR_1,                    1               },
+    { .name = "C2",                 .typ = TYP_CREG,                .tid = CR_2,                    2               },
+    { .name = "C3",                 .typ = TYP_CREG,                .tid = CR_3,                    3               },
+    { .name = "C4",                 .typ = TYP_CREG,                .tid = CR_4,                    4               },
+    { .name = "C5",                 .typ = TYP_CREG,                .tid = CR_5,                    5               },
+    { .name = "C6",                 .typ = TYP_CREG,                .tid = CR_6,                    6               },
+    { .name = "C7",                 .typ = TYP_CREG,                .tid = CR_7,                    7               },
+    { .name = "C8",                 .typ = TYP_CREG,                .tid = CR_8,                    8               },
+    { .name = "C9",                 .typ = TYP_CREG,                .tid = CR_9,                    9               },
+    { .name = "C10",                .typ = TYP_CREG,                .tid = CR_10,                   10              },
+    { .name = "C11",                .typ = TYP_CREG,                .tid = CR_11,                   11              },
+    { .name = "C12",                .typ = TYP_CREG,                .tid = CR_12,                   12              },
+    { .name = "C13",                .typ = TYP_CREG,                .tid = CR_13,                   13              },
+    { .name = "C14",                .typ = TYP_CREG,                .tid = CR_14,                   14              },
+    { .name = "C15",                .typ = TYP_CREG,                .tid = CR_15,                   15              },
+    { .name = "C16",                .typ = TYP_CREG,                .tid = CR_16,                   16              },
+    { .name = "C17",                .typ = TYP_CREG,                .tid = CR_17,                   17              },
+    { .name = "C18",                .typ = TYP_CREG,                .tid = CR_18,                   18              },
+    { .name = "C19",                .typ = TYP_CREG,                .tid = CR_19,                   19              },
+    { .name = "C20",                .typ = TYP_CREG,                .tid = CR_20,                   20              },
+    { .name = "C21",                .typ = TYP_CREG,                .tid = CR_21,                   21              },
+    { .name = "C22",                .typ = TYP_CREG,                .tid = CR_22,                   22              },
+    { .name = "C23",                .typ = TYP_CREG,                .tid = CR_23,                   23              },
+    { .name = "C24",                .typ = TYP_CREG,                .tid = CR_24,                   24              },
+    { .name = "C25",                .typ = TYP_CREG,                .tid = CR_25,                   25              },
+    { .name = "C26",                .typ = TYP_CREG,                .tid = CR_26,                   26              },
+    { .name = "C27",                .typ = TYP_CREG,                .tid = CR_27,                   27              },
+    { .name = "C28",                .typ = TYP_CREG,                .tid = CR_28,                   28              },
+    { .name = "C29",                .typ = TYP_CREG,                .tid = CR_29,                   29              },
+    { .name = "C30",                .typ = TYP_CREG,                .tid = CR_30,                   30              },
+    { .name = "C31",                .typ = TYP_CREG,                .tid = CR_31,                   31              },
+    { .name = "CRSET",              .typ = TYP_CREG,                .tid = CR_SET,                  0               },
     
     //--------------------------------------------------------------------------------------------------------
     // CPu Core register tokens.
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "IA-SEG",             .typ = TOK_TYP_PSTATE_PREG,         PS_IA_SEG,                  0               },
-    { .name = "IA-OFS",             .typ = TOK_TYP_PSTATE_PREG,         PS_IA_OFS,                  0               },
-    { .name = "ST-REG",             .typ = TOK_TYP_PSTATE_PREG,         PS_STATUS,                  0               },
+    { .name = "IA-SEG",             .typ = TYP_PSTATE_PREG,             PS_IA_SEG,                  0               },
+    { .name = "IA-OFS",             .typ = TYP_PSTATE_PREG,             PS_IA_OFS,                  0               },
+    { .name = "ST-REG",             .typ = TYP_PSTATE_PREG,             PS_STATUS,                  0               },
+    { .name = "PS-SET",             .typ = TYP_PSTATE_PREG,                    .tid = PS_SET,              0               },
     
-    { .name = "FD-IA-SEG",          .typ = TOK_TYP_FD_PREG,             FD_IA_SEG,                  0               },
-    { .name = "FD-IA-OFS",          .typ = TOK_TYP_FD_PREG,             FD_IA_OFS,                  0               },
-    { .name = "FD-INSTR",           .typ = TOK_TYP_FD_PREG,             FD_INSTR,                   0               },
-    { .name = "FD-A",               .typ = TOK_TYP_FD_PREG,             FD_A,                       0               },
-    { .name = "FD-B",               .typ = TOK_TYP_FD_PREG,             FD_B,                       0               },
-    { .name = "FD-X",               .typ = TOK_TYP_FD_PREG,             FD_X,                       0               },
+    { .name = "FD-IA-SEG",          .typ = TYP_FD_PREG,                 FD_IA_SEG,                  0               },
+    { .name = "FD-IA-OFS",          .typ = TYP_FD_PREG,                 FD_IA_OFS,                  0               },
+    { .name = "FD-INSTR",           .typ = TYP_FD_PREG,                 FD_INSTR,                   0               },
+    { .name = "FD-A",               .typ = TYP_FD_PREG,                 FD_A,                       0               },
+    { .name = "FD-B",               .typ = TYP_FD_PREG,                 FD_B,                       0               },
+    { .name = "FD-X",               .typ = TYP_FD_PREG,                 FD_X,                       0               },
+    { .name = "FD-SET",             .typ = TYP_FD_PREG,                 .tid = FD_SET,              0               },
     
-    { .name = "MA-IA-SEG",          .typ = TOK_TYP_OF_PREG,             MA_IA_SEG,                  0               },
-    { .name = "MA-IA-OFS",          .typ = TOK_TYP_OF_PREG,             MA_IA_OFS,                  0               },
-    { .name = "MA-INSTR",           .typ = TOK_TYP_OF_PREG,             MA_INSTR,                   0               },
-    { .name = "MA-A",               .typ = TOK_TYP_OF_PREG,             MA_A,                       0               },
-    { .name = "MA-B",               .typ = TOK_TYP_OF_PREG,             MA_B,                       0               },
-    { .name = "MA-X",               .typ = TOK_TYP_OF_PREG,             MA_X,                       0               },
-    { .name = "MA-S",               .typ = TOK_TYP_OF_PREG,             MA_S,                       0               },
+    { .name = "MA-IA-SEG",          .typ = TYP_MA_PREG,                 MA_IA_SEG,                  0               },
+    { .name = "MA-IA-OFS",          .typ = TYP_MA_PREG,                 MA_IA_OFS,                  0               },
+    { .name = "MA-INSTR",           .typ = TYP_MA_PREG,                 MA_INSTR,                   0               },
+    { .name = "MA-A",               .typ = TYP_MA_PREG,                 MA_A,                       0               },
+    { .name = "MA-B",               .typ = TYP_MA_PREG,                 MA_B,                       0               },
+    { .name = "MA-X",               .typ = TYP_MA_PREG,                 MA_X,                       0               },
+    { .name = "MA-S",               .typ = TYP_MA_PREG,                 MA_S,                       0               },
+    { .name = "MA-SET",             .typ = TYP_MA_PREG,                 .tid = MA_SET            },
     
-    { .name = "IC-L1-STATE",        .typ = TOK_TYP_IC_L1_REG,          IC_L1_STATE,                0               },
-    { .name = "IC-L1-REQ",          .typ = TOK_TYP_IC_L1_REG,          IC_L1_REQ,                  0               },
-    { .name = "IC-L1-REQ-SEG",      .typ = TOK_TYP_IC_L1_REG,          IC_L1_REQ_SEG,              0               },
-    { .name = "IC-L1-REQ-OFS",      .typ = TOK_TYP_IC_L1_REG,          IC_L1_REQ_OFS,              0               },
-    { .name = "IC-L1-REQ-TAG",      .typ = TOK_TYP_IC_L1_REG,          IC_L1_REQ_TAG,              0               },
-    { .name = "IC-L1-REQ-LEN",      .typ = TOK_TYP_IC_L1_REG,          IC_L1_REQ_LEN,              0               },
-    { .name = "IC-L1-REQ-LAT",      .typ = TOK_TYP_IC_L1_REG,          IC_L1_LATENCY,              0               },
-    { .name = "IC-L1-SETS",         .typ = TOK_TYP_IC_L1_REG,          IC_L1_SETS,                 0               },
-    { .name = "IC-L1-ENTRIES",      .typ = TOK_TYP_IC_L1_REG,          IC_L1_BLOCK_ENTRIES,        0               },
-    { .name = "IC-L1-B-SIZE",       .typ = TOK_TYP_IC_L1_REG,          IC_L1_BLOCK_SIZE,           0               },
+    { .name = "IC-L1-STATE",        .typ = TYP_IC_L1_REG,               IC_L1_STATE,                0               },
+    { .name = "IC-L1-REQ",          .typ = TYP_IC_L1_REG,               IC_L1_REQ,                  0               },
+    { .name = "IC-L1-REQ-SEG",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_SEG,              0               },
+    { .name = "IC-L1-REQ-OFS",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_OFS,              0               },
+    { .name = "IC-L1-REQ-TAG",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_TAG,              0               },
+    { .name = "IC-L1-REQ-LEN",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_LEN,              0               },
+    { .name = "IC-L1-REQ-LAT",      .typ = TYP_IC_L1_REG,               IC_L1_LATENCY,              0               },
+    { .name = "IC-L1-SETS",         .typ = TYP_IC_L1_REG,               IC_L1_SETS,                 0               },
+    { .name = "IC-L1-ENTRIES",      .typ = TYP_IC_L1_REG,               IC_L1_BLOCK_ENTRIES,        0               },
+    { .name = "IC-L1-B-SIZE",       .typ = TYP_IC_L1_REG,               IC_L1_BLOCK_SIZE,           0               },
+    { .name = "IC-L1-SET",          .typ = TYP_IC_L1_REG,               IC_L1_SET,                  0               },
     
-    { .name = "DC-L1-STATE",        .typ = TOK_TYP_DC_L1_REG,          DC_L1_STATE,                0               },
-    { .name = "DC-L1-REQ",          .typ = TOK_TYP_DC_L1_REG,          DC_L1_REQ,                  0               },
-    { .name = "DC-L1-REQ-SEG",      .typ = TOK_TYP_DC_L1_REG,          DC_L1_REQ_SEG,              0               },
-    { .name = "DC-L1-REQ-OFS",      .typ = TOK_TYP_DC_L1_REG,          DC_L1_REQ_OFS,              0               },
-    { .name = "DC-L1-REQ-TAG",      .typ = TOK_TYP_DC_L1_REG,          DC_L1_REQ_TAG,              0               },
-    { .name = "DC-L1-REQ-LEN",      .typ = TOK_TYP_DC_L1_REG,          DC_L1_REQ_LEN,              0               },
-    { .name = "DC-L1-REQ-LAT",      .typ = TOK_TYP_DC_L1_REG,          DC_L1_LATENCY,              0               },
-    { .name = "DC-L1-SETS",         .typ = TOK_TYP_DC_L1_REG,          DC_L1_SETS,                 0               },
-    { .name = "DC-L1-ENTRIES",      .typ = TOK_TYP_DC_L1_REG,          DC_L1_BLOCK_ENTRIES,        0               },
-    { .name = "DC-L1-B-SIZE",       .typ = TOK_TYP_DC_L1_REG,          DC_L1_BLOCK_SIZE,           0               },
+    { .name = "DC-L1-STATE",        .typ = TYP_DC_L1_REG,               DC_L1_STATE,                0               },
+    { .name = "DC-L1-REQ",          .typ = TYP_DC_L1_REG,               DC_L1_REQ,                  0               },
+    { .name = "DC-L1-REQ-SEG",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_SEG,              0               },
+    { .name = "DC-L1-REQ-OFS",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_OFS,              0               },
+    { .name = "DC-L1-REQ-TAG",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_TAG,              0               },
+    { .name = "DC-L1-REQ-LEN",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_LEN,              0               },
+    { .name = "DC-L1-REQ-LAT",      .typ = TYP_DC_L1_REG,               DC_L1_LATENCY,              0               },
+    { .name = "DC-L1-SETS",         .typ = TYP_DC_L1_REG,               DC_L1_SETS,                 0               },
+    { .name = "DC-L1-ENTRIES",      .typ = TYP_DC_L1_REG,               DC_L1_BLOCK_ENTRIES,        0               },
+    { .name = "DC-L1-B-SIZE",       .typ = TYP_DC_L1_REG,               DC_L1_BLOCK_SIZE,           0               },
+    { .name = "DC-L1-SET",          .typ = TYP_IC_L1_REG,               DC_L1_SET,                  0               },
     
-    { .name = "UC-L2-STATE",        .typ = TOK_TYP_UC_L2_REG,          UC_L2_STATE,                0               },
-    { .name = "UC-L2-REQ",          .typ = TOK_TYP_UC_L2_REG,          UC_L2_REQ,                  0               },
-    { .name = "UC-L2-REQ-SEG",      .typ = TOK_TYP_UC_L2_REG,          UC_L2_REQ_SEG,              0               },
-    { .name = "UC-L2-REQ-OFS",      .typ = TOK_TYP_UC_L2_REG,          UC_L2_REQ_OFS,              0               },
-    { .name = "UC-L2-REQ-TAG",      .typ = TOK_TYP_UC_L2_REG,          UC_L2_REQ_TAG,              0               },
-    { .name = "UC-L2-REQ-LEN",      .typ = TOK_TYP_UC_L2_REG,          UC_L2_REQ_LEN,              0               },
-    { .name = "UC-L2-REQ-LAT",      .typ = TOK_TYP_UC_L2_REG,          UC_L2_LATENCY,              0               },
-    { .name = "UC-L2-SETS",         .typ = TOK_TYP_UC_L2_REG,          UC_L2_SETS,                 0               },
-    { .name = "UC-L2-ENTRIES",      .typ = TOK_TYP_UC_L2_REG,          UC_L2_BLOCK_ENTRIES,        0               },
-    { .name = "UC-L2-B-SIZE",       .typ = TOK_TYP_UC_L2_REG,          UC_L2_BLOCK_SIZE,           0               },
+    { .name = "UC-L2-STATE",        .typ = TYP_UC_L2_REG,               UC_L2_STATE,                0               },
+    { .name = "UC-L2-REQ",          .typ = TYP_UC_L2_REG,               UC_L2_REQ,                  0               },
+    { .name = "UC-L2-REQ-SEG",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_SEG,              0               },
+    { .name = "UC-L2-REQ-OFS",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_OFS,              0               },
+    { .name = "UC-L2-REQ-TAG",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_TAG,              0               },
+    { .name = "UC-L2-REQ-LEN",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_LEN,              0               },
+    { .name = "UC-L2-REQ-LAT",      .typ = TYP_UC_L2_REG,               UC_L2_LATENCY,              0               },
+    { .name = "UC-L2-SETS",         .typ = TYP_UC_L2_REG,               UC_L2_SETS,                 0               },
+    { .name = "UC-L2-ENTRIES",      .typ = TYP_UC_L2_REG,               UC_L2_BLOCK_ENTRIES,        0               },
+    { .name = "UC-L2-B-SIZE",       .typ = TYP_UC_L2_REG,               UC_L2_BLOCK_SIZE,           0               },
+    { .name = "UC-L2-SET",          .typ = TYP_UC_L2_REG,               DC_L1_SET,                  0               },
     
-    { .name = "ITLB-STATE",         .typ = TOK_TYP_ITLB_REG,           ITLB_STATE,                 0               },
-    { .name = "ITLB-REQ",           .typ = TOK_TYP_ITLB_REG,           ITLB_REQ,                   0               },
-    { .name = "ITLB-REQ-SEG",       .typ = TOK_TYP_ITLB_REG,           ITLB_REQ_SEG,               0               },
-    { .name = "ITLB-REQ-OFS",       .typ = TOK_TYP_ITLB_REG,           ITLB_REQ_OFS,               0               },
+    { .name = "ITLB-STATE",         .typ = TYP_ITLB_REG,                ITLB_STATE,                 0               },
+    { .name = "ITLB-REQ",           .typ = TYP_ITLB_REG,                ITLB_REQ,                   0               },
+    { .name = "ITLB-REQ-SEG",       .typ = TYP_ITLB_REG,                ITLB_REQ_SEG,               0               },
+    { .name = "ITLB-REQ-OFS",       .typ = TYP_ITLB_REG,                ITLB_REQ_OFS,               0               },
+    { .name = "ITLB-SET",           .typ = TYP_ITLB_REG,                ITLB_SET,                   0               },
     
-    { .name = "DTLB-STATE",         .typ = TOK_TYP_DTLB_REG,           DTLB_STATE,                 0               },
-    { .name = "DTLB-REQ",           .typ = TOK_TYP_DTLB_REG,           DTLB_REQ,                   0               },
-    { .name = "DTLB-REQ-SEG",       .typ = TOK_TYP_DTLB_REG,           DTLB_REQ_SEG,               0               },
-    { .name = "DTLB-REQ-OFS",       .typ = TOK_TYP_DTLB_REG,           DTLB_REQ_OFS,               0               },
-    
-    //--------------------------------------------------------------------------------------------------------
-    //
-    // ??? these may go away when the expression evaluator is all there ...
-    //--------------------------------------------------------------------------------------------------------
-    { "GR-SET",             REG_SET,            TOK_TYP_GREG,                     0               },
-    { "GR",                 REG_SET,            TOK_TYP_GREG,                     0               },
-    
-    { "SR-SET",             REG_SET,            TOK_TYP_SREG,                     0               },
-    { "SR",                 REG_SET,            TOK_TYP_SREG,                     0               },
-    
-    { "CR-SET",             REG_SET,            TOK_TYP_CREG,                     0               },
-    { "CR",                 REG_SET,            TOK_TYP_CREG,                     0               },
-    
-    { "PS-SET",             REG_SET,            TOK_TYP_PSTATE_PREG,                     0               },
-    { "PS",                 REG_SET,            TOK_TYP_PSTATE_PREG,                     0               },
-    
-    { "PR-SET",             REG_SET,            PR_SET,                     0               },
-    { "PR",                 REG_SET,            PR_SET,                     0               },
-    
-    { "FD-SET",             REG_SET,            TOK_TYP_FD_PREG,                     0               },
-    { "PR",                 REG_SET,            TOK_TYP_FD_PREG,                     0               },
-    
-    { "MA-SET",             REG_SET,            TOK_TYP_OF_PREG,                     0               },
-    { "PR",                 REG_SET,            TOK_TYP_OF_PREG,                     0               },
-    
-    { "IC-L1-SET",          REG_SET,            TOK_TYP_IC_L1_REG,                  0               },
-    { "ICL1",               REG_SET,            TOK_TYP_IC_L1_REG,                  0               },
-    
-    { "DC-L1-SET",          REG_SET,            TOK_TYP_DC_L1_REG,                  0               },
-    { "DCL1",               REG_SET,            TOK_TYP_DC_L1_REG,                  0               },
-    
-    { "UC-L2-SET",          REG_SET,            TOK_TYP_UC_L2_REG,                  0               },
-    { "UCl2",               REG_SET,            TOK_TYP_UC_L2_REG,                  0               },
-    
-    { "ITLB-SET",           REG_SET,            TOK_TYP_ITLB_REG,                   0               },
-    { "ITRS",               REG_SET,            TOK_TYP_ITLB_REG,                   0               },
-    
-    { "DTLB-SET",           REG_SET,            TOK_TYP_DTLB_REG,                   0               },
-    { "DTRS",               REG_SET,            TOK_TYP_DTLB_REG,                   0               },
-    
-    { "REG-SET-ALL",        REG_SET,            REG_SET_ALL,                0               },
-    { "RS",                 REG_SET,            REG_SET_ALL,                0               },
-    
-    { "",                   TOK_TYP_NIL,            TOK_NIL,                    0               },
+    { .name = "DTLB-STATE",         .typ = TYP_DTLB_REG,                DTLB_STATE,                 0               },
+    { .name = "DTLB-REQ",           .typ = TYP_DTLB_REG,                DTLB_REQ,                   0               },
+    { .name = "DTLB-REQ-SEG",       .typ = TYP_DTLB_REG,                DTLB_REQ_SEG,               0               },
+    { .name = "DTLB-REQ-OFS",       .typ = TYP_DTLB_REG,                DTLB_REQ_OFS,               0               },
+    { .name = "DTLB-SET",           .typ = TYP_DTLB_REG,                DTLB_SET,                   0               },
     
     //--------------------------------------------------------------------------------------------------------
     // The last token to mark the list end.
+    //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "",               .typ = TOK_NIL,             .tid = TOK_LAST,           .val =  0           }
+    { .name = "",               .typ = TYP_NIL,             .tid = TOK_LAST          }
     
 };
 
@@ -998,55 +950,55 @@ bool parseExpr( DrvExpr *rExpr );
 //------------------------------------------------------------------------------------------------------------
 bool parseFactor( DrvExpr *rExpr ) {
     
-    rExpr -> typ        = ET_NIL;
+    rExpr -> typ        = TYP_NIL;
     rExpr -> numVal1    = 0;
     rExpr -> numVal2    = 0;
     
-    if ( tok -> isTokenTyp( TOK_TYP_CMD ))  {
+    if ( tok -> isTokenTyp( TYP_CMD ))  {
         
-        rExpr -> typ    = ET_CMD;
+        rExpr -> typ    = TYP_CMD;
         rExpr -> tokId  = tok -> tokId( );
         tok -> nextToken( );
         return( true );
     }
-    else if ( tok -> isTokenTyp( TOK_TYP_NUM ))  {
+    else if ( tok -> isTokenTyp( TYP_NUM ))  {
         
-        rExpr -> typ     = ET_NUM;
+        rExpr -> typ     = TYP_NUM;
         rExpr -> numVal1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else if ( tok -> isTokenTyp( TOK_TYP_STR ))  {
+    else if ( tok -> isTokenTyp( TYP_STR ))  {
         
-        rExpr -> typ     = ET_STR;
+        rExpr -> typ = TYP_STR;
         strcpy( rExpr -> strVal, tok -> tokStr( ));
         tok -> nextToken( );
         return( true );
     }
-    else if ( tok -> isTokenTyp( TOK_TYP_GREG ))  {
+    else if ( tok -> isTokenTyp( TYP_GREG ))  {
         
-        rExpr -> typ     = ET_GREG;
+        rExpr -> typ     = TYP_GREG;
         rExpr -> numVal1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else if ( tok -> isTokenTyp( TOK_TYP_SREG ))  {
+    else if ( tok -> isTokenTyp( TYP_SREG ))  {
         
-        rExpr -> typ = ET_SREG;
+        rExpr -> typ = TYP_SREG;
         rExpr -> numVal1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else if ( tok -> isTokenTyp( TOK_TYP_CREG ))  {
+    else if ( tok -> isTokenTyp( TYP_CREG ))  {
         
-        rExpr -> typ = ET_CREG;
+        rExpr -> typ = TYP_CREG;
         rExpr -> numVal1 = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
-    else if ( tok -> isTokenTyp( TOK_TYP_IDENT )) {
+    else if ( tok -> isTokenTyp( TYP_IDENT )) {
         
-        rExpr -> typ    = ET_IDENT;
+        rExpr -> typ    = TYP_IDENT;
         rExpr -> tokId  = tok -> tokId( );
         tok -> nextToken( );
         return( true );
@@ -1063,24 +1015,24 @@ bool parseFactor( DrvExpr *rExpr ) {
         // we get the values....
         
         tok -> nextToken( );
-        if ( tok -> isTokenTyp( TOK_TYP_SREG )) {
+        if ( tok -> isTokenTyp( TYP_SREG )) {
             
-            rExpr -> typ        = ET_EXT_ADR;
+            rExpr -> typ        = TYP_EXT_ADR;
             rExpr -> numVal1    = tok -> tokVal( );
             
             tok -> nextToken( );
             if ( ! acceptComma( )) return( false );
             
-            if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
+            if ( tok -> isTokenTyp( TYP_GREG )) {
                 
                 rExpr -> numVal2 = tok -> tokVal( );
                 tok -> nextToken( );
             }
             else return( cmdLineError( ERR_EXPECTED_GENERAL_REG ));
         }
-        else if ( tok -> isTokenTyp( TOK_TYP_GREG )) {
+        else if ( tok -> isTokenTyp( TYP_GREG )) {
             
-            rExpr -> typ = ET_ADR;
+            rExpr -> typ = TYP_ADR;
             rExpr -> numVal1 = tok -> tokVal( );
             tok -> nextToken( );
         }
@@ -1092,10 +1044,9 @@ bool parseFactor( DrvExpr *rExpr ) {
     else {
         
         cmdLineError( ERR_EXPR_FACTOR );
-        rExpr -> typ = ET_NUM;
+        rExpr -> typ = TYP_NUM;
         rExpr -> numVal1 = 0;
         tok -> nextToken( );
-        
         return( false );
     }
 }
@@ -1159,7 +1110,7 @@ bool parseExpr( DrvExpr *rExpr ) {
         tok -> nextToken( );
         rStat = parseTerm( rExpr );
         
-        if ( ! ( rExpr -> typ == ET_NUM )) {
+        if ( ! ( rExpr -> typ == TYP_NUM )) {
             
             return( cmdLineError( ERR_EXPECTED_NUMERIC ));
         }
@@ -1169,7 +1120,7 @@ bool parseExpr( DrvExpr *rExpr ) {
         tok -> nextToken( );
         rStat = parseTerm( rExpr );
         
-        if ( rExpr -> typ == ET_NUM ) rExpr -> numVal1 = - rExpr -> numVal1;
+        if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal1 = - rExpr -> numVal1;
         else return( cmdLineError( ERR_EXPECTED_NUMERIC ));
     }
     else rStat = parseTerm( rExpr );
@@ -1338,7 +1289,7 @@ bool DrvCmds::readInputLine( char *cmdBuf ) {
 // the command loop.
 //
 //------------------------------------------------------------------------------------------------------------
-void  DrvCmds::execCmdsFromFile( char* fileName ) {
+uint8_t DrvCmds::execCmdsFromFile( char* fileName ) {
     
     char cmdLineBuf[ CMD_LINE_BUF_SIZE ] = "";
     
@@ -1365,6 +1316,8 @@ void  DrvCmds::execCmdsFromFile( char* fileName ) {
         else printErrMsg( ERR_OPEN_EXEC_FILE, fileName );
     }
     else printErrMsg( ERR_EXPECTED_FILE_NAME  );
+    
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1372,68 +1325,74 @@ void  DrvCmds::execCmdsFromFile( char* fileName ) {
 // specific help on the topic is given.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::helpCmd( char *cmdBuf ) {
+uint8_t DrvCmds::helpCmd( ) {
     
     const char FMT_STR[ ] = "%-50s%s\n";
     
-    fprintf( stdout, FMT_STR, "help", "displays syntax and a short description" );
-    fprintf( stdout, FMT_STR, "#", "echoes the command input" );
+    fprintf( stdout, FMT_STR, "help",   "displays syntax and a short description" );
+    fprintf( stdout, FMT_STR, "#",      "echoes the command input" );
     fprintf( stdout, FMT_STR, "exit (e) [<val>]", "program exit" );
-    fprintf( stdout, FMT_STR, "env ( ) [<var> [<val>]]", "lists the env tab, a variable, sets a variable" );
-    fprintf( stdout, FMT_STR, "reset <mode>", "resets the CPU ( CPU, MEM, STATSm ALL )" );
-    fprintf( stdout, FMT_STR, "exec-f (xf) <filename> ", "execute commands from a file" );
+    fprintf( stdout, FMT_STR, "env ( )  [<var> [<val>]]", "lists the env tab, a variable, sets a variable" );
+    fprintf( stdout, FMT_STR, "reset    <mode>", "resets the CPU ( CPU, MEM, STATSm ALL )" );
+    fprintf( stdout, FMT_STR, "xf       <filename> ", "execute commands from a file" );
     fprintf( stdout, FMT_STR, "run", "run the CPU" );
-    fprintf( stdout, FMT_STR, "step (s) [<num>] [I|C]", "single step for instruction or clock cycle" );
-    fprintf( stdout, FMT_STR, "b <seg> <ofs>", "sets a break breakpoint at virtual address seg.ofs" );
-    fprintf( stdout, FMT_STR, "bd <seg> <ofs>", "deletes a break breakpoint" );
+    fprintf( stdout, FMT_STR, "s        [<num>] [I|C]", "single step for instruction or clock cycle" );
+    fprintf( stdout, FMT_STR, "b        <seg> <ofs>", "sets a break breakpoint at virtual address seg.ofs" );
+    fprintf( stdout, FMT_STR, "bd       <seg> <ofs>", "deletes a break breakpoint" );
     fprintf( stdout, FMT_STR, "bl", "displays the breakpoint table" );
-    fprintf( stdout, FMT_STR, "dr [<regSet>|<reg>] <fmt>]", "display registers" );
-    fprintf( stdout, FMT_STR, "mr <reg> <val>", "modify registers" );
-    fprintf( stdout, FMT_STR, "da <ofs> [ <len> [ fmt ]]", "display memory" );
-    fprintf( stdout, FMT_STR, "daa <ofs> [ <len> [ fmt ]]", "display memory as code" );
-    fprintf( stdout, FMT_STR, "ma <ofs> <val>", "modify memory" );
-    fprintf( stdout, FMT_STR, "maa <ofs> <asm-str>", "modify memory as code" );
-    fprintf( stdout, FMT_STR, "dis <instr>", "disassemble an instruction" );
-    fprintf( stdout, FMT_STR, "asm <instr-string>", "assemble an instruction" );
-    fprintf( stdout, FMT_STR, "hva <seg> <ofs>",  "returns the hash value function result" );
-    fprintf( stdout, FMT_STR, "d-cache (dca) <I|D|U> [<index> <len>]", "display cache content" );
-    fprintf( stdout, FMT_STR, "p-cache (pca) <I|D|U> <index> [<F>]", "flushes and purges cache data" );
-    fprintf( stdout, FMT_STR, "d-tlb (dtlb) <I|D> [<index> <len>]", "display TLB content" );
-    fprintf( stdout, FMT_STR, "i-tlb (itlb) <I|D> <seg> <ofs> <argAcc> <argAdr>", "inserts an entry into the TLB" );
-    fprintf( stdout, FMT_STR, "p-tlb (ptlb) <I|D> <seg> <ofs>", "purges an entry from the TLB" );
-    fprintf( stdout, FMT_STR, "lmf <path> <opt>", "loads memory from a file in MA command format" );
-    fprintf( stdout, FMT_STR, "smf <path> <ofs> <len> ", "stores memory to a file using MA command format" );
-    fprintf( stdout, FMT_STR, "won", "switches to windows mode" );
+    
+    
+    fprintf( stdout, FMT_STR, "dr       [<regSet>|<reg>] <fmt>]", "display registers" );
+    
+    
+    fprintf( stdout, FMT_STR, "mr       <reg> <val>", "modify registers" );
+    fprintf( stdout, FMT_STR, "da       <ofs> [ <len> [ fmt ]]", "display memory" );
+    fprintf( stdout, FMT_STR, "daa      <ofs> [ <len> [ fmt ]]", "display memory as code" );
+    fprintf( stdout, FMT_STR, "ma       <ofs> <val>", "modify memory" );
+    fprintf( stdout, FMT_STR, "maa      <ofs> <asm-str>", "modify memory as code" );
+    fprintf( stdout, FMT_STR, "dis      <instr>", "disassemble an instruction" );
+    fprintf( stdout, FMT_STR, "asm      <instr-string>", "assemble an instruction" );
+    fprintf( stdout, FMT_STR, "hva      <seg> <ofs>",  "returns the hash value function result" );
+    fprintf( stdout, FMT_STR, "dca      <I|D|U> [<index> <len>]", "display cache content" );
+    fprintf( stdout, FMT_STR, "pca      <I|D|U> <index> [<F>]", "flushes and purges cache data" );
+    fprintf( stdout, FMT_STR, "dtlb     <I|D> [<index> <len>]", "display TLB content" );
+    fprintf( stdout, FMT_STR, "itlb     <I|D> <seg> <ofs> <argAcc> <argAdr>", "inserts an entry into the TLB" );
+    fprintf( stdout, FMT_STR, "ptlb     <I|D> <seg> <ofs>", "purges an entry from the TLB" );
+    fprintf( stdout, FMT_STR, "lmf      <path> <opt>", "loads memory from a file in MA command format" );
+    fprintf( stdout, FMT_STR, "smf      <path> <ofs> <len> ", "stores memory to a file using MA command format" );
+    fprintf( stdout, FMT_STR, "won",  "switches to windows mode" );
     fprintf( stdout, FMT_STR, "woff", "switches to command line mode" );
     fprintf( stdout, FMT_STR, "wdef", "reset the windows to their default values" );
     fprintf( stdout, FMT_STR, "wse",  "enable window stacks" );
     fprintf( stdout, FMT_STR, "wsd",  "disable window stacks" );
     fprintf( stdout, FMT_STR, "<win><cmd> [<args-list>]", "issue a window command, use whelp for details." );
     fprintf( stdout, "\n" );
+    
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Display the window specific help.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winHelpCmd( char *cmdBuf ) {
+uint8_t DrvCmds::winHelpCmd( ) {
     
     const char FMT_STR[ ] = "%-20s%s\n";
     
     fprintf( stdout, "Windows help \n\n" );
     fprintf( stdout, "General Syntax for Win Commands: <win><cmd> [ args ]\n\n" );
     fprintf( stdout, "Windows:\n" );
-    fprintf( stdout, FMT_STR, "PS", "Program state window" );
-    fprintf( stdout, FMT_STR, "SR", "Special Register window" );
-    fprintf( stdout, FMT_STR, "PL", "CPU Pipeline Registers window" );
-    fprintf( stdout, FMT_STR, "ST", "Statistics window" );
-    fprintf( stdout, FMT_STR, "IT", "CPU Instruction TLB window" );
-    fprintf( stdout, FMT_STR, "DT", "CPU Data TLB window" );
-    fprintf( stdout, FMT_STR, "IC", "CPU Instruction Cache (L1) window" );
-    fprintf( stdout, FMT_STR, "DC", "CPU Data Cache (L1) window" );
-    fprintf( stdout, FMT_STR, "UC", "CPU Unified Cache (L2) window" );
-    fprintf( stdout, FMT_STR, "PM", "Physical Memory window" );
-    fprintf( stdout, FMT_STR, "PC", "Program Code Window" );
+    fprintf( stdout, FMT_STR, "PS",  "Program state window" );
+    fprintf( stdout, FMT_STR, "SR",  "Special Register window" );
+    fprintf( stdout, FMT_STR, "PL",  "CPU Pipeline Registers window" );
+    fprintf( stdout, FMT_STR, "ST",  "Statistics window" );
+    fprintf( stdout, FMT_STR, "IT",  "CPU Instruction TLB window" );
+    fprintf( stdout, FMT_STR, "DT",  "CPU Data TLB window" );
+    fprintf( stdout, FMT_STR, "IC",  "CPU Instruction Cache (L1) window" );
+    fprintf( stdout, FMT_STR, "DC",  "CPU Data Cache (L1) window" );
+    fprintf( stdout, FMT_STR, "UC",  "CPU Unified Cache (L2) window" );
+    fprintf( stdout, FMT_STR, "PM",  "Physical Memory window" );
+    fprintf( stdout, FMT_STR, "PC",  "Program Code Window" );
     fprintf( stdout, FMT_STR, "ICR", "CPU Instruction Cache (L1) controller registers" );
     fprintf( stdout, FMT_STR, "DCR", "CPU Data Cache (L1) controller registers" );
     fprintf( stdout, FMT_STR, "UCR", "CPU Unified Cache (L2) controller registers" );
@@ -1442,9 +1401,9 @@ void DrvCmds::winHelpCmd( char *cmdBuf ) {
     fprintf( stdout, FMT_STR, "DTR", "CPU Data TLB controller registers" );
     fprintf( stdout, FMT_STR, "PCR", "PDC Memory controller registers" );
     fprintf( stdout, FMT_STR, "IOR", "IO Memory controller registers" );
-    fprintf( stdout, FMT_STR, "TX", "Text Window" );
-    fprintf( stdout, FMT_STR, "CW", "Command Line window" );
-    fprintf( stdout, FMT_STR, "W",  "User defined window" );
+    fprintf( stdout, FMT_STR, "TX",  "Text Window" );
+    fprintf( stdout, FMT_STR, "CW",  "Command Line window" );
+    fprintf( stdout, FMT_STR, "W",   "User defined window" );
     fprintf( stdout, "\n" );
     
     fprintf( stdout, "Commands:\n" );
@@ -1468,16 +1427,19 @@ void DrvCmds::winHelpCmd( char *cmdBuf ) {
     fprintf( stdout, "Example: WN PM    -> create a user defined physical memory window\n" );
     fprintf( stdout, "Example: WN 20 11 -> scroll window 11 forward by 20 lines\n" );
     fprintf( stdout, "\n" );
+    
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Invalid command handler.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::invalidCmd( char *cmdBuf ) {
+uint8_t DrvCmds::invalidCmd( ) {
     
     glb -> env -> setEnvVal( ENV_EXIT_CODE, -1 );
     printErrMsg( ERR_INVALID_CMD );
+    return( ERR_INVALID_CMD );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1486,24 +1448,21 @@ void DrvCmds::invalidCmd( char *cmdBuf ) {
 //
 // EXIT <code>
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::exitCmd( char *cmdBuf ) {
+uint8_t DrvCmds::exitCmd( ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ]     = "";
-    char    arg1Str[ TOK_NAME_SIZE ]    = "";
-    int     exitVal                     = 0;
+    int  exitVal = 0;
     
-    if ( sscanf( cmdBuf, FMT_STR_2S, cmdStr, arg1Str ) >= 1 ) {
+    if ( tok -> tokTyp( ) == TYP_NUM ) {
         
-        if ( strlen( arg1Str ) > 0 ) {
-            
-            int tmp = sscanf( arg1Str, "%i", &exitVal );
-            if ( tmp != 1 ) fprintf( stdout, "Invalid exit code\n" );
-            if ( exitVal > 255 ) fprintf( stdout, "Expected an exit code between 0 .. 255\n" );
-        }
-        else exitVal = glb -> env -> getEnvValInt( ENV_EXIT_CODE );
-        
-        exit(( exitVal > 255 ) ? 255 : exitVal );
+        if ( tok -> tokVal( ) > 255 ) fprintf( stdout, "Expected an exit code between 0 .. 255\n" );
+        return( NO_ERR );
     }
+    else if ( tok -> tokId( ) == TOK_EOS ) {
+        
+        exitVal = glb -> env -> getEnvValInt( ENV_EXIT_CODE );
+    }
+    
+    exit(( exitVal > 255 ) ? 255 : exitVal );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1604,63 +1563,60 @@ void DrvCmds::envCmd( char *cmdBuf ) {
 //
 // EXEC "<filename>"
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::execFileCmd( char *cmdBuf ) {
+uint8_t DrvCmds::execFileCmd( ) {
     
-    if ( tok -> tokTyp( ) == TOK_TYP_STR ) {
+    if ( tok -> tokTyp( ) == TYP_STR ) {
         
         execCmdsFromFile( tok -> tokStr( ));
     }
     else fprintf( stdout, "Expected a file path\n" );
+    
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Reset command.
 //
 // RESET ( CPU | MEM | STATS | ALL )
+//
+// ??? when and what statistics to also reset ?
+// ??? what if thee is a unified cache outside the CPU ?
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::resetCmd( char *cmdBuf ) {
+uint8_t DrvCmds::resetCmd( ) {
     
-    char    cmdStr[ TOK_NAME_SIZE + 1 ]     = "";
-    char    arg1Str[ TOK_NAME_SIZE + 1 ]    = "";
-    int     args                            = sscanf( cmdBuf, FMT_STR_2S, cmdStr, arg1Str );
-    
-    if ( args < 2 ) {
+    if ( tok -> tokTyp( ) == TYP_SYM ) {
         
-        fprintf( stdout, "Expected CPU/MEM/ALL\n" );
-        return;
+        switch( tok -> tokId( )) {
+                
+            case TOK_CPU: {
+                
+                glb -> cpu -> reset( );
+                
+            } break;
+                
+            case TOK_MEM: {
+                
+                glb -> cpu -> physMem -> reset( );
+                
+            } break;
+                
+            case TOK_STATS: {
+              
+            } break;
+                
+            case TOK_ALL: {
+                
+                glb -> cpu -> reset( );
+                glb -> cpu -> physMem -> reset( );
+              
+            } break;
+                
+            default: fprintf( stdout, "Invalid option, use help\n" );
+        }
     }
+    else fprintf( stdout, "Invalid option, use help\n" );
     
-    switch ( lookupTokId( arg1Str )) {
-            
-        case TOK_CPU: {
-            
-            glb -> cpu -> reset( );
-            
-        } break;
-            
-        case TOK_MEM: {
-            
-            glb -> cpu -> physMem -> reset( );
-            
-        } break;
-            
-        case TOK_STATS: {
-            
-            // ??? reset statistics....
-            
-        } break;
-            
-        case TOK_ALL: {
-            
-            glb -> cpu -> reset( );
-            glb -> cpu -> physMem -> reset( );
-            
-            // ??? reset statistics....
-            
-        } break;
-            
-        default: fprintf( stdout, "Invalid option, use help\n" );
-    }
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1668,7 +1624,7 @@ void DrvCmds::resetCmd( char *cmdBuf ) {
 //
 // RUN
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::runCmd( char *cmdBuf ) {
+uint8_t DrvCmds::runCmd( ) {
     
     fprintf( stdout, "RUN command to come ... \n" );
     
@@ -1676,72 +1632,42 @@ void DrvCmds::runCmd( char *cmdBuf ) {
     // ??? drain the pipeline ?
     
     // ??? we could also have the trap handlers use this mechanism...
+    
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Step command. The command will execute one instruction. Default is one instruction. There is an ENV
 // variable that will set the default to be a single clock step.
 //
-// STEP [ <num> ] [I|C]
+// STEP [ <num> ] [ "," "I" | "C" ]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::stepCmd( char *cmdBuf ) {
+uint8_t DrvCmds::stepCmd( ) {
     
-    char        cmdStr[ TOK_NAME_SIZE ]     = "";
-    uint32_t    numOfSteps                  = 1;
-    char        argStr[ TOK_NAME_SIZE ]     = "";
-    int         args                        = sscanf( cmdBuf, FMT_STR_1S_1D_1S, cmdStr, &numOfSteps, argStr );
+    uint32_t numOfSteps = 1;
     
-    if ( args < 2 ) {
+    if ( tok -> tokTyp( ) == TYP_NUM ) {
+        
+        numOfSteps = tok -> tokVal( );
+        tok -> nextToken( );
+    }
+    
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        tok -> nextToken( );
+        
+        if      ( tok -> tokId( ) == TOK_I ) glb -> cpu -> instrStep( numOfSteps );
+        else if ( tok -> tokId( ) == TOK_C ) glb -> cpu -> clockStep( numOfSteps );
+        else    fprintf( stdout, "Invalid step option, use help\n" );
+        
+    }
+    else {
         
         if ( glb -> env -> getEnvValBool( ENV_STEP_IN_CLOCKS )) glb -> cpu -> clockStep( 1 );
         else glb -> cpu -> instrStep( 1 );
     }
-    else if ( args < 3 ) {
-        
-        glb -> cpu -> instrStep( numOfSteps );
-    }
-    else if ( args == 3 ) {
-        
-        TokId tmp = lookupTokId( argStr );
-        
-        if ( tmp == TOK_C ) {
-            
-            glb -> cpu -> clockStep( numOfSteps );
-        }
-        else if ( tmp == TOK_I ) {
-            
-            glb -> cpu -> instrStep( numOfSteps );
-        }
-        else fprintf( stdout, "Invalid step option, use help\n" );
-    }
-    else fprintf( stdout, "Invalid number of arguments, use help\n" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Set a breakpoint.
-//
-// B <seg> <ofs>
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::setBreakPointCmd( char *cmdBuf ) {
     
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Delete a breakpoint.
-//
-// BD <seg> <ofs>
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::deleteBreakPointCmd( char *cmdBuf ){
-    
-}
-
-//------------------------------------------------------------------------------------------------------------
-// List all breakpoints.
-//
-// BL
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::listBreakPointsCmd( char *cmdBuf ) {
-    
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1749,37 +1675,39 @@ void DrvCmds::listBreakPointsCmd( char *cmdBuf ) {
 //
 // DIS <instr> [ fmt ]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::disAssembleCmd( char *cmdBuf ) {
+uint8_t DrvCmds::disAssembleCmd( ) {
     
-    char        cmdStr[ TOK_NAME_SIZE ]     = "";
-    uint32_t    instr                       = 0;
-    TokId       fmtId                       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
-    char        arg1Str[ TOK_NAME_SIZE ]    = "";
-    char        arg2Str[ TOK_NAME_SIZE ]    = "";
-    int         args = sscanf( cmdBuf, FMT_STR_1S_1D_2S, cmdStr, &instr , arg1Str, arg2Str );
+    DrvExpr     rExpr;
+    uint32_t    instr   = 0;
+    TokId       fmtId   = glb -> env -> getEnvValTok( ENV_FMT_DEF );
     
-    if ( args < 2 ) {
+    if ( ! parseExpr( &rExpr )) {
         
         fprintf( stdout, "Expected an instruction value\n" );
-        return;
+        return( NO_ERR );
     }
     
-    if ( args > 2 ) {
+    instr = rExpr.numVal1;
+    
+    if (( tok -> tokId( ) == TOK_HEX ) ||
+        ( tok -> tokId( ) == TOK_OCT ) ||
+        ( tok -> tokId( ) == TOK_DEC )) {
         
-        TokId argId = matchFmtOptions( arg2Str );
-        if ( argId == TOK_NIL ) {
-            
-            fprintf( stdout, "Invalid format option\n" );
-            return;
-        }
-        else fmtId = argId;
+        fmtId = tok -> tokId( );
     }
+    else if ( tok -> tokId( ) == TOK_EOS ) {
+        
+        fmtId = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+    }
+    else return( cmdLineError( ERR_INVALID_FMT_OPT ));
     
     glb -> disAsm -> displayInstr( instr, fmtId );
     
     fprintf( stdout, " (" );
     glb -> lineDisplay -> displayWord( instr, fmtId );
     fprintf( stdout, ")\n" );
+    
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1826,133 +1754,126 @@ uint8_t DrvCmds::assembleCmd( ) {
 // Display register command. This is a rather versatile command, which displays register set, register and
 // all of them in one format.
 //
-// DR [<regSet>|<reg>] [<fmt>]
+// DR [ <regSet>|<reg> ] [ "," <fmt> ]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::displayRegCmd( char *cmdBuf ) {
+uint8_t DrvCmds::displayRegCmd( ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ]     = "";
-    char    arg1Str[ TOK_NAME_SIZE ]    = "";
-    char    arg2Str[ TOK_NAME_SIZE ]    = "";
-    int     args                        = sscanf( cmdBuf, FMT_STR_3S, cmdStr, arg1Str, arg2Str );
-    
-    if ( args < 1 ) return;
-    
-    TokId   regSetId    = TOK_TYP_GREG;
-    TokId   regId       = TOK_NIL;
     TokId   fmtId       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+    TypeId  regSetId    = TYP_GREG;
+    TokId   regId       = TOK_NIL;
     
-    if ( strlen( arg1Str ) > 0 ) {
+    if (( tok -> tokTyp( ) == TYP_GREG )        ||
+        ( tok -> tokTyp( ) == TYP_SREG )        ||
+        ( tok -> tokTyp( ) == TYP_CREG )        ||
+        ( tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
+        ( tok -> tokTyp( ) == TYP_FD_PREG )     ||
+        ( tok -> tokTyp( ) == TYP_MA_PREG )     ||
+        ( tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
+        ( tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
+        ( tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
+        ( tok -> tokTyp( ) == TYP_ITLB_REG )    ||
+        ( tok -> tokTyp( ) == TYP_DTLB_REG )) {
         
-        TokId argId = matchRegSet( arg1Str );
-        if ( argId == TOK_NIL ) {
-            
-            argId = matchReg( arg1Str );
-            if ( argId == TOK_NIL ) {
-                
-                argId = matchFmtOptions( arg1Str );
-                if ( argId == TOK_NIL ) {
-                    
-                    fprintf( stdout, "Invalid register or register set\n" );
-                    return;
-                }
-                else fmtId = argId;
-            }
-            else {
-                
-                regSetId = lookupTokGrpId( argId );
-                regId = argId;
-            }
-        }
-        else regSetId = argId;
+        regSetId    = tok -> tokTyp( );
+        regId       = tok -> tokId( );
+    }
+    else {
+        
+        fprintf( stdout, "Invalid register or register set\n" );
+        return ( NO_ERR );
     }
     
-    if ( strlen( arg2Str ) > 0 ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        TokId argId = matchFmtOptions( arg2Str );
-        if ( argId == TOK_NIL ) {
+        tok -> nextToken( );
+        
+        if (( tok -> tokId( ) == TOK_HEX ) ||
+            ( tok -> tokId( ) == TOK_OCT ) ||
+            ( tok -> tokId( ) == TOK_DEC )) {
             
-            fprintf( stdout, "Invalid format option\n" );
-            return;
+            fmtId = tok -> tokId( );
         }
-        else fmtId = argId;
+        else if ( tok -> tokId( ) == TOK_EOS ) {
+            
+            fmtId = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+        }
+        else return( cmdLineError( ERR_INVALID_FMT_OPT ));
     }
     
     switch( regSetId ) {
             
-        case TOK_TYP_GREG: {
+        case TYP_GREG: {
             
-            if ( regId == TOK_NIL ) glb -> lineDisplay -> displayGeneralRegSet( fmtId );
+            if ( regId == GR_SET ) glb -> lineDisplay -> displayGeneralRegSet( fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_GEN_REG_SET, ( regId - GR_0 )), fmtId );
             
         } break;
             
-        case TOK_TYP_SREG: {
+        case TYP_SREG: {
             
-            if ( regId == TOK_NIL ) glb -> lineDisplay -> displaySegmentRegSet( fmtId );
+            if ( regId == SR_SET ) glb -> lineDisplay -> displaySegmentRegSet( fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_SEG_REG_SET, ( regId - SR_0 )), fmtId );
             
         } break;
             
-        case TOK_TYP_CREG: {
+        case TYP_CREG: {
             
-            if ( regId == TOK_NIL ) glb -> lineDisplay -> displayControlRegSet( fmtId );
+            if ( regId == CR_SET ) glb -> lineDisplay -> displayControlRegSet( fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_CTRL_REG_SET, ( regId - CR_0 )), fmtId );
             
         } break;
             
-        case TOK_TYP_PSTATE_PREG: {
+        case TYP_PSTATE_PREG: {
             
-            if ( regId == TOK_NIL ) glb -> lineDisplay -> displayPStateRegSet( fmtId );
+            if ( regId == PS_SET ) glb -> lineDisplay -> displayPStateRegSet( fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_PROG_STATE, ( regId - PS_IA_SEG )), fmtId );
             
         } break;
             
-        case TOK_TYP_IC_L1_REG: {
+        case TYP_IC_L1_REG: {
             
-            if ( regId == TOK_NIL ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> iCacheL1, fmtId );
+            if ( regId == IC_L1_SET ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> iCacheL1, fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_IC_L1_OBJ, ( regId - IC_L1_STATE )), fmtId );
             
         } break;
             
-        case TOK_TYP_DC_L1_REG: {
+        case TYP_DC_L1_REG: {
             
-            if ( regId == TOK_NIL ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> dCacheL1, fmtId );
+            if ( regId == DC_L1_SET ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> dCacheL1, fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_DC_L1_OBJ, ( regId - DC_L1_STATE )), fmtId );
             
         } break;
             
-        case TOK_TYP_UC_L2_REG: {
+        case TYP_UC_L2_REG: {
             
             if ( glb -> cpu -> uCacheL2 != nullptr ) {
                 
-                if ( regId == TOK_NIL ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> uCacheL2, fmtId );
+                if ( regId == UC_L2_SET ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> uCacheL2, fmtId );
                 else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_UC_L2_OBJ, ( regId - UC_L2_STATE )), fmtId );
             }
             else fprintf( stdout, "L2 cache not configured \n" );
             
         } break;
             
-        case TOK_TYP_ITLB_REG: {
+        case TYP_ITLB_REG: {
             
-            if ( regId == TOK_NIL ) glb -> lineDisplay -> displayTlbObjRegSet( glb -> cpu -> iTlb, fmtId );
+            if ( regId == ITLB_SET ) glb -> lineDisplay -> displayTlbObjRegSet( glb -> cpu -> iTlb, fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_ITLB_OBJ, ( regId - ITLB_STATE )), fmtId );
             
         } break;
             
-        case TOK_TYP_DTLB_REG: {
+        case TYP_DTLB_REG: {
             
-            if ( regId == TOK_NIL ) glb -> lineDisplay -> displayTlbObjRegSet( glb -> cpu -> dTlb, fmtId );
+            if ( regId == DTLB_SET ) glb -> lineDisplay -> displayTlbObjRegSet( glb -> cpu -> dTlb, fmtId );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_DTLB_OBJ, ( regId - DTLB_STATE )), fmtId );
             
         } break;
             
-        case PR_SET:        glb -> lineDisplay -> displayPlRegSets( fmtId );  break;
-        case REG_SET_ALL:   glb -> lineDisplay -> displayAllRegSets( fmtId ); break;
-            
         default: ;
     }
-    
+
     fprintf( stdout, "\n" );
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1960,56 +1881,84 @@ void DrvCmds::displayRegCmd( char *cmdBuf ) {
 //
 // MR <reg> <val>
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::modifyRegCmd( char *cmdBuf ) {
+uint8_t DrvCmds::modifyRegCmd( ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ]     = "";
-    char    arg1Str[ TOK_NAME_SIZE ]    = "";
-    char    arg2Str[ TOK_NAME_SIZE ]    = "";
-    int     args                        = sscanf( cmdBuf, FMT_STR_3S, cmdStr, arg1Str, arg2Str );
+    TypeId      regSetId    = TYP_GREG;
+    TokId       regId       = TOK_NIL;
+    uint32_t    val         = 0;
+    DrvExpr     rExpr;
     
-    if ( args < 3 ) {
+    if (( tok -> tokTyp( ) == TYP_GREG )        ||
+        ( tok -> tokTyp( ) == TYP_SREG )        ||
+        ( tok -> tokTyp( ) == TYP_CREG )        ||
+        ( tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
+        ( tok -> tokTyp( ) == TYP_FD_PREG )     ||
+        ( tok -> tokTyp( ) == TYP_MA_PREG )     ||
+        ( tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
+        ( tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
+        ( tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
+        ( tok -> tokTyp( ) == TYP_ITLB_REG )    ||
+        ( tok -> tokTyp( ) == TYP_DTLB_REG )) {
         
-        fprintf( stdout, "Expected a register and a value\n" );
-        return;
+        regSetId    = tok -> tokTyp( );
+        regId       = tok -> tokId( );
+        
+        tok -> nextToken( );
     }
-    
-    TokId   regId       = matchReg( arg1Str );
-    TokId   regSetId    = lookupTokGrpId( regId );
-    
-    if (( regId == TOK_NIL ) || ( lookupTokGrpId( regSetId ) != REG_SET )) {
+    else {
         
         fprintf( stdout, "Invalid register\n" );
-        return;
+        return ( NO_ERR );
     }
     
-    uint32_t val = 0;
-    
-    if ( strlen( arg2Str ) > 0 ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
-        if ( sscanf( arg2Str, "%i", &val ) == 0 ) {
-            
-            fprintf( stdout, "Expected a value\n" );
-            return;
-        }
+        fprintf( stdout, "Expected a value\n" );
+        return( NO_ERR );
+    }
+    
+    if ( ! parseExpr( &rExpr )) {
+        
+        fprintf( stdout, "Invalid value\n" );
+        return( NO_ERR );
     }
     
     switch( regSetId ) {
             
-        case TOK_TYP_GREG:    glb -> cpu -> setReg( RC_GEN_REG_SET, ( regId - GR_0 ), val );  break;
-        case TOK_TYP_SREG:    glb -> cpu -> setReg( RC_SEG_REG_SET, ( regId - SR_0 ), val );  break;
-        case TOK_TYP_CREG:    glb -> cpu -> setReg( RC_CTRL_REG_SET, ( regId - CR_0 ), val ); break;
-        case TOK_TYP_PSTATE_PREG:    glb -> cpu -> setReg( RC_PROG_STATE, regId - PS_IA_SEG, val );  break;
-        case TOK_TYP_IC_L1_REG: glb -> cpu -> setReg( RC_IC_L1_OBJ, regId - IC_L1_STATE, val ); break;
-        case TOK_TYP_DC_L1_REG: glb -> cpu -> setReg( RC_DC_L1_OBJ, regId - DC_L1_STATE, val ); break;
-        case TOK_TYP_UC_L2_REG: glb -> cpu -> setReg( RC_UC_L2_OBJ, regId - UC_L2_STATE, val ); break;
-        case TOK_TYP_ITLB_REG:  glb -> cpu -> setReg( RC_ITLB_OBJ, regId - ITLB_STATE, val );   break;
-        case TOK_TYP_DTLB_REG:  glb -> cpu -> setReg( RC_DTLB_OBJ, regId - DTLB_STATE, val );   break;
+        case TYP_GREG:          glb -> cpu -> setReg( RC_GEN_REG_SET, ( regId - GR_0 ), val );  break;
+        case TYP_SREG:          glb -> cpu -> setReg( RC_SEG_REG_SET, ( regId - SR_0 ), val );  break;
+        case TYP_CREG:          glb -> cpu -> setReg( RC_CTRL_REG_SET, ( regId - CR_0 ), val ); break;
+        case TYP_PSTATE_PREG:   glb -> cpu -> setReg( RC_PROG_STATE, regId - PS_IA_SEG, val );  break;
+        case TYP_FD_PREG:       glb -> cpu -> setReg( RC_FD_PSTAGE, regId - PS_IA_SEG, val );   break;
+        case TYP_MA_PREG:       glb -> cpu -> setReg( RC_MA_PSTAGE, regId - PS_IA_SEG, val );   break;
+        case TYP_IC_L1_REG:     glb -> cpu -> setReg( RC_IC_L1_OBJ, regId - IC_L1_STATE, val ); break;
+        case TYP_DC_L1_REG:     glb -> cpu -> setReg( RC_DC_L1_OBJ, regId - DC_L1_STATE, val ); break;
+        case TYP_UC_L2_REG:     glb -> cpu -> setReg( RC_UC_L2_OBJ, regId - UC_L2_STATE, val ); break;
+        case TYP_ITLB_REG:      glb -> cpu -> setReg( RC_ITLB_OBJ, regId - ITLB_STATE, val );   break;
+        case TYP_DTLB_REG:      glb -> cpu -> setReg( RC_DTLB_OBJ, regId - DTLB_STATE, val );   break;
             
-        case PR_SET:
-        case REG_SET_ALL: fprintf( stdout, "Invalid Reg Set for operation\n" ); return;
-        default: ;
+        default:  fprintf( stdout, "Invalid Reg Set for operation\n" );
     }
+    
+    return( NO_ERR );
 }
+
+
+
+
+
+
+
+
+// ???? continue from here.....
+// ???? continue from here.....
+
+
+
+
+
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // Hash virtual address command. The TLB is indexed by a hash function, which we can test with this command.
@@ -3155,26 +3104,27 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
             // ??? the calls will change and not use the cmdBuf after all commands have been rewore to use
             // the expr mode.
             //------------------------------------------------------------------------------------------------
-            case ET_CMD: {
+            case TYP_CMD: {
                 
                 switch ( rExpr.tokId) {
                         
-                    case TOK_NIL:                                               break;
-                    case CMD_EXIT:          exitCmd( cmdBuf );                  break;
-                    case CMD_HELP:          helpCmd( cmdBuf);                   break;
-                    case CMD_WHELP:         winHelpCmd( cmdBuf);                break;
+                    case TOK_NIL:           return( NO_ERR );
+                    case CMD_EXIT:          return( exitCmd( ));
+                    case CMD_HELP:          return( helpCmd( ));
+                    case CMD_WHELP:         return( winHelpCmd( ));
+                        
                     case CMD_ENV:           envCmd( cmdBuf);                    break;
-                    case CMD_XF:            execFileCmd( cmdBuf );              break;
-                    case CMD_RESET:         resetCmd( cmdBuf);                  break;
-                    case CMD_RUN:           runCmd( cmdBuf );                   break;
-                    case CMD_STEP:          stepCmd( cmdBuf);                   break;
-                    case CMD_B:             setBreakPointCmd( cmdBuf );         break;
-                    case CMD_BD:            deleteBreakPointCmd( cmdBuf );      break;
-                    case CMD_BL:            listBreakPointsCmd( cmdBuf );       break;
-                    case CMD_DIS_ASM:       disAssembleCmd( cmdBuf );           break;
+                        
+                    case CMD_XF:            return( execFileCmd( ));
+                    case CMD_RESET:         return( resetCmd( ));
+                    case CMD_RUN:           return( runCmd( ));
+                    case CMD_STEP:          return( stepCmd( ));
+                    case CMD_DIS_ASM:       return( disAssembleCmd( ));
                     case CMD_ASM:           return( assembleCmd( ));
-                    case CMD_DR:            displayRegCmd( cmdBuf);             break;
-                    case CMD_MR:            modifyRegCmd( cmdBuf);              break;
+                    case CMD_DR:            return( displayRegCmd( ));
+                    case CMD_MR:            return( modifyRegCmd( ));
+                        
+                        
                     case CMD_HASH_VA:       hashVACmd( cmdBuf);                 break;
                     case CMD_D_TLB:         displayTLBCmd( cmdBuf );            break;
                     case CMD_I_TLB:         insertTLBCmd( cmdBuf );             break;
@@ -3226,7 +3176,7 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
                     case CMD_CWL:
                     case CMD_WL:            winSetRowsCmd( cmdBuf );            break;
                         
-                    default:                invalidCmd( cmdBuf );
+                    default:                invalidCmd( );
                 }
                 
             } break;
@@ -3236,10 +3186,10 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
             //
             // ??? would we actually get the values  and display them ?
             //------------------------------------------------------------------------------------------------
-            case ET_NUM:  printf( "%i\n", rExpr.numVal1 );      break;
-            case ET_GREG: printf( "R%d\n", rExpr.numVal1 );     break;
-            case ET_SREG: printf( "S%d\n", rExpr.numVal1 );     break;
-            case ET_CREG: printf( "C%d\n", rExpr.numVal1 );     break;
+            case TYP_NUM:  printf( "%i\n", rExpr.numVal1 );      break;
+            case TYP_GREG: printf( "R%d\n", rExpr.numVal1 );     break;
+            case TYP_SREG: printf( "S%d\n", rExpr.numVal1 );     break;
+            case TYP_CREG: printf( "C%d\n", rExpr.numVal1 );     break;
                 
             //------------------------------------------------------------------------------------------------
             // Address values.
@@ -3253,7 +3203,7 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
             // No idea what it is, assume an invalid command.
             //
             //------------------------------------------------------------------------------------------------
-            default: invalidCmd( cmdBuf );
+            default: invalidCmd( );
         }
     }
     

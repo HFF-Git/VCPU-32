@@ -58,7 +58,6 @@ void upshiftStr( char *str ) {
 // The lookup function. We just do a linear search for now. Note that we expect the last entry in the token
 // table to be the NIL token, otherwise bad things will happen.
 //
-// ??? should we always upshift a token ?
 //------------------------------------------------------------------------------------------------------------
 int lookupToken( char *inputStr, DrvToken *tokTab ) {
     
@@ -131,14 +130,14 @@ void DrvTokenizer::tokenError( char *errStr ) {
 // helper functions for the current token.
 //
 //------------------------------------------------------------------------------------------------------------
-bool        DrvTokenizer::isToken( TokId tokId )    { return( currentTokId == tokId ); }
-bool        DrvTokenizer::isTokenTyp( TokId typId ) { return( currentTokTyp == typId ); }
-TokId       DrvTokenizer::tokTyp( )                 { return( currentTokTyp ); }
-TokId       DrvTokenizer::tokId( )                  { return( currentTokId ); }
-int         DrvTokenizer::tokVal( )                 { return( currentTokVal ); }
-char        *DrvTokenizer::tokStr( )                { return( currentTokStr ); }
-int         DrvTokenizer::tokCharIndex( )           { return( currentCharIndex ); }
-char        *DrvTokenizer::tokenLineStr( )          { return(  tokenLine ); }
+bool        DrvTokenizer::isToken( TokId tokId )        { return( currentTokId == tokId ); }
+bool        DrvTokenizer::isTokenTyp( TypeId typId )    { return( currentTokTyp == typId ); }
+TypeId      DrvTokenizer::tokTyp( )                     { return( currentTokTyp ); }
+TokId       DrvTokenizer::tokId( )                      { return( currentTokId ); }
+int         DrvTokenizer::tokVal( )                     { return( currentTokVal ); }
+char        *DrvTokenizer::tokStr( )                    { return( currentTokStr ); }
+int         DrvTokenizer::tokCharIndex( )               { return( currentCharIndex ); }
+char        *DrvTokenizer::tokenLineStr( )              { return(  tokenLine ); }
 
 //------------------------------------------------------------------------------------------------------------
 // "nextChar" returns the next character from the token line string.
@@ -164,7 +163,7 @@ void DrvTokenizer::parseNum( ) {
     
     char tmpStr[ TOK_INPUT_LINE_SIZE ]  = "";
     
-    currentTokTyp       = TOK_TYP_NUM;
+    currentTokTyp       = TYP_NUM;
     currentTokId        = TOK_NUM;
     currentTokVal       = 0;
     currentTokStr[ 0 ]  = '\0';
@@ -196,7 +195,7 @@ void DrvTokenizer::parseNum( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::parseString( ) {
 
-    currentTokTyp       = TOK_TYP_STR;
+    currentTokTyp       = TYP_STR;
     currentTokId        = TOK_STR;
     currentTokVal       = 0;
     currentTokStr[ 0 ]  = '\0';
@@ -240,7 +239,7 @@ void DrvTokenizer::parseString( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::parseIdent( ) {
     
-    currentTokTyp       = TOK_TYP_IDENT;
+    currentTokTyp       = TYP_IDENT;
     currentTokId        = TOK_IDENT;
     currentTokVal       = 0;
     currentTokStr[ 0 ]  = '\0';
@@ -286,7 +285,7 @@ void DrvTokenizer::parseIdent( ) {
         }
     }
     
-    while ( isalnum( currentChar )) {
+    while (( isalnum( currentChar )) || ( currentChar == '_' )) {
         
         strcat( identBuf, &currentChar );
         nextChar( );
@@ -296,7 +295,7 @@ void DrvTokenizer::parseIdent( ) {
     
     if ( index == -1 ) {
         
-        currentTokTyp       = TOK_TYP_IDENT;
+        currentTokTyp       = TYP_IDENT;
         currentTokId        = TOK_IDENT;
         currentTokVal       = 0;
         strcpy( currentTokStr, identBuf );
@@ -316,7 +315,7 @@ void DrvTokenizer::parseIdent( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::nextToken( ) {
 
-    currentTokTyp       = TOK_TYP_NIL;
+    currentTokTyp       = TYP_NIL;
     currentTokId        = TOK_NIL;
     currentTokVal       = 0;
     currentTokStr[ 0 ]  = '\0';
@@ -341,7 +340,7 @@ void DrvTokenizer::nextToken( ) {
     }
     else if ( currentChar == '.' ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_PERIOD;
         nextChar( );
     }
@@ -352,67 +351,67 @@ void DrvTokenizer::nextToken( ) {
     }
     else if ( currentChar == '-' ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_MINUS;
         nextChar( );
     }
     else if ( currentChar == '*' ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_MULT;
         nextChar( );
     }
     else if ( currentChar == '/' ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_DIV;
         nextChar( );
     }
     else if ( currentChar == '%' ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_MOD;
         nextChar( );
     }
     else if ( currentChar == '|' ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_OR;
         nextChar( );
     }
     else if ( currentChar == '^' ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_XOR;
         nextChar( );
     }
     else if ( currentChar == '~' ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_NEG;
         nextChar( );
     }
     else if ( currentChar == '(' ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_LPAREN;
         nextChar( );
     }
     else if ( currentChar == ')' ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_RPAREN;
         nextChar( );
     }
     else if ( currentChar == ',' ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_COMMA;
         nextChar( );
     }
     else if ( currentChar == EOS_CHAR ) {
         
-        currentTokTyp   = TOK_TYP_SYM;
+        currentTokTyp   = TYP_SYM;
         currentTokId    = TOK_EOS;
     }
     else {
