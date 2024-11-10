@@ -149,7 +149,7 @@ void DrvLineDisplay::displayPStateRegSet( TokId fmt ) {
     fprintf( stdout, "PSW0=   " );
     displayWord( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_0 ), fmt );
     fprintf( stdout, ", PSW1=   " );
-    displayWord( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_0 ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_1 ), fmt );
     fprintf( stdout, "\n" );
 }
 

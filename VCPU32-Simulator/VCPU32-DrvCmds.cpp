@@ -421,8 +421,8 @@ DrvToken const cmdTokTab[ ] = {
     
     { .name = "HVA",                .typ = TYP_CMD,                 .tid = CMD_HASH_VA              },
     
-    { .name = "LOAD-MEM",           .typ = TYP_CMD,                 .tid = CMD_LMF           },
-    { .name = "SAVE-MEM",           .typ = TYP_CMD,                 .tid = CMD_SMF             },
+    { .name = "LOAD_MEM",           .typ = TYP_CMD,                 .tid = CMD_LMF           },
+    { .name = "SAVE_MEM",           .typ = TYP_CMD,                 .tid = CMD_SMF             },
     
     //--------------------------------------------------------------------------------------------------------
     // Window command tokens.
@@ -504,7 +504,7 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "R13",                .typ = TYP_GREG,                .tid = GR_13,                   13              },
     { .name = "R14",                .typ = TYP_GREG,                .tid = GR_14,                   14              },
     { .name = "R15",                .typ = TYP_GREG,                .tid = GR_15,                   15              },
-    { .name = "GRSET",              .typ = TYP_GREG,                .tid = GR_SET,                  0               },
+    { .name = "GR",                 .typ = TYP_GREG,                .tid = GR_SET,                  0               },
     
     //--------------------------------------------------------------------------------------------------------
     // Segment registers.
@@ -518,7 +518,7 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "S5",                 .typ = TYP_SREG,                .tid = SR_5,                    5               },
     { .name = "S6",                 .typ = TYP_SREG,                .tid = SR_6,                    6               },
     { .name = "S7",                 .typ = TYP_SREG,                .tid = SR_7,                    7               },
-    { .name = "SRSET",              .typ = TYP_SREG,                .tid = SR_SET,                  0               },
+    { .name = "SR",                 .typ = TYP_SREG,                .tid = SR_SET,                  0               },
     
     //--------------------------------------------------------------------------------------------------------
     // Control registers.
@@ -556,81 +556,94 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "C29",                .typ = TYP_CREG,                .tid = CR_29,                   29              },
     { .name = "C30",                .typ = TYP_CREG,                .tid = CR_30,                   30              },
     { .name = "C31",                .typ = TYP_CREG,                .tid = CR_31,                   31              },
-    { .name = "CRSET",              .typ = TYP_CREG,                .tid = CR_SET,                  0               },
+    { .name = "CR",                 .typ = TYP_CREG,                .tid = CR_SET,                  0               },
     
     //--------------------------------------------------------------------------------------------------------
     // CPu Core register tokens.
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "IA-SEG",             .typ = TYP_PSTATE_PREG,             PS_IA_SEG,                  0               },
-    { .name = "IA-OFS",             .typ = TYP_PSTATE_PREG,             PS_IA_OFS,                  0               },
-    { .name = "ST-REG",             .typ = TYP_PSTATE_PREG,             PS_STATUS,                  0               },
-    { .name = "PS-SET",             .typ = TYP_PSTATE_PREG,                    .tid = PS_SET,              0               },
+    { .name = "IA_SEG",             .typ = TYP_PSTATE_PREG,             PS_IA_SEG,                  0               },
+    { .name = "IA_OFS",             .typ = TYP_PSTATE_PREG,             PS_IA_OFS,                  0               },
+    { .name = "ST_REG",             .typ = TYP_PSTATE_PREG,             PS_STATUS,                  0               },
+    { .name = "PS",                 .typ = TYP_PSTATE_PREG,             .tid = PS_SET,              0               },
     
-    { .name = "FD-IA-SEG",          .typ = TYP_FD_PREG,                 FD_IA_SEG,                  0               },
-    { .name = "FD-IA-OFS",          .typ = TYP_FD_PREG,                 FD_IA_OFS,                  0               },
-    { .name = "FD-INSTR",           .typ = TYP_FD_PREG,                 FD_INSTR,                   0               },
-    { .name = "FD-A",               .typ = TYP_FD_PREG,                 FD_A,                       0               },
-    { .name = "FD-B",               .typ = TYP_FD_PREG,                 FD_B,                       0               },
-    { .name = "FD-X",               .typ = TYP_FD_PREG,                 FD_X,                       0               },
-    { .name = "FD-SET",             .typ = TYP_FD_PREG,                 .tid = FD_SET,              0               },
+    { .name = "FD_IA_SEG",          .typ = TYP_FD_PREG,                 FD_IA_SEG,                  0               },
+    { .name = "FD_IA_OFS",          .typ = TYP_FD_PREG,                 FD_IA_OFS,                  0               },
+    { .name = "FDR",                .typ = TYP_FD_PREG,                 .tid = FD_SET,              0               },
     
-    { .name = "MA-IA-SEG",          .typ = TYP_MA_PREG,                 MA_IA_SEG,                  0               },
-    { .name = "MA-IA-OFS",          .typ = TYP_MA_PREG,                 MA_IA_OFS,                  0               },
-    { .name = "MA-INSTR",           .typ = TYP_MA_PREG,                 MA_INSTR,                   0               },
-    { .name = "MA-A",               .typ = TYP_MA_PREG,                 MA_A,                       0               },
-    { .name = "MA-B",               .typ = TYP_MA_PREG,                 MA_B,                       0               },
-    { .name = "MA-X",               .typ = TYP_MA_PREG,                 MA_X,                       0               },
-    { .name = "MA-S",               .typ = TYP_MA_PREG,                 MA_S,                       0               },
-    { .name = "MA-SET",             .typ = TYP_MA_PREG,                 .tid = MA_SET            },
+   /*
+    { .name = "FD_INSTR",           .typ = TYP_FD_PREG,                 FD_INSTR,                   0               },
+    { .name = "FD_A",               .typ = TYP_FD_PREG,                 FD_A,                       0               },
+    { .name = "FD_B",               .typ = TYP_FD_PREG,                 FD_B,                       0               },
+    { .name = "FD_X",               .typ = TYP_FD_PREG,                 FD_X,                       0               },
     
-    { .name = "IC-L1-STATE",        .typ = TYP_IC_L1_REG,               IC_L1_STATE,                0               },
-    { .name = "IC-L1-REQ",          .typ = TYP_IC_L1_REG,               IC_L1_REQ,                  0               },
-    { .name = "IC-L1-REQ-SEG",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_SEG,              0               },
-    { .name = "IC-L1-REQ-OFS",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_OFS,              0               },
-    { .name = "IC-L1-REQ-TAG",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_TAG,              0               },
-    { .name = "IC-L1-REQ-LEN",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_LEN,              0               },
-    { .name = "IC-L1-REQ-LAT",      .typ = TYP_IC_L1_REG,               IC_L1_LATENCY,              0               },
-    { .name = "IC-L1-SETS",         .typ = TYP_IC_L1_REG,               IC_L1_SETS,                 0               },
-    { .name = "IC-L1-ENTRIES",      .typ = TYP_IC_L1_REG,               IC_L1_BLOCK_ENTRIES,        0               },
-    { .name = "IC-L1-B-SIZE",       .typ = TYP_IC_L1_REG,               IC_L1_BLOCK_SIZE,           0               },
-    { .name = "IC-L1-SET",          .typ = TYP_IC_L1_REG,               IC_L1_SET,                  0               },
+    */
     
-    { .name = "DC-L1-STATE",        .typ = TYP_DC_L1_REG,               DC_L1_STATE,                0               },
-    { .name = "DC-L1-REQ",          .typ = TYP_DC_L1_REG,               DC_L1_REQ,                  0               },
-    { .name = "DC-L1-REQ-SEG",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_SEG,              0               },
-    { .name = "DC-L1-REQ-OFS",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_OFS,              0               },
-    { .name = "DC-L1-REQ-TAG",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_TAG,              0               },
-    { .name = "DC-L1-REQ-LEN",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_LEN,              0               },
-    { .name = "DC-L1-REQ-LAT",      .typ = TYP_DC_L1_REG,               DC_L1_LATENCY,              0               },
-    { .name = "DC-L1-SETS",         .typ = TYP_DC_L1_REG,               DC_L1_SETS,                 0               },
-    { .name = "DC-L1-ENTRIES",      .typ = TYP_DC_L1_REG,               DC_L1_BLOCK_ENTRIES,        0               },
-    { .name = "DC-L1-B-SIZE",       .typ = TYP_DC_L1_REG,               DC_L1_BLOCK_SIZE,           0               },
-    { .name = "DC-L1-SET",          .typ = TYP_IC_L1_REG,               DC_L1_SET,                  0               },
+    { .name = "MA_IA_SEG",          .typ = TYP_MA_PREG,                 MA_IA_SEG,                  0               },
+    { .name = "MA_IA_OFS",          .typ = TYP_MA_PREG,                 MA_IA_OFS,                  0               },
+    { .name = "MA_INSTR",           .typ = TYP_MA_PREG,                 MA_INSTR,                   0               },
+    { .name = "MA_A",               .typ = TYP_MA_PREG,                 MA_A,                       0               },
+    { .name = "MA_B",               .typ = TYP_MA_PREG,                 MA_B,                       0               },
+    { .name = "MA_X",               .typ = TYP_MA_PREG,                 MA_X,                       0               },
+    { .name = "MA_S",               .typ = TYP_MA_PREG,                 MA_S,                       0               },
+    { .name = "MAR",                .typ = TYP_MA_PREG,                 .tid = MA_SET            },
     
-    { .name = "UC-L2-STATE",        .typ = TYP_UC_L2_REG,               UC_L2_STATE,                0               },
-    { .name = "UC-L2-REQ",          .typ = TYP_UC_L2_REG,               UC_L2_REQ,                  0               },
-    { .name = "UC-L2-REQ-SEG",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_SEG,              0               },
-    { .name = "UC-L2-REQ-OFS",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_OFS,              0               },
-    { .name = "UC-L2-REQ-TAG",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_TAG,              0               },
-    { .name = "UC-L2-REQ-LEN",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_LEN,              0               },
-    { .name = "UC-L2-REQ-LAT",      .typ = TYP_UC_L2_REG,               UC_L2_LATENCY,              0               },
-    { .name = "UC-L2-SETS",         .typ = TYP_UC_L2_REG,               UC_L2_SETS,                 0               },
-    { .name = "UC-L2-ENTRIES",      .typ = TYP_UC_L2_REG,               UC_L2_BLOCK_ENTRIES,        0               },
-    { .name = "UC-L2-B-SIZE",       .typ = TYP_UC_L2_REG,               UC_L2_BLOCK_SIZE,           0               },
-    { .name = "UC-L2-SET",          .typ = TYP_UC_L2_REG,               DC_L1_SET,                  0               },
+    { .name = "EX_IA_SEG",          .typ = TYP_EX_PREG,                 EX_IA_SEG,                  0               },
+    { .name = "EX_IA_OFS",          .typ = TYP_EX_PREG,                 EX_IA_OFS,                  0               },
+    { .name = "EX_INSTR",           .typ = TYP_EX_PREG,                 EX_INSTR,                   0               },
+    { .name = "EX_A",               .typ = TYP_EX_PREG,                 EX_A,                       0               },
+    { .name = "EX_B",               .typ = TYP_EX_PREG,                 EX_B,                       0               },
+    { .name = "EX_X",               .typ = TYP_EX_PREG,                 EX_X,                       0               },
+    { .name = "EX_S",               .typ = TYP_EX_PREG,                 EX_S,                       0               },
+    { .name = "EXR",                .typ = TYP_EX_PREG,                 .tid = EX_SET            },
     
-    { .name = "ITLB-STATE",         .typ = TYP_ITLB_REG,                ITLB_STATE,                 0               },
-    { .name = "ITLB-REQ",           .typ = TYP_ITLB_REG,                ITLB_REQ,                   0               },
-    { .name = "ITLB-REQ-SEG",       .typ = TYP_ITLB_REG,                ITLB_REQ_SEG,               0               },
-    { .name = "ITLB-REQ-OFS",       .typ = TYP_ITLB_REG,                ITLB_REQ_OFS,               0               },
-    { .name = "ITLB-SET",           .typ = TYP_ITLB_REG,                ITLB_SET,                   0               },
+    { .name = "IC_L1_STATE",        .typ = TYP_IC_L1_REG,               IC_L1_STATE,                0               },
+    { .name = "IC_L1_REQ",          .typ = TYP_IC_L1_REG,               IC_L1_REQ,                  0               },
+    { .name = "IC_L1_REQ_SEG",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_SEG,              0               },
+    { .name = "IC_L1_REQ_OFS",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_OFS,              0               },
+    { .name = "IC_L1_REQ_TAG",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_TAG,              0               },
+    { .name = "IC_L1_REQ_LEN",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_LEN,              0               },
+    { .name = "IC_L1_REQ_LAT",      .typ = TYP_IC_L1_REG,               IC_L1_LATENCY,              0               },
+    { .name = "IC_L1_SETS",         .typ = TYP_IC_L1_REG,               IC_L1_SETS,                 0               },
+    { .name = "IC_L1_ENTRIES",      .typ = TYP_IC_L1_REG,               IC_L1_BLOCK_ENTRIES,        0               },
+    { .name = "IC_L1_B_SIZE",       .typ = TYP_IC_L1_REG,               IC_L1_BLOCK_SIZE,           0               },
+    { .name = "ICL1",               .typ = TYP_IC_L1_REG,               .tid = IC_L1_SET                            },
     
-    { .name = "DTLB-STATE",         .typ = TYP_DTLB_REG,                DTLB_STATE,                 0               },
-    { .name = "DTLB-REQ",           .typ = TYP_DTLB_REG,                DTLB_REQ,                   0               },
-    { .name = "DTLB-REQ-SEG",       .typ = TYP_DTLB_REG,                DTLB_REQ_SEG,               0               },
-    { .name = "DTLB-REQ-OFS",       .typ = TYP_DTLB_REG,                DTLB_REQ_OFS,               0               },
-    { .name = "DTLB-SET",           .typ = TYP_DTLB_REG,                DTLB_SET,                   0               },
+    { .name = "DC_L1_STATE",        .typ = TYP_DC_L1_REG,               DC_L1_STATE,                0               },
+    { .name = "DC_L1_REQ",          .typ = TYP_DC_L1_REG,               DC_L1_REQ,                  0               },
+    { .name = "DC_L1_REQ_SEG",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_SEG,              0               },
+    { .name = "DC_L1_REQ_OFS",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_OFS,              0               },
+    { .name = "DC_L1_REQ_TAG",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_TAG,              0               },
+    { .name = "DC_L1_REQ_LEN",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_LEN,              0               },
+    { .name = "DC_L1_REQ_LAT",      .typ = TYP_DC_L1_REG,               DC_L1_LATENCY,              0               },
+    { .name = "DC_L1_SETS",         .typ = TYP_DC_L1_REG,               DC_L1_SETS,                 0               },
+    { .name = "DC_L1_ENTRIES",      .typ = TYP_DC_L1_REG,               DC_L1_BLOCK_ENTRIES,        0               },
+    { .name = "DC_L1_B_SIZE",       .typ = TYP_DC_L1_REG,               DC_L1_BLOCK_SIZE,           0               },
+    { .name = "DCL1",               .typ = TYP_DC_L1_REG,               .tid = DC_L1_SET                            },
+    
+    { .name = "UC_L2_STATE",        .typ = TYP_UC_L2_REG,               UC_L2_STATE,                0               },
+    { .name = "UC_L2_REQ",          .typ = TYP_UC_L2_REG,               UC_L2_REQ,                  0               },
+    { .name = "UC_L2_REQ_SEG",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_SEG,              0               },
+    { .name = "UC_L2_REQ_OFS",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_OFS,              0               },
+    { .name = "UC_L2_REQ_TAG",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_TAG,              0               },
+    { .name = "UC_L2_REQ_LEN",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_LEN,              0               },
+    { .name = "UC_L2_REQ_LAT",      .typ = TYP_UC_L2_REG,               UC_L2_LATENCY,              0               },
+    { .name = "UC_L2_SETS",         .typ = TYP_UC_L2_REG,               UC_L2_SETS,                 0               },
+    { .name = "UC_L2_ENTRIES",      .typ = TYP_UC_L2_REG,               UC_L2_BLOCK_ENTRIES,        0               },
+    { .name = "UC_L2_B_SIZE",       .typ = TYP_UC_L2_REG,               UC_L2_BLOCK_SIZE,           0               },
+    { .name = "UCL2",               .typ = TYP_UC_L2_REG,               DC_L1_SET,                  0               },
+    
+    { .name = "ITLB_STATE",         .typ = TYP_ITLB_REG,                ITLB_STATE,                 0               },
+    { .name = "ITLB_REQ",           .typ = TYP_ITLB_REG,                ITLB_REQ,                   0               },
+    { .name = "ITLB_REQ_SEG",       .typ = TYP_ITLB_REG,                ITLB_REQ_SEG,               0               },
+    { .name = "ITLB_REQ_OFS",       .typ = TYP_ITLB_REG,                ITLB_REQ_OFS,               0               },
+    { .name = "ITLBL1",             .typ = TYP_ITLB_REG,                ITLB_SET,                   0               },
+    
+    { .name = "DTLB_STATE",         .typ = TYP_DTLB_REG,                DTLB_STATE,                 0               },
+    { .name = "DTLB_REQ",           .typ = TYP_DTLB_REG,                DTLB_REQ,                   0               },
+    { .name = "DTLB_REQ_SEG",       .typ = TYP_DTLB_REG,                DTLB_REQ_SEG,               0               },
+    { .name = "DTLB_REQ_OFS",       .typ = TYP_DTLB_REG,                DTLB_REQ_OFS,               0               },
+    { .name = "DTLBL1",             .typ = TYP_DTLB_REG,                DTLB_SET,                   0               },
     
     //--------------------------------------------------------------------------------------------------------
     // The last token to mark the list end.
@@ -1755,49 +1768,55 @@ uint8_t DrvCmds::assembleCmd( ) {
 // all of them in one format.
 //
 // DR [ <regSet>|<reg> ] [ "," <fmt> ]
+//
+// ??? PSTATE regs and FD Stage Regs are the same ?????
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::displayRegCmd( ) {
     
     TokId   fmtId       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
     TypeId  regSetId    = TYP_GREG;
-    TokId   regId       = TOK_NIL;
+    TokId   regId       = GR_SET;
     
-    if (( tok -> tokTyp( ) == TYP_GREG )        ||
-        ( tok -> tokTyp( ) == TYP_SREG )        ||
-        ( tok -> tokTyp( ) == TYP_CREG )        ||
-        ( tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
-        ( tok -> tokTyp( ) == TYP_FD_PREG )     ||
-        ( tok -> tokTyp( ) == TYP_MA_PREG )     ||
-        ( tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
-        ( tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
-        ( tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
-        ( tok -> tokTyp( ) == TYP_ITLB_REG )    ||
-        ( tok -> tokTyp( ) == TYP_DTLB_REG )) {
+    if ( tok -> tokId( ) != TOK_EOS ) {
         
-        regSetId    = tok -> tokTyp( );
-        regId       = tok -> tokId( );
-    }
-    else {
-        
-        fprintf( stdout, "Invalid register or register set\n" );
-        return ( NO_ERR );
-    }
-    
-    if ( tok -> tokId( ) == TOK_COMMA ) {
-        
-        tok -> nextToken( );
-        
-        if (( tok -> tokId( ) == TOK_HEX ) ||
-            ( tok -> tokId( ) == TOK_OCT ) ||
-            ( tok -> tokId( ) == TOK_DEC )) {
+        if (( tok -> tokTyp( ) == TYP_GREG )        ||
+            ( tok -> tokTyp( ) == TYP_SREG )        ||
+            ( tok -> tokTyp( ) == TYP_CREG )        ||
+            ( tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
+            ( tok -> tokTyp( ) == TYP_FD_PREG )     ||
+            ( tok -> tokTyp( ) == TYP_MA_PREG )     ||
+            ( tok -> tokTyp( ) == TYP_EX_PREG )     ||
+            ( tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
+            ( tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
+            ( tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
+            ( tok -> tokTyp( ) == TYP_ITLB_REG )    ||
+            ( tok -> tokTyp( ) == TYP_DTLB_REG )) {
             
-            fmtId = tok -> tokId( );
+            regSetId    = tok -> tokTyp( );
+            regId       = tok -> tokId( );
         }
-        else if ( tok -> tokId( ) == TOK_EOS ) {
+        else {
             
-            fmtId = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+            fprintf( stdout, "Invalid register or register set\n" );
+            return ( NO_ERR );
         }
-        else return( cmdLineError( ERR_INVALID_FMT_OPT ));
+   
+        if ( tok -> tokId( ) == TOK_COMMA ) {
+            
+            tok -> nextToken( );
+            
+            if (( tok -> tokId( ) == TOK_HEX ) ||
+                ( tok -> tokId( ) == TOK_OCT ) ||
+                ( tok -> tokId( ) == TOK_DEC )) {
+                
+                fmtId = tok -> tokId( );
+            }
+            else if ( tok -> tokId( ) == TOK_EOS ) {
+                
+                fmtId = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+            }
+            else return( cmdLineError( ERR_INVALID_FMT_OPT ));
+        }
     }
     
     switch( regSetId ) {
@@ -1869,6 +1888,24 @@ uint8_t DrvCmds::displayRegCmd( ) {
             
         } break;
             
+        case TYP_FD_PREG: {
+            
+            glb -> lineDisplay -> displayPlIFetchDecodeRegSet( fmtId );
+            
+        } break;
+            
+        case TYP_MA_PREG: {
+            
+            glb -> lineDisplay -> displayPlMemoryAccessRegSet( fmtId );
+            
+        } break;
+            
+        case TYP_EX_PREG: {
+            
+            glb -> lineDisplay -> displayPlExecuteRegSet( fmtId );
+            
+        } break;
+            
         default: ;
     }
 
@@ -1880,6 +1917,8 @@ uint8_t DrvCmds::displayRegCmd( ) {
 // Modify register command. This command modifies a register within a register set.
 //
 // MR <reg> <val>
+//
+// ??? PSTATE regs and FD Stage Regs are the same ?????
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::modifyRegCmd( ) {
     
@@ -1894,6 +1933,7 @@ uint8_t DrvCmds::modifyRegCmd( ) {
         ( tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
         ( tok -> tokTyp( ) == TYP_FD_PREG )     ||
         ( tok -> tokTyp( ) == TYP_MA_PREG )     ||
+        ( tok -> tokTyp( ) == TYP_EX_PREG )     ||
         ( tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
         ( tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
         ( tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
@@ -1922,6 +1962,7 @@ uint8_t DrvCmds::modifyRegCmd( ) {
         fprintf( stdout, "Invalid value\n" );
         return( NO_ERR );
     }
+    else val = rExpr.numVal1;
     
     switch( regSetId ) {
             
@@ -1931,6 +1972,7 @@ uint8_t DrvCmds::modifyRegCmd( ) {
         case TYP_PSTATE_PREG:   glb -> cpu -> setReg( RC_PROG_STATE, regId - PS_IA_SEG, val );  break;
         case TYP_FD_PREG:       glb -> cpu -> setReg( RC_FD_PSTAGE, regId - PS_IA_SEG, val );   break;
         case TYP_MA_PREG:       glb -> cpu -> setReg( RC_MA_PSTAGE, regId - PS_IA_SEG, val );   break;
+        case TYP_EX_PREG:       glb -> cpu -> setReg( RC_EX_PSTAGE, regId - EX_IA_SEG, val );   break;
         case TYP_IC_L1_REG:     glb -> cpu -> setReg( RC_IC_L1_OBJ, regId - IC_L1_STATE, val ); break;
         case TYP_DC_L1_REG:     glb -> cpu -> setReg( RC_DC_L1_OBJ, regId - DC_L1_STATE, val ); break;
         case TYP_UC_L2_REG:     glb -> cpu -> setReg( RC_UC_L2_OBJ, regId - UC_L2_STATE, val ); break;
@@ -1943,28 +1985,13 @@ uint8_t DrvCmds::modifyRegCmd( ) {
     return( NO_ERR );
 }
 
-
-
-
-
-
-
-
-// ???? continue from here.....
-// ???? continue from here.....
-
-
-
-
-
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // Hash virtual address command. The TLB is indexed by a hash function, which we can test with this command.
 // We will use the iTlb hash function for this command.
 //
 // HVA <seg> <ofs>
+//
+// ??? need to implement a virtual adress in tokenizer ...
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::hashVACmd( char *cmdBuf ) {
     
@@ -1983,48 +2010,113 @@ void DrvCmds::hashVACmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 // Display TLB entries command.
 //
-// D-TLB ( D | I ) [ <index> ] [ <len> ] [ <fmt> ] - if no index, list all entries ? practical ?
+// DTLB ( D | I ) [ <index> ] [ "," <len> ] [ "," <fmt> ] - if no index, list all entries ? practical ?
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::displayTLBCmd( char *cmdBuf ) {
-    
-    char        cmdStr[ TOK_NAME_SIZE + 1 ]     = "";
-    char        tlbTypStr[ TOK_NAME_SIZE + 1 ]  = "";
-    char        fmtStr[ TOK_NAME_SIZE + 1 ]     = "";
-    uint32_t    ofs                             = 0;
-    uint32_t    len                             = 0;
-    uint32_t    tlbSize                         = 0;
-    
-    int         args        = sscanf( cmdBuf, "%32s %32s %i %i %32s", cmdStr, tlbTypStr, &ofs, &len, fmtStr );
+uint8_t DrvCmds::displayTLBCmd( ) {
+ 
+    uint32_t    ofs         = 0;
+    uint32_t    len         = 0;
+    uint32_t    tlbSize     = 0;
+    TokId       tlbTypeId   = TOK_I;
     TokId       fmtId       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
-    TokId       tlbTypId    = lookupTokId( tlbTypStr );
     
-    if ( args < 2 ) {
+    if ( tok -> tokId( ) == TOK_I ) {
         
-        fprintf( stdout, "Expected TLB type\n" );
-        return;
+        tlbSize     = glb -> cpu -> iTlb -> getTlbSize( );
+        tlbTypeId   = TOK_I;
+        tok -> nextToken( );
     }
-    
-    if      ( tlbTypId == TOK_I ) tlbSize = glb -> cpu -> iTlb -> getTlbSize( );
-    else if ( tlbTypId == TOK_D ) tlbSize = glb -> cpu -> dTlb -> getTlbSize( );
+    else if ( tok -> tokId( ) == TOK_D ) {
+        
+        tlbSize     = glb -> cpu -> dTlb -> getTlbSize( );
+        tlbTypeId   = TOK_D;
+        tok -> nextToken( );
+    }
     else {
         
         fprintf( stdout, "Expected an I or D \n" );
-        return;
+        return( NO_ERR );
+    }
+    
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        ofs = 0;
+        tok -> nextToken( );
+    }
+    else {
+        
+        DrvExpr rExpr;
+        
+        if ( parseExpr( &rExpr )) {
+            
+            ofs = rExpr.numVal1;
+        }
+        else {
+            
+            printf( "Expected the start offset\n" );
+            return( NO_ERR );
+        }
+    }
+    
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        len = 1;
+        tok -> nextToken( );
+    }
+    else {
+        
+        DrvExpr rExpr;
+        
+        if ( parseExpr( &rExpr )) {
+            
+            len = rExpr.numVal1;
+        }
+        else {
+            
+            printf( "Expected the start offset\n" );
+            return( NO_ERR );
+        }
+    }
+    
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        tok -> nextToken( );
+        
+        if (( tok -> tokId( ) == TOK_HEX ) ||
+            ( tok -> tokId( ) == TOK_OCT ) ||
+            ( tok -> tokId( ) == TOK_DEC )) {
+            
+            fmtId = tok -> tokId( );
+        }
+        else if ( tok -> tokId( ) == TOK_EOS ) {
+            
+            fmtId = glb -> env -> getEnvValTok( ENV_FMT_DEF );
+        }
+        else return( cmdLineError( ERR_INVALID_FMT_OPT ));
     }
     
     if (( ofs > tlbSize ) || ( ofs + len > tlbSize )) {
         
         fprintf( stdout, "Index / Len exceed TLB size\n" );
-        return;
+        return( NO_ERR );
     }
     
     if (( ofs == 0 ) && ( len == 0 )) len = tlbSize;
     
-    if      ( tlbTypId == TOK_I ) glb -> lineDisplay -> displayTlbEntries( glb -> cpu -> iTlb, ofs, len, fmtId );
-    else if ( tlbTypId == TOK_D ) glb -> lineDisplay -> displayTlbEntries( glb -> cpu -> dTlb, ofs, len, fmtId );
+    if      ( tlbTypeId == TOK_I ) glb -> lineDisplay -> displayTlbEntries( glb -> cpu -> iTlb, ofs, len, fmtId );
+    else if ( tlbTypeId == TOK_D ) glb -> lineDisplay -> displayTlbEntries( glb -> cpu -> dTlb, ofs, len, fmtId );
     
     fprintf( stdout, "\n" );
+    return( NO_ERR );
 }
+
+
+
+
+// ???? continue from here........
+
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // Purge from TLB command.
@@ -3126,7 +3218,7 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
                         
                         
                     case CMD_HASH_VA:       hashVACmd( cmdBuf);                 break;
-                    case CMD_D_TLB:         displayTLBCmd( cmdBuf );            break;
+                    case CMD_D_TLB:         return( displayTLBCmd( ));          break;
                     case CMD_I_TLB:         insertTLBCmd( cmdBuf );             break;
                     case CMD_P_TLB:         purgeTLBCmd( cmdBuf );              break;
                     case CMD_D_CACHE:       displayCacheCmd( cmdBuf );          break;

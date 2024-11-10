@@ -61,6 +61,8 @@ enum TypeId : uint16_t {
     
     TYP_GREG                = 30,       TYP_SREG            = 31,           TYP_CREG            = 32,
     TYP_PSTATE_PREG         = 33,       TYP_FD_PREG         = 34,           TYP_MA_PREG         = 35,
+    TYP_EX_PREG             = 36,
+    
     TYP_IC_L1_REG           = 40,       TYP_DC_L1_REG       = 41,           TYP_UC_L2_REG       = 42,
     TYP_MEM_REG             = 43,       TYP_ITLB_REG        = 44,           TYP_DTLB_REG        = 45
     
@@ -83,11 +85,12 @@ enum TokId : uint16_t {
     TOK_TYP_ADR             = 906,      TOK_TYP_EXT_ADR         = 907,      TOK_TYP_CMD             = 908,
     TOK_TYP_FUNC            = 909,      TOK_TYPE_TYPE           = 999,
     
+    
     TOK_TYP_GREG            = 910,      TOK_TYP_SREG            = 911,      TOK_TYP_CREG            = 912,
     TOK_TYP_PSTATE_PREG     = 913,      TOK_TYP_FD_PREG         = 914,      TOK_TYP_OF_PREG         = 915,
     TOK_TYP_IC_L1_REG       = 916,      TOK_TYP_DC_L1_REG       = 917,      TOK_TYP_UC_L2_REG       = 918,
     TOK_TYP_MEM_REG         = 919,      TOK_TYP_ITLB_REG        = 920,      TOK_TYP_DTLB_REG        = 921,
-    
+
     TOK_TYP_OP_CODE         = 930,      TOK_TYP_OP_CODE_S       = 931,
     
     
@@ -115,7 +118,7 @@ enum TokId : uint16_t {
     // value is defined in the token tables.
     //
     //--------------------------------------------------------------------------------------------------------
-    TOK_IDENT               = 50,   TOK_NUM                 = 51,   TOK_STR                 = 52,
+    TOK_IDENT               = 50,       TOK_NUM                 = 51,       TOK_STR                 = 52,
     
     TOK_TRUE                = 3,        TOK_FALSE               = 4,
     
@@ -249,6 +252,10 @@ enum TokId : uint16_t {
     MA_IA_SEG               = 4600,     MA_IA_OFS               = 4601,     MA_INSTR                = 4602,
     MA_A                    = 4603,     MA_B                    = 4604,     MA_X                    = 4605,
     MA_S                    = 4606,     MA_SET                  = 4607,
+    
+    EX_IA_SEG               = 4650,     EX_IA_OFS               = 4651,     EX_INSTR                = 4652,
+    EX_A                    = 4653,     EX_B                    = 4654,     EX_X                    = 4655,
+    EX_S                    = 4656,     EX_SET                  = 4657,
     
     IC_L1_STATE             = 4700,     IC_L1_REQ               = 4701,     IC_L1_REQ_SEG           = 4702,
     IC_L1_REQ_OFS           = 4703,     IC_L1_REQ_TAG           = 4704,     IC_L1_REQ_LEN           = 4705,
@@ -1106,7 +1113,7 @@ private:
     
    
     void            hashVACmd( char *cmdBuf );
-    void            displayTLBCmd( char *cmdBuf );
+    uint8_t         displayTLBCmd( );
     void            purgeTLBCmd( char *cmdBuf );
     void            insertTLBCmd( char *cmdBuf );
     void            displayCacheCmd( char *cmdBuf );
