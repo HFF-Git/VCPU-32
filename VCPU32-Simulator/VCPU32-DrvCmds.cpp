@@ -42,6 +42,7 @@
 // Expression have a type, which are NUM, ADR, STR, SREG, GREG and CREG.
 //
 //      <factor> -> <number>                        |
+//                  <extAdr>                        |
 //                  <string>                        |
 //                  <envId>                         |
 //                  <gregId>                        |
@@ -380,7 +381,6 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "OCT",                .typ = TYP_NIL,                 .tid = TOK_OCT,                 8       },
     { .name = "OCTAL",              .typ = TYP_NIL,                 .tid = TOK_OCT,                 8       },
     
-    
     //--------------------------------------------------------------------------------------------------------
     // Command Line tokens.
     //
@@ -562,88 +562,80 @@ DrvToken const cmdTokTab[ ] = {
     // CPu Core register tokens.
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "IA_SEG",             .typ = TYP_PSTATE_PREG,             PS_IA_SEG,                  0               },
-    { .name = "IA_OFS",             .typ = TYP_PSTATE_PREG,             PS_IA_OFS,                  0               },
-    { .name = "ST_REG",             .typ = TYP_PSTATE_PREG,             PS_STATUS,                  0               },
-    { .name = "PS",                 .typ = TYP_PSTATE_PREG,             .tid = PS_SET,              0               },
+    { .name = "IA_SEG",             .typ = TYP_PSTATE_PREG,         .tid = PS_IA_SEG,                  0               },
+    { .name = "IA_OFS",             .typ = TYP_PSTATE_PREG,         .tid = PS_IA_OFS,                  0               },
+    { .name = "ST_REG",             .typ = TYP_PSTATE_PREG,         .tid = PS_STATUS,                  0               },
+    { .name = "PS",                 .typ = TYP_PSTATE_PREG,         .tid = PS_SET,              0               },
     
-    { .name = "FD_IA_SEG",          .typ = TYP_FD_PREG,                 FD_IA_SEG,                  0               },
-    { .name = "FD_IA_OFS",          .typ = TYP_FD_PREG,                 FD_IA_OFS,                  0               },
-    { .name = "FDR",                .typ = TYP_FD_PREG,                 .tid = FD_SET,              0               },
+    { .name = "FD_IA_SEG",          .typ = TYP_FD_PREG,             .tid = FD_IA_SEG,                  0               },
+    { .name = "FD_IA_OFS",          .typ = TYP_FD_PREG,             .tid = FD_IA_OFS,                  0               },
+    { .name = "FDR",                .typ = TYP_FD_PREG,             .tid = FD_SET,              0               },
+  
+    { .name = "MA_IA_SEG",          .typ = TYP_MA_PREG,             .tid = MA_IA_SEG,                  0               },
+    { .name = "MA_IA_OFS",          .typ = TYP_MA_PREG,             .tid = MA_IA_OFS,                  1               },
+    { .name = "MA_INSTR",           .typ = TYP_MA_PREG,             .tid = MA_INSTR,                   2               },
+    { .name = "MA_A",               .typ = TYP_MA_PREG,             .tid = MA_A,                       3               },
+    { .name = "MA_B",               .typ = TYP_MA_PREG,             .tid = MA_B,                       4               },
+    { .name = "MA_X",               .typ = TYP_MA_PREG,             .tid = MA_X,                       5               },
+    { .name = "MA_S",               .typ = TYP_MA_PREG,             .tid = MA_S,                       6               },
+    { .name = "MAR",                .typ = TYP_MA_PREG,             .tid = MA_SET,              0               },
     
-   /*
-    { .name = "FD_INSTR",           .typ = TYP_FD_PREG,                 FD_INSTR,                   0               },
-    { .name = "FD_A",               .typ = TYP_FD_PREG,                 FD_A,                       0               },
-    { .name = "FD_B",               .typ = TYP_FD_PREG,                 FD_B,                       0               },
-    { .name = "FD_X",               .typ = TYP_FD_PREG,                 FD_X,                       0               },
+    { .name = "EX_IA_SEG",          .typ = TYP_EX_PREG,             .tid = EX_IA_SEG,                  0               },
+    { .name = "EX_IA_OFS",          .typ = TYP_EX_PREG,             .tid = EX_IA_OFS,                  1               },
+    { .name = "EX_INSTR",           .typ = TYP_EX_PREG,             .tid = EX_INSTR,                   2               },
+    { .name = "EX_A",               .typ = TYP_EX_PREG,             .tid = EX_A,                       3               },
+    { .name = "EX_B",               .typ = TYP_EX_PREG,             .tid = EX_B,                       4               },
+    { .name = "EX_X",               .typ = TYP_EX_PREG,             .tid = EX_X,                       5               },
+    { .name = "EX_S",               .typ = TYP_EX_PREG,             .tid = EX_S,                       6               },
+    { .name = "EXR",                .typ = TYP_EX_PREG,             .tid = EX_SET,              7               },
     
-    */
+    { .name = "IC_L1_STATE",        .typ = TYP_IC_L1_REG,           .tid = IC_L1_STATE,                0               },
+    { .name = "IC_L1_REQ",          .typ = TYP_IC_L1_REG,           .tid = IC_L1_REQ,                  1               },
+    { .name = "IC_L1_REQ_SEG",      .typ = TYP_IC_L1_REG,           .tid = IC_L1_REQ_SEG,              2               },
+    { .name = "IC_L1_REQ_OFS",      .typ = TYP_IC_L1_REG,           .tid =  IC_L1_REQ_OFS,              3               },
+    { .name = "IC_L1_REQ_TAG",      .typ = TYP_IC_L1_REG,           .tid = IC_L1_REQ_TAG,              4               },
+    { .name = "IC_L1_REQ_LEN",      .typ = TYP_IC_L1_REG,           .tid = IC_L1_REQ_LEN,              5               },
+    { .name = "IC_L1_REQ_LAT",      .typ = TYP_IC_L1_REG,           .tid = IC_L1_LATENCY,              6               },
+    { .name = "IC_L1_SETS",         .typ = TYP_IC_L1_REG,           .tid = IC_L1_SETS,                 7               },
+    { .name = "IC_L1_ENTRIES",      .typ = TYP_IC_L1_REG,           .tid = IC_L1_BLOCK_ENTRIES,        8               },
+    { .name = "IC_L1_B_SIZE",       .typ = TYP_IC_L1_REG,           .tid = IC_L1_BLOCK_SIZE,           9               },
+    { .name = "ICL1",               .typ = TYP_IC_L1_REG,           .tid = IC_L1_SET,               0               },
     
-    { .name = "MA_IA_SEG",          .typ = TYP_MA_PREG,                 MA_IA_SEG,                  0               },
-    { .name = "MA_IA_OFS",          .typ = TYP_MA_PREG,                 MA_IA_OFS,                  0               },
-    { .name = "MA_INSTR",           .typ = TYP_MA_PREG,                 MA_INSTR,                   0               },
-    { .name = "MA_A",               .typ = TYP_MA_PREG,                 MA_A,                       0               },
-    { .name = "MA_B",               .typ = TYP_MA_PREG,                 MA_B,                       0               },
-    { .name = "MA_X",               .typ = TYP_MA_PREG,                 MA_X,                       0               },
-    { .name = "MA_S",               .typ = TYP_MA_PREG,                 MA_S,                       0               },
-    { .name = "MAR",                .typ = TYP_MA_PREG,                 .tid = MA_SET            },
+    { .name = "DC_L1_STATE",        .typ = TYP_DC_L1_REG,           .tid = DC_L1_STATE,                0               },
+    { .name = "DC_L1_REQ",          .typ = TYP_DC_L1_REG,           .tid = DC_L1_REQ,                  1               },
+    { .name = "DC_L1_REQ_SEG",      .typ = TYP_DC_L1_REG,           .tid = DC_L1_REQ_SEG,              2               },
+    { .name = "DC_L1_REQ_OFS",      .typ = TYP_DC_L1_REG,           .tid = DC_L1_REQ_OFS,              3               },
+    { .name = "DC_L1_REQ_TAG",      .typ = TYP_DC_L1_REG,           .tid = DC_L1_REQ_TAG,              4               },
+    { .name = "DC_L1_REQ_LEN",      .typ = TYP_DC_L1_REG,           .tid = DC_L1_REQ_LEN,              5               },
+    { .name = "DC_L1_REQ_LAT",      .typ = TYP_DC_L1_REG,           .tid = DC_L1_LATENCY,              6               },
+    { .name = "DC_L1_SETS",         .typ = TYP_DC_L1_REG,           .tid =  DC_L1_SETS,                 7               },
+    { .name = "DC_L1_ENTRIES",      .typ = TYP_DC_L1_REG,           .tid = DC_L1_BLOCK_ENTRIES,         8               },
+    { .name = "DC_L1_B_SIZE",       .typ = TYP_DC_L1_REG,           .tid = DC_L1_BLOCK_SIZE,            9               },
+    { .name = "DCL1",               .typ = TYP_DC_L1_REG,           .tid = DC_L1_SET,                   0               },
     
-    { .name = "EX_IA_SEG",          .typ = TYP_EX_PREG,                 EX_IA_SEG,                  0               },
-    { .name = "EX_IA_OFS",          .typ = TYP_EX_PREG,                 EX_IA_OFS,                  0               },
-    { .name = "EX_INSTR",           .typ = TYP_EX_PREG,                 EX_INSTR,                   0               },
-    { .name = "EX_A",               .typ = TYP_EX_PREG,                 EX_A,                       0               },
-    { .name = "EX_B",               .typ = TYP_EX_PREG,                 EX_B,                       0               },
-    { .name = "EX_X",               .typ = TYP_EX_PREG,                 EX_X,                       0               },
-    { .name = "EX_S",               .typ = TYP_EX_PREG,                 EX_S,                       0               },
-    { .name = "EXR",                .typ = TYP_EX_PREG,                 .tid = EX_SET            },
+    { .name = "UC_L2_STATE",        .typ = TYP_UC_L2_REG,           .tid = UC_L2_STATE,                 0               },
+    { .name = "UC_L2_REQ",          .typ = TYP_UC_L2_REG,           .tid = UC_L2_REQ,                  1               },
+    { .name = "UC_L2_REQ_SEG",      .typ = TYP_UC_L2_REG,           .tid = UC_L2_REQ_SEG,              2               },
+    { .name = "UC_L2_REQ_OFS",      .typ = TYP_UC_L2_REG,           .tid = UC_L2_REQ_OFS,              3               },
+    { .name = "UC_L2_REQ_TAG",      .typ = TYP_UC_L2_REG,           .tid = UC_L2_REQ_TAG,              4               },
+    { .name = "UC_L2_REQ_LEN",      .typ = TYP_UC_L2_REG,           .tid = UC_L2_REQ_LEN,              5               },
+    { .name = "UC_L2_REQ_LAT",      .typ = TYP_UC_L2_REG,           .tid = UC_L2_LATENCY,              6               },
+    { .name = "UC_L2_SETS",         .typ = TYP_UC_L2_REG,           .tid = UC_L2_SETS,                 7               },
+    { .name = "UC_L2_ENTRIES",      .typ = TYP_UC_L2_REG,           .tid = UC_L2_BLOCK_ENTRIES,        8               },
+    { .name = "UC_L2_B_SIZE",       .typ = TYP_UC_L2_REG,           .tid = UC_L2_BLOCK_SIZE,           9               },
+    { .name = "UCL2",               .typ = TYP_UC_L2_REG,           .tid = DC_L1_SET,                  0              },
     
-    { .name = "IC_L1_STATE",        .typ = TYP_IC_L1_REG,               IC_L1_STATE,                0               },
-    { .name = "IC_L1_REQ",          .typ = TYP_IC_L1_REG,               IC_L1_REQ,                  0               },
-    { .name = "IC_L1_REQ_SEG",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_SEG,              0               },
-    { .name = "IC_L1_REQ_OFS",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_OFS,              0               },
-    { .name = "IC_L1_REQ_TAG",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_TAG,              0               },
-    { .name = "IC_L1_REQ_LEN",      .typ = TYP_IC_L1_REG,               IC_L1_REQ_LEN,              0               },
-    { .name = "IC_L1_REQ_LAT",      .typ = TYP_IC_L1_REG,               IC_L1_LATENCY,              0               },
-    { .name = "IC_L1_SETS",         .typ = TYP_IC_L1_REG,               IC_L1_SETS,                 0               },
-    { .name = "IC_L1_ENTRIES",      .typ = TYP_IC_L1_REG,               IC_L1_BLOCK_ENTRIES,        0               },
-    { .name = "IC_L1_B_SIZE",       .typ = TYP_IC_L1_REG,               IC_L1_BLOCK_SIZE,           0               },
-    { .name = "ICL1",               .typ = TYP_IC_L1_REG,               .tid = IC_L1_SET                            },
+    { .name = "ITLB_STATE",         .typ = TYP_ITLB_REG,         .tid = ITLB_STATE,                 0               },
+    { .name = "ITLB_REQ",           .typ = TYP_ITLB_REG,        .tid = ITLB_REQ,                   1               },
+    { .name = "ITLB_REQ_SEG",       .typ = TYP_ITLB_REG,        .tid = ITLB_REQ_SEG,               2               },
+    { .name = "ITLB_REQ_OFS",       .typ = TYP_ITLB_REG,        .tid = ITLB_REQ_OFS,               3               },
+    { .name = "ITLBL1",             .typ = TYP_ITLB_REG,        .tid = ITLB_SET,                   4               },
     
-    { .name = "DC_L1_STATE",        .typ = TYP_DC_L1_REG,               DC_L1_STATE,                0               },
-    { .name = "DC_L1_REQ",          .typ = TYP_DC_L1_REG,               DC_L1_REQ,                  0               },
-    { .name = "DC_L1_REQ_SEG",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_SEG,              0               },
-    { .name = "DC_L1_REQ_OFS",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_OFS,              0               },
-    { .name = "DC_L1_REQ_TAG",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_TAG,              0               },
-    { .name = "DC_L1_REQ_LEN",      .typ = TYP_DC_L1_REG,               DC_L1_REQ_LEN,              0               },
-    { .name = "DC_L1_REQ_LAT",      .typ = TYP_DC_L1_REG,               DC_L1_LATENCY,              0               },
-    { .name = "DC_L1_SETS",         .typ = TYP_DC_L1_REG,               DC_L1_SETS,                 0               },
-    { .name = "DC_L1_ENTRIES",      .typ = TYP_DC_L1_REG,               DC_L1_BLOCK_ENTRIES,        0               },
-    { .name = "DC_L1_B_SIZE",       .typ = TYP_DC_L1_REG,               DC_L1_BLOCK_SIZE,           0               },
-    { .name = "DCL1",               .typ = TYP_DC_L1_REG,               .tid = DC_L1_SET                            },
-    
-    { .name = "UC_L2_STATE",        .typ = TYP_UC_L2_REG,               UC_L2_STATE,                0               },
-    { .name = "UC_L2_REQ",          .typ = TYP_UC_L2_REG,               UC_L2_REQ,                  0               },
-    { .name = "UC_L2_REQ_SEG",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_SEG,              0               },
-    { .name = "UC_L2_REQ_OFS",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_OFS,              0               },
-    { .name = "UC_L2_REQ_TAG",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_TAG,              0               },
-    { .name = "UC_L2_REQ_LEN",      .typ = TYP_UC_L2_REG,               UC_L2_REQ_LEN,              0               },
-    { .name = "UC_L2_REQ_LAT",      .typ = TYP_UC_L2_REG,               UC_L2_LATENCY,              0               },
-    { .name = "UC_L2_SETS",         .typ = TYP_UC_L2_REG,               UC_L2_SETS,                 0               },
-    { .name = "UC_L2_ENTRIES",      .typ = TYP_UC_L2_REG,               UC_L2_BLOCK_ENTRIES,        0               },
-    { .name = "UC_L2_B_SIZE",       .typ = TYP_UC_L2_REG,               UC_L2_BLOCK_SIZE,           0               },
-    { .name = "UCL2",               .typ = TYP_UC_L2_REG,               DC_L1_SET,                  0               },
-    
-    { .name = "ITLB_STATE",         .typ = TYP_ITLB_REG,                ITLB_STATE,                 0               },
-    { .name = "ITLB_REQ",           .typ = TYP_ITLB_REG,                ITLB_REQ,                   0               },
-    { .name = "ITLB_REQ_SEG",       .typ = TYP_ITLB_REG,                ITLB_REQ_SEG,               0               },
-    { .name = "ITLB_REQ_OFS",       .typ = TYP_ITLB_REG,                ITLB_REQ_OFS,               0               },
-    { .name = "ITLBL1",             .typ = TYP_ITLB_REG,                ITLB_SET,                   0               },
-    
-    { .name = "DTLB_STATE",         .typ = TYP_DTLB_REG,                DTLB_STATE,                 0               },
-    { .name = "DTLB_REQ",           .typ = TYP_DTLB_REG,                DTLB_REQ,                   0               },
-    { .name = "DTLB_REQ_SEG",       .typ = TYP_DTLB_REG,                DTLB_REQ_SEG,               0               },
-    { .name = "DTLB_REQ_OFS",       .typ = TYP_DTLB_REG,                DTLB_REQ_OFS,               0               },
-    { .name = "DTLBL1",             .typ = TYP_DTLB_REG,                DTLB_SET,                   0               },
+    { .name = "DTLB_STATE",         .typ = TYP_DTLB_REG,        .tid = DTLB_STATE,                 0               },
+    { .name = "DTLB_REQ",           .typ = TYP_DTLB_REG,        .tid = DTLB_REQ,                   1               },
+    { .name = "DTLB_REQ_SEG",       .typ = TYP_DTLB_REG,        .tid = DTLB_REQ_SEG,               2               },
+    { .name = "DTLB_REQ_OFS",       .typ = TYP_DTLB_REG,        .tid = DTLB_REQ_OFS,               3               },
+    { .name = "DTLBL1",             .typ = TYP_DTLB_REG,        .tid = DTLB_SET,                   4               },
     
     //--------------------------------------------------------------------------------------------------------
     // The last token to mark the list end.
@@ -665,10 +657,7 @@ DrvToken const cmdTokTab[ ] = {
 const char  FMT_STR_1S_1D[ ]    = "%32s %i";
 const char  FMT_STR_1S_2D[ ]    = "%32s %i %i";
 const char  FMT_STR_1S_3D[ ]    = "%32s %i %i %i";
-const char  FMT_STR_1S_1D_1S[ ] = "%32s %i %32s";
-const char  FMT_STR_1S_1D_2S[ ] = "%32s %i %32s %32s";
-const char  FMT_STR_2S[ ]       = "%32s %32s";
-const char  FMT_STR_3S[ ]       = "%32s %32s %32s";
+
 const char  FMT_STR_2S_1D[ ]    = "%32s %32s %i";
 const char  FMT_STR_2S_2U_1S[ ] = "%32s %32s %i %i %32s";
 const char  FMT_STR_2S_2D[ ]    = "%32s %32s %i %i";
@@ -682,7 +671,8 @@ const char  FMT_STR_2S_LS[ ]    = "%32s %32s %256s";
 //------------------------------------------------------------------------------------------------------------
 DrvTokenizer *tok = new DrvTokenizer( );
 
-// ??? will go away...
+
+// ??? goes away ...
 //------------------------------------------------------------------------------------------------------------
 // A little helper function to upshift a string in place.
 //
@@ -697,8 +687,6 @@ void upshiftStr( char *str ) {
     }
 }
 
-
-// ??? goes away ...
 //------------------------------------------------------------------------------------------------------------
 // Token Table management. There are a functions to lookup a token by its name or alias name, returning the
 // tokenId or token group Id. There is also a function to get the name for a token Id. Straightforward.
@@ -758,10 +746,6 @@ char *lookupTokenName( TokId tokId, char *defName = (char *) "" ) {
     return( defName );
 }
 
-//------------------------------------------------------------------------------------------------------------
-// Utility functions to test tokens for group membership.
-//
-//------------------------------------------------------------------------------------------------------------
 TokId matchFmtOptions( char *argStr, TokId def = TOK_NIL ) {
     
     if ( strlen ( argStr ) == 0 ) return( def );
@@ -770,49 +754,21 @@ TokId matchFmtOptions( char *argStr, TokId def = TOK_NIL ) {
     return(( tmp == FMT_SET ) ? lookupTokId( argStr ) : def );
 }
 
-TokId matchRegSet( char *argStr, TokId def = TOK_NIL ) {
-    
-    if ( strlen ( argStr ) == 0 ) return( def );
-    TokId tmp = lookupTokGrpId( argStr );
-    
-    return((( tmp == REG_SET ) || ( tmp == TOK_ALL )) ? lookupTokId( argStr ) : def );
-}
-
-TokId matchReg( char *argStr, TokId def = TOK_NIL ) {
-    
-    if ( strlen ( argStr ) == 0 ) return( def );
-    
-    TokId tmpReg    = lookupTokId( argStr );
-    TokId tmpGrp    = lookupTokGrpId( tmpReg );
-    TokId tmpGrpGrp = lookupTokGrpId( tmpGrp );
-    
-    return(( tmpGrpGrp == REG_SET ) ? tmpReg : def );
-}
-
-
 
 
 
 //------------------------------------------------------------------------------------------------------------
-// A little helper function to remove the comment part of a command line. We do the changes on the buffer
-// passed in by just setting the ed of string at the position of the ";" comment indicator.
-//
-//------------------------------------------------------------------------------------------------------------
-void removeComment( char *cmdBuf ) {
-    
-    if ( strlen( cmdBuf ) > 0 ) {
-        
-        char *tmp = strrchr( cmdBuf, '#' );
-        if( tmp != nullptr ) *tmp = 0;
-    }
-}
+
+
+// ??? put help texts here ???
+
 
 //------------------------------------------------------------------------------------------------------------
 // Print out an error message text with an optional argument.
 //
 // ??? over time all text errors in the command should go here...
 //------------------------------------------------------------------------------------------------------------
-void printErrMsg( ErrMsgId errNum, char *argStr = nullptr ) {
+uint8_t cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
     
     switch ( errNum ) {
             
@@ -831,6 +787,8 @@ void printErrMsg( ErrMsgId errNum, char *argStr = nullptr ) {
         case ERR_EXPECTED_COMMA:        fprintf( stdout, "Expected a comma\n" ); break;
             
         case ERR_EXPECTED_NUMERIC:      fprintf( stdout, "Expected a numeric value\n" ); break;
+        case ERR_EXPECTED_EXT_ADR:      fprintf( stdout, "Expected a virtual address\n" ); break;
+            
         case ERR_EXPR_TYPE_MATCH:       fprintf( stdout, "Expression type mismatch\n" ); break;
         case ERR_EXPR_FACTOR:           fprintf( stdout, "Expression error: factor\n" ); break;
         case ERR_EXPECTED_GENERAL_REG:  fprintf( stdout, "Expression a general reg\n" ); break;
@@ -851,6 +809,8 @@ void printErrMsg( ErrMsgId errNum, char *argStr = nullptr ) {
             fprintf( stdout, "/n" );
         }
     }
+    
+    return( errNum );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -859,20 +819,19 @@ void printErrMsg( ErrMsgId errNum, char *argStr = nullptr ) {
 // process.
 //
 //------------------------------------------------------------------------------------------------------------
-bool cmdLineError( ErrMsgId errNum, char *argStr = nullptr) {
+uint8_t cmdLineError( ErrMsgId errNum, char *argStr = nullptr) {
     
-    int i           = 0;
-    int tokIndex    = tok -> tokCharIndex( );
-    
-    while ( i < tokIndex ) {
+    int     i           = 0;
+    int     tokIndex    = tok -> tokCharIndex( );
+
+    while (( i < tokIndex ) && ( i < strlen( tok -> tokenLineStr( )))) {
         
         fprintf( stdout, " " );
         i ++;
     }
     
     fprintf( stdout, "^\n" );
-    printErrMsg( errNum, argStr );
-    return( false );
+    return( cmdErr( errNum, argStr ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -897,285 +856,67 @@ int promptYesNoCancel( char *promptStr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Check that the command line does not contain any extra tokens when the parser completed the analysis of the
-// command.
+// A little helper function to remove the comment part of a command line. We do the changes on the buffer
+// passed in by just setting the ed of string at the position of the ";" comment indicator.
 //
 //------------------------------------------------------------------------------------------------------------
-bool checkEOS( ) {
+void removeComment( char *cmdBuf ) {
     
-    if ( tok -> isToken( TOK_EOS )) return( true );
-    else return( cmdLineError( ERR_EXTRA_TOKEN_IN_STR ));
+    if ( strlen( cmdBuf ) > 0 ) {
+        
+        char *tmp = strrchr( cmdBuf, '#' );
+        if( tmp != nullptr ) *tmp = 0;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Quite often the syntax has a construct that test the token and if correct get the next one.
+// Token analysis helper functions.
 //
 //------------------------------------------------------------------------------------------------------------
-bool acceptComma( ) {
+uint8_t checkEOS( ) {
+    
+    if ( tok -> isToken( TOK_EOS )) return( NO_ERR );
+    else return( cmdLineError( ERR_EXTRA_TOKEN_IN_STR ));
+}
+
+uint8_t acceptComma( ) {
     
     if ( tok -> isToken( TOK_COMMA )) {
         
         tok -> nextToken( );
-        return( true );
+        return( NO_ERR );
     }
     else return( cmdLineError( ERR_EXPECTED_COMMA ));
 }
 
-bool acceptLparen( ) {
+uint8_t acceptLparen( ) {
     
     if ( tok -> isToken( TOK_LPAREN )) {
         
         tok -> nextToken( );
-        return( true );
+        return( NO_ERR );
     }
     else return( cmdLineError( ERR_EXPECTED_LPAREN ));
 }
 
-bool acceptRparen( ) {
+uint8_t acceptRparen( ) {
     
     if ( tok -> isToken( TOK_RPAREN )) {
         
         tok -> nextToken( );
-        return( true );
+        return( NO_ERR );
     }
     else return( cmdLineError( ERR_EXPECTED_LPAREN ));
 }
 
-
-// ??? could become an own file "DrvExprEval", it will become more complex with types, etc.
-//------------------------------------------------------------------------------------------------------------
-// "parseExpr" needs to be declared forward.
-//
-//------------------------------------------------------------------------------------------------------------
-bool parseExpr( DrvExpr *rExpr );
-
-//------------------------------------------------------------------------------------------------------------
-// "parseFactor" parses the factor syntax part of an expression.
-//
-//      <factor> -> <number>                        |
-//                  <gregId>                        |
-//                  <sregId>                        |
-//                  <cregId>                        |
-//                  "~" <factor>                    |
-//                  "(" [ <sreg> "," ] <greg> ")"   |
-//                  "(" <expr> ")"
-//
-//------------------------------------------------------------------------------------------------------------
-bool parseFactor( DrvExpr *rExpr ) {
-    
-    rExpr -> typ        = TYP_NIL;
-    rExpr -> numVal1    = 0;
-    rExpr -> numVal2    = 0;
-    
-    if ( tok -> isTokenTyp( TYP_CMD ))  {
-        
-        rExpr -> typ    = TYP_CMD;
-        rExpr -> tokId  = tok -> tokId( );
-        tok -> nextToken( );
-        return( true );
-    }
-    else if ( tok -> isTokenTyp( TYP_NUM ))  {
-        
-        rExpr -> typ     = TYP_NUM;
-        rExpr -> numVal1 = tok -> tokVal( );
-        tok -> nextToken( );
-        return( true );
-    }
-    else if ( tok -> isTokenTyp( TYP_STR ))  {
-        
-        rExpr -> typ = TYP_STR;
-        strcpy( rExpr -> strVal, tok -> tokStr( ));
-        tok -> nextToken( );
-        return( true );
-    }
-    else if ( tok -> isTokenTyp( TYP_GREG ))  {
-        
-        rExpr -> typ     = TYP_GREG;
-        rExpr -> numVal1 = tok -> tokVal( );
-        tok -> nextToken( );
-        return( true );
-    }
-    else if ( tok -> isTokenTyp( TYP_SREG ))  {
-        
-        rExpr -> typ = TYP_SREG;
-        rExpr -> numVal1 = tok -> tokVal( );
-        tok -> nextToken( );
-        return( true );
-    }
-    else if ( tok -> isTokenTyp( TYP_CREG ))  {
-        
-        rExpr -> typ = TYP_CREG;
-        rExpr -> numVal1 = tok -> tokVal( );
-        tok -> nextToken( );
-        return( true );
-    }
-    else if ( tok -> isTokenTyp( TYP_IDENT )) {
-        
-        rExpr -> typ    = TYP_IDENT;
-        rExpr -> tokId  = tok -> tokId( );
-        tok -> nextToken( );
-        return( true );
-    }
-    else if ( tok -> isToken( TOK_NEG )) {
-        
-        parseFactor( rExpr );
-        rExpr -> numVal1 = ~ rExpr -> numVal1;
-        return( true );
-    }
-    else if ( tok -> isToken( TOK_LPAREN )) {
-     
-        // ??? we need to decide what we do about addresses.... a register pair would imply that
-        // we get the values....
-        
-        tok -> nextToken( );
-        if ( tok -> isTokenTyp( TYP_SREG )) {
-            
-            rExpr -> typ        = TYP_EXT_ADR;
-            rExpr -> numVal1    = tok -> tokVal( );
-            
-            tok -> nextToken( );
-            if ( ! acceptComma( )) return( false );
-            
-            if ( tok -> isTokenTyp( TYP_GREG )) {
-                
-                rExpr -> numVal2 = tok -> tokVal( );
-                tok -> nextToken( );
-            }
-            else return( cmdLineError( ERR_EXPECTED_GENERAL_REG ));
-        }
-        else if ( tok -> isTokenTyp( TYP_GREG )) {
-            
-            rExpr -> typ = TYP_ADR;
-            rExpr -> numVal1 = tok -> tokVal( );
-            tok -> nextToken( );
-        }
-        else if ( ! parseExpr( rExpr )) return( false );
-        
-        if ( ! acceptRparen( )) return( false );
-        return( true );
-    }
-    else {
-        
-        cmdLineError( ERR_EXPR_FACTOR );
-        rExpr -> typ = TYP_NUM;
-        rExpr -> numVal1 = 0;
-        tok -> nextToken( );
-        return( false );
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "parseTerm" parses the term syntax.
-//
-//      <term>      ->  <factor> { <termOp> <factor> }
-//      <termOp>    ->  "*" | "/" | "%" | "&"
-//
-//------------------------------------------------------------------------------------------------------------
-bool parseTerm( DrvExpr *rExpr ) {
-    
-    DrvExpr lExpr;
-    bool rStat;
-    
-    rStat = parseFactor( rExpr );
-    
-    while (( tok -> tokId( ) == TOK_MULT )   ||
-           ( tok -> tokId( ) == TOK_DIV  )   ||
-           ( tok -> tokId( ) == TOK_MOD  )   ||
-           ( tok -> tokId( ) == TOK_AND  ))  {
-        
-        uint8_t op = tok -> tokId( );
-        
-        tok -> nextToken( );
-        rStat = parseFactor( &lExpr );
-        
-        if ( rExpr -> typ != lExpr.typ ) {
-            
-            return ( cmdLineError( ERR_EXPR_TYPE_MATCH ));
-        }
-        
-        switch( op ) {
-                
-            case TOK_MULT:   rExpr -> numVal1 = rExpr -> numVal1 * lExpr.numVal1; break;
-            case TOK_DIV:    rExpr -> numVal1 = rExpr -> numVal1 / lExpr.numVal1; break;
-            case TOK_MOD:    rExpr -> numVal1 = rExpr -> numVal1 % lExpr.numVal1; break;
-            case TOK_AND:    rExpr -> numVal1 = rExpr -> numVal1 & lExpr.numVal1; break;
-        }
-    }
-    
-    return( true );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "parseExpr" parses the expression syntax. The one line assembler parser routines use this call in many
-// places where a numeric expression or an address is needed.
-//
-//      <expr>      ->  [ ( "+" | "-" ) ] <term> { <exprOp> <term> }
-//      <exprOp>    ->  "+" | "-" | "|" | "^"
-//
-//------------------------------------------------------------------------------------------------------------
-bool parseExpr( DrvExpr *rExpr ) {
-    
-    DrvExpr lExpr;
-    bool rStat;
-    
-    if ( tok -> isToken( TOK_PLUS )) {
-        
-        tok -> nextToken( );
-        rStat = parseTerm( rExpr );
-        
-        if ( ! ( rExpr -> typ == TYP_NUM )) {
-            
-            return( cmdLineError( ERR_EXPECTED_NUMERIC ));
-        }
-    }
-    else if ( tok -> isToken( TOK_MINUS )) {
-        
-        tok -> nextToken( );
-        rStat = parseTerm( rExpr );
-        
-        if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal1 = - rExpr -> numVal1;
-        else return( cmdLineError( ERR_EXPECTED_NUMERIC ));
-    }
-    else rStat = parseTerm( rExpr );
-    
-    while (( tok -> isToken( TOK_PLUS   )) ||
-           ( tok -> isToken( TOK_MINUS  )) ||
-           ( tok -> isToken( TOK_OR     )) ||
-           ( tok -> isToken( TOK_XOR    ))) {
-        
-        uint8_t op = tok -> tokId( );
-        
-        tok -> nextToken( );
-        rStat = parseTerm( &lExpr );
-        
-        if ( rExpr -> typ != lExpr.typ ) {
-            
-            return ( cmdLineError( ERR_EXPR_TYPE_MATCH ));
-        }
-        
-        switch ( op ) {
-                
-            case TOK_PLUS:   rExpr -> numVal1 = rExpr -> numVal1 + lExpr.numVal1; break;
-            case TOK_MINUS:  rExpr -> numVal1 = rExpr -> numVal1 - lExpr.numVal1; break;
-            case TOK_OR:     rExpr -> numVal1 = rExpr -> numVal1 | lExpr.numVal1; break;
-            case TOK_XOR:    rExpr -> numVal1 = rExpr -> numVal1 ^ lExpr.numVal1; break;
-        }
-    }
-    
-    return( true );
-}
-
 }; // namespace
 
-
-
-
-
-
-
-
 //************************************************************************************************************
+//************************************************************************************************************
+//
 // Object methods.
+//
+//************************************************************************************************************
 //************************************************************************************************************
 
 //------------------------------------------------------------------------------------------------------------
@@ -1185,6 +926,22 @@ bool parseExpr( DrvExpr *rExpr ) {
 DrvCmds::DrvCmds( VCPU32Globals *glb ) {
     
     this -> glb = glb;
+}
+
+//------------------------------------------------------------------------------------------------------------
+// One day we will handle command line arguments....
+//
+//  -v           verbose
+//  -i <path>    init file
+//
+// ??? to do ...
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::processCmdLineArgs( int argc, const char *argv[ ] ) {
+    
+    while ( argc > 0 ) {
+        
+        argc --;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1205,7 +962,6 @@ char *DrvCmds::tokIdToName( TokId tokId ) {
     return( ::lookupTokenName( tokId ));
 }
 
-
 //------------------------------------------------------------------------------------------------------------
 // Our friendly welcome message with the actual program version. We also set some of the environment variables
 // to an initial value. Especially string variables need to be set as they are not initialized from the
@@ -1223,22 +979,6 @@ void DrvCmds::printWelcome( ) {
         
         fprintf( stdout, "VCPU-32 Simulator, Version: %s\n", glb -> env -> getEnvValStr( ENV_PROG_VERSION ));
         fprintf( stdout, "Git Branch: %s\n", glb -> env -> getEnvValStr( ENV_GIT_BRANCH ));
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// One day we will handle command line arguments....
-//
-//  -v           verbose
-//  -i <path>    init file
-//
-// ??? to do ...
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::processCmdLineArgs( int argc, const char *argv[ ] ) {
-    
-    while ( argc > 0 ) {
-        
-        argc --;
     }
 }
 
@@ -1325,10 +1065,230 @@ uint8_t DrvCmds::execCmdsFromFile( char* fileName ) {
                 removeComment( cmdLineBuf );
                 evalInputLine( cmdLineBuf );
             }
+            
+            return( NO_ERR );
         }
-        else printErrMsg( ERR_OPEN_EXEC_FILE, fileName );
+        else return( cmdErr( ERR_OPEN_EXEC_FILE, fileName ));
     }
-    else printErrMsg( ERR_EXPECTED_FILE_NAME  );
+    else return( cmdErr( ERR_EXPECTED_FILE_NAME  ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "parseFactor" parses the factor syntax part of an expression.
+//
+//      <factor> -> <number>                        |
+//                  <extAdr>                        |
+//                  <gregId>                        |
+//                  <sregId>                        |
+//                  <cregId>                        |
+//                  "~" <factor>                    |
+//                  "(" [ <sreg> "," ] <greg> ")"   |
+//                  "(" <expr> ")"
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t DrvCmds::parseFactor( DrvExpr *rExpr ) {
+    
+    rExpr -> typ        = TYP_NIL;
+    rExpr -> numVal1    = 0;
+    rExpr -> numVal2    = 0;
+    
+    if ( tok -> isTokenTyp( TYP_CMD ))  {
+        
+        rExpr -> typ    = TYP_CMD;
+        rExpr -> tokId  = tok -> tokId( );
+        tok -> nextToken( );
+        return( NO_ERR );
+    }
+    else if ( tok -> isTokenTyp( TYP_NUM ))  {
+        
+        rExpr -> typ     = TYP_NUM;
+        rExpr -> numVal1 = tok -> tokVal( );
+        tok -> nextToken( );
+        return( NO_ERR );
+    }
+    else if ( tok -> isTokenTyp( TYP_EXT_ADR )) {
+        
+        rExpr -> typ    = TYP_EXT_ADR;
+        rExpr -> seg    = tok -> tokSeg( );
+        rExpr -> ofs    = tok -> tokOfs( );
+        return( NO_ERR );
+    }
+    else if ( tok -> isTokenTyp( TYP_STR ))  {
+        
+        rExpr -> typ = TYP_STR;
+        strcpy( rExpr -> strVal, tok -> tokStr( ));
+        tok -> nextToken( );
+        return( NO_ERR );
+    }
+    else if ( tok -> isTokenTyp( TYP_GREG ))  {
+        
+        rExpr -> typ     = TYP_GREG;
+        rExpr -> numVal1 = glb -> cpu -> getReg( RC_GEN_REG_SET, tok -> tokVal( ));
+        tok -> nextToken( );
+        return( NO_ERR );
+    }
+    else if ( tok -> isTokenTyp( TYP_SREG ))  {
+        
+        rExpr -> typ = TYP_SREG;
+        rExpr -> numVal1 = glb -> cpu -> getReg( RC_SEG_REG_SET, tok -> tokVal( ));
+        tok -> nextToken( );
+        return( NO_ERR );
+    }
+    else if ( tok -> isTokenTyp( TYP_CREG ))  {
+        
+        rExpr -> typ = TYP_CREG;
+        rExpr -> numVal1 = glb -> cpu -> getReg( RC_CTRL_REG_SET, tok -> tokVal( ));
+        tok -> nextToken( );
+        return( NO_ERR );
+    }
+    else if ( tok -> isTokenTyp( TYP_IDENT )) {
+        
+        rExpr -> typ    = TYP_IDENT;
+        rExpr -> tokId  = tok -> tokId( );
+        tok -> nextToken( );
+        return( NO_ERR );
+    }
+    else if ( tok -> isToken( TOK_NEG )) {
+        
+        parseFactor( rExpr );
+        rExpr -> numVal1 = ~ rExpr -> numVal1;
+        return( NO_ERR );
+    }
+    else if ( tok -> isToken( TOK_LPAREN )) {
+     
+        tok -> nextToken( );
+        if ( tok -> isTokenTyp( TYP_SREG )) {
+            
+            rExpr -> typ    = TYP_EXT_ADR;
+            rExpr -> seg    = glb -> cpu -> getReg( RC_SEG_REG_SET, tok -> tokVal( ));
+            
+            tok -> nextToken( );
+            if ( acceptComma( ) != NO_ERR ) return( false );
+            
+            if ( tok -> isTokenTyp( TYP_GREG )) {
+                
+                rExpr -> ofs = glb -> cpu -> getReg( RC_GEN_REG_SET, tok -> tokVal( ));
+                tok -> nextToken( );
+            }
+            else return( cmdLineError( ERR_EXPECTED_GENERAL_REG ));
+        }
+        else if ( tok -> isTokenTyp( TYP_GREG )) {
+            
+            rExpr -> typ = TYP_ADR;
+            rExpr -> numVal1 = tok -> tokVal( );
+            tok -> nextToken( );
+        }
+        else if ( parseExpr( rExpr ) != NO_ERR ) return( false );
+        
+        return( acceptRparen( ));
+    }
+    else {
+        
+        cmdLineError( ERR_EXPR_FACTOR );
+        rExpr -> typ = TYP_NUM;
+        rExpr -> numVal1 = 0;
+        tok -> nextToken( );
+        return( false );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "parseTerm" parses the term syntax.
+//
+//      <term>      ->  <factor> { <termOp> <factor> }
+//      <termOp>    ->  "*" | "/" | "%" | "&"
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t DrvCmds::parseTerm( DrvExpr *rExpr ) {
+    
+    DrvExpr lExpr;
+    uint8_t rStat;
+    
+    rStat = parseFactor( rExpr );
+    
+    while (( tok -> tokId( ) == TOK_MULT )   ||
+           ( tok -> tokId( ) == TOK_DIV  )   ||
+           ( tok -> tokId( ) == TOK_MOD  )   ||
+           ( tok -> tokId( ) == TOK_AND  ))  {
+        
+        uint8_t op = tok -> tokId( );
+        
+        tok -> nextToken( );
+        rStat = parseFactor( &lExpr );
+        
+        if ( rExpr -> typ != lExpr.typ ) {
+            
+            return ( cmdLineError( ERR_EXPR_TYPE_MATCH ));
+        }
+        
+        switch( op ) {
+                
+            case TOK_MULT:   rExpr -> numVal1 = rExpr -> numVal1 * lExpr.numVal1; break;
+            case TOK_DIV:    rExpr -> numVal1 = rExpr -> numVal1 / lExpr.numVal1; break;
+            case TOK_MOD:    rExpr -> numVal1 = rExpr -> numVal1 % lExpr.numVal1; break;
+            case TOK_AND:    rExpr -> numVal1 = rExpr -> numVal1 & lExpr.numVal1; break;
+        }
+    }
+    
+    return( NO_ERR );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "parseExpr" parses the expression syntax. The one line assembler parser routines use this call in many
+// places where a numeric expression or an address is needed.
+//
+//      <expr>      ->  [ ( "+" | "-" ) ] <term> { <exprOp> <term> }
+//      <exprOp>    ->  "+" | "-" | "|" | "^"
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t DrvCmds::parseExpr( DrvExpr *rExpr ) {
+    
+    DrvExpr lExpr;
+    uint8_t rStat;
+    
+    if ( tok -> isToken( TOK_PLUS )) {
+        
+        tok -> nextToken( );
+        rStat = parseTerm( rExpr );
+        
+        if ( rExpr -> typ != TYP_NUM ) {
+            
+            return( cmdLineError( ERR_EXPECTED_NUMERIC ));
+        }
+    }
+    else if ( tok -> isToken( TOK_MINUS )) {
+        
+        tok -> nextToken( );
+        rStat = parseTerm( rExpr );
+        
+        if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal1 = - rExpr -> numVal1;
+        else return( cmdLineError( ERR_EXPECTED_NUMERIC ));
+    }
+    else rStat = parseTerm( rExpr );
+    
+    while (( tok -> isToken( TOK_PLUS   )) ||
+           ( tok -> isToken( TOK_MINUS  )) ||
+           ( tok -> isToken( TOK_OR     )) ||
+           ( tok -> isToken( TOK_XOR    ))) {
+        
+        uint8_t op = tok -> tokId( );
+        
+        tok -> nextToken( );
+        rStat = parseTerm( &lExpr );
+        
+        if ( rExpr -> typ != lExpr.typ ) {
+            
+            return ( cmdLineError( ERR_EXPR_TYPE_MATCH ));
+        }
+        
+        switch ( op ) {
+                
+            case TOK_PLUS:   rExpr -> numVal1 = rExpr -> numVal1 + lExpr.numVal1; break;
+            case TOK_MINUS:  rExpr -> numVal1 = rExpr -> numVal1 - lExpr.numVal1; break;
+            case TOK_OR:     rExpr -> numVal1 = rExpr -> numVal1 | lExpr.numVal1; break;
+            case TOK_XOR:    rExpr -> numVal1 = rExpr -> numVal1 ^ lExpr.numVal1; break;
+        }
+    }
     
     return( NO_ERR );
 }
@@ -1348,16 +1308,9 @@ uint8_t DrvCmds::helpCmd( ) {
     fprintf( stdout, FMT_STR, "env ( )  [<var> [<val>]]", "lists the env tab, a variable, sets a variable" );
     fprintf( stdout, FMT_STR, "reset    <mode>", "resets the CPU ( CPU, MEM, STATSm ALL )" );
     fprintf( stdout, FMT_STR, "xf       <filename> ", "execute commands from a file" );
-    fprintf( stdout, FMT_STR, "run", "run the CPU" );
+    fprintf( stdout, FMT_STR, "run",    "run the CPU" );
     fprintf( stdout, FMT_STR, "s        [<num>] [I|C]", "single step for instruction or clock cycle" );
-    fprintf( stdout, FMT_STR, "b        <seg> <ofs>", "sets a break breakpoint at virtual address seg.ofs" );
-    fprintf( stdout, FMT_STR, "bd       <seg> <ofs>", "deletes a break breakpoint" );
-    fprintf( stdout, FMT_STR, "bl", "displays the breakpoint table" );
-    
-    
-    fprintf( stdout, FMT_STR, "dr       [<regSet>|<reg>] <fmt>]", "display registers" );
-    
-    
+    fprintf( stdout, FMT_STR, "dr       [<regSet>|<reg>] \",\" <fmt>]", "display registers" );
     fprintf( stdout, FMT_STR, "mr       <reg> <val>", "modify registers" );
     fprintf( stdout, FMT_STR, "da       <ofs> [ <len> [ fmt ]]", "display memory" );
     fprintf( stdout, FMT_STR, "daa      <ofs> [ <len> [ fmt ]]", "display memory as code" );
@@ -1373,11 +1326,11 @@ uint8_t DrvCmds::helpCmd( ) {
     fprintf( stdout, FMT_STR, "ptlb     <I|D> <seg> <ofs>", "purges an entry from the TLB" );
     fprintf( stdout, FMT_STR, "lmf      <path> <opt>", "loads memory from a file in MA command format" );
     fprintf( stdout, FMT_STR, "smf      <path> <ofs> <len> ", "stores memory to a file using MA command format" );
-    fprintf( stdout, FMT_STR, "won",  "switches to windows mode" );
-    fprintf( stdout, FMT_STR, "woff", "switches to command line mode" );
-    fprintf( stdout, FMT_STR, "wdef", "reset the windows to their default values" );
-    fprintf( stdout, FMT_STR, "wse",  "enable window stacks" );
-    fprintf( stdout, FMT_STR, "wsd",  "disable window stacks" );
+    fprintf( stdout, FMT_STR, "won",    "switches to windows mode" );
+    fprintf( stdout, FMT_STR, "woff",   "switches to command line mode" );
+    fprintf( stdout, FMT_STR, "wdef",   "reset the windows to their default values" );
+    fprintf( stdout, FMT_STR, "wse",    "enable window stacks" );
+    fprintf( stdout, FMT_STR, "wsd",    "disable window stacks" );
     fprintf( stdout, FMT_STR, "<win><cmd> [<args-list>]", "issue a window command, use whelp for details." );
     fprintf( stdout, "\n" );
     
@@ -1451,8 +1404,7 @@ uint8_t DrvCmds::winHelpCmd( ) {
 uint8_t DrvCmds::invalidCmd( ) {
     
     glb -> env -> setEnvVal( ENV_EXIT_CODE, -1 );
-    printErrMsg( ERR_INVALID_CMD );
-    return( ERR_INVALID_CMD );
+    return( cmdErr( ERR_INVALID_CMD ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1463,19 +1415,31 @@ uint8_t DrvCmds::invalidCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::exitCmd( ) {
     
+    DrvExpr rExpr;
     int  exitVal = 0;
     
-    if ( tok -> tokTyp( ) == TYP_NUM ) {
-        
-        if ( tok -> tokVal( ) > 255 ) fprintf( stdout, "Expected an exit code between 0 .. 255\n" );
-        return( NO_ERR );
-    }
-    else if ( tok -> tokId( ) == TOK_EOS ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         exitVal = glb -> env -> getEnvValInt( ENV_EXIT_CODE );
+        exit(( exitVal > 255 ) ? 255 : exitVal );
     }
-    
-    exit(( exitVal > 255 ) ? 255 : exitVal );
+    else {
+        
+        if ( parseExpr( &rExpr ) != NO_ERR ) {
+            
+            fprintf( stdout, "Expected an exit code between 0 .. 255\n" );
+            return( -1 );
+        }
+            
+        if ( rExpr.numVal1 > 255 ) {
+                
+            fprintf( stdout, "Expected an exit code between 0 .. 255\n" );
+            return( -1 );
+        }
+            
+        exit(( exitVal > 255 ) ? 255 : exitVal );
+        return( NO_ERR );
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1580,11 +1544,9 @@ uint8_t DrvCmds::execFileCmd( ) {
     
     if ( tok -> tokTyp( ) == TYP_STR ) {
         
-        execCmdsFromFile( tok -> tokStr( ));
+        return( execCmdsFromFile( tok -> tokStr( )));
     }
-    else fprintf( stdout, "Expected a file path\n" );
-    
-    return( NO_ERR );
+    else return cmdErr( NO_ERR, (char *) "Expected a file path" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1653,16 +1615,23 @@ uint8_t DrvCmds::runCmd( ) {
 // Step command. The command will execute one instruction. Default is one instruction. There is an ENV
 // variable that will set the default to be a single clock step.
 //
-// STEP [ <num> ] [ "," "I" | "C" ]
+// STEP [ <stes> ] [ "," "I" | "C" ]
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::stepCmd( ) {
     
+    DrvExpr  rExpr;
     uint32_t numOfSteps = 1;
     
     if ( tok -> tokTyp( ) == TYP_NUM ) {
         
-        numOfSteps = tok -> tokVal( );
-        tok -> nextToken( );
+        if ( parseExpr( &rExpr ) == NO_ERR ) {
+            
+            numOfSteps = rExpr.numVal1;
+        }
+        else {
+            
+            
+        }
     }
     
     if ( tok -> tokId( ) == TOK_COMMA ) {
@@ -1677,7 +1646,7 @@ uint8_t DrvCmds::stepCmd( ) {
     else {
         
         if ( glb -> env -> getEnvValBool( ENV_STEP_IN_CLOCKS )) glb -> cpu -> clockStep( 1 );
-        else glb -> cpu -> instrStep( 1 );
+        else                                                    glb -> cpu -> instrStep( 1 );
     }
     
     return( NO_ERR );
@@ -1694,7 +1663,7 @@ uint8_t DrvCmds::disAssembleCmd( ) {
     uint32_t    instr   = 0;
     TokId       fmtId   = glb -> env -> getEnvValTok( ENV_FMT_DEF );
     
-    if ( ! parseExpr( &rExpr )) {
+    if ( parseExpr( &rExpr ) != NO_ERR ) {
         
         fprintf( stdout, "Expected an instruction value\n" );
         return( NO_ERR );
@@ -1776,6 +1745,7 @@ uint8_t DrvCmds::displayRegCmd( ) {
     TokId   fmtId       = glb -> env -> getEnvValTok( ENV_FMT_DEF );
     TypeId  regSetId    = TYP_GREG;
     TokId   regId       = GR_SET;
+    int     regNum      = 0;
     
     if ( tok -> tokId( ) != TOK_EOS ) {
         
@@ -1794,6 +1764,7 @@ uint8_t DrvCmds::displayRegCmd( ) {
             
             regSetId    = tok -> tokTyp( );
             regId       = tok -> tokId( );
+            regNum      = tok -> tokVal( );
         }
         else {
             
@@ -1824,42 +1795,42 @@ uint8_t DrvCmds::displayRegCmd( ) {
         case TYP_GREG: {
             
             if ( regId == GR_SET ) glb -> lineDisplay -> displayGeneralRegSet( fmtId );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_GEN_REG_SET, ( regId - GR_0 )), fmtId );
-            
+            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_GEN_REG_SET, regNum ), fmtId );
+        
         } break;
             
         case TYP_SREG: {
             
             if ( regId == SR_SET ) glb -> lineDisplay -> displaySegmentRegSet( fmtId );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_SEG_REG_SET, ( regId - SR_0 )), fmtId );
+            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_SEG_REG_SET, regNum ), fmtId );
             
         } break;
             
         case TYP_CREG: {
             
             if ( regId == CR_SET ) glb -> lineDisplay -> displayControlRegSet( fmtId );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_CTRL_REG_SET, ( regId - CR_0 )), fmtId );
+            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_CTRL_REG_SET, regNum ), fmtId );
             
         } break;
             
         case TYP_PSTATE_PREG: {
             
             if ( regId == PS_SET ) glb -> lineDisplay -> displayPStateRegSet( fmtId );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_PROG_STATE, ( regId - PS_IA_SEG )), fmtId );
+            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_PROG_STATE, regNum ), fmtId );
             
         } break;
             
         case TYP_IC_L1_REG: {
             
             if ( regId == IC_L1_SET ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> iCacheL1, fmtId );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_IC_L1_OBJ, ( regId - IC_L1_STATE )), fmtId );
+            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_IC_L1_OBJ, regNum ), fmtId );
             
         } break;
             
         case TYP_DC_L1_REG: {
             
             if ( regId == DC_L1_SET ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> dCacheL1, fmtId );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_DC_L1_OBJ, ( regId - DC_L1_STATE )), fmtId );
+            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_DC_L1_OBJ, regNum ), fmtId );
             
         } break;
             
@@ -1868,7 +1839,7 @@ uint8_t DrvCmds::displayRegCmd( ) {
             if ( glb -> cpu -> uCacheL2 != nullptr ) {
                 
                 if ( regId == UC_L2_SET ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> uCacheL2, fmtId );
-                else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_UC_L2_OBJ, ( regId - UC_L2_STATE )), fmtId );
+                else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_UC_L2_OBJ, regNum ), fmtId );
             }
             else fprintf( stdout, "L2 cache not configured \n" );
             
@@ -1877,7 +1848,7 @@ uint8_t DrvCmds::displayRegCmd( ) {
         case TYP_ITLB_REG: {
             
             if ( regId == ITLB_SET ) glb -> lineDisplay -> displayTlbObjRegSet( glb -> cpu -> iTlb, fmtId );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_ITLB_OBJ, ( regId - ITLB_STATE )), fmtId );
+            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_ITLB_OBJ, regNum ), fmtId );
             
         } break;
             
@@ -1924,6 +1895,7 @@ uint8_t DrvCmds::modifyRegCmd( ) {
     
     TypeId      regSetId    = TYP_GREG;
     TokId       regId       = TOK_NIL;
+    int         regNum      = 0;
     uint32_t    val         = 0;
     DrvExpr     rExpr;
     
@@ -1942,7 +1914,7 @@ uint8_t DrvCmds::modifyRegCmd( ) {
         
         regSetId    = tok -> tokTyp( );
         regId       = tok -> tokId( );
-        
+        regNum      = tok -> tokVal( );
         tok -> nextToken( );
     }
     else {
@@ -1957,7 +1929,7 @@ uint8_t DrvCmds::modifyRegCmd( ) {
         return( NO_ERR );
     }
     
-    if ( ! parseExpr( &rExpr )) {
+    if ( parseExpr( &rExpr ) != NO_ERR ) {
         
         fprintf( stdout, "Invalid value\n" );
         return( NO_ERR );
@@ -1966,18 +1938,18 @@ uint8_t DrvCmds::modifyRegCmd( ) {
     
     switch( regSetId ) {
             
-        case TYP_GREG:          glb -> cpu -> setReg( RC_GEN_REG_SET, ( regId - GR_0 ), val );  break;
-        case TYP_SREG:          glb -> cpu -> setReg( RC_SEG_REG_SET, ( regId - SR_0 ), val );  break;
-        case TYP_CREG:          glb -> cpu -> setReg( RC_CTRL_REG_SET, ( regId - CR_0 ), val ); break;
-        case TYP_PSTATE_PREG:   glb -> cpu -> setReg( RC_PROG_STATE, regId - PS_IA_SEG, val );  break;
-        case TYP_FD_PREG:       glb -> cpu -> setReg( RC_FD_PSTAGE, regId - PS_IA_SEG, val );   break;
-        case TYP_MA_PREG:       glb -> cpu -> setReg( RC_MA_PSTAGE, regId - PS_IA_SEG, val );   break;
-        case TYP_EX_PREG:       glb -> cpu -> setReg( RC_EX_PSTAGE, regId - EX_IA_SEG, val );   break;
-        case TYP_IC_L1_REG:     glb -> cpu -> setReg( RC_IC_L1_OBJ, regId - IC_L1_STATE, val ); break;
-        case TYP_DC_L1_REG:     glb -> cpu -> setReg( RC_DC_L1_OBJ, regId - DC_L1_STATE, val ); break;
-        case TYP_UC_L2_REG:     glb -> cpu -> setReg( RC_UC_L2_OBJ, regId - UC_L2_STATE, val ); break;
-        case TYP_ITLB_REG:      glb -> cpu -> setReg( RC_ITLB_OBJ, regId - ITLB_STATE, val );   break;
-        case TYP_DTLB_REG:      glb -> cpu -> setReg( RC_DTLB_OBJ, regId - DTLB_STATE, val );   break;
+        case TYP_GREG:          glb -> cpu -> setReg( RC_GEN_REG_SET, regNum, val );    break;
+        case TYP_SREG:          glb -> cpu -> setReg( RC_SEG_REG_SET, regNum, val );    break;
+        case TYP_CREG:          glb -> cpu -> setReg( RC_CTRL_REG_SET, regNum, val );   break;
+        case TYP_PSTATE_PREG:   glb -> cpu -> setReg( RC_PROG_STATE, regNum, val );     break;
+        case TYP_FD_PREG:       glb -> cpu -> setReg( RC_FD_PSTAGE, regNum, val );      break;
+        case TYP_MA_PREG:       glb -> cpu -> setReg( RC_MA_PSTAGE, regNum, val );      break;
+        case TYP_EX_PREG:       glb -> cpu -> setReg( RC_EX_PSTAGE, regNum, val );      break;
+        case TYP_IC_L1_REG:     glb -> cpu -> setReg( RC_IC_L1_OBJ, regNum, val );      break;
+        case TYP_DC_L1_REG:     glb -> cpu -> setReg( RC_DC_L1_OBJ, regNum, val );      break;
+        case TYP_UC_L2_REG:     glb -> cpu -> setReg( RC_UC_L2_OBJ, regNum, val );      break;
+        case TYP_ITLB_REG:      glb -> cpu -> setReg( RC_ITLB_OBJ, regNum, val );       break;
+        case TYP_DTLB_REG:      glb -> cpu -> setReg( RC_DTLB_OBJ, regNum, val );       break;
             
         default:  fprintf( stdout, "Invalid Reg Set for operation\n" );
     }
@@ -1989,22 +1961,22 @@ uint8_t DrvCmds::modifyRegCmd( ) {
 // Hash virtual address command. The TLB is indexed by a hash function, which we can test with this command.
 // We will use the iTlb hash function for this command.
 //
-// HVA <seg> <ofs>
-//
-// ??? need to implement a virtual adress in tokenizer ...
+// HVA <seg>.<ofs>
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::hashVACmd( char *cmdBuf ) {
+uint8_t DrvCmds::hashVACmd( ) {
     
-    char        cmdStr[ TOK_NAME_SIZE + 1 ] = "";
-    uint32_t    seg                         = 0;
-    uint32_t    ofs                         = 0;
-    
-    if( sscanf( cmdBuf, "%32s %i %i", cmdStr, &seg, &ofs ) <= 3 ) {
+    DrvExpr rExpr;
+  
+    if ( parseExpr( &rExpr ) == NO_ERR ) {
         
-        fprintf( stdout, "To do ...\n" );
-        fprintf( stdout, "%i\n", glb -> cpu ->iTlb ->hashAdr( seg, ofs ));
+        if ( rExpr.typ == TYP_EXT_ADR ) {
+            
+            fprintf( stdout, "%i\n", glb -> cpu ->iTlb ->hashAdr( rExpr.seg, rExpr.ofs ));
+            return( NO_ERR );
+        }
+        else return( ERR_EXPECTED_EXT_ADR );
     }
-    else fprintf( stdout, "Expected a virtual address\n" );
+    else return( ERR_EXPECTED_EXT_ADR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2014,7 +1986,7 @@ void DrvCmds::hashVACmd( char *cmdBuf ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::displayTLBCmd( ) {
  
-    uint32_t    ofs         = 0;
+    uint32_t    index       = 0;
     uint32_t    len         = 0;
     uint32_t    tlbSize     = 0;
     TokId       tlbTypeId   = TOK_I;
@@ -2038,18 +2010,28 @@ uint8_t DrvCmds::displayTLBCmd( ) {
         return( NO_ERR );
     }
     
+    if ( tok -> tokId( ) != TOK_COMMA ) {
+    
+        fprintf( stdout, "Expected a comma\n" );
+        return( NO_ERR );
+    }
+    else tok -> nextToken( );
+    
+    
     if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        ofs = 0;
+        index = 0;
         tok -> nextToken( );
     }
     else {
         
         DrvExpr rExpr;
         
-        if ( parseExpr( &rExpr )) {
+        if ( parseExpr( &rExpr ) == NO_ERR ) {
             
-            ofs = rExpr.numVal1;
+            index = rExpr.numVal1;
+            
+            if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
         }
         else {
             
@@ -2067,9 +2049,10 @@ uint8_t DrvCmds::displayTLBCmd( ) {
         
         DrvExpr rExpr;
         
-        if ( parseExpr( &rExpr )) {
+        if ( parseExpr( &rExpr ) == NO_ERR ) {
             
             len = rExpr.numVal1;
+            if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
         }
         else {
             
@@ -2095,16 +2078,16 @@ uint8_t DrvCmds::displayTLBCmd( ) {
         else return( cmdLineError( ERR_INVALID_FMT_OPT ));
     }
     
-    if (( ofs > tlbSize ) || ( ofs + len > tlbSize )) {
+    if (( index > tlbSize ) || ( index + len > tlbSize )) {
         
         fprintf( stdout, "Index / Len exceed TLB size\n" );
         return( NO_ERR );
     }
     
-    if (( ofs == 0 ) && ( len == 0 )) len = tlbSize;
+    if (( index == 0 ) && ( len == 0 )) len = tlbSize;
     
-    if      ( tlbTypeId == TOK_I ) glb -> lineDisplay -> displayTlbEntries( glb -> cpu -> iTlb, ofs, len, fmtId );
-    else if ( tlbTypeId == TOK_D ) glb -> lineDisplay -> displayTlbEntries( glb -> cpu -> dTlb, ofs, len, fmtId );
+    if      ( tlbTypeId == TOK_I ) glb -> lineDisplay -> displayTlbEntries( glb -> cpu -> iTlb, index, len, fmtId );
+    else if ( tlbTypeId == TOK_D ) glb -> lineDisplay -> displayTlbEntries( glb -> cpu -> dTlb, index, len, fmtId );
     
     fprintf( stdout, "\n" );
     return( NO_ERR );
@@ -2599,7 +2582,7 @@ void DrvCmds::winOffCmd( char *cmdBuf ) {
         winModeOn = false;
         glb -> winDisplay -> windowsOff( );
     }
-    else printErrMsg( ERR_NOT_IN_WIN_MODE );
+    else cmdErr( ERR_NOT_IN_WIN_MODE );
 }
 
 void DrvCmds::winDefCmd( char *cmdBuf ) {
@@ -2609,7 +2592,7 @@ void DrvCmds::winDefCmd( char *cmdBuf ) {
         glb -> winDisplay -> windowDefaults( );
         glb -> winDisplay -> reDraw( true );
     }
-    else printErrMsg( ERR_NOT_IN_WIN_MODE );
+    else cmdErr( ERR_NOT_IN_WIN_MODE );
 }
 
 void DrvCmds::winStacksEnable( char *cmdBuf ) {
@@ -2619,7 +2602,7 @@ void DrvCmds::winStacksEnable( char *cmdBuf ) {
         glb -> winDisplay -> winStacksEnable( true );
         glb -> winDisplay -> reDraw( true );
     }
-    else printErrMsg( ERR_NOT_IN_WIN_MODE );
+    else cmdErr( ERR_NOT_IN_WIN_MODE );
 }
 
 void DrvCmds::winStacksDisable( char *cmdBuf ) {
@@ -2629,7 +2612,7 @@ void DrvCmds::winStacksDisable( char *cmdBuf ) {
         glb -> winDisplay -> winStacksEnable( false );
         glb -> winDisplay -> reDraw( true );
     }
-    else printErrMsg( ERR_NOT_IN_WIN_MODE );
+    else cmdErr( ERR_NOT_IN_WIN_MODE );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2646,19 +2629,19 @@ void DrvCmds::winCurrentCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 2 ) {
         
-        printErrMsg( ERR_EXPECTED_WIN_ID );
+        cmdErr( ERR_EXPECTED_WIN_ID );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2680,19 +2663,19 @@ void DrvCmds::winEnableCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 1 ) {
         
-        printErrMsg( ERR_EXPECTED_WIN_ID );
+        cmdErr( ERR_EXPECTED_WIN_ID );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2708,19 +2691,19 @@ void DrvCmds::winDisableCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 1 ) {
         
-        printErrMsg( ERR_EXPECTED_WIN_ID );
+        cmdErr( ERR_EXPECTED_WIN_ID );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2747,7 +2730,7 @@ void DrvCmds::winSetRadixCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
@@ -2756,7 +2739,7 @@ void DrvCmds::winSetRadixCmd( char *cmdBuf ) {
         TokId argId = matchFmtOptions( fmtStr );
         if ( argId == TOK_NIL ) {
             
-            printErrMsg( ERR_EXPECTED_FMT_OPT );
+            cmdErr( ERR_EXPECTED_FMT_OPT );
             return;
         }
         else fmtId = argId;
@@ -2765,7 +2748,7 @@ void DrvCmds::winSetRadixCmd( char *cmdBuf ) {
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2792,13 +2775,13 @@ void DrvCmds::winForwardCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2816,13 +2799,13 @@ void DrvCmds::winBackwardCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2847,13 +2830,13 @@ void DrvCmds::winHomeCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2877,13 +2860,13 @@ void DrvCmds::winJumpCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2907,13 +2890,13 @@ void DrvCmds::winSetRowsCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -2938,19 +2921,19 @@ void DrvCmds::winNewWinCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 2 ) {
         
-        printErrMsg( ERR_EXPECTED_WIN_TYPE );
+        cmdErr( ERR_EXPECTED_WIN_TYPE );
         return;
     }
     
     if ( ! glb -> winDisplay -> validUserWindowType( winType )) {
         
-        printErrMsg( ERR_INVALID_WIN_TYPE);
+        cmdErr( ERR_INVALID_WIN_TYPE);
         return;
     }
     
@@ -2986,7 +2969,7 @@ void DrvCmds::winKillWinCmd( char * cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
@@ -3006,7 +2989,7 @@ void DrvCmds::winKillWinCmd( char * cmdBuf ) {
             
             if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
                 
-                printErrMsg( ERR_INVALID_WIN_ID );
+                cmdErr( ERR_INVALID_WIN_ID );
                 return;
             }
             
@@ -3018,13 +3001,13 @@ void DrvCmds::winKillWinCmd( char * cmdBuf ) {
         if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||
             ( ! glb -> winDisplay -> validWindowNum( winNumEnd ))) {
             
-            printErrMsg( ERR_INVALID_WIN_ID );
+            cmdErr( ERR_INVALID_WIN_ID );
             return;
         }
     }
     else {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -3048,7 +3031,7 @@ void DrvCmds::winSetStackCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
@@ -3073,7 +3056,7 @@ void DrvCmds::winSetStackCmd( char *cmdBuf ) {
             
             if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
                 
-                printErrMsg( ERR_INVALID_WIN_ID );
+                cmdErr( ERR_INVALID_WIN_ID );
                 return;
             }
             
@@ -3085,19 +3068,19 @@ void DrvCmds::winSetStackCmd( char *cmdBuf ) {
         if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||
             ( ! glb -> winDisplay -> validWindowNum( winNumEnd ))) {
             
-            printErrMsg( ERR_INVALID_WIN_ID );
+            cmdErr( ERR_INVALID_WIN_ID );
             return;
         }
     }
     else {
         
-        printErrMsg( ERR_EXPECTED_STACK_ID );
+        cmdErr( ERR_EXPECTED_STACK_ID );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowStackNum( stackNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_STACK_ID );
+        cmdErr( ERR_INVALID_WIN_STACK_ID );
         return;
     }
     
@@ -3120,19 +3103,19 @@ void  DrvCmds::winToggleCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 1 ) {
         
-        printErrMsg( ERR_EXPECTED_WIN_ID );
+        cmdErr( ERR_EXPECTED_WIN_ID );
         return;
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -3153,19 +3136,19 @@ void  DrvCmds::winExchangeCmd( char *cmdBuf ) {
     
     if ( ! winModeOn ) {
         
-        printErrMsg( ERR_NOT_IN_WIN_MODE );
+        cmdErr( ERR_NOT_IN_WIN_MODE );
         return;
     }
     
     if ( args < 1 ) {
         
-        printErrMsg( ERR_EXPECTED_WIN_ID );
+        cmdErr( ERR_EXPECTED_WIN_ID );
         return;
     }
     
     if ( ! glb -> winDisplay -> validUserWindowNum( winNum )) {
         
-        printErrMsg( ERR_INVALID_WIN_ID );
+        cmdErr( ERR_INVALID_WIN_ID );
         return;
     }
     
@@ -3186,7 +3169,7 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
         if ( tok -> setupTokenizer( cmdBuf, (DrvToken *) cmdTokTab ) != NO_ERR ) return( ERR_INVALID_CMD );
         tok -> nextToken( );
         
-        if ( ! parseExpr( &rExpr )) return( ERR_INVALID_CMD );
+        if ( parseExpr( &rExpr ) != NO_ERR ) return( ERR_INVALID_CMD );
         
         switch( rExpr.typ ) {
                 
@@ -3215,10 +3198,9 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
                     case CMD_ASM:           return( assembleCmd( ));
                     case CMD_DR:            return( displayRegCmd( ));
                     case CMD_MR:            return( modifyRegCmd( ));
+                    case CMD_HASH_VA:       return( hashVACmd( ));
+                    case CMD_D_TLB:         return( displayTLBCmd( ));
                         
-                        
-                    case CMD_HASH_VA:       hashVACmd( cmdBuf);                 break;
-                    case CMD_D_TLB:         return( displayTLBCmd( ));          break;
                     case CMD_I_TLB:         insertTLBCmd( cmdBuf );             break;
                     case CMD_P_TLB:         purgeTLBCmd( cmdBuf );              break;
                     case CMD_D_CACHE:       displayCacheCmd( cmdBuf );          break;
@@ -3276,20 +3258,18 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
             //------------------------------------------------------------------------------------------------
             // Am expression result. We just print the value according to its type.
             //
-            // ??? would we actually get the values  and display them ?
             //------------------------------------------------------------------------------------------------
-            case TYP_NUM:  printf( "%i\n", rExpr.numVal1 );      break;
-            case TYP_GREG: printf( "R%d\n", rExpr.numVal1 );     break;
-            case TYP_SREG: printf( "S%d\n", rExpr.numVal1 );     break;
-            case TYP_CREG: printf( "C%d\n", rExpr.numVal1 );     break;
+            case TYP_NUM:  printf( "%i\n", rExpr.numVal1 );         break;
+            case TYP_GREG: printf( "0x%08x\n", rExpr.numVal1 );     break;
+            case TYP_SREG: printf( "0x%04x\n", rExpr.numVal1 );     break;
+            case TYP_CREG: printf( "0x%08x\n", rExpr.numVal1 );     break;
                 
             //------------------------------------------------------------------------------------------------
             // Address values.
             //
-            // ??? same question. would we accept just a numerc address and / or also register content ?
             //------------------------------------------------------------------------------------------------
-            // case ET_ADR:        printf( "(0x%x)\n", rExpr.adr.ofs );
-            // case ET_EXT_ADR:    printf( "(0x%x.0x%x)\n", rExpr.extAdr.seg, rExpr.extAdr.ofs );
+            case TYP_ADR:        printf( "0x%08x\n", rExpr.adr );                     break;
+            case TYP_EXT_ADR:    printf( "0x%04x.0x%08x\n", rExpr.seg, rExpr.ofs );   break;
                 
             //------------------------------------------------------------------------------------------------
             // No idea what it is, assume an invalid command.

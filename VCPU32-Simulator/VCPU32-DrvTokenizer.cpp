@@ -105,11 +105,12 @@ uint8_t DrvTokenizer::setupTokenizer( char *lineBuf, DrvToken *tokTab ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parserError" is a little helper that prints out the error encountered. We will print the original
+// "tokenError" is a little helper that prints out the error encountered. We will print the original
 // input line, a caret marker where we found the error, and then return a false. Parsing errors typically
 // result in aborting the parsing process. As this is a one line assembly, we do not need to be put effort
 // into continuing reasonably with the parsing process.
 //
+// ??? Can we just set an error index and code and let the highwer level routines do the printing ?
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::tokenError( char *errStr ) {
     
@@ -130,14 +131,22 @@ void DrvTokenizer::tokenError( char *errStr ) {
 // helper functions for the current token.
 //
 //------------------------------------------------------------------------------------------------------------
-bool        DrvTokenizer::isToken( TokId tokId )        { return( currentTokId == tokId ); }
-bool        DrvTokenizer::isTokenTyp( TypeId typId )    { return( currentTokTyp == typId ); }
-TypeId      DrvTokenizer::tokTyp( )                     { return( currentTokTyp ); }
-TokId       DrvTokenizer::tokId( )                      { return( currentTokId ); }
-int         DrvTokenizer::tokVal( )                     { return( currentTokVal ); }
-char        *DrvTokenizer::tokStr( )                    { return( currentTokStr ); }
+DrvToken    DrvTokenizer::token( )                      { return( currentToken ); }
+bool        DrvTokenizer::isToken( TokId tokId )        { return( currentToken.tid == tokId ); }
+bool        DrvTokenizer::isTokenTyp( TypeId typId )    { return( currentToken.typ == typId ); }
+
+TypeId      DrvTokenizer::tokTyp( )                     { return( currentToken.typ ); }
+TokId       DrvTokenizer::tokId( )                      { return( currentToken.tid ); }
+int         DrvTokenizer::tokVal( )                     { return( currentToken.val ); }
+char        *DrvTokenizer::tokStr( )                    { return( currentToken.str ); }
+uint32_t    DrvTokenizer::tokSeg( )                     { return( currentToken.seg ); }
+uint32_t    DrvTokenizer::tokOfs( )                     { return( currentToken.ofs ); }
+
+
+// ??? the error interface .... rethink ....
+
 int         DrvTokenizer::tokCharIndex( )               { return( currentCharIndex ); }
-char        *DrvTokenizer::tokenLineStr( )              { return(  tokenLine ); }
+char        *DrvTokenizer::tokenLineStr( )              { return( tokenLine ); }
 
 //------------------------------------------------------------------------------------------------------------
 // "nextChar" returns the next character from the token line string.
@@ -163,10 +172,9 @@ void DrvTokenizer::parseNum( ) {
     
     char tmpStr[ TOK_INPUT_LINE_SIZE ]  = "";
     
-    currentTokTyp       = TYP_NUM;
-    currentTokId        = TOK_NUM;
-    currentTokVal       = 0;
-    currentTokStr[ 0 ]  = '\0';
+    currentToken.tid = TOK_NUM;
+    currentToken.typ = TYP_NUM;
+    currentToken.val = 0;
     
     do {
         
@@ -176,15 +184,32 @@ void DrvTokenizer::parseNum( ) {
     } while ( isxdigit( currentChar )   || ( currentChar == 'X' ) || ( currentChar == 'O' )
                                         || ( currentChar == 'x' ) || ( currentChar == 'o' ));
     
-    if ( sscanf( tmpStr, "%i", &currentTokVal ) != 1 )
+    if ( sscanf( tmpStr, "%i", &currentToken.val ) != 1 )
       tokenError((char *) "Invalid number" );
     
     if ( currentChar == '.' ) {
         
-        // ??? we would need to parse the next number. How to store them in the return ?
+        nextChar( );
+        if ( ! isdigit( currentChar )) {
+            
+            tokenError((char *) "Invalid extended address" );
+            return;
+        }
         
+        currentToken.seg = currentToken.val;
+        currentToken.typ = TYP_EXT_ADR;
+        
+        do {
+            
+            strcat( tmpStr, &currentChar );
+            nextChar( );
+            
+        } while ( isxdigit( currentChar )   || ( currentChar == 'X' ) || ( currentChar == 'O' )
+                                            || ( currentChar == 'x' ) || ( currentChar == 'o' ));
+        
+        if ( sscanf( tmpStr, "%i", &currentToken.ofs ) != 1 )
+          tokenError((char *) "Invalid number" );
     }
-    
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -194,14 +219,12 @@ void DrvTokenizer::parseNum( ) {
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::parseString( ) {
-
-    currentTokTyp       = TYP_STR;
-    currentTokId        = TOK_STR;
-    currentTokVal       = 0;
-    currentTokStr[ 0 ]  = '\0';
+    
+    currentToken.tid        = TOK_STR;
+    currentToken.typ        = TYP_STR;
+    currentToken.str[ 0 ]   = '\0';
 
     nextChar( );
-          
     while (( currentChar != EOS_CHAR ) && ( currentChar != '"' )) {
 
         if ( currentChar == '\\' ) {
@@ -209,20 +232,20 @@ void DrvTokenizer::parseString( ) {
             nextChar( );
             if ( currentChar != EOS_CHAR ) {
                 
-                if      ( currentChar == 'n' )  strcat( currentTokStr, (char *) "\n" );
-                else if ( currentChar == 't' )  strcat( currentTokStr, (char *) "\t" );
-                else if ( currentChar == '\\' ) strcat( currentTokStr, (char *) "\\" );
-                else                            strcat( currentTokStr, &currentChar );
+                if      ( currentChar == 'n' )  strcat( currentToken.str, (char *) "\n" );
+                else if ( currentChar == 't' )  strcat( currentToken.str, (char *) "\t" );
+                else if ( currentChar == '\\' ) strcat( currentToken.str, (char *) "\\" );
+                else                            strcat( currentToken.str, &currentChar );
             }
             else {
                 
-                currentTokStr[ 0 ]  = '\0';
+                currentToken.str[ 0 ]  = '\0';
                 tokenError((char *) "Expected a closing quote" );
                 break;
             }
         }
-        else strcat( currentTokStr, &currentChar );
-
+        else strcat( currentToken.str, &currentChar );
+        
         nextChar( );
     }
 
@@ -239,10 +262,9 @@ void DrvTokenizer::parseString( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::parseIdent( ) {
     
-    currentTokTyp       = TYP_IDENT;
-    currentTokId        = TOK_IDENT;
-    currentTokVal       = 0;
-    currentTokStr[ 0 ]  = '\0';
+    currentToken.tid        = TOK_IDENT;
+    currentToken.typ        = TYP_IDENT;
+    currentToken.str[ 0 ]   = '\0';
     
     char identBuf[ TOK_INPUT_LINE_SIZE ] = "";
     
@@ -259,7 +281,7 @@ void DrvTokenizer::parseIdent( ) {
             if ( isdigit( currentChar )) {
                 
                 parseNum( );
-                currentTokVal &= 0xFFFFFC00;
+                currentToken.val &= 0xFFFFFC00;
                 return;
             }
             else tokenError((char *) "Invalid character in identifier" );
@@ -278,7 +300,7 @@ void DrvTokenizer::parseIdent( ) {
             if ( isdigit( currentChar )) {
                 
                 parseNum( );
-                currentTokVal &= 0x3FF;
+                currentToken.val &= 0x3FF;
                 return;
             }
             else tokenError((char *) "Invalid character in identifier" );
@@ -295,18 +317,12 @@ void DrvTokenizer::parseIdent( ) {
     
     if ( index == -1 ) {
         
-        currentTokTyp       = TYP_IDENT;
-        currentTokId        = TOK_IDENT;
-        currentTokVal       = 0;
-        strcpy( currentTokStr, identBuf );
-    }
-    else {
+        currentToken.typ = TYP_IDENT;
+        currentToken.tid = TOK_IDENT;
         
-        currentTokTyp       = tokTab[ index ].typ;
-        currentTokId        = tokTab[ index ].tid;
-        currentTokVal       = tokTab[ index ].val;
-        strcpy( currentTokStr, identBuf );
+        strcpy( currentToken.str, identBuf );
     }
+    else currentToken = tokTab[ index ];
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -315,10 +331,8 @@ void DrvTokenizer::parseIdent( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvTokenizer::nextToken( ) {
 
-    currentTokTyp       = TYP_NIL;
-    currentTokId        = TOK_NIL;
-    currentTokVal       = 0;
-    currentTokStr[ 0 ]  = '\0';
+    currentToken.typ       = TYP_NIL;
+    currentToken.tid       = TOK_NIL;
     
     while (( currentChar == ' ' ) || ( currentChar == '\n' ) || ( currentChar == '\n' )) nextChar( );
     
@@ -331,8 +345,6 @@ void DrvTokenizer::nextToken( ) {
     else if ( isdigit( currentChar )) {
         
        parseNum( );
-        
-        // ??? parse a number pair rather here ?
     }
     else if ( currentChar == '"' ) {
         
@@ -340,83 +352,83 @@ void DrvTokenizer::nextToken( ) {
     }
     else if ( currentChar == '.' ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_PERIOD;
+        currentToken.typ   = TYP_SYM;
+        currentToken.tid   = TOK_PERIOD;
         nextChar( );
     }
     else if ( currentChar == '+' ) {
         
-        currentTokId = TOK_PLUS;
+        currentToken.tid = TOK_PLUS;
         nextChar( );
     }
     else if ( currentChar == '-' ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_MINUS;
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_MINUS;
         nextChar( );
     }
     else if ( currentChar == '*' ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_MULT;
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_MULT;
         nextChar( );
     }
     else if ( currentChar == '/' ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_DIV;
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_DIV;
         nextChar( );
     }
     else if ( currentChar == '%' ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_MOD;
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_MOD;
         nextChar( );
     }
     else if ( currentChar == '|' ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_OR;
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_OR;
         nextChar( );
     }
     else if ( currentChar == '^' ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_XOR;
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_XOR;
         nextChar( );
     }
     else if ( currentChar == '~' ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_NEG;
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_NEG;
         nextChar( );
     }
     else if ( currentChar == '(' ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_LPAREN;
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_LPAREN;
         nextChar( );
     }
     else if ( currentChar == ')' ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_RPAREN;
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_RPAREN;
         nextChar( );
     }
     else if ( currentChar == ',' ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_COMMA;
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_COMMA;
         nextChar( );
     }
     else if ( currentChar == EOS_CHAR ) {
         
-        currentTokTyp   = TYP_SYM;
-        currentTokId    = TOK_EOS;
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_EOS;
     }
     else {
         
         tokenError((char *) "Invalid character in input string" );
-        currentTokId = TOK_ERR;
+        currentToken.tid = TOK_ERR;
     }
 }

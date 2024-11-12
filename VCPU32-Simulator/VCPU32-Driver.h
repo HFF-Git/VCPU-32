@@ -75,6 +75,7 @@ enum TypeId : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 enum TokId : uint16_t {
     
+    // ??? take out ....
     //--------------------------------------------------------------------------------------------------------
     // Token Types. A token has an ID and a type. For example registers have a type such as "general reg" and
     // so on. The types are used by the parser routines to check types and operations on types.
@@ -368,11 +369,12 @@ enum ErrMsgId : uint16_t {
     ERR_EXPECTED_RPAREN             = 102,
     ERR_EXPECTED_COMMA              = 103,
     ERR_EXPECTED_NUMERIC            = 104,
-    ERR_EXPR_TYPE_MATCH             = 105,
-    ERR_EXPR_FACTOR                 = 106,
-    ERR_EXPECTED_GENERAL_REG        = 107,
+    ERR_EXPECTED_EXT_ADR            = 105,
+    ERR_EXPR_TYPE_MATCH             = 106,
+    ERR_EXPR_FACTOR                 = 107,
+    ERR_EXPECTED_GENERAL_REG        = 108,
     
-    ERR_INVALID_ARG                 = 108,
+    ERR_INVALID_ARG                 = 109,
     
     
     
@@ -391,7 +393,8 @@ enum ErrMsgId : uint16_t {
 // future script files.
 //
 //------------------------------------------------------------------------------------------------------------
-const int CMD_LINE_BUF_SIZE  = 256;
+const int CMD_LINE_BUF_SIZE     = 256;
+const int TOK_STR_SIZE          = 256;
 
 //------------------------------------------------------------------------------------------------------------
 // Forward declaration of the globals structure. Every object will have access to the globals structure, so
@@ -402,15 +405,34 @@ struct VCPU32Globals;
 
 //------------------------------------------------------------------------------------------------------------
 // The command line interpreter as well as the one line assembler work the command line or assembly line
-// processed as a list of tokens. A token found in a string is recorded using the token structure.
-//  
+// processed as a list of tokens. A token found in a string is recorded using the token structure. The token
+// types are numeric, virtual address and string.
+//
 //------------------------------------------------------------------------------------------------------------
 struct DrvToken {
 
     char        name[ 32 ]  = { };
     TypeId      typ         = TYP_NIL;
     TokId       tid         = TOK_NIL;
-    uint32_t    val         = 0;
+    
+    union {
+        
+        struct {
+            
+            uint32_t val;
+        };
+        
+        struct {
+            
+            uint32_t seg;
+            uint32_t ofs;
+        };
+        
+        struct {
+            
+            char str[ TOK_STR_SIZE ];
+        };
+    };
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -427,6 +449,8 @@ struct DrvTokenizer {
 
     uint8_t     setupTokenizer( char *lineBuf, DrvToken *tokTab );
     void        nextToken( );
+    DrvToken    token( );
+    
     
     bool        isToken( TokId tokId );
     bool        isTokenTyp( TypeId typId );
@@ -435,33 +459,28 @@ struct DrvTokenizer {
     TokId       tokId( );
     int         tokVal( );
     char        *tokStr( );
+    uint32_t    tokSeg( );
+    uint32_t    tokOfs( );
     
     int         tokCharIndex( );
     char        *tokenLineStr( );
 
-    private: 
-
+    private:
+    
     void        tokenError( char *errMsg );
     void        nextChar( );
     void        parseNum( );
     void        parseString( );
     void        parseIdent( );
 
+    DrvToken    currentToken;
     DrvToken    *tokTab                 = nullptr;
     char        tokenLine[ 256 ]        = { 0 };
     int         currentLineLen          = 0;
     int         currentCharIndex        = 0;
     int         currentTokCharIndex     = 0;
     char        currentChar             = ' ';
-    
-    TypeId      currentTokTyp           = TYP_NIL;
-    TokId       currentTokId            = TOK_NIL;
-    int         currentTokVal           = 0;
-    
-    char        currentTokStr[ 256 ]    = { 0 };
 };
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // Expression value. The analysis of an expression results in a value. Depending on the expression type, the
@@ -474,31 +493,38 @@ struct DrvExpr {
    
     union {
         
-        uint32_t    numVal1;
-        char        strVal[ 256 ];
+        struct {
+            
+            TokId tokId;
+        };
         
-        TokId       tokId;
+        struct {
+            
+            uint32_t numVal1;
+        };
+        
+        struct {
+            
+            char strVal[ TOK_STR_SIZE ];
+        };
         
         struct {
             
             uint32_t seg;
             uint32_t ofs;
-            
-        } extAdr;
+        };
         
         struct {
             
-            uint32_t ofs;
-            
-        } adr;
+            uint32_t adr;
+        };
         
         struct {
             
             uint8_t sReg;
             uint8_t gReg;
             
-        } regPair;
-        
+        };
     };
     
     // ??? should go away... when we use extAdr.
@@ -1094,6 +1120,10 @@ private:
     uint8_t         evalInputLine( char *cmdBuf );
     uint8_t         execCmdsFromFile( char* fileName );
     
+    uint8_t         parseExpr( DrvExpr *rExpr );
+    uint8_t         parseTerm( DrvExpr *rExpr );
+    uint8_t         parseFactor( DrvExpr *rExpr );
+    
     uint8_t         invalidCmd( );
     uint8_t         exitCmd( );
     uint8_t         helpCmd( );
@@ -1112,7 +1142,7 @@ private:
     uint8_t         modifyRegCmd( );
     
    
-    void            hashVACmd( char *cmdBuf );
+    uint8_t         hashVACmd( );
     uint8_t         displayTLBCmd( );
     void            purgeTLBCmd( char *cmdBuf );
     void            insertTLBCmd( char *cmdBuf );
