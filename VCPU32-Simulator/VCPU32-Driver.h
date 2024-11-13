@@ -137,6 +137,7 @@ enum TokId : uint16_t {
     TOK_PCR                 = 34,       TOK_IOR                 = 35,
     
     TOK_DEC                 = 12,       TOK_OCT                 = 13,       TOK_HEX                 = 14,
+    TOK_CODE                = 15,
     
     
     TOK_DEF                 = 5,
@@ -184,7 +185,7 @@ enum TokId : uint16_t {
     
     CMD_DR                  = 1020,     CMD_MR                  = 1021,
     CMD_DA                  = 1027,     CMD_MA                  = 1028,
-    CMD_DAA                 = 1029,     CMD_MAA                 = 1030,
+    CMD_MAA                 = 1030,
     CMD_LMF                 = 1031,     CMD_SMF                 = 1032,
     
     CMD_HASH_VA             = 1033,
@@ -243,18 +244,14 @@ enum TokId : uint16_t {
     CR_27                   = 4327,     CR_28                   = 4328,     CR_29                   = 4329,
     CR_30                   = 4330,     CR_31                   = 4331,     CR_SET                  = 4332,
     
-    PS_IA_SEG               = 4400,     PS_IA_OFS               = 4401,     PS_STATUS               = 4402,
-    PS_SET                  = 4403,
+    FD_PSW0                 = 4500,     FD_PSW1                 = 4501,
+    FD_SET                  = 4502,
     
-    FD_IA_SEG               = 4500,     FD_IA_OFS               = 4501,     FD_INSTR                = 4502,
-    FD_A                    = 4503,     FD_B                    = 4504,     FD_X                    = 4505,
-    FD_SET                  = 4506,
-    
-    MA_IA_SEG               = 4600,     MA_IA_OFS               = 4601,     MA_INSTR                = 4602,
+    MA_PSW0                 = 4600,     MA_PSW1                 = 4601,     MA_INSTR                = 4602,
     MA_A                    = 4603,     MA_B                    = 4604,     MA_X                    = 4605,
     MA_S                    = 4606,     MA_SET                  = 4607,
     
-    EX_IA_SEG               = 4650,     EX_IA_OFS               = 4651,     EX_INSTR                = 4652,
+    EX_PSW0                 = 4650,     EX_PSW1                 = 4651,     EX_INSTR                = 4652,
     EX_A                    = 4653,     EX_B                    = 4654,     EX_X                    = 4655,
     EX_S                    = 4656,     EX_SET                  = 4657,
     
@@ -364,6 +361,10 @@ enum ErrMsgId : uint16_t {
     ERR_EXPECTED_WIN_TYPE           = 9,
     ERR_EXPECTED_STACK_ID           = 10,
     
+    ERR_INVALID_EXIT_VAL            = 1000,
+    
+    ERR_INVALID_REG_ID              = 200,
+    
     ERR_EXTRA_TOKEN_IN_STR          = 100,
     ERR_EXPECTED_LPAREN             = 101,
     ERR_EXPECTED_RPAREN             = 102,
@@ -373,8 +374,30 @@ enum ErrMsgId : uint16_t {
     ERR_EXPR_TYPE_MATCH             = 106,
     ERR_EXPR_FACTOR                 = 107,
     ERR_EXPECTED_GENERAL_REG        = 108,
+    ERR_EXPECTED_OFS                = 205,
     
+    ERR_EXPECTED_START_OFS          = 201,
+    ERR_EXPECTED_LEN                = 202,
+    ERR_OFS_LEN_LIMIT_EXCEEDED      = 203,
+ 
     ERR_INVALID_ARG                 = 109,
+    
+    ERR_TLB_TYPE                    = 110,
+    ERR_TLB_PURGE_OP                = 111,
+    ERR_TLB_INSERT_OP               = 112,
+    ERR_TLB_ACC_DATA                = 113,
+    ERR_TLB_ADR_DATA                = 114,
+    ERR_TLB_NOT_CONFIGURED          = 115,
+    
+    ERR_CACHE_TYPE                  = 116,
+    ERR_CACHE_PURGE_OP              = 117,
+    ERR_CACHE_NOT_CONFIGURED        = 118,
+    
+    ERR_EXPECTED_STEPS              = 120,
+    ERR_INVALID_STEP_OPTION         = 121,
+    
+    ERR_EXPECTED_INSTR_VAL          = 122,
+    ERR_TOO_MANY_ARGS_CMD_LINE      = 123,
     
     
     
@@ -1130,38 +1153,34 @@ private:
     uint8_t         winHelpCmd( );
     void            envCmd( char *cmdBuf );
     uint8_t         execFileCmd( );
+    uint8_t         loadPhysMemCmd( );
+    uint8_t         savePhysMemCmd( );
+    
     uint8_t         resetCmd( );
     uint8_t         runCmd( );
     uint8_t         stepCmd( );
-    uint8_t         setBreakPointCmd( );
-    uint8_t         deleteBreakPointCmd( );
-    uint8_t         listBreakPointsCmd( );
+   
     uint8_t         disAssembleCmd( );
     uint8_t         assembleCmd( );
     uint8_t         displayRegCmd( );
     uint8_t         modifyRegCmd( );
-    
-   
     uint8_t         hashVACmd( );
     uint8_t         displayTLBCmd( );
-    void            purgeTLBCmd( char *cmdBuf );
-    void            insertTLBCmd( char *cmdBuf );
-    void            displayCacheCmd( char *cmdBuf );
-    void            purgeCacheCmd( char *cmdBuf );
-    void            displayAbsMemCmd( char *cmdBuf );
-    void            displayAbsMemAsCodeCmd( char *cmdBuf );
-    void            modifyAbsMemCmd( char *cmdBuf );
-    void            modifyAbsMemAsCodeCmd( char *cmdBuf );
-    void            loadPhysMemCmd( char *cmdBuf );
-    void            savePhysMemCmd( char *cmdBuf );
+    uint8_t         purgeTLBCmd( );
+    uint8_t         insertTLBCmd( );
+    uint8_t         displayCacheCmd( );
+    uint8_t         purgeCacheCmd( );
+    uint8_t         displayAbsMemCmd( );
+    uint8_t         modifyAbsMemCmd( );
+    uint8_t         modifyAbsMemAsCodeCmd( );
     
-    void            winOnCmd( char *cmdBuf );
-    void            winOffCmd( char *cmdBuf );
-    void            winDefCmd( char *cmdBuf );
+    uint8_t         winOnCmd( );
+    uint8_t         winOffCmd( );
+    uint8_t         winDefCmd( );
+    uint8_t         winStacksEnable( );
+    uint8_t         winStacksDisable( );
+
     void            winCurrentCmd( char *cmdBuf );
-    void            winStacksEnable( char *cmdBuf );
-    void            winStacksDisable( char *cmdBuf );
-    
     void            winEnableCmd( char *cmdBUf );
     void            winDisableCmd( char *cmdBuf );
     void            winSetRadixCmd( char *cmdBuf );

@@ -52,7 +52,7 @@ enum RegClass : uint32_t {
     RC_GEN_REG_SET      = 1,
     RC_SEG_REG_SET      = 2,
     RC_CTRL_REG_SET     = 3,
-    RC_PROG_STATE       = 4,
+ //   RC_PROG_STATE       = 4,
     RC_FD_PSTAGE        = 5,
     RC_MA_PSTAGE        = 6,
     RC_EX_PSTAGE        = 7,

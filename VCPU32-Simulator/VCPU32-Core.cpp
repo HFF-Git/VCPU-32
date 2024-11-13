@@ -316,6 +316,7 @@ uint32_t CpuCore::getReg( RegClass regClass, uint8_t regNum ) {
         case RC_ITLB_OBJ:       return( iTlb -> getTlbCtrlReg( regNum ));
         case RC_DTLB_OBJ:       return( dTlb -> getTlbCtrlReg( regNum ));
        
+            /*
         case RC_PROG_STATE: {
             
             if      ( regNum == PS_REG_PSW_0 ) return( fdStage -> psPstate0.get( ));
@@ -323,6 +324,7 @@ uint32_t CpuCore::getReg( RegClass regClass, uint8_t regNum ) {
             else return( 0 );
             
         } break;
+             */
             
         default: return( 0 );
     }
@@ -347,6 +349,7 @@ void CpuCore::setReg( RegClass regClass, uint8_t regNum, uint32_t val ) {
         case RC_ITLB_OBJ:       iTlb -> setTlbCtrlReg( regNum, val );   break;
         case RC_DTLB_OBJ:       dTlb -> setTlbCtrlReg( regNum, val );   break;
        
+            /*
         case RC_PROG_STATE: {
         
             if      ( regNum == PS_REG_PSW_0 ) fdStage -> psPstate0.load( val );
@@ -354,6 +357,8 @@ void CpuCore::setReg( RegClass regClass, uint8_t regNum, uint32_t val ) {
             
         } break;
         
+             */
+            
         default: ;
     }
 }

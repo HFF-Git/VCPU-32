@@ -902,12 +902,12 @@ void DrvWinProgState::drawBanner( ) {
     printTextField((char *) "Program State", ( fmtDesc ), 16 );
     
     printTextField((char *) "Seg:", fmtDesc, 5 );
-    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_0 ) & 0xFFFF, fmtDesc | FMT_HALF_WORD, 8 );
+    printNumericField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0 ) & 0xFFFF, fmtDesc | FMT_HALF_WORD, 8 );
     printTextField((char *) "Ofs:", fmtDesc, 5 );
-    printNumericField( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_1 ), fmtDesc, 12 );
+    printNumericField( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ), fmtDesc, 12 );
     printTextField((char *) "ST:", fmtDesc, 4 );
     
-    uint32_t stat = glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_0 );
+    uint32_t stat = glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0 );
     
     printTextField(( getBit( stat, ST_MACHINE_CHECK )) ? (char *) "M" : (char *) "m", fmtDesc );
     printTextField(( getBit( stat, ST_EXECUTION_LEVEL )) ? (char *) "X" : (char *) "x", fmtDesc );
@@ -1501,7 +1501,7 @@ void DrvWinCode::setDefaults( ) {
     setRows( 9 );
 
     setHomeItemAdr( 0 );
-    setCurrentItemAdr( glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_1 ) );
+    setCurrentItemAdr( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ));
     setLineIncrement( 4 );
     setLimitItemAdr( 0 );
     setWinType( WT_PC_WIN );
@@ -1520,7 +1520,7 @@ void DrvWinCode::drawBanner( ) {
     uint32_t    fmtDesc             = FMT_BOLD | FMT_INVERSE;
     int         currentItemAdr      = getCurrentItemAdr( );
     int         currentItemAdrLimit = currentItemAdr + (( getRows( ) - 1 ) * getLineIncrement( ));
-    int         currentIaOfs        = (int) glb -> cpu -> getReg( RC_PROG_STATE, PS_REG_PSW_1  );
+    int         currentIaOfs        = (int) glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1  );
     TokId       currentCmd          = glb -> cmds -> getCurrentCmd( );
     bool        isCurrent           = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
     uint32_t    blockEntries        = glb -> cpu -> physMem -> getBlockEntries( );
