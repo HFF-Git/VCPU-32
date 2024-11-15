@@ -340,3 +340,428 @@ uint8_t DrvEnv::displayEnvTabEntry( TokId envId ) {
     
     return( 0 );
 }
+
+
+//------------------------------------------------------------------------------------------------------------
+// ??? if we have predefined and user defined ENV variables, this module needs to be rewritten.
+// ??? shall we just use these variables by name  and not by token Id ?
+//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
+// There predefined and user defined variables. Predefined variables are created at program start and
+// initialized. They are marked predefined and optional readonly by the ENV command. Also, their type cannot
+// be changed by a new value of a different type.
+//
+// User defined variables can be changed in type and value. They are by definition read and write enabled
+// and can also be removed.
+//------------------------------------------------------------------------------------------------------------
+
+
+//------------------------------------------------------------------------------------------------------------
+// Environment table entry, Each environment variable has a name, a couple of flags and the value, which
+// depends on the value type. Most types record their value directly in the entry. A string value will be
+// dynamically allocated.
+//
+//------------------------------------------------------------------------------------------------------------
+struct EnvTabEntry_n {
+    
+    char    name[ 32 ]  = { 0 };
+    bool    valid       = false;
+    bool    predefined  = false;
+    bool    readOnly    = false;
+    TypeId  typ         = TYP_NIL;
+    
+    union {
+        
+        struct {    TokId       tok;    };
+        struct {    bool        bVal;   };
+        struct {    uint32_t    uVal;   };
+        struct {    int32_t     iVal;   };
+        struct {    char        *str;   };
+        
+        struct {    uint16_t seg;   uint32_t ofs;   };
+    };
+};
+
+//------------------------------------------------------------------------------------------------------------
+// Environment table. The simulator has a global table where all variables are kept. It is a simple array
+// with a high water mark concept. The table will be allocated at simulator start.
+//
+//------------------------------------------------------------------------------------------------------------
+struct EnvTab_n {
+    
+    EnvTab_n( uint32_t size );
+    
+    uint8_t         displayEnvTable( );
+    uint8_t         displayEnvTableEntry( char *name );
+    uint8_t         setupPredefined( );
+    
+    uint8_t         setEnvVar( char *name, int iVal );
+    uint8_t         setEnvVar( char *name, uint32_t uVal );
+    uint8_t         setEnvVar( char *name, bool bVal );
+    uint8_t         setEnvVar( char *name, uint32_t seg, uint32_t ofs );
+    uint8_t         setEnvVar( char *name, char *str );
+    uint8_t         setEnvVar( char *name, TokId tokVal );
+    
+    uint8_t         getEnvVarTokId( char *name, TokId *arg );
+    uint8_t         getEnvVarBool( char *name, bool *arg );
+    uint8_t         getEnvVarInt( char *name, int *arg );
+    uint8_t         getEnvVarUint( char *name, uint32_t *arg );
+    uint8_t         getEnvVarAdr( char *name, uint32_t *arg );
+    uint8_t         getEnvVarExtAdr( char *name, uint32_t *seg, uint32_t *ofs );
+    
+    uint8_t         removeEnvVar( char *name );
+    
+    private:
+    
+    int             lookupEntry( char *name );
+    int             findFreeEntry( );
+    
+    uint8_t         enterEnvVar( char *name, int32_t iVal, bool predefined = false, bool readOnly = false );
+    uint8_t         enterEnvVar( char *name, uint32_t uVal, bool predefined = false, bool readOnly = false );
+    uint8_t         enterEnvVar( char *name, char *str, bool predefined = false, bool readOnly = false );
+    uint8_t         enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined = false, bool readOnly = false );
+    
+    uint8_t         displayEnvTableEntry( EnvTabEntry_n *entry );
+    
+    EnvTabEntry_n   *table;
+    EnvTabEntry_n   *hwm;
+    EnvTabEntry_n   *limit;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The ENV variable object. The table is dynamically allocated, the HWM and limit pointer are used to manage
+// the search and entry add and remove functions.
+//
+//------------------------------------------------------------------------------------------------------------
+EnvTab_n::EnvTab_n( uint32_t size ) {
+   
+    table   = (EnvTabEntry_n *) calloc( size, sizeof( EnvTabEntry_n ));
+    hwm     = table;
+    limit   = &table[ size ];
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "setEnvVar" is a set of function signatures that modify an ENV variable value. If the variable is a
+// predefined variable, the readOnly option is checked as well as that the variable type matches. A user
+// defined variable is by definition read/write enabled and the type changes based on the type of the
+// value set. If the variable is not found, a new variable will be allocated. One more thing. If the ENV
+// variable type is string and we set a value, the old string is deallocated.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t EnvTab_n::setEnvVar( char *name, int iVal ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 ) {
+        
+        EnvTabEntry_n *ptr = &table[ index ];
+        
+        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
+        if (( ptr -> predefined ) && ( ptr -> readOnly ))       return ( 99 );
+        if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
+         
+        ptr -> typ  = TYP_NUM;
+        ptr -> iVal = iVal;
+        return( NO_ERR );
+    }
+    else return enterEnvVar( name, iVal );
+}
+
+uint8_t EnvTab_n::setEnvVar( char *name, uint32_t uVal ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 ) {
+        
+        EnvTabEntry_n *ptr = &table[ index ];
+        
+        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
+        if (( ptr -> predefined ) && ( ptr -> readOnly ))       return ( 99 );
+        if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
+         
+        ptr -> typ  = TYP_NUM;
+        ptr -> uVal = uVal;
+        return( NO_ERR );
+    }
+    else return enterEnvVar( name, uVal );
+}
+
+uint8_t EnvTab_n::setEnvVar( char *name, bool bVal )  {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 ) {
+        
+        EnvTabEntry_n *ptr = &table[ index ];
+        
+        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
+        if (( ptr -> predefined ) && ( ptr -> readOnly ))       return ( 99 );
+        if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
+         
+        ptr -> typ  = TYP_BOOL;
+        ptr -> bVal = bVal;
+        return( NO_ERR );
+    }
+    else return enterEnvVar( name, bVal );
+}
+
+uint8_t EnvTab_n::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 ) {
+        
+        EnvTabEntry_n *ptr = &table[ index ];
+        
+        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
+        if (( ptr -> predefined ) && ( ptr -> readOnly ))       return ( 99 );
+        if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
+         
+        ptr -> typ  = TYP_EXT_ADR;
+        ptr -> seg = seg;
+        ptr -> ofs = ofs;
+        return( NO_ERR );
+    }
+    else return enterEnvVar( name, seg, ofs );
+}
+
+uint8_t EnvTab_n::setEnvVar( char *name, char *str )  {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 ) {
+        
+        EnvTabEntry_n *ptr = &table[ index ];
+        
+        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
+        if (( ptr -> predefined ) && ( ptr -> readOnly ))       return ( 99 );
+        if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
+         
+        ptr -> typ  = TYP_STR;
+        strcpy( ptr -> str, str );
+        return( NO_ERR );
+    }
+    else return enterEnvVar( name, str );
+}
+
+uint8_t EnvTab_n::setEnvVar( char *name, TokId tokVal )  {
+    
+    return( NO_ERR );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Remove a user defined ENV variable. If the ENV variable is predefined it is an error. If the ENV variable
+// type is a string, free the string space. The entry is marked invalid, i.e. free. Finally, if the entry
+// was at the high water mark, adjust the HWM.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t EnvTab_n::removeEnvVar( char *name ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 ) {
+        
+        EnvTabEntry_n *ptr = &table[ index ];
+        
+        if ( ptr -> predefined ) return( 99 );
+        if ( ptr -> typ == TYP_STR ) free( ptr -> str );
+        
+        ptr -> valid    = false;
+        ptr -> typ      = TYP_NIL;
+        
+        if ( ptr == hwm - 1 ) {
+            
+            while (( ptr >= table ) && ( ptr -> valid )) hwm --;
+        }
+        
+        return( NO_ERR );
+    }
+    else return ( 99 );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// A set of helper function to enter a variable. The variable can be a predefined or a user defined one. If
+// it is a predefined variable, the readonly flag marks the variable read only for the ENV command.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t EnvTab_n::enterEnvVar( char *name, int32_t iVal, bool predefined, bool readOnly ) {
+    
+    int index = findFreeEntry( );
+    
+    if ( index <= 0 ) {
+    
+        EnvTabEntry_n tmp;
+        strcpy ( tmp.name, name );
+        tmp.typ         = TYP_NUM;
+        tmp.valid       = true;
+        tmp.predefined  = predefined;
+        tmp.readOnly    = readOnly;
+        tmp.iVal        = iVal;
+        table[ index ]  = tmp;
+        return( NO_ERR );
+    }
+    else return( 99 );
+}
+
+uint8_t EnvTab_n::enterEnvVar( char *name, uint32_t uVal, bool predefined, bool readOnly ) {
+    
+    int index = findFreeEntry( );
+    
+    if ( index <= 0 ) {
+    
+        EnvTabEntry_n tmp;
+        strcpy ( tmp.name, name );
+        tmp.typ         = TYP_NUM;
+        tmp.valid       = true;
+        tmp.predefined  = predefined;
+        tmp.readOnly    = readOnly;
+        tmp.uVal        = uVal;
+        table[ index ]  = tmp;
+        return( NO_ERR );
+    }
+    else return( 99 );
+}
+
+uint8_t EnvTab_n::enterEnvVar( char *name, char *str, bool predefined, bool readOnly ) {
+    
+    int index = findFreeEntry( );
+    
+    if ( index <= 0 ) {
+        
+        EnvTabEntry_n tmp;
+        strcpy ( tmp.name, name );
+        tmp.valid       = true;
+        tmp.typ         = TYP_STR;
+        tmp.predefined  = predefined;
+        tmp.readOnly    = readOnly;
+        
+        char *tmpStr = (char *) calloc( strlen( str ), sizeof( char ));
+        strcpy( tmpStr, str );
+        
+        table[ index ]  = tmp;
+        return( NO_ERR );
+    }
+    else return( 99 );
+}
+
+uint8_t EnvTab_n::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined, bool readOnly ) {
+    
+    int index = findFreeEntry( );
+    
+    if ( index <= 0 ) {
+    
+        EnvTabEntry_n tmp;
+        strcpy ( tmp.name, name );
+        tmp.typ         = TYP_EXT_ADR;
+        tmp.valid       = true;
+        tmp.predefined  = predefined;
+        tmp.readOnly    = readOnly;
+        tmp.seg         = seg;
+        tmp.ofs         = ofs;
+        table[ index ]  = tmp;
+        return( NO_ERR );
+    }
+    else return( 99 );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Look a variable. We just do a linear search up to the HWM. SIf not found a -1 is returned. Straightforward.
+//
+//------------------------------------------------------------------------------------------------------------
+int EnvTab_n::lookupEntry( char *name ) {
+    
+    EnvTabEntry_n *entry = table;
+    
+    while ( entry < hwm ) {
+        
+        if (( entry -> valid ) && ( strcmp( entry -> name, name ) == 0 )) return((int) ( entry - table ));
+        else entry ++;
+    }
+    
+    return( -1 );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Find a free slot for a variable. First we look for a free entry in the range up to the HWM. If there is
+// none, we try to increase the HWM. If all fails, the table is full.
+//
+//------------------------------------------------------------------------------------------------------------
+int EnvTab_n::findFreeEntry( ) {
+    
+    EnvTabEntry_n *entry = table;
+    
+    while ( entry < hwm ) {
+        
+        if ( ! entry -> valid ) return((int) ( entry - table ));
+        else entry ++;
+    }
+    
+    if ( hwm < limit ) {
+        
+        hwm ++;
+        return((int) ( entry - table ));
+    }
+    else return( 99 );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// List the entire ENV table up to the high water mark.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t EnvTab_n::displayEnvTable( ) {
+    
+    EnvTabEntry_n *entry = table;
+    
+    while ( entry < hwm ) {
+        
+        if ( entry -> valid ) displayEnvTableEntry( entry );
+    }
+    
+    return( NO_ERR );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Display a ENV entry by name.
+//
+//------------------------------------------------------------------------------------------------------------
+uint8_t EnvTab_n::displayEnvTableEntry( char *name ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 )   return( displayEnvTableEntry( &table[ index ] ));
+    else                return( 99 );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Display the ENV entry.
+//
+// ??? what to do about token types ? ( FMT, etc. ) ( perhaps time to make the fmtID a numeric value ... :-( )
+//------------------------------------------------------------------------------------------------------------
+uint8_t EnvTab_n::displayEnvTableEntry( EnvTabEntry_n *entry ) {
+    
+    printf( "%32s", entry -> name );
+    
+    switch ( entry -> typ ) {
+            
+        case TYP_NUM:       fprintf( stdout, "%i", entry -> iVal ); break;
+        case TYP_EXT_ADR:   fprintf( stdout, "0x%04x.0x%08x", entry -> seg, entry -> ofs );
+            
+        case TYP_STR: {
+            
+            fprintf( stdout, "%s", entry -> str );
+            
+        } break;
+            
+        case TYP_BOOL:      {
+            
+            if ( entry -> bVal ) fprintf( stdout, "TRUE");
+            else                 fprintf( stdout, "FALSE"); break;
+        
+        } break;
+        
+        default: printf( "Unknown type" );
+    }
+ 
+    return( NO_ERR );
+}

@@ -440,21 +440,9 @@ struct DrvToken {
     
     union {
         
-        struct {
-            
-            uint32_t val;
-        };
-        
-        struct {
-            
-            uint32_t seg;
-            uint32_t ofs;
-        };
-        
-        struct {
-            
-            char str[ TOK_STR_SIZE ];
-        };
+        struct {    uint32_t val;                   };
+        struct {    uint32_t seg;   uint32_t ofs;   };
+        struct {    char str[ TOK_STR_SIZE ];        };
     };
 };
 
