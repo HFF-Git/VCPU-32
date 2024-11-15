@@ -315,16 +315,6 @@ uint32_t CpuCore::getReg( RegClass regClass, uint8_t regNum ) {
             
         case RC_ITLB_OBJ:       return( iTlb -> getTlbCtrlReg( regNum ));
         case RC_DTLB_OBJ:       return( dTlb -> getTlbCtrlReg( regNum ));
-       
-            /*
-        case RC_PROG_STATE: {
-            
-            if      ( regNum == PS_REG_PSW_0 ) return( fdStage -> psPstate0.get( ));
-            else if ( regNum == PS_REG_PSW_1 ) return( fdStage -> psPstate1.get( ));
-            else return( 0 );
-            
-        } break;
-             */
             
         default: return( 0 );
     }

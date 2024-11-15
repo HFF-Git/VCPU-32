@@ -442,7 +442,7 @@ struct DrvToken {
         
         struct {    uint32_t val;                   };
         struct {    uint32_t seg;   uint32_t ofs;   };
-        struct {    char str[ TOK_STR_SIZE ];        };
+        struct {    char str[ TOK_STR_SIZE ];       };
     };
 };
 
@@ -504,44 +504,13 @@ struct DrvExpr {
    
     union {
         
-        struct {
-            
-            TokId tokId;
-        };
+        struct {    TokId       tokId;                      };
+        struct {    uint32_t    numVal;                     };
+        struct {    char        strVal[ TOK_STR_SIZE ];     };
         
-        struct {
-            
-            uint32_t numVal1;
-        };
-        
-        struct {
-            
-            char strVal[ TOK_STR_SIZE ];
-        };
-        
-        struct {
-            
-            uint32_t seg;
-            uint32_t ofs;
-        };
-        
-        struct {
-            
-            uint32_t adr;
-        };
-        
-        struct {
-            
-            uint8_t sReg;
-            uint8_t gReg;
-            
-        };
-    };
-    
-    // ??? should go away... when we use extAdr.
-    union {
-        
-        uint32_t    numVal2;
+        struct {    uint32_t adr;                           };
+        struct {    uint8_t  sReg;  uint8_t gReg;           };
+        struct {    uint32_t seg;   uint32_t ofs;           };
     };
 };
 
@@ -582,6 +551,78 @@ private:
 };
 
 
+//------------------------------------------------------------------------------------------------------------
+// Environment table entry, Each environment variable has a name, a couple of flags and the value, which
+// depends on the value type. Most types record their value directly in the entry. A string value will be
+// dynamically allocated.
+//
+//------------------------------------------------------------------------------------------------------------
+struct DrvEnvTabEntry {
+    
+    char    name[ 32 ]  = { 0 };
+    bool    valid       = false;
+    bool    predefined  = false;
+    bool    readOnly    = false;
+    TypeId  typ         = TYP_NIL;
+    
+    union {
+        
+        struct {    bool        bVal;   };
+        struct {    uint32_t    uVal;   };
+        struct {    int32_t     iVal;   };
+        struct {    char        *str;   };
+        
+        struct {    uint16_t seg;   uint32_t ofs;   };
+    };
+};
+
+//------------------------------------------------------------------------------------------------------------
+// Environment variables. The simulator has a global table where all variables are kept. It is a simple array
+// with a high water mark concept. The table will be allocated at simulator start.
+//
+//------------------------------------------------------------------------------------------------------------
+struct DrvEnv_n {
+    
+    DrvEnv_n( VCPU32Globals *glb, uint32_t size );
+    
+    uint8_t         displayEnvTable( );
+    uint8_t         displayEnvTableEntry( char *name );
+    uint8_t         setupPredefined( );
+    
+    uint8_t         setEnvVar( char *name, int iVal );
+    uint8_t         setEnvVar( char *name, uint32_t uVal );
+    uint8_t         setEnvVar( char *name, bool bVal );
+    uint8_t         setEnvVar( char *name, uint32_t seg, uint32_t ofs );
+    uint8_t         setEnvVar( char *name, char *str );
+    
+    uint8_t         getEnvVarBool( char *name, bool *arg );
+    uint8_t         getEnvVarInt( char *name, int *arg );
+    uint8_t         getEnvVarUint( char *name, uint32_t *arg );
+    uint8_t         getEnvVarAdr( char *name, uint32_t *arg );
+    uint8_t         getEnvVarExtAdr( char *name, uint32_t *seg, uint32_t *ofs );
+    
+    uint8_t         removeEnvVar( char *name );
+    
+    private:
+    
+    int             lookupEntry( char *name );
+    int             findFreeEntry( );
+    
+    uint8_t         enterEnvVar( char *name, int32_t iVal, bool predefined = false, bool readOnly = false );
+    uint8_t         enterEnvVar( char *name, uint32_t uVal, bool predefined = false, bool readOnly = false );
+    uint8_t         enterEnvVar( char *name, bool bVal, bool predefined, bool readOnly );
+    uint8_t         enterEnvVar( char *name, char *str, bool predefined = false, bool readOnly = false );
+    uint8_t         enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined = false, bool readOnly = false );
+    
+    uint8_t         displayEnvTableEntry( DrvEnvTabEntry *entry );
+    
+    DrvEnvTabEntry  *table;
+    DrvEnvTabEntry  *hwm;
+    DrvEnvTabEntry  *limit;
+    
+    VCPU32Globals   *glb = nullptr;
+};
+
 //-----------------------------------------------------------------------------------------------------------
 // The "CPU24DrvBaseWin" class. The Terminal Screen will be in screen mode a set of stacks each with a list
 // of screen sub windows. The default is one stack, the general register set window and the command line
@@ -607,14 +648,14 @@ public:
     void            setEnable( bool arg );
     bool            isEnabled( );
     
-    virtual void    setRadix( TokId radix );
-    virtual TokId   getRadix( );
+    virtual void    setRadix( int radix );
+    virtual int     getRadix( );
     
     void            setRows( int arg );
     int             getRows( );
     
-    void            setDefColumns( int arg, TokId rdx = TOK_HEX );
-    int             getDefColumns( TokId rdx = TOK_HEX );
+    void            setDefColumns( int arg, int rdx = 16 );
+    int             getDefColumns( int rdx = 16 );
     
     void            setColumns( int arg );
     int             getColumns( );
@@ -628,22 +669,22 @@ public:
     int             getWinStack( );
     void            setWinStack( int wStack );
     
-    void            printNumericField( uint32_t val,
-                                      uint32_t fmtDesc = 0,
-                                      int len = 0,
-                                      int row = 0,
-                                      int col = 0 );
+    void            printNumericField(  uint32_t val,
+                                        uint32_t fmtDesc = 0,
+                                        int len = 0,
+                                        int row = 0,
+                                        int col = 0 );
     
     void            printTextField( char *text,
-                                   uint32_t fmtDesc = 0,
-                                   int len = 0,
-                                   int row = 0,
-                                   int col = 0 );
-    
-    void            printRadixField( uint32_t fmtDesc = 0,
+                                    uint32_t fmtDesc = 0,
                                     int len = 0,
                                     int row = 0,
                                     int col = 0 );
+    
+    void            printRadixField( uint32_t fmtDesc = 0,
+                                     int len = 0,
+                                     int row = 0,
+                                     int col = 0 );
     
     void            printWindowIdField( int stack,
                                         int index,
@@ -674,7 +715,7 @@ private:
     bool            winEnabled          = false;
     bool            winCurrent          = false;
     
-    TokId           winRadix            = TOK_HEX;
+    int             winRadix            = 16;
     int             winStack            = 0;
     int             winRows             = 0;
     int             winColumns          = 0;
@@ -741,7 +782,7 @@ public:
     DrvWinProgState( VCPU32Globals *glb );
     
     void setDefaults( );
-    void setRadix( TokId rdx );
+    void setRadix( int rdx );
     void drawBanner( );
     void drawBody( );
 };
@@ -757,7 +798,7 @@ public:
     DrvWinSpecialRegs( VCPU32Globals *glb );
     
     void setDefaults( );
-    void setRadix( TokId rdx );
+    void setRadix( int rdx );
     void drawBanner( );
     void drawBody( );
 };
@@ -773,7 +814,7 @@ public:
     DrvWinPipeLineRegs( VCPU32Globals *glb );
     
     void setDefaults( );
-    void setRadix( TokId rdx );
+    void setRadix( int rdx );
     void drawBanner( );
     void drawBody( );
 };
@@ -806,7 +847,7 @@ public:
     DrvWinAbsMem( VCPU32Globals *glb );
     
     void setDefaults( );
-    void setRadix( TokId rdx );
+    void setRadix( int rdx );
     void drawBanner( );
     void drawLine( uint32_t index );
 };
@@ -838,7 +879,7 @@ public:
     DrvWinTlb( VCPU32Globals *glb, int winType );
     
     void setDefaults( );
-    void setRadix( TokId rdx );
+    void setRadix( int rdx );
     void drawBanner( );
     void drawLine( uint32_t index );
     
@@ -860,7 +901,7 @@ public:
     DrvWinCache( VCPU32Globals *glb, int winType );
     
     void setDefaults( );
-    void setRadix( TokId rdx );
+    void setRadix( int rdx );
     void toggleWin( );
     void drawBanner( );
     void drawLine( uint32_t index );
@@ -981,7 +1022,7 @@ public:
     void            windowEnable( TokId winCmd, int winNum = 0 );
     void            windowDisable( TokId winCmd, int winNum = 0  );
     void            winStacksEnable( bool arg );
-    void            windowRadix( TokId winCmd, TokId fmtId, int winNum = 0 );
+    void            windowRadix( TokId winCmd, int rdx, int winNum = 0 );
     void            windowSetRows( TokId winCmd, int rows, int winNum = 0 );
     
     void            windowHome( TokId winCmd, int amt, int winNum = 0 );
@@ -1032,25 +1073,25 @@ public:
     
     DrvLineDisplay( VCPU32Globals *glb );
     
-    void        displayWord( uint32_t val, TokId = TOK_DEF );
-    void        displayHalfWord( uint32_t val, TokId = TOK_DEF );
-    void        displayAbsMemContent( uint32_t ofs, uint32_t len, TokId = TOK_DEF );
-    void        displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, TokId fmtId );
+    void        displayWord( uint32_t val, int rdx = 16 );
+    void        displayHalfWord( uint32_t val, int rdx = 16 );
+    void        displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx = 16 );
+    void        displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, int rdx = 16 );
     
-    void        displayGeneralRegSet( TokId fmt = TOK_DEF );
-    void        displaySegmentRegSet( TokId fmt = TOK_DEF );
-    void        displayControlRegSet( TokId fmt = TOK_DEF );
-    void        displayPStateRegSet( TokId fmt = TOK_DEF );
-    void        displayPlIFetchDecodeRegSet( TokId fmt = TOK_DEF );
-    void        displayPlMemoryAccessRegSet( TokId fmt = TOK_DEF );
-    void        displayPlExecuteRegSet( TokId fmt = TOK_DEF );
-    void        displayPlRegSets( TokId fmt = TOK_DEF );
-    void        displayAllRegSets( TokId fmt = TOK_DEF );
-    void        displayTlbEntry( TlbEntry *entry, TokId fmt = TOK_DEF );
-    void        displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, TokId fmt = TOK_DEF );
-    void        displayCacheEntries( CpuMem *cache, uint32_t index, uint32_t len, TokId fmt = TOK_DEF );
-    void        displayMemObjRegSet( CpuMem *mem, TokId fmt = TOK_DEF );
-    void        displayTlbObjRegSet( CpuTlb *tlb, TokId fmt = TOK_DEF );
+    void        displayGeneralRegSet( int rdx = 16 );
+    void        displaySegmentRegSet( int rdx = 16);
+    void        displayControlRegSet( int rdx = 16 );
+    void        displayPStateRegSet( int rdx = 16 );
+    void        displayPlIFetchDecodeRegSet( int rdx = 16 );
+    void        displayPlMemoryAccessRegSet( int rdx = 16 );
+    void        displayPlExecuteRegSet( int rdx = 16 );
+    void        displayPlRegSets( int rdx = 16 );
+    void        displayAllRegSets( int rdx = 16 );
+    void        displayTlbEntry( TlbEntry *entry, int rdx = 16 );
+    void        displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, int rdx = 16 );
+    void        displayCacheEntries( CpuMem *cache, uint32_t index, uint32_t len, int rdx = 16 );
+    void        displayMemObjRegSet( CpuMem *mem, int rdx = 16 );
+    void        displayTlbObjRegSet( CpuTlb *tlb, int rdx = 16 );
     
 private:
     
@@ -1058,7 +1099,7 @@ private:
                                     int         regStart,
                                     int         numOfRegs   = 4,
                                     char        *LineLabel  = ((char *)"" ),
-                                    TokId       fmt         = TOK_DEF );
+                                    int         rdx = 16 );
     
     VCPU32Globals *glb = nullptr;
 };
@@ -1073,9 +1114,9 @@ struct DrvDisAsm {
 public:
     
     DrvDisAsm( VCPU32Globals *glb );
-    void displayInstr( uint32_t instr, TokId fmt );
+    void displayInstr( uint32_t instr, int rdx = 16 );
     void displayOpCodeAndOptions( uint32_t instr );
-    void displayTargetAndOperands( uint32_t instr, TokId fmt = TOK_DEF );
+    void displayTargetAndOperands( uint32_t instr, int rdx = 16 );
     
     int  getOpCodeOptionsFieldWidth( );
     int  getTargetAndOperandsFieldWidth( );
@@ -1198,6 +1239,8 @@ private:
 struct VCPU32Globals {
     
     DrvEnv              *env            = nullptr;
+    DrvEnv_n            *env_n          = nullptr;
+    
     DrvDisAsm           *disAsm         = nullptr;
     DrvOneLineAsm       *oneLineAsm     = nullptr;
     

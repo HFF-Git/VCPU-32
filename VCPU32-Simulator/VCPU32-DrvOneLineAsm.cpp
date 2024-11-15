@@ -420,41 +420,41 @@ bool parseExpr( DrvExpr *rExpr );
 bool parseFactor( DrvExpr *rExpr ) {
     
     rExpr -> typ  = TYP_NIL;
-    rExpr -> numVal1 = 0;
-    rExpr -> numVal2 = 0;
+    rExpr -> numVal = 0;
+
    
     if ( tok -> isTokenTyp( TYP_NUM ))  {
         
         rExpr -> typ = TYP_NUM;
-        rExpr -> numVal1 = tok -> tokVal( );
+        rExpr -> numVal = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
     else  if ( tok -> isTokenTyp( TYP_GREG ))  {
         
         rExpr -> typ = TYP_GREG;
-        rExpr -> numVal1 = tok -> tokVal( );
+        rExpr -> numVal = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
     else  if ( tok -> isTokenTyp( TYP_SREG ))  {
         
         rExpr -> typ = TYP_SREG;
-        rExpr -> numVal1 = tok -> tokVal( );
+        rExpr -> numVal = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
     else  if ( tok -> isTokenTyp( TYP_CREG ))  {
         
         rExpr -> typ = TYP_CREG;
-        rExpr -> numVal1 = tok -> tokVal( );
+        rExpr -> numVal = tok -> tokVal( );
         tok -> nextToken( );
         return( true );
     }
     else if ( tok -> isToken( TOK_NEG )) {
         
         parseFactor( rExpr );
-        rExpr -> numVal1 = ~ rExpr -> numVal1;
+        rExpr -> numVal = ~ rExpr -> numVal;
         return( true );
     }
     else if ( tok -> isToken( TOK_LPAREN )) {
@@ -462,15 +462,15 @@ bool parseFactor( DrvExpr *rExpr ) {
         tok -> nextToken( );
         if ( tok ->  isTokenTyp( TYP_SREG )) {
             
-            rExpr -> typ        = TYP_EXT_ADR;
-            rExpr -> numVal1    = tok -> tokVal( );
+            rExpr -> typ    = TYP_EXT_ADR;
+            rExpr -> sReg   = tok -> tokVal( );
             
             tok -> nextToken( );
             if ( ! acceptComma( )) return( false );
            
             if ( tok -> isTokenTyp( TYP_GREG )) {
                 
-                rExpr -> numVal2 = tok -> tokVal( );
+                rExpr -> gReg = tok -> tokVal( );
                 tok -> nextToken( );
             }
             else return( parserError((char *) "Expected a general reg" ));
@@ -478,7 +478,7 @@ bool parseFactor( DrvExpr *rExpr ) {
         else if ( tok -> isTokenTyp( TYP_GREG )) {
             
             rExpr -> typ = TYP_ADR;
-            rExpr -> numVal1 = tok -> tokVal( );
+            rExpr -> numVal = tok -> tokVal( );
             tok -> nextToken( );
         }
         else if ( ! parseExpr( rExpr )) return( false );
@@ -490,7 +490,7 @@ bool parseFactor( DrvExpr *rExpr ) {
         
         parserError((char *) "Invalid factor in expression" );
         rExpr -> typ    = TYP_NUM;
-        rExpr -> numVal1   = 0;
+        rExpr -> numVal   = 0;
         tok -> nextToken( );
         return( false );
     }
@@ -527,10 +527,10 @@ bool parseTerm( DrvExpr *rExpr ) {
        
         switch( op ) {
                 
-            case TOK_MULT:   rExpr -> numVal1 = rExpr -> numVal1 * lExpr.numVal1; break;
-            case TOK_DIV:    rExpr -> numVal1 = rExpr -> numVal1 / lExpr.numVal1; break;
-            case TOK_MOD:    rExpr -> numVal1 = rExpr -> numVal1 % lExpr.numVal1; break;
-            case TOK_AND:    rExpr -> numVal1 = rExpr -> numVal1 & lExpr.numVal1; break;
+            case TOK_MULT:   rExpr -> numVal = rExpr -> numVal * lExpr.numVal; break;
+            case TOK_DIV:    rExpr -> numVal = rExpr -> numVal / lExpr.numVal; break;
+            case TOK_MOD:    rExpr -> numVal = rExpr -> numVal % lExpr.numVal; break;
+            case TOK_AND:    rExpr -> numVal = rExpr -> numVal & lExpr.numVal; break;
         }
     }
     
@@ -565,7 +565,7 @@ bool parseExpr( DrvExpr *rExpr ) {
         tok -> nextToken( );
         rStat = parseTerm( rExpr );
         
-        if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal1 = - rExpr -> numVal1;
+        if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal = - rExpr -> numVal;
         else return( parserError((char *) "Expected a numeric constant" ));
     }
     else rStat = parseTerm( rExpr );
@@ -587,10 +587,10 @@ bool parseExpr( DrvExpr *rExpr ) {
         
         switch ( op ) {
                 
-            case TOK_PLUS:   rExpr -> numVal1 = rExpr -> numVal1 + lExpr.numVal1; break;
-            case TOK_MINUS:  rExpr -> numVal1 = rExpr -> numVal1 - lExpr.numVal1; break;
-            case TOK_OR:     rExpr -> numVal1 = rExpr -> numVal1 | lExpr.numVal1; break;
-            case TOK_XOR:    rExpr -> numVal1 = rExpr -> numVal1 ^ lExpr.numVal1; break;
+            case TOK_PLUS:   rExpr -> numVal = rExpr -> numVal + lExpr.numVal; break;
+            case TOK_MINUS:  rExpr -> numVal = rExpr -> numVal - lExpr.numVal; break;
+            case TOK_OR:     rExpr -> numVal = rExpr -> numVal | lExpr.numVal; break;
+            case TOK_XOR:    rExpr -> numVal = rExpr -> numVal ^ lExpr.numVal; break;
         }
     }
     
@@ -821,14 +821,14 @@ bool parseLogicalAdr( uint32_t *instr, uint32_t flags ) {
         
     if ( rExpr.typ == TYP_EXT_ADR ) {
         
-        setBitField( instr, 31, 4, rExpr.numVal2 );
+        setBitField( instr, 31, 4, rExpr.gReg );
         
-        if ( isInRange( rExpr.numVal1, 1, 3 )) setBitField( instr, 13, 2, rExpr.numVal1 );
+        if ( isInRange( rExpr.sReg, 1, 3 )) setBitField( instr, 13, 2, rExpr.sReg );
         else return( parserError((char *) "Expected SR1 .. SR3 " ));
     }
     else if ( rExpr.typ == TYP_ADR ) {
         
-        setBitField( instr, 31, 4, rExpr.numVal1 );
+        setBitField( instr, 31, 4, rExpr.adr );
     }
     else return( parserError((char *) "Expected a logical address" ));
     
@@ -861,7 +861,7 @@ bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_NUM ) {
         
-        if ( isInRangeForBitField( rExpr.numVal1, 12 )) setImmVal( instr, 27, 12, rExpr.numVal1 );
+        if ( isInRangeForBitField( rExpr.numVal, 12 )) setImmVal( instr, 27, 12, rExpr.numVal );
         else return( parserError((char *) "Immediate value out of range" ));
         
         if ( ! parseExpr( &rExpr )) return( false );
@@ -872,7 +872,7 @@ bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
             return( parserError((char *) "Register based offset is not allowed for this instruction" ));
         
         setBit( instr, 10 );
-        setBitField( instr, 27, 4, rExpr.numVal1 );
+        setBitField( instr, 27, 4, rExpr.numVal );
         
         if ( ! parseExpr( &rExpr )) return( false );
     }
@@ -880,7 +880,7 @@ bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
     if ( rExpr.typ == TYP_ADR ) {
                     
         setBitField( instr, 13, 2, 0 );
-        setBitField( instr, 31, 4, rExpr.numVal1 );
+        setBitField( instr, 31, 4, rExpr.numVal );
     }
     else if ( rExpr.typ == TYP_EXT_ADR ) {
                     
@@ -889,10 +889,10 @@ bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
             return( parserError((char *) "Invalid address for instruction type" ));
         }
                 
-        if ( isInRange( rExpr.numVal1, 1, 3 )) setBitField( instr, 13, 2, rExpr.numVal1 );
+        if ( isInRange( rExpr.sReg, 1, 3 )) setBitField( instr, 13, 2, rExpr.sReg );
         else return( parserError((char *) "Expected SR1 .. SR3 " ));
                     
-        setBitField( instr, 31, 4, rExpr.numVal2 );
+        setBitField( instr, 31, 4, rExpr.gReg );
     }
     else return( parserError((char *) "Expected an address" ));
    
@@ -930,12 +930,12 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
      
         if ( tok -> isToken( TOK_EOS )) {
             
-            if ( isInRangeForBitField( rExpr.numVal1, 18 )) setImmVal( instr, 31, 18, rExpr.numVal1 );
+            if ( isInRangeForBitField( rExpr.numVal, 18 )) setImmVal( instr, 31, 18, rExpr.numVal );
             else return( parserError((char *) "Immediate value out of range" ));
         }
         else {
             
-            if ( isInRangeForBitField( rExpr.numVal1, 12 )) setImmVal( instr, 27, 12, rExpr.numVal1 );
+            if ( isInRangeForBitField( rExpr.numVal, 12 )) setImmVal( instr, 27, 12, rExpr.numVal );
             else return( parserError((char *) "Immediate value out of range" ));
             
             if ( ! parseExpr( &rExpr )) return( false );
@@ -943,7 +943,7 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
             if ( rExpr.typ == TYP_ADR ) {
                 
                 setBitField( instr, 13, 2, 3 );
-                setBitField( instr, 31, 4, rExpr.numVal1 );
+                setBitField( instr, 31, 4, rExpr.numVal );
             }
             else return( parserError((char *) "Expected an address" ));
             
@@ -958,18 +958,18 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
             
             setBitField( instr, 13, 2, 1 );
             setBitField( instr, 27, 4, targetRegId );
-            setBitField( instr, 31, 4, rExpr.numVal1 );
+            setBitField( instr, 31, 4, rExpr.numVal );
         }
         else if ( tok -> isToken( TOK_COMMA )) {
             
             setBitField( instr, 13, 2, 1 );
-            setBitField( instr, 27, 4, rExpr.numVal1 );
+            setBitField( instr, 27, 4, rExpr.numVal );
             
             tok -> nextToken( );
             if ( tok -> isTokenTyp( TYP_GREG )) {
                 
                 setBitField( instr, 13, 2, 1 );
-                setBitField( instr, 27, 4, rExpr.numVal1 );
+                setBitField( instr, 27, 4, rExpr.numVal );
                 setBitField( instr, 31, 4, tok -> tokVal( ));
                 tok -> nextToken( );
             }
@@ -977,12 +977,12 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
         }
         else if ( tok -> isToken( TOK_LPAREN )) {
             
-            setBitField( instr, 27, 4, rExpr.numVal1 );
+            setBitField( instr, 27, 4, rExpr.numVal );
             
             if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_ADR )) {
                 
                 setBitField( instr, 13, 2, 2 );
-                setBitField( instr, 31, 4, rExpr.numVal1 );
+                setBitField( instr, 31, 4, rExpr.numVal );
             }
             else return( parserError((char *) "Expected a logical address" ));
             
@@ -1065,8 +1065,8 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
             
             if ( isInRangeForBitFieldU( tok -> tokVal( ), 5 )) {
                 
-                if ( getBit( *instr, 11 ))  setBitField( instr, 21, 5, rExpr.numVal1 );
-                else                        setBitField( instr, 27, 5, rExpr.numVal1 );
+                if ( getBit( *instr, 11 ))  setBitField( instr, 21, 5, rExpr.numVal );
+                else                        setBitField( instr, 27, 5, rExpr.numVal );
             }
             else return( parserError((char *) "Immediate value out of range" ));
         }
@@ -1079,7 +1079,7 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
             
             if ( rExpr.typ == TYP_NUM ) {
                 
-                if ( isInRangeForBitFieldU( rExpr.numVal1, 5 )) setBitField( instr, 21, 5, rExpr.numVal1 );
+                if ( isInRangeForBitFieldU( rExpr.numVal, 5 )) setBitField( instr, 21, 5, rExpr.numVal );
                 else return( parserError((char *) "Immediate value out of range" ));
             }
             else return( parserError((char *) "Expected a number" ));
@@ -1089,7 +1089,7 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
         
         if ( getBit( *instr, 12 )) {
             
-            if ( isInRangeForBitField( rExpr.numVal1, 4 )) setBitField( instr, 31, 4, rExpr.numVal1 );
+            if ( isInRangeForBitField( rExpr.numVal, 4 )) setBitField( instr, 31, 4, rExpr.numVal );
             else return( parserError((char *) "Immediate value out of range" ));
             
             if ( ! acceptComma( )) return( false );
@@ -1107,7 +1107,7 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
             
             if ( rExpr.typ == TYP_NUM ) {
                 
-                if ( isInRangeForBitFieldU( rExpr.numVal1, 5 )) setBitField( instr, 21, 5, rExpr.numVal1 );
+                if ( isInRangeForBitFieldU( rExpr.numVal, 5 )) setBitField( instr, 21, 5, rExpr.numVal );
                 else return( parserError((char *) "Len value out of range" ));
             }
             else return( parserError((char *) "Expected a numeric value" ));
@@ -1199,7 +1199,7 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
         
         if ( rExpr.typ == TYP_NUM ) {
             
-            if ( isInRangeForBitFieldU( rExpr.numVal1, 5 )) setBitField( instr, 21, 5, rExpr.numVal1 );
+            if ( isInRangeForBitFieldU( rExpr.numVal, 5 )) setBitField( instr, 21, 5, rExpr.numVal );
             else return( parserError((char *) "Immediate value out of range" ));
         }
         else return( parserError((char *) "Expected a number" ));
@@ -1244,8 +1244,8 @@ bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
         
         if ( isInRangeForBitFieldU( tok -> tokVal( ), 5 )) {
             
-            if ( getBit( *instr, 11 ))  setBitField( instr, 21, 5, rExpr.numVal1 );
-            else                        setBitField( instr, 27, 5, rExpr.numVal1 );
+            if ( getBit( *instr, 11 ))  setBitField( instr, 21, 5, rExpr.numVal );
+            else                        setBitField( instr, 27, 5, rExpr.numVal );
         }
         else return( parserError((char *) "Immediate value out of range" ));
     }
@@ -1258,9 +1258,9 @@ bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
         
         if ( rExpr.typ == TYP_NUM ) {
             
-            if ( isInRangeForBitFieldU( rExpr.numVal1, 5 )) {
+            if ( isInRangeForBitFieldU( rExpr.numVal, 5 )) {
                 
-                setBitField( instr, 21, 5, rExpr.numVal1 );
+                setBitField( instr, 21, 5, rExpr.numVal );
             }
             else return( parserError((char *) "Immediate value out of range" ));
         }
@@ -1309,16 +1309,16 @@ bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
         
         if ( getBit( *instr, 11 )) {
             
-            if ( ! isInRangeForBitFieldU( rExpr.numVal1, 4 ))
+            if ( ! isInRangeForBitFieldU( rExpr.numVal, 4 ))
                 return( parserError((char *) "Immediate value out of range"));
         }
         else {
             
-            if ( ! isInRangeForBitField( rExpr.numVal1, 4 ))
+            if ( ! isInRangeForBitField( rExpr.numVal, 4 ))
                 return( parserError((char *) "Immediate value out of range"));
         }
         
-        setBitField( instr, 31, 4, rExpr.numVal1 );
+        setBitField( instr, 31, 4, rExpr.numVal );
     }
     else return( parserError((char *) "Expected a general register or immediate value" ));
     
@@ -1327,7 +1327,7 @@ bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_NUM ) {
         
-        if ( isInRangeForBitFieldU( rExpr.numVal1, 2 )) setBitField( instr, 21, 2, rExpr.numVal1 );
+        if ( isInRangeForBitFieldU( rExpr.numVal, 2 )) setBitField( instr, 21, 2, rExpr.numVal );
         else return( parserError((char *) "Immediate value out of range" ));
     }
     else return( parserError((char *) "Expected the shift amount" ));
@@ -1395,7 +1395,7 @@ bool parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
     
     if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
 
-        if ( isInRangeForBitFieldU( rExpr.numVal1, 22 )) setImmValU( instr, 31, 22, rExpr.numVal1  );
+        if ( isInRangeForBitFieldU( rExpr.numVal, 22 )) setImmValU( instr, 31, 22, rExpr.numVal  );
         else return( parserError((char *) "Immediate value out of range" ));
     }
     else return( parserError((char *) "Expected a numeric expression" ));
@@ -1425,18 +1425,18 @@ bool parseInstrLDO( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_NUM ) {
         
-        if ( isInRangeForBitField( rExpr.numVal1, 18 )) setImmVal( instr, 27, 18, rExpr.numVal1 );
+        if ( isInRangeForBitField( rExpr.numVal, 18 )) setImmVal( instr, 27, 18, rExpr.numVal );
         else return( parserError((char *) "Immediate value out of range" ));
         
         if ( ! parseExpr( &rExpr )) return( false );
         
-        if ( rExpr.typ == TYP_ADR ) setBitField( instr, 31, 4, rExpr.numVal1 );
+        if ( rExpr.typ == TYP_ADR ) setBitField( instr, 31, 4, rExpr.numVal );
         else return( parserError((char *) "Expected the base register" ));
     }
     else if ( rExpr.typ == TYP_ADR ) {
         
         setImmVal( instr, 27, 18, 0 );
-        setBitField( instr, 31, 4, rExpr.numVal1 );
+        setBitField( instr, 31, 4, rExpr.numVal );
     }
     else return( parserError((char *) "Expected an offset or  left paren" ));
    
@@ -1457,7 +1457,7 @@ bool parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
     
     if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
         
-        if ( isInRangeForBitField( rExpr.numVal1, 22 )) setImmVal( instr, 31, 22, rExpr.numVal1 );
+        if ( isInRangeForBitField( rExpr.numVal, 22 )) setImmVal( instr, 31, 22, rExpr.numVal );
         else return( parserError((char *) "Offset value out of range" ));
     }
     else return( parserError(( char *) "Expected an offset value" ));
@@ -1560,7 +1560,7 @@ bool parseInstrBE( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_NUM ) {
         
-        if ( isInRangeForBitField( rExpr.numVal1, 22 )) setImmVal( instr, 23, 14, rExpr.numVal1 );
+        if ( isInRangeForBitField( rExpr.numVal, 22 )) setImmVal( instr, 23, 14, rExpr.numVal );
         else return( parserError((char *) "Immediate value out of range" ));
         
         if ( !parseExpr( &rExpr )) return( false );
@@ -1568,8 +1568,8 @@ bool parseInstrBE( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_EXT_ADR ) {
         
-        setBitField( instr, 27, 4, rExpr.numVal1 );
-        setBitField( instr, 31, 4, rExpr.numVal2 );
+        setBitField( instr, 27, 4, rExpr.sReg );
+        setBitField( instr, 31, 4, rExpr.gReg );
     }
     else return( parserError((char *) "Expected a virtual address" ));
     
@@ -1608,7 +1608,7 @@ bool parseInstrBVE( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_ADR ) {
         
-        setBitField( instr, 31, 4, rExpr.numVal1 );
+        setBitField( instr, 31, 4, rExpr.numVal );
     }
     else return( parserError((char *) "Expected a logical address" ));
     
@@ -1657,9 +1657,9 @@ bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
     
     if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
     
-        if ( isInRangeForBitField( rExpr.numVal1, 16 )) {
+        if ( isInRangeForBitField( rExpr.numVal, 16 )) {
             
-            setImmVal( instr, 23, 16, rExpr.numVal1 );
+            setImmVal( instr, 23, 16, rExpr.numVal );
             tok -> nextToken( );
         }
         else return( parserError((char *) "Immediate value out of range" ));
@@ -1797,7 +1797,7 @@ bool parseInstrMST( uint32_t *instr, uint32_t flags ) {
         
         if ( getBitField( *instr, 11, 2 ) == 0 ) {
             
-            setBitField( instr, 31, 4, rExpr.numVal1 );
+            setBitField( instr, 31, 4, rExpr.numVal );
             tok -> nextToken( );
         }
         else return( parserError((char *) "Invalid option for the MST instruction" ));
@@ -1806,7 +1806,7 @@ bool parseInstrMST( uint32_t *instr, uint32_t flags ) {
         
         if (( getBitField( *instr, 11, 2 ) == 1 ) || ( getBitField( *instr, 11, 2 ) == 2 )) {
             
-            if ( isInRangeForBitFieldU( rExpr.numVal1, 6 )) setBitField( instr, 31, 6, rExpr.numVal1 );
+            if ( isInRangeForBitFieldU( rExpr.numVal, 6 )) setBitField( instr, 31, 6, rExpr.numVal );
             else return( parserError((char *) "Status bit field value out of range" ));
         }
         else  return( parserError((char *) "Invalid option for the MST instruction" ));
@@ -1837,7 +1837,7 @@ bool parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
-        setBitField( instr, 27, 4, rExpr.numVal1 );
+        setBitField( instr, 27, 4, rExpr.numVal );
         tok -> nextToken( );
     }
     
@@ -1870,13 +1870,13 @@ bool parseInstrPRB( uint32_t *instr, uint32_t flags ) {
         
         if ( rExpr.typ == TYP_NUM ) {
             
-            if ( isInRangeForBitFieldU( rExpr.numVal1, 1 )) setBit( instr, 27, rExpr.numVal1 );
+            if ( isInRangeForBitFieldU( rExpr.numVal, 1 )) setBit( instr, 27, rExpr.numVal );
         }
         else return( parserError((char *) "Expected a 0 or 1" ));
     }
     else if ( rExpr.typ == TYP_GREG ) {
         
-        setBitField( instr, 27, 4, rExpr.numVal1 );
+        setBitField( instr, 27, 4, rExpr.numVal );
     }
     else return( parserError((char *) "Expected a register or numeric value" ));
     
@@ -2007,9 +2007,9 @@ bool parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
     
     if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
             
-        if ( isInRangeForBitFieldU( rExpr.numVal1, 4 )) {
+        if ( isInRangeForBitFieldU( rExpr.numVal, 4 )) {
                 
-            setBitField( instr, 13, 4, rExpr.numVal1 );
+            setBitField( instr, 13, 4, rExpr.numVal );
             tok -> nextToken( );
         }
         else return( parserError((char *) "Immediate value out of range" ));
@@ -2043,7 +2043,7 @@ bool parseInstrBRK( uint32_t *instr, uint32_t flags ) {
     
     if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
         
-        if ( isInRangeForBitFieldU( rExpr.numVal1, 4 )) setImmValU( instr, 9, 4, rExpr.numVal1 );
+        if ( isInRangeForBitFieldU( rExpr.numVal, 4 )) setImmValU( instr, 9, 4, rExpr.numVal );
         else return( parserError((char *) "Immediate value out of range" ));
     }
     else return( parserError((char *) "Expected the info1 parm" ));
@@ -2052,7 +2052,7 @@ bool parseInstrBRK( uint32_t *instr, uint32_t flags ) {
     
     if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
     
-        if ( isInRangeForBitFieldU( rExpr.numVal1, 16 )) setImmValU( instr, 31, 16, rExpr.numVal1 );
+        if ( isInRangeForBitFieldU( rExpr.numVal, 16 )) setImmValU( instr, 31, 16, rExpr.numVal );
         else return( parserError((char *) "Immediate value out of range" ));
     }
     else return( parserError((char *) "Expected the info2 parm" ));

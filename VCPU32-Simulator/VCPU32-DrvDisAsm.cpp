@@ -85,16 +85,16 @@ static inline uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
 // specify offsets on indexed addressing modes.
 //
 //------------------------------------------------------------------------------------------------------------
-void printImmVal( uint32_t val, TokId fmtType = TOK_HEX ) {
+void printImmVal( uint32_t val, int rdx = 16 ) {
     
     if ( val == 0 ) fprintf( stdout, "0" );
     
     else {
        
-        if      ( fmtType == TOK_DEC )  fprintf( stdout, "%d", ((int) val ));
-        else if ( fmtType == TOK_OCT  ) fprintf( stdout, "%#0o", val );
-        else if ( fmtType == TOK_HEX )  fprintf( stdout, "%#0x", val );
-        else                            fprintf( stdout, "**num***" );
+        if      ( rdx == 10 )  fprintf( stdout, "%d", ((int) val ));
+        else if ( rdx == 8  )  fprintf( stdout, "%#0o", val );
+        else if ( rdx == 16 )  fprintf( stdout, "%#0x", val );
+        else                   fprintf( stdout, "**num***" );
     }
 }
 
@@ -141,7 +141,7 @@ void displayTestCodes( uint32_t tstCode ) {
 // There are instructions that use the operand argument format. This routine will format such an operand.
 //
 //------------------------------------------------------------------------------------------------------------
-void displayOperandModeField( uint32_t instr, TokId fmtId = TOK_DEC ) {
+void displayOperandModeField( uint32_t instr, int rdx = 10 ) {
     
     uint32_t opMode = getBitField( instr, 13, 2 );
     
@@ -406,7 +406,7 @@ void displayOpCodeOptions( uint32_t instr ) {
 // disassembly printout.
 //
 //------------------------------------------------------------------------------------------------------------
-void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
+void displayTarget( uint32_t instr, int rdx = 10 ) {
     
     uint32_t opCode = getBitField( instr, 5, 6 );
     
@@ -435,7 +435,7 @@ void displayTarget( uint32_t instr, TokId fmtId = TOK_DEC ) {
 // to specify in what radix a value is shown. Address offsets are however always printed in decimal.
 //
 //------------------------------------------------------------------------------------------------------------
-void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
+void displayOperands( uint32_t instr, int rdx = 10 ) {
     
     uint32_t opCode = getBitField( instr, 5, 6 );
     
@@ -445,7 +445,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_CMPU:   case OP_AND:    case OP_OR:     case OP_XOR: {
             
             fprintf( stdout, ", " );
-            displayOperandModeField( instr, fmtId );
+            displayOperandModeField( instr, rdx );
             
         } break;
             
@@ -570,7 +570,7 @@ void displayOperands( uint32_t instr, TokId fmtId = TOK_DEC ) {
         case OP_ADDIL: {
             
             fprintf( stdout, ", " );
-            printImmVal( getBitField( instr, 31, 22 ), fmtId );
+            printImmVal( getBitField( instr, 31, 22 ), rdx );
             
         } break;
             
@@ -731,16 +731,16 @@ void DrvDisAsm::displayOpCodeAndOptions( uint32_t instr ) {
     displayOpCodeOptions( instr );
 }
 
-void DrvDisAsm::displayTargetAndOperands( uint32_t instr, TokId fmt ) {
+void DrvDisAsm::displayTargetAndOperands( uint32_t instr, int rdx ) {
     
-    displayTarget( instr, fmt );
-    displayOperands( instr, fmt );
+    displayTarget( instr, rdx );
+    displayOperands( instr, rdx );
 }
 
-void DrvDisAsm::displayInstr( uint32_t instr, TokId fmt ) {
+void DrvDisAsm::displayInstr( uint32_t instr, int rdx ) {
     
     displayOpCodeAndOptions( instr );
-    displayTargetAndOperands( instr, fmt );
+    displayTargetAndOperands( instr, rdx );
 }
 
 int DrvDisAsm::getOpCodeOptionsFieldWidth( ) {

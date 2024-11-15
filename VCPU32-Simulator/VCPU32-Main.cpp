@@ -106,11 +106,15 @@ int main( int argc, const char* argv[ ] ) {
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
     
     glbDesc.env                         = new DrvEnv( &glbDesc );
+    glbDesc.env_n                       = new DrvEnv_n( &glbDesc, 256 ); // for testing ....
     glbDesc.cmds                        = new DrvCmds( &glbDesc );
     glbDesc.lineDisplay                 = new DrvLineDisplay( &glbDesc );
     glbDesc.winDisplay                  = new DrvWinDisplay( &glbDesc );
     glbDesc.disAsm                      = new DrvDisAsm( &glbDesc );
     glbDesc.oneLineAsm                  = new DrvOneLineAsm( &glbDesc );
+    
+    glbDesc.env_n -> setupPredefined( );
+    glbDesc.env_n -> displayEnvTable( ); // just for testing ....
     
     glbDesc.cmds -> processCmdLineArgs( argc, argv );
     glbDesc.cmds -> printWelcome( );

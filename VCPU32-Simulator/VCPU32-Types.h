@@ -97,7 +97,7 @@ enum StatusRegBits : uint32_t {
 //------------------------------------------------------------------------------------------------------------
 enum ProgStateRegisterId : uint32_t {
     
-    PS_REG_PSW_0        = 0,
+    PS_REG_PSW_01        = 0,
     PS_REG_PSW_1        = 1,
 };
 

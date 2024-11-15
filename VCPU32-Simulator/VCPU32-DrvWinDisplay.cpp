@@ -319,11 +319,11 @@ void setFieldAtributes( uint32_t fmtDesc ) {
 // and 6.
 //
 //------------------------------------------------------------------------------------------------------------
-int strlenForNum( TokId rdx, bool halfWord ) {
+int strlenForNum( int rdx, bool halfWord ) {
     
-    if      ( rdx == TOK_DEC ) return(( halfWord ) ? 5 : 10 );
-    else if ( rdx == TOK_OCT ) return(( halfWord ) ? 7 : 12 );
-    else if ( rdx == TOK_HEX ) return(( halfWord ) ? 6 : 10 );
+    if      ( rdx == 10 ) return(( halfWord ) ? 5 : 10 );
+    else if ( rdx == 8  ) return(( halfWord ) ? 7 : 12 );
+    else if ( rdx == 16 ) return(( halfWord ) ? 6 : 10 );
     else return( 10 );
 }
 
@@ -332,14 +332,14 @@ int strlenForNum( TokId rdx, bool halfWord ) {
 // out the data using the radix passed. ( HEX: 0xdddddddd, OCT: 0ddddddddddd, DEC: dddddddddd );
 //
 //------------------------------------------------------------------------------------------------------------
-int printWord( uint32_t val, TokId radix = TOK_HEX, uint32_t fmtDesc = FMT_DEF_ATTR ) {
+int printWord( uint32_t val, int rdx = 16, uint32_t fmtDesc = FMT_DEF_ATTR ) {
     
     int len;
     
     bool half   = fmtDesc & FMT_HALF_WORD;
     bool noNum  = fmtDesc & FMT_INVALID_NUM;
     
-        if ( radix == TOK_DEC ) {
+        if ( rdx == 10 ) {
             
             if ( noNum ) {
                 
@@ -352,7 +352,7 @@ int printWord( uint32_t val, TokId radix = TOK_HEX, uint32_t fmtDesc = FMT_DEF_A
                 else        len = winPrintf( stdout, (char *) "%10d", val );
             }
         }
-        else if ( radix == TOK_OCT ) {
+        else if ( rdx == 8 ) {
             
             if ( noNum ) {
                 
@@ -365,7 +365,7 @@ int printWord( uint32_t val, TokId radix = TOK_HEX, uint32_t fmtDesc = FMT_DEF_A
                 else        len = winPrintf( stdout, (char *) "%#012o", val );
             }
         }
-        else if ( radix == TOK_HEX ) {
+        else if ( rdx == 16 ) {
             
             if ( noNum ) {
                 
@@ -437,9 +437,9 @@ void buildAccessRightsStr( char *bufStr, int bufLen, uint8_t type, uint8_t privL
 // "setRadix" ensures that we passed in a valid radix value. The default is a decimal number.
 //
 //------------------------------------------------------------------------------------------------------------
-TokId setRadix( TokId rdx ) {
+int setRadix( int rdx ) {
     
-    return((( rdx == TOK_OCT ) || ( rdx == TOK_DEC ) || ( rdx == TOK_HEX )) ? rdx : TOK_DEC );
+    return((( rdx == 8 ) || ( rdx == 10 ) || ( rdx == 16 )) ? rdx : 10 );
 }
 
 }; // namespace
@@ -479,31 +479,31 @@ int     DrvWin::getRows( ) { return( winRows ); }
 void    DrvWin::setColumns( int arg ) { winColumns = arg; }
 int     DrvWin::getColumns( ) { return( winColumns ); }
 
-void    DrvWin::setRadix( TokId rdx ) { winRadix = ::setRadix( rdx ); }
-TokId   DrvWin::getRadix( ) { return( winRadix ); }
+void    DrvWin::setRadix( int rdx ) { winRadix = ::setRadix( rdx ); }
+int     DrvWin::getRadix( ) { return( winRadix ); }
 
 int     DrvWin::getWinStack( ) { return( winStack ); }
 void    DrvWin::setWinStack( int wCol ) { winStack = wCol; }
 
-int DrvWin::getDefColumns( TokId rdx ) {
+int DrvWin::getDefColumns( int rdx ) {
     
     switch ( rdx ) {
             
-        case TOK_HEX: return( winDefColumnsHex );
-        case TOK_OCT: return( winDefColumnsOct );
-        case TOK_DEC: return( winDefColumnsDec );
-        default:      return( winDefColumnsHex );
+        case 16:    return( winDefColumnsHex );
+        case 8:     return( winDefColumnsOct );
+        case 10:    return( winDefColumnsDec );
+        default:    return( winDefColumnsHex );
     }
 }
 
-void DrvWin::setDefColumns( int arg, TokId rdx ) {
+void DrvWin::setDefColumns( int arg, int rdx ) {
     
     switch ( rdx ) {
             
-        case TOK_HEX: winDefColumnsHex = arg;  break;
-        case TOK_OCT:  winDefColumnsOct = arg; break;
-        case TOK_DEC:  winDefColumnsDec = arg; break;
-        default: winDefColumnsHex = winDefColumnsOct = winDefColumnsDec = arg;
+        case 16:    winDefColumnsHex = arg;  break;
+        case 8:     winDefColumnsOct = arg; break;
+        case 10:    winDefColumnsDec = arg; break;
+        default:    winDefColumnsHex = winDefColumnsOct = winDefColumnsDec = arg;
     }
 }
 
@@ -882,7 +882,7 @@ void DrvWinProgState::setDefaults( ) {
 // The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinProgState::setRadix( TokId rdx ) {
+void DrvWinProgState::setRadix( int rdx ) {
     
     DrvWin::setRadix( rdx );
     setColumns( getDefColumns( getRadix( )));
@@ -1030,7 +1030,7 @@ void DrvWinSpecialRegs::setDefaults( ) {
 // The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinSpecialRegs::setRadix( TokId rdx ) {
+void DrvWinSpecialRegs::setRadix( int rdx ) {
     
     DrvWin::setRadix( rdx );
     setColumns( getDefColumns( getRadix( )));
@@ -1175,7 +1175,7 @@ void DrvWinPipeLineRegs::setDefaults( ) {
 // The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinPipeLineRegs::setRadix( TokId rdx ) {
+void DrvWinPipeLineRegs::setRadix( int rdx ) {
     
     DrvWin::setRadix( rdx );
     setColumns( getDefColumns( getRadix( )));
@@ -1383,7 +1383,7 @@ void DrvWinAbsMem::setDefaults( ) {
 // The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinAbsMem::setRadix( TokId rdx ) {
+void DrvWinAbsMem::setRadix( int rdx ) {
     
     DrvWin::setRadix( rdx );
     setColumns( getDefColumns( getRadix( )));
@@ -1640,7 +1640,7 @@ void DrvWinTlb::setDefaults( ) {
 // The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinTlb::setRadix( TokId rdx ) {
+void DrvWinTlb::setRadix( int rdx ) {
     
     DrvWin::setRadix( rdx );
     setColumns( getDefColumns( getRadix( )));
@@ -1768,7 +1768,7 @@ void DrvWinCache::setDefaults( ) {
 // The window overrides the setRadix method to set the column width according to the radix chosen.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvWinCache::setRadix( TokId rdx ) {
+void DrvWinCache::setRadix( int rdx ) {
     
     DrvWin::setRadix( rdx );
     setColumns( getDefColumns( getRadix( )));
@@ -2631,14 +2631,14 @@ void DrvWinDisplay::windowDisable( TokId winCmd, int winNum ) {
 // to change.
 //
 //-----------------------------------------------------------------------------------------------------------
-void DrvWinDisplay::windowRadix( TokId winCmd, TokId fmtId, int winNum ) {
+void DrvWinDisplay::windowRadix( TokId winCmd, int rdx, int winNum ) {
     
     switch( winCmd ) {
             
-        case CMD_PSR: windowList[ PS_REG_WIN ] -> setRadix( fmtId );    break;
-        case CMD_SRR: windowList[ CTRL_REG_WIN ] -> setRadix( fmtId );  break;
-        case CMD_PLR: windowList[ PL_REG_WIN ] -> setRadix( fmtId );    break;
-        case CMD_SWR: windowList[ STATS_WIN ] -> setRadix( fmtId );     break;
+        case CMD_PSR: windowList[ PS_REG_WIN ] -> setRadix( rdx );    break;
+        case CMD_SRR: windowList[ CTRL_REG_WIN ] -> setRadix( rdx );  break;
+        case CMD_PLR: windowList[ PL_REG_WIN ] -> setRadix( rdx );    break;
+        case CMD_SWR: windowList[ STATS_WIN ] -> setRadix( rdx );     break;
      
         case CMD_WR: {
             
@@ -2646,7 +2646,7 @@ void DrvWinDisplay::windowRadix( TokId winCmd, TokId fmtId, int winNum ) {
             
             if ( validUserWindowNum( winNum )) {
                 
-                windowList[ winNum ] -> setRadix( fmtId );
+                windowList[ winNum ] -> setRadix( rdx );
                 setCurrentUserWindow( winNum );
             }
            

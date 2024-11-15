@@ -35,11 +35,11 @@ namespace {
 // "*" string according to the current radix.
 //
 //------------------------------------------------------------------------------------------------------------
-void displayInvalidWord( TokId fmtType ) {
+void displayInvalidWord( int rdx ) {
     
-    if      ( fmtType == TOK_DEC )  fprintf( stdout, "**********" );
-    else if ( fmtType == TOK_OCT )  fprintf( stdout, "************" );
-    else if ( fmtType == TOK_HEX )  fprintf( stdout, "**********" );
+    if      ( rdx == 10 )  fprintf( stdout, "**********" );
+    else if ( rdx == 8  )  fprintf( stdout, "************" );
+    else if ( rdx == 16 )  fprintf( stdout, "**********" );
     else fprintf( stdout, "**num**" );
 }
 
@@ -59,11 +59,11 @@ DrvLineDisplay::DrvLineDisplay( VCPU32Globals *glb ) {
 // omitted or set to "default", the environment variable for the base number is used.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvLineDisplay::displayWord( uint32_t val, TokId fmtType ) {
+void DrvLineDisplay::displayWord( uint32_t val, int rdx ) {
     
-    if      ( fmtType == TOK_DEC )  fprintf( stdout, "%10d", val );
-    else if ( fmtType == TOK_OCT )  fprintf( stdout, "%#012o", val );
-    else if ( fmtType == TOK_HEX )  {
+    if      ( rdx == 10 )  fprintf( stdout, "%10d", val );
+    else if ( rdx == 8  )  fprintf( stdout, "%#012o", val );
+    else if ( rdx == 16 )  {
         
         if ( val == 0 ) fprintf( stdout, "0x00000000" );
         else fprintf( stdout, "%#010x", val );
@@ -76,11 +76,11 @@ void DrvLineDisplay::displayWord( uint32_t val, TokId fmtType ) {
 // or set to "default", the environment variable for the base number is used.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvLineDisplay::displayHalfWord( uint32_t val, TokId fmtType ) {
+void DrvLineDisplay::displayHalfWord( uint32_t val, int rdx ) {
     
-    if      ( fmtType == TOK_DEC )  fprintf( stdout, "%5d", val );
-    else if ( fmtType == TOK_OCT  ) fprintf( stdout, "%06o", val );
-    else if ( fmtType == TOK_HEX )  {
+    if      ( rdx == 10 )  fprintf( stdout, "%5d", val );
+    else if ( rdx == 8  ) fprintf( stdout, "%06o", val );
+    else if ( rdx == 16 )  {
         
         if ( val == 0 ) fprintf( stdout, "0x0000" );
         else fprintf( stdout, "%#05x", val );
@@ -94,17 +94,17 @@ void DrvLineDisplay::displayHalfWord( uint32_t val, TokId fmtType ) {
 // options on title and how many are displayed in a row. Note that this routine does not a lot of checking.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvLineDisplay::displayRegsAndLabel( RegClass regSetId,
-                                              int       regStart,
-                                              int       numOfRegs,
-                                              char      *lineLabel,
-                                              TokId     fmt ) {
+void DrvLineDisplay::displayRegsAndLabel(   RegClass  regSetId,
+                                            int       regStart,
+                                            int       numOfRegs,
+                                            char      *lineLabel,
+                                            int       rdx ) {
     
     if ( strlen( lineLabel ) > 0 ) fprintf( stdout, "%s", lineLabel );
     
     for ( int i = regStart; i < regStart + numOfRegs; i++ ) {
         
-        displayWord( glb -> cpu -> getReg( regSetId, i ), fmt );
+        displayWord( glb -> cpu -> getReg( regSetId, i ), rdx );
         if ( i < regStart + numOfRegs ) fprintf( stdout, " " );
     }
 }
@@ -115,153 +115,154 @@ void DrvLineDisplay::displayRegsAndLabel( RegClass regSetId,
 // display a particular register set.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvLineDisplay::displayGeneralRegSet( TokId fmt ) {
+void DrvLineDisplay::displayGeneralRegSet( int rdx ) {
     
-    displayRegsAndLabel( RC_GEN_REG_SET, 0, 8, ((char *) "R0=   " ), fmt );
+    displayRegsAndLabel( RC_GEN_REG_SET, 0, 8, ((char *) "R0=   " ), rdx );
     fprintf( stdout, "\n" );
-    displayRegsAndLabel( RC_GEN_REG_SET, 8, 8, ((char *) "R8=   " ), fmt );
-    fprintf( stdout, "\n" );
-}
-
-void DrvLineDisplay::displaySegmentRegSet( TokId fmt ) {
-    
-    displayRegsAndLabel( RC_SEG_REG_SET, 0, 8, ((char *) "S0=   " ), fmt );
+    displayRegsAndLabel( RC_GEN_REG_SET, 8, 8, ((char *) "R8=   " ), rdx );
     fprintf( stdout, "\n" );
 }
 
-void DrvLineDisplay::displayControlRegSet( TokId fmt ) {
+void DrvLineDisplay::displaySegmentRegSet( int rdx ) {
     
-    displayRegsAndLabel( RC_CTRL_REG_SET, 0, 8, ((char *) "CR0=  " ), fmt );
+    displayRegsAndLabel( RC_SEG_REG_SET, 0, 8, ((char *) "S0=   " ), rdx );
+    fprintf( stdout, "\n" );
+}
+
+void DrvLineDisplay::displayControlRegSet( int rdx ) {
+    
+    displayRegsAndLabel( RC_CTRL_REG_SET, 0, 8, ((char *) "CR0=  " ), rdx );
     fprintf( stdout, "\n" );
     
-    displayRegsAndLabel( RC_CTRL_REG_SET, 8, 8, ((char *) "CR8=  " ), fmt );
+    displayRegsAndLabel( RC_CTRL_REG_SET, 8, 8, ((char *) "CR8=  " ), rdx );
     fprintf( stdout, "\n" );
     
-    displayRegsAndLabel( RC_CTRL_REG_SET, 16, 8, ((char *) "CR16= " ), fmt );
+    displayRegsAndLabel( RC_CTRL_REG_SET, 16, 8, ((char *) "CR16= " ), rdx );
     fprintf( stdout, "\n" );
     
-    displayRegsAndLabel( RC_CTRL_REG_SET, 24, 8, ((char *) "CR24= " ), fmt );
+    displayRegsAndLabel( RC_CTRL_REG_SET, 24, 8, ((char *) "CR24= " ), rdx );
     fprintf( stdout, "\n" );
 }
 
 // ??? changed ....
-void DrvLineDisplay::displayPStateRegSet( TokId fmt ) {
+void DrvLineDisplay::displayPStateRegSet( int rdx ) {
     
     fprintf( stdout, "PSW0=   " );
-    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0 ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0 ), rdx );
     fprintf( stdout, ", PSW1=   " );
-    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ), rdx );
     fprintf( stdout, "\n" );
 }
 
-void DrvLineDisplay::displayPlIFetchDecodeRegSet( TokId fmt ) {
+void DrvLineDisplay::displayPlIFetchDecodeRegSet( int rdx ) {
     
     if ( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
         fprintf( stdout, "FD(S): PSW=" );
     else
         fprintf( stdout, "FD:    PSW=" );
     
-    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0), fmt );
+    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0), rdx );
     fprintf( stdout, "." );
-    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ), rdx );
     fprintf( stdout, "\n" );
 }
 
-void DrvLineDisplay::displayPlMemoryAccessRegSet( TokId fmt ) {
+void DrvLineDisplay::displayPlMemoryAccessRegSet( int rdx ) {
     
     if ( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
         fprintf( stdout, "MA(S): PSW=" );
     else
         fprintf( stdout, "MA:    PSW=" );
     
-    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_0 ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_0 ), rdx );
     fprintf( stdout, "." );
-    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_1 ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_1 ), rdx );
     fprintf( stdout, " I=" );
-    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_INSTR ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_INSTR ), rdx );
     fprintf( stdout, " A=" );
-    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_A ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_A ), rdx );
     fprintf( stdout, " B=" );
-    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_B ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_B ), rdx );
     fprintf( stdout, " X=" );
-    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_X ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_X ), rdx );
     fprintf( stdout, "\n" );
 }
 
-void DrvLineDisplay::displayPlExecuteRegSet( TokId fmt ) {
+void DrvLineDisplay::displayPlExecuteRegSet( int rdx ) {
     
     if ( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
         fprintf( stdout, "EX(S): PSW=" );
     else
         fprintf( stdout, "EX:    PSW=" );
     
-    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_0 ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_0 ), rdx );
     fprintf( stdout, "." );
-    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_1 ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_1 ), rdx );
     fprintf( stdout, " I=" );
-    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_INSTR ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_INSTR ), rdx );
     fprintf( stdout, " A=" );
-    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_A ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_A ), rdx );
     fprintf( stdout, " B=" );
-    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_B ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_B ), rdx );
     fprintf( stdout, " X=" );
-    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_X ), fmt );
+    displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_X ), rdx );
     fprintf( stdout, "\n" );
 }
 
-void DrvLineDisplay::displayPlRegSets( TokId fmt ) {
+void DrvLineDisplay::displayPlRegSets( int rdx ) {
     
-    displayPlIFetchDecodeRegSet( fmt );
-    displayPlMemoryAccessRegSet( fmt );
-    displayPlExecuteRegSet( fmt );
+    displayPlIFetchDecodeRegSet( rdx );
+    displayPlMemoryAccessRegSet( rdx );
+    displayPlExecuteRegSet( rdx );
 }
 
-void DrvLineDisplay::displayMemObjRegSet( CpuMem *mem, TokId fmt ) {
+void DrvLineDisplay::displayMemObjRegSet( CpuMem *mem, int rdx ) {
     
     fprintf( stdout, "State:   %s\n", mem -> getMemOpStr( mem -> getMemCtrlReg( MC_REG_STATE )));
   
     fprintf( stdout, "Seg:ofs: " );
-    displayWord( mem -> getMemCtrlReg( MC_REG_REQ_SEG ), fmt );
+    displayWord( mem -> getMemCtrlReg( MC_REG_REQ_SEG ), rdx );
     fprintf( stdout, ":" );
-    displayWord( mem -> getMemCtrlReg( MC_REG_REQ_OFS ), fmt );
+    displayWord( mem -> getMemCtrlReg( MC_REG_REQ_OFS ), rdx );
     fprintf( stdout, ", Tag: " );
-    displayWord( mem -> getMemCtrlReg( MC_REG_REQ_TAG ), fmt );
+    displayWord( mem -> getMemCtrlReg( MC_REG_REQ_TAG ), rdx );
     fprintf( stdout, ", Len: " );
-    displayWord( mem -> getMemCtrlReg( MC_REG_REQ_LEN ), fmt );
+    displayWord( mem -> getMemCtrlReg( MC_REG_REQ_LEN ), rdx );
     fprintf( stdout, "\n" );
     
     fprintf( stdout, "Block Entries: " );
-    displayWord( mem -> getMemCtrlReg( MC_REG_BLOCK_ENTRIES ), fmt );
+    displayWord( mem -> getMemCtrlReg( MC_REG_BLOCK_ENTRIES ), rdx );
     fprintf( stdout, ", Block Size: " );
-    displayWord( mem -> getMemCtrlReg( MC_REG_BLOCK_SIZE ), fmt );
+    displayWord( mem -> getMemCtrlReg( MC_REG_BLOCK_SIZE ), rdx );
     fprintf( stdout, ", Sets: " );
-    displayWord( mem -> getMemCtrlReg( MC_REG_SETS ), fmt );
+    displayWord( mem -> getMemCtrlReg( MC_REG_SETS ), rdx );
     fprintf( stdout, "\n" );
 }
 
-void DrvLineDisplay::displayTlbObjRegSet( CpuTlb *tlb, TokId fmt ) {
+void DrvLineDisplay::displayTlbObjRegSet( CpuTlb *tlb, int rdx ) {
     
     fprintf( stdout, "Display TLB reg set ... to do ... \n" );
 }
     
-void DrvLineDisplay::displayAllRegSets( TokId fmt ) {
+void DrvLineDisplay::displayAllRegSets( int rdx ) {
     
-    displayGeneralRegSet( fmt );
+    displayGeneralRegSet( rdx );
     fprintf( stdout, "\n" );
-    displaySegmentRegSet( fmt );
+    displaySegmentRegSet( rdx );
     fprintf( stdout, "\n" );
-    displayControlRegSet( fmt );
+    displayControlRegSet( rdx );
     fprintf( stdout, "\n" );
-    displayPStateRegSet( fmt );
+    displayPStateRegSet( rdx );
     fprintf( stdout, "\n" );
-    displayPlRegSets( fmt );
+    displayPlRegSets( rdx );
+    fprintf( stdout, "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // This routine will print a TLB entry with each field formatted.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvLineDisplay::displayTlbEntry( TlbEntry *entry, TokId fmt ) {
+void DrvLineDisplay::displayTlbEntry( TlbEntry *entry, int rdx ) {
     
     fprintf( stdout, "[" );
     if ( entry -> tValid( ))            fprintf( stdout, "V" ); else fprintf( stdout, "v" );
@@ -273,33 +274,33 @@ void DrvLineDisplay::displayTlbEntry( TlbEntry *entry, TokId fmt ) {
     fprintf( stdout, " Acc: (%d,%d,%d)", entry -> tPageType( ), entry -> tPrivL1( ), entry -> tPrivL2( ));
     
     fprintf( stdout,  " Pid: " );
-    displayHalfWord( entry -> tSegId( ), fmt );
+    displayHalfWord( entry -> tSegId( ), rdx );
     
     fprintf( stdout, " Vpn-H: " );
-    displayWord( entry -> vpnHigh, fmt );
+    displayWord( entry -> vpnHigh, rdx );
     
     fprintf( stdout, " Vpn-L: " );
-    displayWord( entry -> vpnLow, fmt );
+    displayWord( entry -> vpnLow, rdx );
     
     fprintf( stdout, " PPN: " );
-    displayHalfWord( entry -> tPhysPage( ), fmt  );
+    displayHalfWord( entry -> tPhysPage( ), rdx  );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "displayTlbEntries" displays a set of TLB entries, line by line.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvLineDisplay::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, TokId fmt ) {
+void DrvLineDisplay::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, int rdx ) {
     
     if ( index + len <= tlb -> getTlbSize( )) {
         
         for ( uint32_t i = index; i < index + len; i++  ) {
             
-            displayWord( i, fmt  );
+            displayWord( i, rdx  );
             fprintf( stdout, ": " );
             
             TlbEntry *ptr = tlb -> getTlbEntry( i );
-            if ( ptr != nullptr ) displayTlbEntry( ptr, fmt );
+            if ( ptr != nullptr ) displayTlbEntry( ptr, rdx );
             
             fprintf( stdout, "\n" );
         }
@@ -312,7 +313,7 @@ void DrvLineDisplay::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t le
 // perhaps one or more sets, the display is rather complex.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t len, TokId fmt ) {
+void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t len, int rdx ) {
     
     uint32_t    blockSets       = cPtr -> getBlockSets( );
     uint32_t    wordsPerBlock   = cPtr -> getBlockSize( ) / 4;
@@ -327,7 +328,7 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
     
     for ( uint32_t lineIndex = index; lineIndex < index + len; lineIndex++  ) {
         
-        displayWord( lineIndex, fmt  );
+        displayWord( lineIndex, rdx  );
         fprintf( stdout, ": " );
         
         if ( blockSets >= 1 ) {
@@ -339,7 +340,7 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
             if ( tagPtr -> valid )  fprintf( stdout, "V" ); else fprintf( stdout, "v" );
             if ( tagPtr -> dirty )  fprintf( stdout, "D" ); else fprintf( stdout, "d" );
             fprintf( stdout, "] (" );
-            displayWord( tagPtr -> tag, fmt );
+            displayWord( tagPtr -> tag, rdx );
             fprintf( stdout, ") \n" );
             
             for ( int i = 0; i < linesPerBlock; i++  ) {
@@ -348,7 +349,7 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
                 
                 for ( int j = 0; j < wordsPerLine; j++ ) {
                     
-                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], fmt );
+                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], rdx );
                     if ( i < 3 ) fprintf( stdout, " " );
                 }
                 
@@ -365,7 +366,7 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
             if ( tagPtr -> valid )  fprintf( stdout, "V" ); else fprintf( stdout, "v" );
             if ( tagPtr -> dirty )  fprintf( stdout, "D" ); else fprintf( stdout, "d" );
             fprintf( stdout, "] (" );
-            displayWord( tagPtr -> tag, fmt );
+            displayWord( tagPtr -> tag, rdx );
             fprintf( stdout, ")\n" );
             
             for ( int i = 0; i < linesPerBlock; i++  ) {
@@ -374,7 +375,7 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
                 
                 for ( int j = 0; j < wordsPerLine; j++ ) {
                     
-                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], fmt );
+                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], rdx );
                     if ( i < 3 ) fprintf( stdout, " " );
                 }
                 
@@ -392,7 +393,7 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
 // routine will make the appropriate call.
 //
 //------------------------------------------------------------------------------------------------------------
-void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, TokId fmtId ) {
+void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx ) {
     
     uint32_t    index           = ( ofs / 4 ) * 4;
     uint32_t    limit           = ((( index + len ) + 3 ) / 4 ) * 4;
@@ -403,7 +404,7 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, TokId fm
   
     while ( index < limit ) {
         
-        glb -> lineDisplay -> displayWord( index, fmtId );
+        glb -> lineDisplay -> displayWord( index, rdx );
         fprintf( stdout, ": " );
         
         for ( uint32_t i = 0; i < wordsPerLine; i++ ) {
@@ -412,17 +413,17 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, TokId fm
                 
                 if ((physMem != nullptr ) && ( physMem -> validAdr( index ))) {
                     
-                    glb -> lineDisplay -> displayWord( physMem -> getMemDataWord( index ), fmtId );
+                    glb -> lineDisplay -> displayWord( physMem -> getMemDataWord( index ), rdx );
                 }
                 else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
                     
-                    glb -> lineDisplay -> displayWord( pdcMem -> getMemDataWord( index ), fmtId );
+                    glb -> lineDisplay -> displayWord( pdcMem -> getMemDataWord( index ), rdx );
                 }
                 else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
                     
-                    glb -> lineDisplay -> displayWord( ioMem -> getMemDataWord( index ), fmtId );
+                    glb -> lineDisplay -> displayWord( ioMem -> getMemDataWord( index ), rdx );
                 }
-                else displayInvalidWord( fmtId );
+                else displayInvalidWord( rdx );
             }
                 
             fprintf( stdout, " " );
@@ -441,7 +442,7 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, TokId fm
 // Display absolute memory content as code shown in assembler syntax. There is one word per line.
 //
 //------------------------------------------------------------------------------------------------------------
-void  DrvLineDisplay::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, TokId fmtId ) {
+void  DrvLineDisplay::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, int rdx ) {
     
     uint32_t    index           = ( ofs / 4 ) * 4;
     uint32_t    limit           = ((( index + len ) + 3 ) / 4 );
@@ -451,22 +452,22 @@ void  DrvLineDisplay::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, To
  
     while ( index < limit ) {
         
-        glb -> lineDisplay -> displayWord( index, fmtId );
+        glb -> lineDisplay -> displayWord( index, rdx );
         fprintf( stdout, ": " );
         
         if (( physMem != nullptr ) && ( physMem -> validAdr( index ))) {
             
-            glb -> disAsm -> displayInstr( physMem -> getMemDataWord( index ), fmtId );
+            glb -> disAsm -> displayInstr( physMem -> getMemDataWord( index ), rdx );
         }
         else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
                 
-            glb -> disAsm -> displayInstr( pdcMem -> getMemDataWord( index ), fmtId );
+            glb -> disAsm -> displayInstr( pdcMem -> getMemDataWord( index ), rdx );
         }
         else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
                 
-            glb -> disAsm -> displayInstr( ioMem -> getMemDataWord( index ), fmtId );
+            glb -> disAsm -> displayInstr( ioMem -> getMemDataWord( index ), rdx );
         }
-        else displayInvalidWord( fmtId );
+        else displayInvalidWord( rdx );
         
         fprintf( stdout, "\n" );
             
