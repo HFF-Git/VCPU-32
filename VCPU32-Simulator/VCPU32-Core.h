@@ -52,16 +52,15 @@ enum RegClass : uint32_t {
     RC_GEN_REG_SET      = 1,
     RC_SEG_REG_SET      = 2,
     RC_CTRL_REG_SET     = 3,
- //   RC_PROG_STATE       = 4,
-    RC_FD_PSTAGE        = 5,
-    RC_MA_PSTAGE        = 6,
-    RC_EX_PSTAGE        = 7,
-    RC_IC_L1_OBJ        = 8,
-    RC_DC_L1_OBJ        = 9,
-    RC_UC_L2_OBJ        = 10,
-    RC_MEM_OBJ          = 11,
-    RC_ITLB_OBJ         = 12,
-    RC_DTLB_OBJ         = 13
+    RC_FD_PSTAGE        = 4,
+    RC_MA_PSTAGE        = 5,
+    RC_EX_PSTAGE        = 6,
+    RC_IC_L1_OBJ        = 7,
+    RC_DC_L1_OBJ        = 8,
+    RC_UC_L2_OBJ        = 9,
+    RC_MEM_OBJ          = 10,
+    RC_ITLB_OBJ         = 11,
+    RC_DTLB_OBJ         = 12
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -72,7 +71,6 @@ enum RegClass : uint32_t {
 enum PipeLineStageRegId : uint32_t {
     
     PSTAGE_REG_STALLED      = 0,
-    
     PSTAGE_REG_ID_PSW_0     = 1,
     PSTAGE_REG_ID_PSW_1     = 2,
     PSTAGE_REG_ID_INSTR     = 3,
@@ -84,7 +82,6 @@ enum PipeLineStageRegId : uint32_t {
     PSTAGE_REG_ID_RID_A     = 9,
     PSTAGE_REG_ID_RID_B     = 10,
     PSTAGE_REG_ID_RID_X     = 11,
-    
     PSTAGE_REG_ID_MA_CTRL   = 12,
     PSTAGE_REG_ID_EX_CTRL   = 13
 };
@@ -113,6 +110,16 @@ enum MemoryObjRegId : uint32_t {
     MC_REG_BLOCK_SIZE       = 14,
     MC_REG_SETS             = 15
 };
+
+
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+// ??? TLB register IDs...
+
+
 
 //------------------------------------------------------------------------------------------------------------
 // We support two types of TLB. The split instruction and data TLB and a unified, dual ported TLB.

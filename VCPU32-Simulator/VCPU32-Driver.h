@@ -42,9 +42,6 @@
 #include "VCPU32-Core.h"
 
 
-
-// ??? once more stable, sort the numbers...
-
 //------------------------------------------------------------------------------------------------------------
 // Tokens and Expression have a type.
 //
@@ -75,72 +72,46 @@ enum TypeId : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 enum TokId : uint16_t {
     
-#if 1
-    // ??? take out ....
-    //--------------------------------------------------------------------------------------------------------
-    // Token Types. A token has an ID and a type. For example registers have a type such as "general reg" and
-    // so on. The types are used by the parser routines to check types and operations on types.
-    //
-    //--------------------------------------------------------------------------------------------------------
-    TOK_TYP_NIL             = 900,      TOK_TYP_SYM             = 901,      TOK_TYP_IDENT           = 902,
-    TOK_TYP_NUM             = 903,      TOK_TYP_STR             = 904,      TOK_TYP_BOOL            = 905,
-    TOK_TYP_ADR             = 906,      TOK_TYP_EXT_ADR         = 907,      TOK_TYP_CMD             = 908,
-    TOK_TYP_FUNC            = 909,      TOK_TYPE_TYPE           = 999,
-    
-    
-    TOK_TYP_GREG            = 910,      TOK_TYP_SREG            = 911,      TOK_TYP_CREG            = 912,
-    TOK_TYP_PSTATE_PREG     = 913,      TOK_TYP_FD_PREG         = 914,      TOK_TYP_OF_PREG         = 915,
-    TOK_TYP_IC_L1_REG       = 916,      TOK_TYP_DC_L1_REG       = 917,      TOK_TYP_UC_L2_REG       = 918,
-    TOK_TYP_MEM_REG         = 919,      TOK_TYP_ITLB_REG        = 920,      TOK_TYP_DTLB_REG        = 921,
-
-    TOK_TYP_OP_CODE         = 930,      TOK_TYP_OP_CODE_S       = 931,
-    
-    ENV_SET                 = 990,
-    FMT_SET                 = 991,      REG_SET                 = 994,      REG_SET_ALL             = 995,
-    PR_SET                  = 996,
-#endif
-    
     //--------------------------------------------------------------------------------------------------------
     // General tokens and symbols.
     //
     //--------------------------------------------------------------------------------------------------------
-    TOK_NIL                 = 0,    TOK_ERR                 = 6,    TOK_EOS                 = 7,
-    TOK_COMMA               = 60,   TOK_PERIOD              = 61,   TOK_LPAREN              = 62,
-    TOK_RPAREN              = 63,   TOK_QUOTE               = 64,   TOK_PLUS                = 65,
-    TOK_MINUS               = 66,   TOK_MULT                = 67,   TOK_DIV                 = 68,
-    TOK_MOD                 = 69,   TOK_REM                 = 70,   TOK_NEG                 = 71,
-    TOK_AND                 = 72,   TOK_OR                  = 73,   TOK_XOR                 = 74,
-    TOK_EQ                  = 40,   TOK_NE                  = 41,   TOK_LT                  = 42,
-    TOK_GT                  = 43,   TOK_LE                  = 44,   TOK_GE                  = 45,
+    TOK_NIL                 = 0,        TOK_ERR                 = 1,        TOK_EOS                 = 2,
+    TOK_COMMA               = 2,        TOK_PERIOD              = 3,        TOK_LPAREN              = 4,
+    TOK_RPAREN              = 4,        TOK_QUOTE               = 5,        TOK_PLUS                = 6,
+    TOK_MINUS               = 7,        TOK_MULT                = 8,        TOK_DIV                 = 9,
+    TOK_MOD                 = 10,       TOK_REM                 = 11,       TOK_NEG                 = 12,
+    TOK_AND                 = 13,       TOK_OR                  = 14,       TOK_XOR                 = 15,
+    TOK_EQ                  = 16,       TOK_NE                  = 17,       TOK_LT                  = 18,
+    TOK_GT                  = 19,       TOK_LE                  = 20,       TOK_GE                  = 21,
     
     //--------------------------------------------------------------------------------------------------------
     // Token symbols. They are just reserved names used in commands and functions. Their type and optional
     // value is defined in the token tables.
     //
     //--------------------------------------------------------------------------------------------------------
-    TOK_IDENT               = 50,       TOK_NUM                 = 51,       TOK_STR                 = 52,
+    TOK_IDENT               = 100,      TOK_NUM                 = 101,      TOK_STR                 = 102,
     
-    TOK_TRUE                = 3,        TOK_FALSE               = 4,
+    TOK_TRUE                = 103,      TOK_FALSE               = 104,
     
-    TOK_CPU                 = 6,        TOK_MEM                 = 7,        TOK_STATS               = 8,
+    TOK_CPU                 = 105,      TOK_MEM                 = 106,      TOK_STATS               = 107,
     
-    TOK_C                   = 100,      TOK_D                   = 101,      TOK_F                   = 102,
-    TOK_I                   = 103,      TOK_T                   = 104,      TOK_U                   = 105,
+    TOK_C                   = 108,      TOK_D                   = 109,      TOK_F                   = 110,
+    TOK_I                   = 111,      TOK_T                   = 112,      TOK_U                   = 113,
     
-    TOK_PM                  = 20,       TOK_PC                  = 21,       TOK_IT                  = 22,
-    TOK_DT                  = 23,       TOK_IC                  = 24,       TOK_DC                  = 25,
-    TOK_UC                  = 26,       TOK_TX                  = 27,
+    TOK_PM                  = 114,      TOK_PC                  = 115,      TOK_IT                  = 116,
+    TOK_DT                  = 117,      TOK_IC                  = 118,      TOK_DC                  = 119,
+    TOK_UC                  = 120,      TOK_TX                  = 121,
     
-    TOK_ICR                 = 28,       TOK_DCR                 = 29,       TOK_UCR                 = 30,
-    TOK_ITR                 = 31,       TOK_DTR                 = 32,       TOK_MCR                 = 33,
-    TOK_PCR                 = 34,       TOK_IOR                 = 35,
+    TOK_ICR                 = 200,      TOK_DCR                 = 201,      TOK_UCR                 = 202,
+    TOK_ITR                 = 203,      TOK_DTR                 = 204,      TOK_MCR                 = 205,
+    TOK_PCR                 = 206,      TOK_IOR                 = 207,
     
-    TOK_DEC                 = 12,       TOK_OCT                 = 13,       TOK_HEX                 = 14,
-    TOK_CODE                = 15,
+    TOK_DEC                 = 300,      TOK_OCT                 = 301,      TOK_HEX                 = 302,
+    TOK_CODE                = 303,
     
-    
-    TOK_DEF                 = 5,
-    TOK_INV                 = 1,        TOK_ALL                 = 2,
+    TOK_DEF                 = 400,
+    TOK_INV                 = 401,      TOK_ALL                 = 402,
     
     //--------------------------------------------------------------------------------------------------------
     // Line Commands.
@@ -151,9 +122,7 @@ enum TokId : uint16_t {
     
     CMD_RESET               = 1010,     CMD_RUN                 = 1011,     CMD_STEP                = 1012,
     CMD_XF                  = 1013,     CMD_DIS_ASM             = 1014,     CMD_ASM                 = 1015,
-    
-   // CMD_B                   = 1016,     CMD_BD                  = 1017,     CMD_BL                  = 1018,
-    
+   
     CMD_DR                  = 1020,     CMD_MR                  = 1021,
     CMD_DA                  = 1027,     CMD_MA                  = 1028,
     CMD_MAA                 = 1030,
@@ -387,7 +356,7 @@ enum ErrMsgId : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Predefined environment variable names.
+// Predefined environment variable names. When you create another one, pu its name here.
 //
 //------------------------------------------------------------------------------------------------------------
 const char ENV_GIT_BRANCH[ ]            = "GIT_BRANCH";
@@ -424,7 +393,6 @@ const char ENV_MEM_BANK_SIZE[ ]         = "MEM_BANK_SIZE";
 
 const char ENV_WIN_MIN_ROWS[ ]          = "WIN_MIN_ROWS";
 const char ENV_WIN_TEXT_LINE_WIDTH[ ]   ="WIN_TEXT_WIDTH";
-
 
 //------------------------------------------------------------------------------------------------------------
 // The command line size. The command line is rather long so that we can read in long lines form perhaps
@@ -529,44 +497,6 @@ struct DrvExpr {
         struct {    uint32_t seg;   uint32_t ofs;           };
     };
 };
-
-#if 0
-//------------------------------------------------------------------------------------------------------------
-// Driver environment variables. There is a simple "name=value" dictionary.
-//
-//------------------------------------------------------------------------------------------------------------
-struct DrvEnv {
-    
-public:
-    
-    DrvEnv( VCPU32Globals *glb );
-    
-    int         getEnvTabSize( );
-    TokId       lookupEnvTokId( char *str, TokId def = TOK_NIL );
-    TokId       getEnvType( TokId envId );
-    bool        isReadOnly( TokId envId );
-    
-    TokId       getEnvValTok( TokId envId );
-    int32_t     getEnvValInt( TokId envId );
-    uint32_t    getEnvValUInt( TokId envId );
-    bool        getEnvValBool( TokId envId );
-    char        *getEnvValStr( TokId envId );
-    
-    void        setEnvVal( TokId envId, TokId val );
-    void        setEnvVal( TokId envId, int32_t val );
-    void        setEnvVal( TokId envId, uint32_t val );
-    void        setEnvVal( TokId envId, bool val );
-    void        setEnvVal( TokId envId, char *val );
-    
-    uint8_t     displayEnvTable( );
-    uint8_t     displayEnvTabEntry( TokId envId );
-    
-private:
-    
-    VCPU32Globals *glb = nullptr;
-};
-#endif
-
 
 //------------------------------------------------------------------------------------------------------------
 // Environment table entry, Each environment variable has a name, a couple of flags and the value, which
@@ -1141,7 +1071,6 @@ public:
     int  getOpCodeOptionsFieldWidth( );
     int  getTargetAndOperandsFieldWidth( );
     
-    
 private:
     
     VCPU32Globals *glb = nullptr;
@@ -1271,4 +1200,4 @@ struct VCPU32Globals {
     CpuCore             *cpu            = nullptr;
 };
 
-#endif /* CPU24Driver_h */
+#endif  // VCPU32TestDriver_h
