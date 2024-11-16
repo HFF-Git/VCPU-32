@@ -168,6 +168,7 @@ struct {
     { "WT",                 "",         TOK_TYP_CMD,            CMD_WT                  },
     { "WX",                 "",         TOK_TYP_CMD,            CMD_WX                  },
     
+    { "NIL",                "",         TOK_TYP_NIL,            TOK_NIL                 },
     { "TRUE",               "",         TOK_TYP_NIL,            TOK_TRUE                },
     { "FALSE",              "",         TOK_TYP_NIL,            TOK_FALSE               },
     { "ALL",                "",         TOK_TYP_NIL,            TOK_ALL                 },
@@ -288,6 +289,12 @@ const int  TOK_TAB_SIZE  = sizeof( tokTab ) / sizeof( *tokTab );
 
 
 
+
+
+
+
+
+
 // ??? the new table .....
 //------------------------------------------------------------------------------------------------------------
 // The global token table. All reserved words are allocated in this table. Each entry has the token name,
@@ -301,25 +308,26 @@ DrvToken const cmdTokTab[ ] = {
     // General tokens.
     //
     //--------------------------------------------------------------------------------------------------------
+    { .name = "NIL",                .typ = TYP_SYM,                 .tid = TOK_NIL,                  0       },
     { .name = "TRUE",               .typ = TYP_BOOL,                .tid = TOK_TRUE,                 1       },
     { .name = "FALSE",              .typ = TYP_BOOL,                .tid = TOK_FALSE,                0       },
     
-    { .name = "ALL",                .typ = TYP_NIL,                 .tid = TOK_ALL                           },
-    { .name = "CPU",                .typ = TYP_NIL,                 .tid = TOK_CPU                           },
-    { .name = "MEM",                .typ = TYP_NIL,                 .tid = TOK_MEM                           },
-    { .name = "C",                  .typ = TYP_NIL,                 .tid = TOK_C                             },
-    { .name = "D",                  .typ = TYP_NIL,                 .tid = TOK_D                             },
-    { .name = "F",                  .typ = TYP_NIL,                 .tid = TOK_F                             },
-    { .name = "I",                  .typ = TYP_NIL,                 .tid = TOK_I                             },
-    { .name = "T",                  .typ = TYP_NIL,                 .tid = TOK_T                             },
-    { .name = "U",                  .typ = TYP_NIL,                 .tid = TOK_U                             },
+    { .name = "ALL",                .typ = TYP_SYM,                 .tid = TOK_ALL                           },
+    { .name = "CPU",                .typ = TYP_SYM,                 .tid = TOK_CPU                           },
+    { .name = "MEM",                .typ = TYP_SYM,                 .tid = TOK_MEM                           },
+    { .name = "C",                  .typ = TYP_SYM,                 .tid = TOK_C                             },
+    { .name = "D",                  .typ = TYP_SYM,                 .tid = TOK_D                             },
+    { .name = "F",                  .typ = TYP_SYM,                 .tid = TOK_F                             },
+    { .name = "I",                  .typ = TYP_SYM,                 .tid = TOK_I                             },
+    { .name = "T",                  .typ = TYP_SYM,                 .tid = TOK_T                             },
+    { .name = "U",                  .typ = TYP_SYM,                 .tid = TOK_U                             },
     
-    { .name = "DEC",                .typ = TYP_NIL,                 .tid = TOK_DEC,                 10      },
-    { .name = "DECIMAL",            .typ = TYP_NIL,                 .tid = TOK_DEC,                 10      },
-    { .name = "HEX",                .typ = TYP_NIL,                 .tid = TOK_HEX,                 16      },
-    { .name = "OCT",                .typ = TYP_NIL,                 .tid = TOK_OCT,                 8       },
-    { .name = "OCTAL",              .typ = TYP_NIL,                 .tid = TOK_OCT,                 8       },
-    { .name = "CODE",               .typ = TYP_NIL,                 .tid = TOK_CODE                         },
+    { .name = "DEC",                .typ = TYP_SYM,                 .tid = TOK_DEC,                 10      },
+    { .name = "DECIMAL",            .typ = TYP_SYM,                 .tid = TOK_DEC,                 10      },
+    { .name = "HEX",                .typ = TYP_SYM,                 .tid = TOK_HEX,                 16      },
+    { .name = "OCT",                .typ = TYP_SYM,                 .tid = TOK_OCT,                 8       },
+    { .name = "OCTAL",              .typ = TYP_SYM,                 .tid = TOK_OCT,                 8       },
+    { .name = "CODE",               .typ = TYP_SYM,                 .tid = TOK_CODE                         },
     
     //--------------------------------------------------------------------------------------------------------
     // Command Line tokens.
@@ -378,7 +386,7 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "PSR",                .typ = TYP_CMD,                 .tid = CMD_PSR              },
     
     { .name = "SRE",                .typ = TYP_CMD,                 .tid = CMD_SRE              },
-    { .name = "SRD",                .typ = TYP_CMD,                 .tid = CMD_SRE         },
+    { .name = "SRD",                .typ = TYP_CMD,                 .tid = CMD_SRD         },
     { .name = "SRR",                .typ = TYP_CMD,                 .tid = CMD_SRR              },
     
     { .name = "PLE",                .typ = TYP_CMD,                 .tid = CMD_PLE               },
@@ -406,22 +414,22 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "WT",                 .typ = TYP_CMD,                 .tid = CMD_WT          },
     { .name = "WX",                 .typ = TYP_CMD,                 .tid = CMD_WX            },
     
-    { .name = "PM",                 .typ = TYP_NIL,                 .tid = TOK_PM               },
-    { .name = "PC",                 .typ = TYP_NIL,                 .tid = TOK_PC           },
-    { .name = "IT",                 .typ = TYP_NIL,                 .tid = TOK_IT               },
-    { .name = "DT",                 .typ = TYP_NIL,                 .tid = TOK_DT             },
-    { .name = "IC",                 .typ = TYP_NIL,                 .tid = TOK_IC             },
-    { .name = "DC",                 .typ = TYP_NIL,                 .tid = TOK_DC              },
-    { .name = "UC",                 .typ = TYP_NIL,                 .tid = TOK_UC               },
-    { .name = "ICR",                .typ = TYP_NIL,                 .tid = TOK_ICR              },
-    { .name = "DCR",                .typ = TYP_NIL,                 .tid = TOK_DCR             },
-    { .name = "UCR",                .typ = TYP_NIL,                 .tid = TOK_UCR             },
-    { .name = "MCR",                .typ = TYP_NIL,                 .tid = TOK_MCR             },
-    { .name = "ITR",                .typ = TYP_NIL,                 .tid = TOK_ITR              },
-    { .name = "DTR",                .typ = TYP_NIL,                 .tid = TOK_DTR             },
-    { .name = "PCR",                .typ = TYP_NIL,                 .tid = TOK_PCR              },
-    { .name = "IOR",                .typ = TYP_NIL,                 .tid = TOK_IOR          },
-    { .name = "TX",                 .typ = TYP_NIL,                 .tid = TOK_TX            },
+    { .name = "PM",                 .typ = TYP_SYM,                 .tid = TOK_PM               },
+    { .name = "PC",                 .typ = TYP_SYM,                 .tid = TOK_PC           },
+    { .name = "IT",                 .typ = TYP_SYM,                 .tid = TOK_IT               },
+    { .name = "DT",                 .typ = TYP_SYM,                 .tid = TOK_DT             },
+    { .name = "IC",                 .typ = TYP_SYM,                 .tid = TOK_IC             },
+    { .name = "DC",                 .typ = TYP_SYM,                 .tid = TOK_DC              },
+    { .name = "UC",                 .typ = TYP_SYM,                 .tid = TOK_UC               },
+    { .name = "ICR",                .typ = TYP_SYM,                 .tid = TOK_ICR              },
+    { .name = "DCR",                .typ = TYP_SYM,                 .tid = TOK_DCR             },
+    { .name = "UCR",                .typ = TYP_SYM,                 .tid = TOK_UCR             },
+    { .name = "MCR",                .typ = TYP_SYM,                 .tid = TOK_MCR             },
+    { .name = "ITR",                .typ = TYP_SYM,                 .tid = TOK_ITR              },
+    { .name = "DTR",                .typ = TYP_SYM,                 .tid = TOK_DTR             },
+    { .name = "PCR",                .typ = TYP_SYM,                 .tid = TOK_PCR              },
+    { .name = "IOR",                .typ = TYP_SYM,                 .tid = TOK_IOR          },
+    { .name = "TX",                 .typ = TYP_SYM,                 .tid = TOK_TX            },
     
     //--------------------------------------------------------------------------------------------------------
     // General registers.
@@ -581,7 +589,7 @@ DrvToken const cmdTokTab[ ] = {
     // The last token to mark the list end.
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "",               .typ = TYP_NIL,             .tid = TOK_LAST          }
+    { .name = "",                   .typ = TYP_NIL,             .tid = TOK_LAST          }
     
 };
 
@@ -713,6 +721,7 @@ uint8_t cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
         case ERR_EXPECTED_WIN_ID:           fprintf( stdout, "Expected a window Id\n" ); break;
             
         case ERR_INVALID_REG_ID:            fprintf( stdout, "Invalid register Id\n" ); break;
+        case ERR_INVALID_RADIX:             fprintf( stdout, "Invalid radix\n" ); break;
             
         case ERR_EXTRA_TOKEN_IN_STR:        fprintf( stdout, "Extra tokens in command line\n" ); break;
         case ERR_EXPECTED_LPAREN:           fprintf( stdout, "Expected a left paren\n" ); break;
@@ -720,6 +729,10 @@ uint8_t cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
         case ERR_EXPECTED_COMMA:            fprintf( stdout, "Expected a comma\n" ); break;
             
         case ERR_INVALID_EXIT_VAL:          fprintf( stdout, "Invalid program exit code\n" ); break;
+            
+        case ERR_ENV_VALUE_EXPR:            fprintf( stdout, "Invalid expression for ENV variable\n" ); break;
+            
+        case ERR_WIN_TYPE_NOT_CONFIGURED:   fprintf( stdout, "Win object type not configured\n" ); break;
             
         case ERR_EXPECTED_NUMERIC:          fprintf( stdout, "Expected a numeric value\n" ); break;
         case ERR_EXPECTED_EXT_ADR:          fprintf( stdout, "Expected a virtual address\n" ); break;
@@ -1036,12 +1049,12 @@ char *DrvCmds::tokIdToName( TokId tokId ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::printWelcome( ) {
     
-    glb -> env -> setEnvVal( ENV_EXIT_CODE, 0 );
+    glb -> env_n -> setEnvVar((char *) ENV_EXIT_CODE, 0 );
     
     if ( isatty( fileno( stdin ))) {
-        
-        fprintf( stdout, "VCPU-32 Simulator, Version: %s\n", glb -> env -> getEnvValStr( ENV_PROG_VERSION ));
-        fprintf( stdout, "Git Branch: %s\n", glb -> env -> getEnvValStr( ENV_GIT_BRANCH ));
+       
+        fprintf( stdout, "VCPU-32 Simulator, Version: %s\n", glb -> env_n -> getEnvVarStr((char *) ENV_PROG_VERSION ));
+        fprintf( stdout, "Git Branch: %s\n", glb -> env_n -> getEnvVarStr((char *) ENV_GIT_BRANCH ));
     }
 }
 
@@ -1055,8 +1068,8 @@ void DrvCmds::promptCmdLine( ) {
     
     if ( isatty( fileno( stdin ))) {
         
-        if ( glb -> env -> getEnvValBool( ENV_SHOW_CMD_CNT ))
-            fprintf( stdout, "(%i) ", glb -> env -> getEnvValInt( ENV_CMD_CNT ));
+        if ( glb -> env_n -> getEnvVarBool((char *) ENV_SHOW_CMD_CNT ))
+            fprintf( stdout, "(%i) ", glb -> env_n -> getEnvVarInt((char *) ENV_CMD_CNT ));
         
         fprintf( stdout, "->" );
         fflush( stdout );
@@ -1088,12 +1101,13 @@ bool DrvCmds::readInputLine( char *cmdBuf ) {
             
             if ( strlen( cmdBuf ) > 0 ) {
                 
-                glb -> env -> setEnvVal( ENV_CMD_CNT, glb -> env -> getEnvValInt( ENV_CMD_CNT ) + 1 );
+                glb -> env_n -> setEnvVar((char *) ENV_CMD_CNT,
+                                          glb -> env_n -> getEnvVarInt((char *) ENV_CMD_CNT ) + 1 );
                 return( true );
             }
             else return( false );
         }
-        else if ( feof( stdin )) exit( glb -> env -> getEnvValInt( ENV_EXIT_CODE ));
+        else if ( feof( stdin )) exit( glb -> env_n -> getEnvVarInt((char *) ENV_EXIT_CODE ));
     }
     
     return( false );
@@ -1120,7 +1134,7 @@ uint8_t DrvCmds::execCmdsFromFile( char* fileName ) {
                 fgets( cmdLineBuf, sizeof( cmdLineBuf ), f );
                 cmdLineBuf[ strcspn( cmdLineBuf, "\r\n" ) ] = 0;
                 
-                if ( glb -> env -> getEnvValBool( ENV_ECHO_CMD )) {
+                if ( glb -> env_n -> getEnvVarBool((char *) ENV_ECHO_CMD_INPUT )) {
                     
                     fprintf( stdout, "%s\n", cmdLineBuf );
                 }
@@ -1154,7 +1168,14 @@ uint8_t DrvCmds::parseFactor( DrvExpr *rExpr ) {
     rExpr -> typ        = TYP_NIL;
     rExpr -> numVal    = 0;
     
-    if ( tok -> isTokenTyp( TYP_CMD ))  {
+    if ( tok -> isTokenTyp( TYP_SYM ))  {
+        
+        rExpr -> typ    = tok -> tokTyp( );
+        rExpr -> tokId  = tok -> tokId( );
+        tok -> nextToken( );
+        return( NO_ERR );
+    }
+    else if ( tok -> isTokenTyp( TYP_CMD ))  {
         
         rExpr -> typ    = TYP_CMD;
         rExpr -> tokId  = tok -> tokId( );
@@ -1363,7 +1384,7 @@ uint8_t DrvCmds::parseExpr( DrvExpr *rExpr ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::invalidCmd( ) {
     
-    glb -> env -> setEnvVal( ENV_EXIT_CODE, -1 );
+    glb -> env_n -> setEnvVar((char *) ENV_EXIT_CODE, -1 );
     return( cmdErr( ERR_INVALID_CMD ));
 }
 
@@ -1401,7 +1422,7 @@ uint8_t DrvCmds::exitCmd( ) {
     
     if ( tok -> tokId( ) == TOK_EOS ) {
         
-        exitVal = glb -> env -> getEnvValInt( ENV_EXIT_CODE );
+        exitVal = glb -> env_n -> getEnvVarInt((char *) ENV_EXIT_CODE );
         exit(( exitVal > 255 ) ? 255 : exitVal );
         return( NO_ERR );
     }
@@ -1424,100 +1445,58 @@ uint8_t DrvCmds::exitCmd( ) {
 // remove a user defined variuable.
 //
 // ENV [ <envName> [ <val> ]]
-//
-//
-// ???? rework.... quite a bit ....
-//
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::envCmd( char *cmdBuf ) {
+uint8_t DrvCmds::envCmd( ) {
     
-    
-    // ??? rework .....
-    
-    
-    char    cmdStr[ TOK_NAME_SIZE ]         = "";
-    char    arg1Str[ TOK_NAME_SIZE ]        = "";
-    char    arg2Str[ TOK_LARGE_STR_SIZE ]   = "";
-    int     args   = sscanf( cmdBuf, FMT_STR_2S_LS, cmdStr, arg1Str, arg2Str );
-    
-    if ( args == 1 ) {
+    uint8_t rStat = NO_ERR;
+   
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
-        glb -> env -> displayEnvTable( );
+        glb -> env_n -> displayEnvTable( );
     }
-    else if ( args == 2 ) {
+    else if ( tok -> tokTyp( ) == TYP_IDENT ) {
         
-        if ( glb -> env -> displayEnvTabEntry( lookupTokId( arg1Str )) == 0 )
-            fprintf( stdout, "Unknown ENV variable\n" );
-    }
-    else if ( args == 3 ) {
+        DrvExpr rExpr;
+        char    envName[ 32 ]; // ??? fix
         
-        TokId arg1Id  = glb -> env -> lookupEnvTokId( arg1Str );
+        strcpy( envName, tok -> tokStr( ));
+        upshiftStr( envName );
         
-        if ( glb -> env -> getEnvType( arg1Id ) == TOK_NIL ) {
+        tok -> nextToken( );
+        
+        if ( tok -> tokId( ) == TOK_EOS ) {
             
-            fprintf( stdout, "Unknown ENV variable\n" );
-            return;
+            rStat = glb-> env_n -> displayEnvTableEntry( envName );
         }
-        
-        if ( glb-> env -> isReadOnly( arg1Id )) {
+        else {
             
-            fprintf( stdout, "ENV variable is readonly\n" );
-            return;
-        }
-        
-        switch( glb -> env -> getEnvType( arg1Id )) {
+            rStat = parseExpr( &rExpr );
+            if ( rStat != NO_ERR ) return( cmdLineError( ERR_ENV_VALUE_EXPR ));
+            
+            if ( rExpr.typ == TYP_NUM ) {
                 
-            case ENV_TYP_TOK: {
+                rStat = glb -> env_n -> setEnvVar( envName, rExpr.numVal );
+            }
+            else if ( rExpr.typ == TYP_BOOL ) {
                 
-                glb -> env -> setEnvVal( arg1Id, lookupTokId( arg2Str ));
+                rStat = glb -> env_n -> setEnvVar( envName, rExpr.bVal );
+            }
+            else if ( rExpr.typ == TYP_STR ) {
                 
-            } break;
+                rStat = glb -> env_n -> setEnvVar( envName, rExpr.strVal );
+            }
+            else if ( rExpr.typ == TYP_EXT_ADR ) {
                 
-            case ENV_TYP_BOOL: {
+                rStat = glb -> env_n -> setEnvVar( envName, rExpr.seg, rExpr.ofs );
+            }
+            else if (( rExpr.typ == TYP_SYM ) && ( rExpr.tokId == TOK_NIL )) {
                 
-                TokId argId = lookupTokId( arg2Str );
-                
-                if      ( argId == TOK_TRUE )  glb -> env -> setEnvVal( arg1Id, true );
-                else if ( argId == TOK_FALSE )   glb -> env -> setEnvVal( arg1Id, false );
-                else    fprintf( stdout, "Expected true or false\n" );
-                
-            } break;
-                
-            case ENV_TYP_INT: {
-                
-                int val = 0;
-                if ( sscanf( arg2Str, "%i", &val ) != 1 ) {
-                    
-                    fprintf( stdout, "Invalid value\n" );
-                    return;
-                }
-                
-                glb -> env -> setEnvVal( arg1Id, val );
-                
-            } break;
-                
-            case ENV_TYP_UINT: {
-                
-                uint32_t val = 0;
-                if ( sscanf( arg2Str, "%u", &val ) != 1 ) {
-                    
-                    fprintf( stdout, "Invalid value\n" );
-                    return;
-                }
-                
-                glb -> env -> setEnvVal( arg1Id, val );
-                
-            } break;
-                
-            case ENV_TYP_STR: {
-                
-                glb -> env -> setEnvVal( arg1Id, arg2Str );
-                
-            } break;
-                
-            default: ;
+                rStat = glb -> env_n -> removeEnvVar( envName );
+            }
         }
     }
+    
+    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1653,8 +1632,8 @@ uint8_t DrvCmds::stepCmd( ) {
     
     if ( checkEOS( ) == NO_ERR ) {
         
-        if ( glb -> env -> getEnvValBool( ENV_STEP_IN_CLOCKS )) glb -> cpu -> clockStep( 1 );
-        else                                                    glb -> cpu -> instrStep( 1 );
+        if ( glb -> env_n -> getEnvVarBool((char *) ENV_STEP_IN_CLOCKS ))   glb -> cpu -> clockStep( 1 );
+        else                                                                glb -> cpu -> instrStep( 1 );
     }
     
     return( NO_ERR );
@@ -1669,7 +1648,7 @@ uint8_t DrvCmds::disAssembleCmd( ) {
     
     DrvExpr     rExpr;
     uint32_t    instr   = 0;
-    int         rdx     = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+    int         rdx     = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
     if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
         
@@ -1689,7 +1668,7 @@ uint8_t DrvCmds::disAssembleCmd( ) {
             }
             else if ( tok -> tokId( ) == TOK_EOS ) {
                 
-                rdx = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+                rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
             }
             else return( cmdLineError( ERR_INVALID_FMT_OPT ));
         }
@@ -1712,7 +1691,7 @@ uint8_t DrvCmds::disAssembleCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::assembleCmd( ) {
     
-    int         rdx             = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+    int         rdx             = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     uint32_t    instr           = 0;
     char        asmStr[ 256 ]   = { 0 };
     
@@ -1730,7 +1709,7 @@ uint8_t DrvCmds::assembleCmd( ) {
         }
         else if ( tok -> tokId( ) == TOK_EOS ) {
             
-            rdx = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+            rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
         }
         else return( cmdLineError( ERR_INVALID_FMT_OPT ));
     }
@@ -1755,7 +1734,7 @@ uint8_t DrvCmds::assembleCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::displayRegCmd( ) {
     
-    int     rdx         = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+    int     rdx         = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     TypeId  regSetId    = TYP_GREG;
     TokId   regId       = GR_SET;
     int     regNum      = 0;
@@ -1797,7 +1776,7 @@ uint8_t DrvCmds::displayRegCmd( ) {
             }
             else if ( tok -> tokId( ) == TOK_EOS ) {
                 
-                rdx = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+                rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
             }
             else return( cmdLineError( ERR_INVALID_FMT_OPT ));
         }
@@ -1984,7 +1963,7 @@ uint8_t DrvCmds::displayTLBCmd( ) {
     uint32_t    len         = 0;
     uint32_t    tlbSize     = 0;
     TokId       tlbTypeId   = TOK_I;
-    int         rdx         = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+    int         rdx         = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
     if ( tok -> tokId( ) == TOK_I ) {
         
@@ -2057,7 +2036,7 @@ uint8_t DrvCmds::displayTLBCmd( ) {
         }
         else if ( tok -> tokId( ) == TOK_EOS ) {
             
-            rdx = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+            rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
         }
         else return( cmdLineError( ERR_INVALID_FMT_OPT ));
     }
@@ -2176,7 +2155,7 @@ uint8_t DrvCmds::displayCacheCmd( ) {
     CpuMem      *cPtr           = nullptr;
     uint32_t    index           = 0;
     uint32_t    len             = 0;
-    int         rdx             = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+    int         rdx             = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
     if ( tok -> tokId( ) == TOK_I ) {
         
@@ -2258,7 +2237,7 @@ uint8_t DrvCmds::displayCacheCmd( ) {
         }
         else if ( tok -> tokId( ) == TOK_EOS ) {
             
-            rdx = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+            rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
         }
         else return( cmdLineError( ERR_INVALID_FMT_OPT ));
     }
@@ -2302,7 +2281,7 @@ uint8_t DrvCmds::purgeCacheCmd( ) {
     CpuMem      *cPtr           = nullptr;
     uint32_t    index           = 0;
     uint32_t    len             = 0;
-    int         rdx             = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+    int         rdx             = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     uint32_t    set             = 0;
    
     if ( tok -> tokId( ) == TOK_I ) {
@@ -2390,7 +2369,7 @@ uint8_t DrvCmds::displayAbsMemCmd( ) {
     DrvExpr     rExpr;
     uint32_t    ofs     = 0;
     uint32_t    len     = 1;
-    int         rdx     = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+    int         rdx     = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
     if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) ofs = rExpr.numVal;
     else return( cmdLineError( ERR_EXPECTED_START_OFS ));
@@ -2418,7 +2397,7 @@ uint8_t DrvCmds::displayAbsMemCmd( ) {
         }
         else if ( tok -> tokId( ) == TOK_EOS ) {
             
-            rdx = glb -> env -> getEnvValInt( ENV_FMT_DEF );
+            rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
         }
         else return( cmdLineError( ERR_INVALID_FMT_OPT ));
         
@@ -2433,7 +2412,7 @@ uint8_t DrvCmds::displayAbsMemCmd( ) {
                 
                 glb -> lineDisplay -> displayAbsMemContentAsCode( ofs,
                                                                   len,
-                                                                  glb -> env -> getEnvValInt( ENV_FMT_DEF ));
+                                                                  glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
             }
             else glb -> lineDisplay -> displayAbsMemContent( ofs, len, rdx );
         }
@@ -2528,12 +2507,6 @@ uint8_t DrvCmds::modifyAbsMemAsCodeCmd( ) {
     return( NO_ERR );
 }
 
-
-
-
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // Global windows commands. There are handlers for turning windows on, off and set them back to their default
 // values. We also support two stacks of windows next to each other.
@@ -2597,31 +2570,22 @@ uint8_t DrvCmds::winStacksDisable( ) {
 //
 // WC <winNum>
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winCurrentCmd( char *cmdBuf ) {
+uint8_t DrvCmds::winCurrentCmd( ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winNum                  = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_1D, cmdStr, &winNum );
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
+       
+    DrvExpr rExpr;
     
-    if ( ! winModeOn ) {
+    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
+        if ( glb -> winDisplay -> validWindowNum( rExpr.numVal )) {
+            
+            glb -> winDisplay -> windowCurrent( rExpr.numVal );
+            return( NO_ERR );
+        }
+        else return( cmdLineError( ERR_INVALID_WIN_ID ));
     }
-    
-    if ( args < 2 ) {
-        
-        cmdErr( ERR_EXPECTED_WIN_ID );
-        return;
-    }
-    
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
-    }
-    
-    glb -> winDisplay -> windowCurrent( lookupTokId( cmdStr, TOK_INV ), winNum );
+    else return( cmdLineError( ERR_EXPECTED_WIN_ID ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2631,60 +2595,50 @@ void DrvCmds::winCurrentCmd( char *cmdBuf ) {
 // <win>E [<winNum>]
 // <win>D [<winNum>]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winEnableCmd( char *cmdBuf ) {
+uint8_t DrvCmds::winEnableCmd( TokId winCmd ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winNum                  = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_1D, cmdStr, &winNum );
+    int winNum = 0;
     
-    if ( ! winModeOn ) {
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
+    
+    if ( tok -> tokId( ) != TOK_EOS ) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
+        DrvExpr rExpr;
+        
+        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) winNum = rExpr.numVal;
+        else return( cmdLineError( ERR_EXPECTED_WIN_ID ));
     }
     
-    if ( args < 1 ) {
+    if ( glb -> winDisplay -> validWindowNum( winNum )) {
         
-        cmdErr( ERR_EXPECTED_WIN_ID );
-        return;
+        glb -> winDisplay -> windowEnable( winCmd, winNum );
+        glb -> winDisplay -> reDraw( true );
+        return( NO_ERR );
     }
-    
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
-    }
-    
-    glb -> winDisplay -> windowEnable( lookupTokId( cmdStr, TOK_INV ), winNum );
-    glb -> winDisplay -> reDraw( true );
+    else return( cmdLineError( ERR_INVALID_WIN_ID ));
 }
 
-void DrvCmds::winDisableCmd( char *cmdBuf ) {
-    
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winNum  = 0;
-    int     args    = sscanf( cmdBuf, FMT_STR_1S_1D, cmdStr, &winNum );
-    
-    if ( ! winModeOn ) {
+uint8_t DrvCmds::winDisableCmd( TokId winCmd ) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
+    int winNum = 0;
+    
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
+    
+    if ( tok -> tokId( ) != TOK_EOS ) {
+        
+        DrvExpr rExpr;
+        
+        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) winNum = rExpr.numVal;
+        else return( cmdLineError( ERR_EXPECTED_WIN_ID ));
     }
     
-    if ( args < 1 ) {
+    if ( glb -> winDisplay -> validWindowNum( winNum )) {
         
-        cmdErr( ERR_EXPECTED_WIN_ID );
-        return;
+        glb -> winDisplay -> windowDisable( winCmd, winNum );
+        glb -> winDisplay -> reDraw( true );
+        return( NO_ERR );
     }
-    
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
-    }
-    
-    glb -> winDisplay -> windowDisable( lookupTokId( cmdStr, TOK_INV ), winNum );
-    glb -> winDisplay -> reDraw( true );
+    else return( cmdLineError( ERR_INVALID_WIN_ID ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2692,32 +2646,40 @@ void DrvCmds::winDisableCmd( char *cmdBuf ) {
 // option and pass the tokens to the screen handler. The window number is optional, used for user definable
 // windows.
 //
-// <win>R [ <radix> [<winNum>]]
+// <win>R [ <radix> [ "," <winNum>]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winSetRadixCmd( char *cmdBuf ) {
-    
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winNum                  = 0;
-    int     rdx                     = 16;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_2D, cmdStr, &rdx, &winNum );
-    
-    if ( args == 0 ) return;
-    
-    if ( ! winModeOn ) {
+uint8_t DrvCmds::winSetRadixCmd( TokId winCmd ) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
+                                  
+    DrvExpr rExpr;
+    int     rdx = 16;
+        
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+        tok -> nextToken( );
+    }
+    else {
+        
+        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+                
+            rdx = setRadix( rExpr.numVal );
+        }
+        else return( cmdLineError( ERR_INVALID_RADIX ));
+    }
+        
+    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+            
+        if ( glb -> winDisplay -> validWindowNum( rExpr.numVal )) {
+                
+            glb -> winDisplay -> windowRadix( winCmd, rdx, rExpr.numVal );
+            return( NO_ERR );
+        }
+        else return( cmdLineError( ERR_INVALID_WIN_ID ));
     }
     
-    rdx = setRadix( rdx );
-    
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
-    }
-    
-    glb -> winDisplay -> windowRadix( lookupTokId( cmdStr ), rdx, winNum );
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2726,55 +2688,73 @@ void DrvCmds::winSetRadixCmd( char *cmdBuf ) {
 // items is window dependent. The window number is optional, used for user definable windows. If omitted,
 // we mean the current window.
 //
-// <win>F [<items> [<winNum>]]
-// <win>B [<items> [<winNum>]]
+// <win>F [<items> [ "," <winNum>]]
+// <win>B [<items> [ "," <winNum>]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winForwardCmd( char *cmdBuf ) {
+uint8_t DrvCmds::winForwardCmd( TokId winCmd ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winItems                = 0;
-    int     winNum                  = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_2D, cmdStr, &winItems, &winNum );
+    DrvExpr rExpr;
+    int     winItems = 0;
+    int     winNum   = 0;
     
-    if ( args == 0 ) return;
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( ! winModeOn ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
+        glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
+        return( NO_ERR );
     }
     
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
-    }
+    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winItems = rExpr.numVal;
+    else return( cmdLineError( ERR_INVALID_NUM ));
     
-    glb -> winDisplay -> windowForward( lookupTokId( cmdStr ), winItems, winNum  );
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        tok -> nextToken( );
+        
+        if ( tok -> tokTyp( ) == TYP_NUM )winNum = tok -> tokVal( );
+        else return ( cmdLineError( ERR_INVALID_WIN_ID ));
+        
+        if ( ! glb -> winDisplay -> validWindowNum( winNum ))
+            return ( cmdLineError( ERR_INVALID_WIN_ID ));
+    }
+    else winNum = 0;
+    
+    glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
+    return( NO_ERR );
 }
 
-void DrvCmds::winBackwardCmd( char *cmdBuf ) {
+uint8_t DrvCmds::winBackwardCmd( TokId winCmd ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winItems                = 0;
-    int     winNum                  = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_2D, cmdStr, &winItems, &winNum );
+    DrvExpr rExpr;
+    int     winItems = 0;
+    int     winNum   = 0;
     
-    if ( args == 0 ) return;
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( ! winModeOn ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
+        glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
+        return( NO_ERR );
     }
     
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
-    }
+    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winItems = rExpr.numVal;
+    else return( cmdLineError( ERR_INVALID_NUM ));
     
-    glb -> winDisplay -> windowBackward( lookupTokId( cmdStr ), winItems, winNum  );
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        tok -> nextToken( );
+        
+        if ( tok -> tokTyp( ) == TYP_NUM )winNum = tok -> tokVal( );
+        else return ( cmdLineError( ERR_INVALID_WIN_ID ));
+        
+        if ( ! glb -> winDisplay -> validWindowNum( winNum ))
+            return ( cmdLineError( ERR_INVALID_WIN_ID ));
+    }
+    else winNum = 0;
+    
+    glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2782,91 +2762,118 @@ void DrvCmds::winBackwardCmd( char *cmdBuf ) {
 // value passed to this command. The command sets the window item address to this value. The meaning of the
 // item address is window dependent. The window number is optional, used for user definable windows.
 //
-// <win>H [<pos> [<winNum>]]
+// <win>H [<pos> [ "," <winNum>]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winHomeCmd( char *cmdBuf ) {
+uint8_t DrvCmds::winHomeCmd( TokId winCmd ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winPos                  = 0;
-    int     winNum                  = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_2D, cmdStr, &winPos, &winNum );
+    DrvExpr rExpr;
+    int     winPos   = 0;
+    int     winNum   = 0;
     
-    if ( args == 0 ) return;
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( ! winModeOn ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
+        glb -> winDisplay -> windowHome( winCmd, winPos, winNum  );
+        return( NO_ERR );
     }
     
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
-    }
+    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winPos = rExpr.numVal;
+    else return( cmdLineError( ERR_INVALID_NUM ));
     
-    glb -> winDisplay -> windowHome( lookupTokId( cmdStr ), winPos, winNum  );
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        tok -> nextToken( );
+        
+        if ( tok -> tokTyp( ) == TYP_NUM )winNum = tok -> tokVal( );
+        else return ( cmdLineError( ERR_INVALID_WIN_ID ));
+        
+        if ( ! glb -> winDisplay -> validWindowNum( winNum ))
+            return ( cmdLineError( ERR_INVALID_WIN_ID ));
+    }
+    else winNum = 0;
+    
+    glb -> winDisplay -> windowHome( winCmd, winPos, winNum  );
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Window jump. The window jump command sets the item address to the position argument. The meaning of the
 // item address is window dependent. The window number is optional, used for user definable windows.
 //
-// <win>J [<pos> [<winNum>]]
+// <win>J [<pos> [ "," <winNum>]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winJumpCmd( char *cmdBuf ) {
+uint8_t DrvCmds::winJumpCmd( TokId winCmd ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winPos                  = 0;
-    int     winNum                  = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_2D, cmdStr, &winPos, &winNum );
+    DrvExpr rExpr;
+    int     winPos   = 0;
+    int     winNum   = 0;
     
-    if ( args == 0 ) return;
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( ! winModeOn ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
+        glb -> winDisplay -> windowHome( winCmd, winPos, winNum  );
+        return( NO_ERR );
     }
     
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
-    }
+    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winPos = rExpr.numVal;
+    else return( cmdLineError( ERR_INVALID_NUM ));
     
-    glb -> winDisplay -> windowJump( lookupTokId( cmdStr ), winPos, winNum );
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        tok -> nextToken( );
+        
+        if ( tok -> tokTyp( ) == TYP_NUM )winNum = tok -> tokVal( );
+        else return ( cmdLineError( ERR_INVALID_WIN_ID ));
+        
+        if ( ! glb -> winDisplay -> validWindowNum( winNum ))
+            return ( cmdLineError( ERR_INVALID_WIN_ID ));
+    }
+    else winNum = 0;
+    
+    glb -> winDisplay -> windowJump( winCmd, winPos, winNum  );
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Set window lines. This command sets the the number of rows for a window. The number includes the banner
 // line. The window number is optional, used for user definable windows.
 //
-// <win>L [<lines> [<winNum>]]
+// <win>L [<lines> [ "," <winNum>]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winSetRowsCmd( char *cmdBuf ) {
+uint8_t DrvCmds::winSetRowsCmd( TokId winCmd ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winLines                = 0;
-    int     winNum                  = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_2D, cmdStr, &winLines, &winNum );
+    DrvExpr rExpr;
+    int     winLines    = 0;
+    int     winNum      = 0;
     
-    if ( args == 0 ) return;
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( ! winModeOn ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
+        glb -> winDisplay -> windowHome( winCmd, winLines, winNum  );
+        return( NO_ERR );
     }
     
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
-    }
+    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winLines = rExpr.numVal;
+    else return( cmdLineError( ERR_INVALID_NUM ));
     
-    glb -> winDisplay -> windowSetRows( lookupTokId( cmdStr ), winLines, winNum );
+    if ( tok -> tokId( ) == TOK_COMMA ) {
+        
+        tok -> nextToken( );
+        
+        if ( tok -> tokTyp( ) == TYP_NUM )winNum = tok -> tokVal( );
+        else return ( cmdLineError( ERR_INVALID_WIN_ID ));
+        
+        if ( ! glb -> winDisplay -> validWindowNum( winNum ))
+            return ( cmdLineError( ERR_INVALID_WIN_ID ));
+    }
+    else winNum = 0;
+    
+    glb -> winDisplay -> windowSetRows( winCmd, winLines, winNum );
     glb -> winDisplay -> reDraw( true );
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2874,185 +2881,161 @@ void DrvCmds::winSetRowsCmd( char *cmdBuf ) {
 // index is used in all the calls to this window. The window type allows to select from a code window, a
 // physical memory window, a TLB and a CACHE window.
 //
-// WN <winType> [ <arg> ]
+// WN <winType> [ "," <arg> ]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winNewWinCmd( char *cmdBuf ) {
+uint8_t DrvCmds::winNewWinCmd( ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ]         = "";
-    char    winStr[ TOK_NAME_SIZE ]         = "";
-    char    argStr[ TOK_LARGE_STR_SIZE ]    = "";
-    int     args                            = sscanf( cmdBuf, FMT_STR_2S_LS, cmdStr, winStr, argStr );
-    TokId   winType                         = lookupTokId( winStr );
+    TokId   winType = TOK_NIL;
+    char    *argStr = nullptr;
     
-    if ( ! winModeOn ) {
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
+    
+    if ( tok -> tokTyp( ) == TYP_SYM ) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
+        winType = tok -> tokId( );
+        
+        if ((( winType == TOK_PM ) && ( glb -> cpu -> physMem == nullptr ))     ||
+            (( winType == TOK_PC ) && ( glb -> cpu -> physMem == nullptr ))     ||
+            (( winType == TOK_IT ) && ( glb -> cpu -> iTlb == nullptr ))        ||
+            (( winType == TOK_DT ) && ( glb -> cpu -> dTlb == nullptr ))        ||
+            (( winType == TOK_IC ) && ( glb -> cpu -> iCacheL1 == nullptr ))    ||
+            (( winType == TOK_DC ) && ( glb -> cpu -> dCacheL1 == nullptr ))    ||
+            (( winType == TOK_UC ) && ( glb -> cpu -> uCacheL2 == nullptr ))) {
+            
+            return( cmdLineError( ERR_WIN_TYPE_NOT_CONFIGURED ));
+        }
+        
+        if ( ! glb -> winDisplay -> validUserWindowType( winType ))
+            return( cmdLineError( ERR_INVALID_WIN_TYPE ));
+        
+        tok -> nextToken( );
     }
     
-    if ( args < 2 ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        cmdErr( ERR_EXPECTED_WIN_TYPE );
-        return;
+        tok -> nextToken( );
+        
+        if ( tok -> tokTyp( ) == TYP_STR ) argStr = tok -> tokStr( );
+        else return( cmdLineError( ERR_INVALID_ARG ));
     }
     
-    if ( ! glb -> winDisplay -> validUserWindowType( winType )) {
-        
-        cmdErr( ERR_INVALID_WIN_TYPE);
-        return;
-    }
-    
-    if ((( winType == TOK_PM ) && ( glb -> cpu -> physMem == nullptr ))     ||
-        (( winType == TOK_PC ) && ( glb -> cpu -> physMem == nullptr ))     ||
-        (( winType == TOK_IT ) && ( glb -> cpu -> iTlb == nullptr ))        ||
-        (( winType == TOK_DT ) && ( glb -> cpu -> dTlb == nullptr ))        ||
-        (( winType == TOK_IC ) && ( glb -> cpu -> iCacheL1 == nullptr ))    ||
-        (( winType == TOK_DC ) && ( glb -> cpu -> dCacheL1 == nullptr ))    ||
-        (( winType == TOK_UC ) && ( glb -> cpu -> uCacheL2 == nullptr ))) {
-        
-        fprintf( stdout, "Object for window is not configured \n" );
-        return;
-    }
-    
-    glb -> winDisplay -> windowNew( lookupTokId( cmdStr ), winType, argStr );
+    glb -> winDisplay -> windowNew( winType, argStr );
     glb -> winDisplay -> reDraw( true );
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // This command removes  a user defined window or window range from the list of windows. A number of -1 will
 // kill all user defined windows.
 //
-// WK [<winNumStart> [<winNumEnd]] || ( -1 )
+// WK [<winNumStart> [ "," <winNumEnd]] || ( -1 )
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winKillWinCmd( char * cmdBuf ) {
+uint8_t DrvCmds::winKillWinCmd( ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winNumStart             = 0;
-    int     winNumEnd               = 0;
+    DrvExpr     rExpr;
+    int         winNumStart     = 0;
+    int         winNumEnd       = 0;
     
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_2D, cmdStr, &winNumStart, &winNumEnd );
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( ! winModeOn ) {
-        
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
-    }
-    
-    if ( args == 1 ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
         winNumEnd   = winNumStart;
     }
-    else if ( args == 2 ) {
+    else {
+        
+        if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumStart = rExpr.numVal;
+        else return ( cmdLineError( ERR_EXPECTED_NUMERIC ));
+        
+        if ( tok -> tokId( ) == TOK_COMMA ) {
+            
+            tok -> nextToken( );
+            
+            if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumEnd = rExpr.numVal;
+            else return ( cmdLineError( ERR_EXPECTED_NUMERIC ));
+        }
         
         if ( winNumStart == -1 ) {
             
             winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
             winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
         }
-        else {
-            
-            if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
-                
-                cmdErr( ERR_INVALID_WIN_ID );
-                return;
-            }
-            
-            winNumEnd = winNumStart;
-        }
-    }
-    else if ( args == 3 ) {
-        
-        if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||
-            ( ! glb -> winDisplay -> validWindowNum( winNumEnd ))) {
-            
-            cmdErr( ERR_INVALID_WIN_ID );
-            return;
-        }
-    }
-    else {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
     }
     
-    glb -> winDisplay -> windowKill( lookupTokId( cmdStr ), winNumStart, winNumEnd );
+    if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||
+        ( ! glb -> winDisplay -> validWindowNum( winNumEnd ))) {
+        
+        return ( cmdLineError( ERR_INVALID_WIN_ID ));
+    }
+    
+    glb -> winDisplay -> windowKill( winNumStart, winNumEnd );
     glb -> winDisplay -> reDraw( true );
+    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // This command assigns a user window to a stack. User windows can be displayed in a separate stack of
 // windows. The first stack is always the main stack, where the predefined and command window can be found.
 //
-// WS <stackNum> [ <winNumStart> [ <winNumEnd ]]
+// WS <stackNum> [ "," <winNumStart> [ "," <winNumEnd ]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winSetStackCmd( char *cmdBuf ) {
+uint8_t DrvCmds::winSetStackCmd( ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winNumStart             = 0;
-    int     winNumEnd               = 0;
-    int     stackNum                = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_3D, cmdStr, &stackNum, &winNumStart, &winNumEnd );
+    DrvExpr rExpr;
+    int     stackNum    = 0;
+    int     winNumStart = 0;
+    int     winNumEnd   = 0;
     
-    if ( ! winModeOn ) {
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
+    
+    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) stackNum = rExpr.numVal;
+    else return ( cmdLineError( ERR_EXPECTED_STACK_ID ));
+    
+    if ( ! glb -> winDisplay -> validWindowStackNum( stackNum ))
+        return( cmdLineError( ERR_INVALID_WIN_STACK_ID ));
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
-    }
-    
-    if ( args == 1 ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
         winNumEnd   = winNumStart;
-    }
-    else if ( args == 2 ) {
-        
-        winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
-        winNumEnd   = winNumStart;
-    }
-    else if ( args == 3 ) {
-        
-        if ( winNumStart == -1 ) {
-            
-            winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
-            winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
-        }
-        else {
-            
-            if ( ! glb -> winDisplay -> validWindowNum( winNumStart )) {
-                
-                cmdErr( ERR_INVALID_WIN_ID );
-                return;
-            }
-            
-            winNumEnd = winNumStart;
-        }
-    }
-    else if ( args == 4 ) {
-        
-        if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||
-            ( ! glb -> winDisplay -> validWindowNum( winNumEnd ))) {
-            
-            cmdErr( ERR_INVALID_WIN_ID );
-            return;
-        }
     }
     else {
         
-        cmdErr( ERR_EXPECTED_STACK_ID );
-        return;
+        if ( tok -> tokId( ) == TOK_COMMA ) {
+            
+            tok -> nextToken( );
+            
+            if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumStart = rExpr.numVal;
+            else return ( cmdLineError( ERR_EXPECTED_NUMERIC ));
+            
+            if ( tok -> tokId( ) == TOK_COMMA ) {
+                
+                tok -> nextToken( );
+                
+                if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumEnd = rExpr.numVal;
+                else return ( cmdLineError( ERR_EXPECTED_NUMERIC ));
+            }
+            else winNumEnd = winNumStart;
+        }
+        
+        if ( winNumStart == -1 ) {
+                
+            winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
+            winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
+        }
     }
     
-    if ( ! glb -> winDisplay -> validWindowStackNum( stackNum )) {
+    if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||
+        ( ! glb -> winDisplay -> validWindowNum( winNumEnd ))) {
         
-        cmdErr( ERR_INVALID_WIN_STACK_ID );
-        return;
+        return ( cmdLineError( ERR_INVALID_WIN_ID ));
     }
     
     glb -> winDisplay -> windowSetStack( stackNum, winNumStart, winNumEnd );
     glb -> winDisplay -> reDraw( true );
+    return( NO_ERR );
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 // This command toggles through alternate window content, if the window dos support it. An example is the
@@ -3060,31 +3043,19 @@ void DrvCmds::winSetStackCmd( char *cmdBuf ) {
 //
 // WT [ <winNum> ]
 //------------------------------------------------------------------------------------------------------------
-void  DrvCmds::winToggleCmd( char *cmdBuf ) {
+uint8_t  DrvCmds::winToggleCmd( ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winNum                  = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_1D, cmdStr, &winNum );
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( ! winModeOn ) {
+    if ( tok -> tokTyp( ) == TYP_NUM ) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
-    }
-    
-    if ( args < 1 ) {
+        if ( ! glb -> winDisplay -> validWindowNum( tok -> tokVal( )))
+            return( cmdLineError( ERR_INVALID_WIN_ID ));
         
-        cmdErr( ERR_EXPECTED_WIN_ID );
-        return;
+            glb -> winDisplay -> windowToggle( tok -> tokVal( ));
+            return( NO_ERR );
     }
-    
-    if ( ! glb -> winDisplay -> validWindowNum( winNum )) {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
-    }
-    
-    glb -> winDisplay -> windowToggle( lookupTokId( cmdStr ), winNum );
+    else return( cmdLineError( ERR_EXPECTED_WIN_ID ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -3093,31 +3064,19 @@ void  DrvCmds::winToggleCmd( char *cmdBuf ) {
 //
 // WX <winNum>
 //------------------------------------------------------------------------------------------------------------
-void  DrvCmds::winExchangeCmd( char *cmdBuf ) {
+uint8_t DrvCmds::winExchangeCmd( ) {
     
-    char    cmdStr[ TOK_NAME_SIZE ] = "";
-    int     winNum                  = 0;
-    int     args                    = sscanf( cmdBuf, FMT_STR_1S_1D, cmdStr, &winNum );
+    if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( ! winModeOn ) {
+    if ( tok -> tokTyp( ) == TYP_NUM ) {
         
-        cmdErr( ERR_NOT_IN_WIN_MODE );
-        return;
-    }
-    
-    if ( args < 1 ) {
+        if ( ! glb -> winDisplay -> validWindowNum( tok -> tokVal( )))
+            return( cmdLineError( ERR_INVALID_WIN_ID ));
         
-        cmdErr( ERR_EXPECTED_WIN_ID );
-        return;
+        glb -> winDisplay -> windowExchangeOrder( tok -> tokVal( ));
+        return( NO_ERR );
     }
-    
-    if ( ! glb -> winDisplay -> validUserWindowNum( winNum )) {
-        
-        cmdErr( ERR_INVALID_WIN_ID );
-        return;
-    }
-    
-    glb -> winDisplay -> windowExchangeOrder( lookupTokId( cmdStr ), winNum );
+    else return( cmdLineError( ERR_EXPECTED_WIN_ID ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -3141,8 +3100,6 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
             //------------------------------------------------------------------------------------------------
             // We have a command as the first expression in the input string. Just dispatch to the command.
             //
-            // ??? the calls will change and not use the cmdBuf after all commands have been rewore to use
-            // the expr mode.
             //------------------------------------------------------------------------------------------------
             case TYP_CMD: {
                 
@@ -3152,9 +3109,7 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
                     case CMD_EXIT:          return( exitCmd( ));
                     case CMD_HELP:          return( helpCmd( ));
                     case CMD_WHELP:         return( winHelpCmd( ));
-                        
-                    case CMD_ENV:           envCmd( cmdBuf);                    break;
-                        
+                    case CMD_ENV:           return( envCmd( ));
                     case CMD_XF:            return( execFileCmd( ));
                     case CMD_LMF:           return( loadPhysMemCmd( ));
                     case CMD_SMF:           return( savePhysMemCmd( ));
@@ -3175,45 +3130,44 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
                     case CMD_MA:            return( modifyAbsMemCmd( ));
                     case CMD_MAA:           return( modifyAbsMemAsCodeCmd( ));
     
-                
                     case CMD_WON:           return( winOnCmd( ));
                     case CMD_WOFF:          return( winOffCmd( ));
                     case CMD_WDEF:          return( winDefCmd( ));
                     case CMD_WSE:           return( winStacksEnable( ));
                     case CMD_WSD:           return( winStacksDisable( ));
                         
-                    case CMD_WC:            winCurrentCmd( cmdBuf );            break;
-                    case CMD_WN:            winNewWinCmd( cmdBuf );             break;
-                    case CMD_WK:            winKillWinCmd( cmdBuf );            break;
-                    case CMD_WS:            winSetStackCmd( cmdBuf );           break;
-                    case CMD_WT:            winToggleCmd( cmdBuf );             break;
-                    case CMD_WX:            winExchangeCmd( cmdBuf );           break;
+                    case CMD_WC:            return( winCurrentCmd( ));
+                    case CMD_WN:            return( winNewWinCmd( ));
+                    case CMD_WK:            return( winKillWinCmd( ));
+                    case CMD_WS:            return( winSetStackCmd( ));
+                    case CMD_WT:            return( winToggleCmd( ));
+                    case CMD_WX:            return( winExchangeCmd( ));
                         
-                    case CMD_WF:            winForwardCmd( cmdBuf );            break;
-                    case CMD_WB:            winBackwardCmd( cmdBuf );           break;
-                    case CMD_WH:            winHomeCmd( cmdBuf );               break;
-                    case CMD_WJ:            winJumpCmd( cmdBuf );               break;
+                    case CMD_WF:            return( winForwardCmd( rExpr.tokId ));
+                    case CMD_WB:            return( winBackwardCmd( rExpr.tokId ));
+                    case CMD_WH:            return( winHomeCmd( rExpr.tokId ));
+                    case CMD_WJ:            return( winJumpCmd( rExpr.tokId ));
                         
                     case CMD_PSE:
                     case CMD_SRE:
                     case CMD_PLE:
                     case CMD_SWE:
-                    case CMD_WE:            winEnableCmd( cmdBuf );             break;
+                    case CMD_WE:            return( winEnableCmd( rExpr.tokId ));
                         
                     case CMD_PSD:
                     case CMD_SRD:
                     case CMD_PLD:
                     case CMD_SWD:
-                    case CMD_WD:            winDisableCmd( cmdBuf );            break;
+                    case CMD_WD:            return( winDisableCmd( rExpr.tokId ));
                         
                     case CMD_PSR:
                     case CMD_SRR:
                     case CMD_PLR:
                     case CMD_SWR:
-                    case CMD_WR:            winSetRadixCmd( cmdBuf );           break;
+                    case CMD_WR:            return( winSetRadixCmd( rExpr.tokId ));
                         
                     case CMD_CWL:
-                    case CMD_WL:            winSetRowsCmd( cmdBuf );            break;
+                    case CMD_WL:            return( winSetRowsCmd( rExpr.tokId ));
                         
                     default:                invalidCmd( );
                 }

@@ -69,7 +69,7 @@ int lookupToken( char *inputStr, DrvToken *tokTab ) {
     
     DrvToken *tok = tokTab;
     
-    while ( tok -> tid != TOK_NIL ) {
+    while (( tok -> typ != TYP_NIL ) || ( tok -> tid != TOK_NIL )) {
         
         if ( strcmp( tmpStr, tok -> name ) == 0 )   return((int) ( tok - tokTab ));
         else                                        tok ++;

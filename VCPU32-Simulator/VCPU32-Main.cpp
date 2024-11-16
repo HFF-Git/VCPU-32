@@ -105,7 +105,6 @@ int main( int argc, const char* argv[ ] ) {
  
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
     
-    glbDesc.env                         = new DrvEnv( &glbDesc );
     glbDesc.env_n                       = new DrvEnv_n( &glbDesc, 256 ); // for testing ....
     glbDesc.cmds                        = new DrvCmds( &glbDesc );
     glbDesc.lineDisplay                 = new DrvLineDisplay( &glbDesc );

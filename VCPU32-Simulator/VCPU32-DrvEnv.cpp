@@ -46,6 +46,7 @@ void upshiftStr( char *str ) {
     }
 }
 
+#if 0
 //------------------------------------------------------------------------------------------------------------
 // Environment variables. The simulator has a set of variables that control and display options for the
 // simulator to set. Each variable has an assigned token name by which it can be referred to. The environment
@@ -74,10 +75,7 @@ struct EnvTabEntry {
     
 } envTab[ ] = {
     
-    
-    { .name = "FMT-DEF",
-        .envId = ENV_FMT_DEF,           .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 16   },
-    
+   
     
     
     { .name = "SHOW-CMD-CNT",
@@ -159,6 +157,11 @@ void displayEnvTabEntry( EnvTabEntry *entry ) {
     else fprintf( stdout, "****\n" );
 }
 
+
+
+#endif
+
+
 }; // namespace
 
 
@@ -166,7 +169,7 @@ void displayEnvTabEntry( EnvTabEntry *entry ) {
 // Object methods.
 //************************************************************************************************************
 
-
+#if 0
 //------------------------------------------------------------------------------------------------------------
 // Object creator.
 //
@@ -359,6 +362,7 @@ uint8_t DrvEnv::displayEnvTabEntry( TokId envId ) {
     
     return( 0 );
 }
+#endif
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -399,8 +403,6 @@ DrvEnv_n::DrvEnv_n( VCPU32Globals *glb, uint32_t size ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvEnv_n::setEnvVar( char *name, int iVal ) {
     
-    upshiftStr( name );
-    
     int index = lookupEntry( name );
     
     if ( index >= 0 ) {
@@ -408,7 +410,6 @@ uint8_t DrvEnv_n::setEnvVar( char *name, int iVal ) {
         DrvEnvTabEntry *ptr = &table[ index ];
         
         if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
-        if (( ptr -> predefined ) && ( ptr -> readOnly ))       return ( 99 );
         if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
          
         ptr -> typ  = TYP_NUM;
@@ -420,8 +421,6 @@ uint8_t DrvEnv_n::setEnvVar( char *name, int iVal ) {
 
 uint8_t DrvEnv_n::setEnvVar( char *name, uint32_t uVal ) {
     
-    upshiftStr( name );
-    
     int index = lookupEntry( name );
     
     if ( index >= 0 ) {
@@ -429,7 +428,6 @@ uint8_t DrvEnv_n::setEnvVar( char *name, uint32_t uVal ) {
         DrvEnvTabEntry *ptr = &table[ index ];
         
         if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
-        if (( ptr -> predefined ) && ( ptr -> readOnly ))       return ( 99 );
         if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
          
         ptr -> typ  = TYP_NUM;
@@ -441,8 +439,6 @@ uint8_t DrvEnv_n::setEnvVar( char *name, uint32_t uVal ) {
 
 uint8_t DrvEnv_n::setEnvVar( char *name, bool bVal )  {
     
-    upshiftStr( name );
-    
     int index = lookupEntry( name );
     
     if ( index >= 0 ) {
@@ -450,7 +446,6 @@ uint8_t DrvEnv_n::setEnvVar( char *name, bool bVal )  {
         DrvEnvTabEntry *ptr = &table[ index ];
         
         if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
-        if (( ptr -> predefined ) && ( ptr -> readOnly ))       return ( 99 );
         if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
          
         ptr -> typ  = TYP_BOOL;
@@ -461,9 +456,7 @@ uint8_t DrvEnv_n::setEnvVar( char *name, bool bVal )  {
 }
 
 uint8_t DrvEnv_n::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
-    
-    upshiftStr( name );
-    
+   
     int index = lookupEntry( name );
     
     if ( index >= 0 ) {
@@ -471,7 +464,6 @@ uint8_t DrvEnv_n::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
         DrvEnvTabEntry *ptr = &table[ index ];
         
         if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
-        if (( ptr -> predefined ) && ( ptr -> readOnly ))       return ( 99 );
         if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
          
         ptr -> typ  = TYP_EXT_ADR;
@@ -483,9 +475,7 @@ uint8_t DrvEnv_n::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
 }
 
 uint8_t DrvEnv_n::setEnvVar( char *name, char *str )  {
-    
-    upshiftStr( name );
-    
+   
     int index = lookupEntry( name );
     
     if ( index >= 0 ) {
@@ -493,7 +483,6 @@ uint8_t DrvEnv_n::setEnvVar( char *name, char *str )  {
         DrvEnvTabEntry *ptr = &table[ index ];
         
         if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
-        if (( ptr -> predefined ) && ( ptr -> readOnly ))       return ( 99 );
         if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
          
         ptr -> typ  = TYP_STR;
@@ -504,14 +493,67 @@ uint8_t DrvEnv_n::setEnvVar( char *name, char *str )  {
 }
 
 //------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+bool DrvEnv_n::getEnvVarBool( char *name, bool def ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 )   return( table[ index ].bVal );
+    else                return ( def );
+}
+
+int  DrvEnv_n::getEnvVarInt( char *name, int def ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 )   return( table[ index ].iVal );
+    else                return ( def );
+}
+
+uint32_t  DrvEnv_n::getEnvVarUint( char *name, uint32_t def ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 )   return( table[ index ].uVal );
+    else                return ( def );
+}
+
+uint32_t  DrvEnv_n::getEnvVarExtAdrSeg( char *name, uint32_t def ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 )   return( table[ index ].seg );
+    else                return ( def );
+    
+}
+
+uint32_t  DrvEnv_n::getEnvVarExtAdrOfs( char *name, uint32_t def ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 )   return( table[ index ].ofs );
+    else                return ( def );
+    
+}
+
+char *DrvEnv_n::getEnvVarStr( char *name, char *def ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 )   return( table[ index ].str );
+    else                return (def );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Remove a user defined ENV variable. If the ENV variable is predefined it is an error. If the ENV variable
 // type is a string, free the string space. The entry is marked invalid, i.e. free. Finally, if the entry
 // was at the high water mark, adjust the HWM.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvEnv_n::removeEnvVar( char *name ) {
-    
-    upshiftStr( name );
     
     int index = lookupEntry( name );
     
@@ -640,6 +682,27 @@ uint8_t DrvEnv_n::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool pred
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Utility functions to return variable attributes.
+//
+//------------------------------------------------------------------------------------------------------------
+bool DrvEnv_n::isReadOnly( char *name ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 ) return( table[ index ].readOnly );
+    else return( false );
+}
+
+
+bool DrvEnv_n::isPredefined( char *name ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 ) return( table[ index ].predefined );
+    else return( false );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Look a variable. We just do a linear search up to the HWM. SIf not found a -1 is returned. Straightforward.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -743,6 +806,7 @@ uint8_t DrvEnv_n::displayEnvTableEntry( DrvEnvTabEntry *entry ) {
     return( NO_ERR );
 }
 
+
 //------------------------------------------------------------------------------------------------------------
 // Enter the predefind entries.
 //
@@ -751,39 +815,39 @@ uint8_t DrvEnv_n::setupPredefined( ) {
     
     uint8_t rStat = NO_ERR;
     
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "VERSION", (char *) VERSION, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "GIT_BRANCH", (char *) GIT_BRANCH, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "PATCH_LEVEL", (int) PATCH_LEVEL, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *) ENV_PROG_VERSION, (char *) VERSION, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_GIT_BRANCH, (char *) GIT_BRANCH, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_PROG_PATCH_LEVEL, (int) PATCH_LEVEL, true, false );
     
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "SHOW_CMD_CNT", true, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "CMD_CNT", (int) 0, true, true );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "ECHO_CMD_INPUT", false, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "EXIT_CODE", (int) 0, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_SHOW_CMD_CNT, true, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_CMD_CNT, (int) 0, true, true );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_ECHO_CMD_INPUT, false, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_EXIT_CODE, (int) 0, true, false );
     
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "FMT_DEF", (int) 16, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "WORDS_PER_LINE", (int) 8, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "SHOW_PSTAGE_INFO", false, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "STEP_IN_CLOCKS", false, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_RDX_DEFAULT, (int) 16, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_WORDS_PER_LINE, (int) 8, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_SHOW_PSTAGE_INFO, false, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_STEP_IN_CLOCKS, false, true, false );
     
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "I_TLB_SETS", (int) 1, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "I_TLB_SIZE", (int) 1024, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "D_TLB_SETS", (int) 1, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "D_TLB_SIZE", (int) 1024, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_I_TLB_SETS, (int) 1, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_I_TLB_SIZE, (int) 1024, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_D_TLB_SETS, (int) 1, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_D_TLB_SIZE, (int) 1024, true, false );
     
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "I_CACHE_SETS", (int) 1, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "I_CACHE_SIZE", (int) 1024, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "I_CACHE_LINE_SIZE", (int) 4, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_I_CACHE_SETS, (int) 1, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_I_CACHE_SIZE, (int) 1024, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_I_CACHE_LINE_SIZE, (int) 4, true, false );
     
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "D_CACHE_SETS", (int) 1, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "D_CACHE_SIZE", (int) 1024, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "D_CACHE_LINE_SIZE", (int) 4, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_D_CACHE_SETS, (int) 1, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_D_CACHE_SIZE, (int) 1024, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_D_CACHE_LINE_SIZE, (int) 4, true, false );
     
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "MEM_SIZE", (uint32_t) MAX_MEMORY_SIZE, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "MEM_BANKS", (int) 1, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "MEM_BANK_SIZE", (uint32_t) MAX_MEMORY_SIZE, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_MEM_SIZE, (uint32_t) MAX_MEMORY_SIZE, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_MEM_BANKS, (int) 1, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_MEM_BANK_SIZE, (uint32_t) MAX_MEMORY_SIZE, true, false );
     
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "WIN_MIN_ROWS", (int) 24, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *) "WIN_TEXT_WIDTH", (int) 90, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_WIN_MIN_ROWS, (int) 24, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_WIN_TEXT_LINE_WIDTH, (int) 90, true, false );
     
     return( rStat );
 }

@@ -500,7 +500,7 @@ void DrvWin::setDefColumns( int arg, int rdx ) {
     
     switch ( rdx ) {
             
-        case 16:    winDefColumnsHex = arg;  break;
+        case 16:    winDefColumnsHex = arg; break;
         case 8:     winDefColumnsOct = arg; break;
         case 10:    winDefColumnsDec = arg; break;
         default:    winDefColumnsHex = winDefColumnsOct = winDefColumnsDec = arg;
@@ -654,9 +654,9 @@ void DrvWin::printRadixField( uint32_t fmtDesc, int fLen, int row, int col ) {
     
     switch ( winRadix ) {
             
-        case TOK_OCT: printTextField((char *) "oct", fmtDesc, 3, row, col); break;
-        case TOK_DEC: printTextField((char *) "dec", fmtDesc, 3, row, col); break;
-        case TOK_HEX: printTextField((char *) "hex", fmtDesc, 3, row, col); break;
+        case 8: printTextField((char *) "oct", fmtDesc, 3, row, col); break;
+        case 10: printTextField((char *) "dec", fmtDesc, 3, row, col); break;
+        case 16: printTextField((char *) "hex", fmtDesc, 3, row, col); break;
         default: ;
     }
 }
@@ -866,11 +866,10 @@ DrvWinProgState::DrvWinProgState( VCPU32Globals *glb ) : DrvWin( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinProgState::setDefaults( ) {
     
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
-    
-    setDefColumns( 12 + ( 8 * 11 ), TOK_HEX );
-    setDefColumns( 12 + ( 8 * 13 ), TOK_OCT );
-    setDefColumns( 12 + ( 8 * 11 ), TOK_DEC );
+    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setDefColumns( 12 + ( 8 * 11 ), 16 );
+    setDefColumns( 12 + ( 8 * 13 ), 8  );
+    setDefColumns( 12 + ( 8 * 11 ), 10 );
     setColumns( getDefColumns( getRadix( )));
     setRows( 4 );
 
@@ -1014,11 +1013,10 @@ DrvWinSpecialRegs::DrvWinSpecialRegs( VCPU32Globals *glb )  : DrvWin( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinSpecialRegs::setDefaults( ) {
     
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
-    
-    setDefColumns( 12 + ( 8 * 11 ), TOK_HEX );
-    setDefColumns( 12 + ( 8 * 13 ), TOK_OCT );
-    setDefColumns( 12 + ( 8 * 11 ), TOK_DEC );
+    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setDefColumns( 12 + ( 8 * 11 ), 16 );
+    setDefColumns( 12 + ( 8 * 13 ), 8 );
+    setDefColumns( 12 + ( 8 * 11 ), 10 );
     setColumns( getDefColumns( getRadix( )));
     setRows( 5 );
 
@@ -1159,11 +1157,10 @@ DrvWinPipeLineRegs::DrvWinPipeLineRegs( VCPU32Globals *glb ) : DrvWin( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinPipeLineRegs::setDefaults( ) {
     
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
-    
-    setDefColumns( 84, TOK_HEX );
-    setDefColumns( 106, TOK_OCT );
-    setDefColumns( 84, TOK_DEC );
+    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setDefColumns( 84, 16 );
+    setDefColumns( 106, 8 );
+    setDefColumns( 84, 10 );
     setColumns( getDefColumns( getRadix( )));
     setRows( 4 );
     
@@ -1302,12 +1299,12 @@ DrvWinStatistics::DrvWinStatistics( VCPU32Globals *glb ) : DrvWin( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinStatistics::setDefaults( ) {
     
+    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setWinType( WT_ST_WIN );
     setEnable( false );
     setRows( 4 );
     setColumns( 84 );
     setDefColumns( 84 );
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1363,11 +1360,10 @@ DrvWinAbsMem::DrvWinAbsMem( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinAbsMem::setDefaults( ) {
     
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
-    
-    setDefColumns( 12 + ( 8 * 11 ), TOK_HEX );
-    setDefColumns( 14 + ( 8 * 13 ), TOK_OCT );
-    setDefColumns( 12 + ( 8 * 11 ), TOK_DEC );
+    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setDefColumns( 12 + ( 8 * 11 ), 16 );
+    setDefColumns( 14 + ( 8 * 13 ), 8 );
+    setDefColumns( 12 + ( 8 * 11 ), 10 );
     setColumns( getDefColumns( getRadix( )));
     
     setWinType( WT_PM_WIN );
@@ -1495,11 +1491,10 @@ DrvWinCode::DrvWinCode( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinCode::setDefaults( ) {
     
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setColumns( 84 );
     setDefColumns( 84 );
     setRows( 9 );
-
     setHomeItemAdr( 0 );
     setCurrentItemAdr( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ));
     setLineIncrement( 4 );
@@ -1618,13 +1613,11 @@ DrvWinTlb::DrvWinTlb( VCPU32Globals *glb, int winType ) : DrvWinScrollable( glb 
 //------------------------------------------------------------------------------------------------------------
 void DrvWinTlb::setDefaults( ) {
     
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
-    
-    setDefColumns( 84, TOK_HEX );
-    setDefColumns( 102, TOK_OCT );
-    setDefColumns( 84, TOK_DEC );
+    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setDefColumns( 84, 16 );
+    setDefColumns( 102, 8 );
+    setDefColumns( 84, 10 );
     setColumns( getDefColumns( getRadix( )));
-    
     setWinType( winType );
     setEnable( false );
     setRows( 5 );
@@ -1748,16 +1741,14 @@ void DrvWinCache::setDefaults( ) {
     
     uint32_t wordsPerBlock = cPtr -> getBlockSize( ) / 4;
     
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
-    setDefColumns( 36 + ( wordsPerBlock * 11 ), TOK_HEX );
-    setDefColumns( 36 + ( wordsPerBlock * 13 ), TOK_OCT );
-    setDefColumns( 36 + ( wordsPerBlock * 11 ), TOK_DEC );
+    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setDefColumns( 36 + ( wordsPerBlock * 11 ), 16 );
+    setDefColumns( 36 + ( wordsPerBlock * 13 ), 8 );
+    setDefColumns( 36 + ( wordsPerBlock * 11 ), 10 );
     setColumns( getDefColumns( getRadix( )));
     setRows( 6 );
-    
     setWinType( winType );
     setEnable( false );
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
     setCurrentItemAdr( 0 );
     setLineIncrement( 1 );
     setLimitItemAdr( 0 );
@@ -1881,15 +1872,13 @@ void DrvWinMemController::setDefaults( ) {
     else if ( winType == WT_UCACHE_S_WIN )  cPtr = glb -> cpu -> uCacheL2;
     else if ( winType == WT_MEM_S_WIN    )  cPtr = glb -> cpu -> physMem;
     
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
-    setDefColumns( 84, TOK_HEX );
-    setDefColumns( 108, TOK_OCT );
-    setDefColumns( 84, TOK_DEC );
+    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setDefColumns( 84, 16 );
+    setDefColumns( 108, 8 );
+    setDefColumns( 84, 10 );
     setColumns( getDefColumns( getRadix( )));
-    
     setWinType( winType );
     setEnable( false );
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
     setRows(( winType == WT_MEM_S_WIN ) ? 3 : 4 );
 }
 
@@ -2029,9 +2018,12 @@ void DrvWinText::setDefaults( ) {
     setWinType( WT_TEXT_WIN );
     setEnable( true );
     setRows( 11 );
-    setColumns( glb -> env -> getEnvValInt( ENV_WIN_TX_WIDTH ));
-    setDefColumns( glb -> env -> getEnvValInt( ENV_WIN_TX_WIDTH ));
-    setRadix( TOK_DEC );
+    
+    int txWidth = glb -> env_n -> getEnvVarInt((char *) ENV_WIN_TEXT_LINE_WIDTH );
+    setRadix( txWidth );
+    setDefColumns( txWidth );
+    
+    setRadix( 10 );
     setCurrentItemAdr( 0 );
     setLineIncrement( 1 );
     setLimitItemAdr( 1 );
@@ -2177,12 +2169,12 @@ DrvWinCommands::DrvWinCommands( VCPU32Globals *glb ) : DrvWin( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinCommands::setDefaults( ) {
     
-    setWinType( WT_CMD_WIN );
-    setEnable( true );
+    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setRows( 11 );
     setColumns( 80 );
     setDefColumns( 80 );
-    setRadix( glb -> env -> getEnvValTok( ENV_FMT_DEF ));
+    setWinType( WT_CMD_WIN );
+    setEnable( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2412,11 +2404,11 @@ void DrvWinDisplay::reDraw( bool mustRedraw ) {
     
     int winStackColumns[ MAX_WIN_STACKS ]   = { 0 };
     int winStackRows[ MAX_WIN_STACKS ]      = { 0 };
-    int defRowSize                          = glb -> env -> getEnvValInt( ENV_WIN_MIN_ROWS );
+    int defRowSize                          = glb -> env_n -> getEnvVarInt((char *) ENV_WIN_MIN_ROWS );
     int maxRowsNeeded                       = 0;
     int maxColumnsNeeded                    = 0;
     int stackColumnGap                      = 2;
-    
+   
     for ( int i = 0; i < MAX_WIN_STACKS; i++ ) {
         
         winStackColumns[ i ] = computeColumnsNeeded( i );
@@ -2531,7 +2523,7 @@ void DrvWinDisplay::winStacksEnable( bool arg ) {
 // window number in its command will also set the current value. The user window becomes the actual window.
 //
 //-----------------------------------------------------------------------------------------------------------
-void DrvWinDisplay::windowCurrent( TokId winCmd, int winNum ) {
+void DrvWinDisplay::windowCurrent( int winNum ) {
     
     if ( validUserWindowNum( winNum )) currentUserWinNum = winNum;
 }
@@ -2763,25 +2755,17 @@ void DrvWinDisplay::windowJump( TokId winCmd, int pos, int winNum ) {
 // when there are user defined windows for locating the window object.
 //
 //-----------------------------------------------------------------------------------------------------------
-void DrvWinDisplay::windowToggle( TokId winCmd, int winNum ) {
+void DrvWinDisplay::windowToggle( int winNum ) {
     
-    switch( winCmd ) {
-            
-        case CMD_WT: {
-            
-            if ( winNum == 0 ) winNum = getCurrentUserWindow( );
-            
-            if ( validUserWindowNum( winNum )) {
-                
-                if ( winNum == 0 ) winNum = getCurrentUserWindow( );
-                
-                ((DrvWinScrollable *) windowList[ winNum ] ) -> toggleWin( );
-                setCurrentUserWindow( winNum );
-            }
-            
-        } break;
-            
-        default: ;
+   
+    if ( winNum == 0 ) winNum = getCurrentUserWindow( );
+    
+    if ( validUserWindowNum( winNum )) {
+        
+        if ( winNum == 0 ) winNum = getCurrentUserWindow( );
+        
+        ((DrvWinScrollable *) windowList[ winNum ] ) -> toggleWin( );
+        setCurrentUserWindow( winNum );
     }
 }
 
@@ -2791,7 +2775,7 @@ void DrvWinDisplay::windowToggle( TokId winCmd, int winNum ) {
 // specified by the index of another window.
 //
 //-----------------------------------------------------------------------------------------------------------
-void DrvWinDisplay::windowExchangeOrder( TokId winCmd, int winNum ) {
+void DrvWinDisplay::windowExchangeOrder( int winNum ) {
     
     int currentWindow = getCurrentUserWindow( );
     if ( winNum == currentWindow ) return;
@@ -2807,7 +2791,7 @@ void DrvWinDisplay::windowExchangeOrder( TokId winCmd, int winNum ) {
 // user window.
 //
 //-----------------------------------------------------------------------------------------------------------
-void DrvWinDisplay::windowNew( TokId winCmd, TokId winType, char *argStr ) {
+void DrvWinDisplay::windowNew( TokId winType, char *argStr ) {
     
     int i = 0;
     
@@ -2849,7 +2833,7 @@ void DrvWinDisplay::windowNew( TokId winCmd, TokId winType, char *argStr ) {
 // new one. We just pick the first used entry in the user range.
 //
 //-----------------------------------------------------------------------------------------------------------
-void DrvWinDisplay::windowKill( TokId winCmd, int winNumStart, int winNumEnd ) {
+void DrvWinDisplay::windowKill( int winNumStart, int winNumEnd ) {
     
     if (( winNumStart < FIRST_UWIN ) || ( winNumEnd > LAST_UWIN ))  return;
     

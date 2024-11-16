@@ -75,6 +75,7 @@ enum TypeId : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 enum TokId : uint16_t {
     
+#if 1
     // ??? take out ....
     //--------------------------------------------------------------------------------------------------------
     // Token Types. A token has an ID and a type. For example registers have a type such as "general reg" and
@@ -94,12 +95,10 @@ enum TokId : uint16_t {
 
     TOK_TYP_OP_CODE         = 930,      TOK_TYP_OP_CODE_S       = 931,
     
-    
-    // ??? all needed anymore ? They are used in the commands, but perhaps go away...
     ENV_SET                 = 990,
     FMT_SET                 = 991,      REG_SET                 = 994,      REG_SET_ALL             = 995,
     PR_SET                  = 996,
-    
+#endif
     
     //--------------------------------------------------------------------------------------------------------
     // General tokens and symbols.
@@ -142,34 +141,6 @@ enum TokId : uint16_t {
     
     TOK_DEF                 = 5,
     TOK_INV                 = 1,        TOK_ALL                 = 2,
-    
-    
-   
-    //--------------------------------------------------------------------------------------------------------
-    // Environment variable tokens.
-    //
-    // ??? should this become a separate list ?
-    // ??? perhaps we want to also allow users to create their own environment variables...
-    //--------------------------------------------------------------------------------------------------------
-    ENV_TYP_INT             = 500,      ENV_TYP_UINT            = 501,      ENV_TYP_STR             = 502,
-    ENV_TYP_BOOL            = 503,      ENV_TYP_TOK             = 504,
-    
-    ENV_I_TLB_SETS          = 510,      ENV_I_TLB_SIZE          = 511,
-    ENV_D_TLB_SETS          = 512,      ENV_D_TLB_SIZE          = 513,
-    
-    ENV_I_CACHE_SETS        = 520,      ENV_I_CACHE_SIZE        = 521,      ENV_I_CACHE_LINE_SIZE   = 522,
-    ENV_D_CACHE_SETS        = 530,      ENV_D_CACHE_SIZE        = 531,      ENV_D_CACHE_LINE_SIZE   = 532,
-    ENV_U_CACHE_SETS        = 535,      ENV_U_CACHE_SIZE        = 536,      ENV_U_CACHE_LINE_SIZE   = 537,
-    ENV_MEM_SIZE            = 541,      ENV_MEM_BANKS           = 542,      ENV_MEM_BANK_SIZE       = 543,
-    ENV_MEM_R_ACC_CYCLE     = 544,      ENV_MEM_W_ACC_CYCLE     = 545,
-    
-    ENV_CMD_CNT             = 550,      ENV_SHOW_CMD_CNT        = 551,      ENV_ECHO_CMD            = 552,
-    ENV_FMT_DEF             = 553,      ENV_EXIT_CODE           = 554,      ENV_WORDS_PER_LINE      = 555,
-    ENV_PROG_VERSION        = 556,      ENV_GIT_BRANCH          = 557,      ENV_PROG_PATCH_LEVEL    = 558,
-    ENV_STEP_IN_CLOCKS      = 559,      ENV_SHOW_PSTAGE_INFO    = 560,      ENV_PASS_CNT            = 561,
-    ENV_FAIL_CNT            = 562,      ENV_WIN_MIN_ROWS        = 563,      ENV_WIN_TX_WIDTH        = 564,
-    
-    
     
     //--------------------------------------------------------------------------------------------------------
     // Line Commands.
@@ -362,8 +333,12 @@ enum ErrMsgId : uint16_t {
     ERR_EXPECTED_STACK_ID           = 10,
     
     ERR_INVALID_EXIT_VAL            = 1000,
+    ERR_ENV_VALUE_EXPR              = 1001,
     
     ERR_INVALID_REG_ID              = 200,
+    ERR_INVALID_RADIX               = 1003,
+    
+    ERR_WIN_TYPE_NOT_CONFIGURED     = 1004,
     
     ERR_EXTRA_TOKEN_IN_STR          = 100,
     ERR_EXPECTED_LPAREN             = 101,
@@ -410,6 +385,46 @@ enum ErrMsgId : uint16_t {
     ERR_EXPECTED_CLOSING_QUOTE      = 21,
     ERR_INVALID_CHAR_IN_IDENT       = 22,
 };
+
+//------------------------------------------------------------------------------------------------------------
+// Predefined environment variable names.
+//
+//------------------------------------------------------------------------------------------------------------
+const char ENV_GIT_BRANCH[ ]            = "GIT_BRANCH";
+const char ENV_PROG_VERSION [ ]         = "PROG_VERSION";
+const char ENV_PROG_PATCH_LEVEL[ ]      = "PROG_PATCH_LEVEL";
+
+const char ENV_SHOW_CMD_CNT[ ]          = "SHOW_CMD_CNT" ;
+const char ENV_CMD_CNT[ ]               = "CMD_CNT" ;
+const char ENV_ECHO_CMD_INPUT[ ]        = "ECHO_CMD_INPUT";
+const char ENV_EXIT_CODE [ ]            = "EXIT_CODE";
+
+const char ENV_RDX_DEFAULT [ ]          = "RDX_DEFAULT";
+const char ENV_WORDS_PER_LINE [ ]       = "WORDS_PER_LINE";
+const char ENV_SHOW_PSTAGE_INFO[ ]      = "SHOW_PSTAGE_INFO";
+const char ENV_STEP_IN_CLOCKS[ ]        = "STEP_IN_CLOCKS";
+
+const char ENV_I_TLB_SETS[ ]            = "I_TLB_SETS";
+const char ENV_I_TLB_SIZE[ ]            = "I_TLB_SIZE";
+
+const char ENV_D_TLB_SETS[ ]            = "D_TLB_SETS";
+const char ENV_D_TLB_SIZE[ ]            = "D_TLB_SIZE";
+
+const char ENV_I_CACHE_SETS[ ]          = "I_CACHE_SETS";
+const char ENV_I_CACHE_SIZE[ ]          = "I_CACHE_SIZE";
+const char ENV_I_CACHE_LINE_SIZE[ ]     = "I_CACHE_LINE_SIZE";
+
+const char ENV_D_CACHE_SETS[ ]          = "D_CACHE_SETS";
+const char ENV_D_CACHE_SIZE[ ]          = "D_CACHE_SIZE";
+const char ENV_D_CACHE_LINE_SIZE[ ]     = "D_CACHE_LINE_SIZE";
+
+const char ENV_MEM_SIZE[ ]              = "MEM_SIZE";
+const char ENV_MEM_BANKS[ ]             = "MEM_BANKS";
+const char ENV_MEM_BANK_SIZE[ ]         = "MEM_BANK_SIZE";
+
+const char ENV_WIN_MIN_ROWS[ ]          = "WIN_MIN_ROWS";
+const char ENV_WIN_TEXT_LINE_WIDTH[ ]   ="WIN_TEXT_WIDTH";
+
 
 //------------------------------------------------------------------------------------------------------------
 // The command line size. The command line is rather long so that we can read in long lines form perhaps
@@ -505,6 +520,7 @@ struct DrvExpr {
     union {
         
         struct {    TokId       tokId;                      };
+        struct {    bool        bVal;                       };
         struct {    uint32_t    numVal;                     };
         struct {    char        strVal[ TOK_STR_SIZE ];     };
         
@@ -514,7 +530,7 @@ struct DrvExpr {
     };
 };
 
-
+#if 0
 //------------------------------------------------------------------------------------------------------------
 // Driver environment variables. There is a simple "name=value" dictionary.
 //
@@ -549,6 +565,7 @@ private:
     
     VCPU32Globals *glb = nullptr;
 };
+#endif
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -595,13 +612,17 @@ struct DrvEnv_n {
     uint8_t         setEnvVar( char *name, uint32_t seg, uint32_t ofs );
     uint8_t         setEnvVar( char *name, char *str );
     
-    uint8_t         getEnvVarBool( char *name, bool *arg );
-    uint8_t         getEnvVarInt( char *name, int *arg );
-    uint8_t         getEnvVarUint( char *name, uint32_t *arg );
-    uint8_t         getEnvVarAdr( char *name, uint32_t *arg );
-    uint8_t         getEnvVarExtAdr( char *name, uint32_t *seg, uint32_t *ofs );
+    bool            getEnvVarBool( char *name,bool def = false );
+    int             getEnvVarInt( char *name, int def = 0 );
+    uint32_t        getEnvVarUint( char *name, uint32_t def = 0U );
+    uint32_t        getEnvVarExtAdrSeg( char *name, uint32_t def = 0U );
+    uint32_t        getEnvVarExtAdrOfs( char *name, uint32_t def = 0U );
+    char            *getEnvVarStr( char *name, char *def = nullptr );
     
     uint8_t         removeEnvVar( char *name );
+    
+    bool            isReadOnly( char *name );
+    bool            isPredefined( char *name );
     
     private:
     
@@ -1018,7 +1039,7 @@ public:
     void            windowsOn( );
     void            windowsOff( );
     void            windowDefaults( );
-    void            windowCurrent( TokId winCmd, int winNum = 0 );
+    void            windowCurrent( int winNum = 0 );
     void            windowEnable( TokId winCmd, int winNum = 0 );
     void            windowDisable( TokId winCmd, int winNum = 0  );
     void            winStacksEnable( bool arg );
@@ -1029,11 +1050,10 @@ public:
     void            windowForward( TokId winCmd, int amt, int winNum = 0 );
     void            windowBackward( TokId winCmd, int amt, int winNum = 0 );
     void            windowJump( TokId winCmd, int amt, int winNum = 0 );
-    void            windowToggle( TokId winCmd, int winNum = 0 );
-    void            windowExchangeOrder( TokId winCmd, int winNum );
-    
-    void            windowNew( TokId winCmd, TokId winType = TOK_NIL, char *argStr = nullptr );
-    void            windowKill( TokId winCmd, int winNumStart, int winNumEnd = 0  );
+    void            windowToggle( int winNum = 0 );
+    void            windowExchangeOrder( int winNum );
+    void            windowNew( TokId winType = TOK_NIL, char *argStr = nullptr );
+    void            windowKill( int winNumStart, int winNumEnd = 0  );
     void            windowSetStack( int winStack, int winNumStart, int winNumEnd = 0 );
     
     int             getCurrentUserWindow( );
@@ -1180,7 +1200,7 @@ private:
     uint8_t         exitCmd( );
     uint8_t         helpCmd( );
     uint8_t         winHelpCmd( );
-    void            envCmd( char *cmdBuf );
+    uint8_t         envCmd( );
     uint8_t         execFileCmd( );
     uint8_t         loadPhysMemCmd( );
     uint8_t         savePhysMemCmd( );
@@ -1209,20 +1229,21 @@ private:
     uint8_t         winStacksEnable( );
     uint8_t         winStacksDisable( );
 
-    void            winCurrentCmd( char *cmdBuf );
-    void            winEnableCmd( char *cmdBUf );
-    void            winDisableCmd( char *cmdBuf );
-    void            winSetRadixCmd( char *cmdBuf );
-    void            winForwardCmd( char *cmdBuf );
-    void            winBackwardCmd( char *cmdBuf );
-    void            winHomeCmd( char *cmdBuf );
-    void            winJumpCmd( char *cmdBuf );
-    void            winSetRowsCmd( char *cmdBuf );
-    void            winNewWinCmd( char *cmdBuf );
-    void            winKillWinCmd( char * cmdBuf );
-    void            winSetStackCmd( char *cmdBuf );
-    void            winToggleCmd( char *cmdBuf );
-    void            winExchangeCmd( char *cmdBuf );
+    uint8_t         winCurrentCmd( );
+    uint8_t         winEnableCmd( TokId winCmd );
+    uint8_t         winDisableCmd( TokId winCmd );
+    uint8_t         winSetRadixCmd( TokId winCmd );
+    
+    uint8_t         winForwardCmd( TokId winCmd );
+    uint8_t         winBackwardCmd( TokId winCmd );
+    uint8_t         winHomeCmd( TokId winCmd );
+    uint8_t         winJumpCmd( TokId winCmd );
+    uint8_t         winSetRowsCmd( TokId winCmd );
+    uint8_t         winNewWinCmd( );
+    uint8_t         winKillWinCmd( );
+    uint8_t         winSetStackCmd( );
+    uint8_t         winToggleCmd( );
+    uint8_t         winExchangeCmd( );
     
     VCPU32Globals   *glb       = nullptr;
     bool            winModeOn  = false;
@@ -1238,7 +1259,6 @@ private:
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals {
     
-    DrvEnv              *env            = nullptr;
     DrvEnv_n            *env_n          = nullptr;
     
     DrvDisAsm           *disAsm         = nullptr;

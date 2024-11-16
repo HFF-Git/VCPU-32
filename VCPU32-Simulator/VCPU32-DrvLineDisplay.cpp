@@ -397,11 +397,11 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx 
     
     uint32_t    index           = ( ofs / 4 ) * 4;
     uint32_t    limit           = ((( index + len ) + 3 ) / 4 ) * 4;
-    int         wordsPerLine    = glb -> env -> getEnvValInt( ENV_WORDS_PER_LINE );
+    int         wordsPerLine    = glb -> env_n -> getEnvVarInt((char *) ENV_WORDS_PER_LINE );
     CpuMem      *physMem        = glb -> cpu -> physMem;
     CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
     CpuMem      *ioMem          = glb -> cpu -> ioMem;
-  
+    
     while ( index < limit ) {
         
         glb -> lineDisplay -> displayWord( index, rdx );
@@ -436,7 +436,6 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx 
     
     fprintf( stdout, "\n" );
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 // Display absolute memory content as code shown in assembler syntax. There is one word per line.
