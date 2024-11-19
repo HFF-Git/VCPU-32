@@ -85,7 +85,9 @@ int lookupToken( char *inputStr, DrvToken *tokTab ) {
 // The object constructor, nothing to do for now.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvTokenizer::DrvTokenizer( ) { }
+DrvTokenizer::DrvTokenizer( VCPU32Globals *glb ) {
+    
+}
 
 //------------------------------------------------------------------------------------------------------------
 // We initialize a couple of globals that represent the current state of the parsing process. This call is
@@ -423,7 +425,7 @@ void DrvTokenizer::nextToken( ) {
     }
     else if ( currentChar == EOS_CHAR ) {
         
-        currentToken.typ    = TYP_SYM;
+        currentToken.typ    = TYP_NIL;
         currentToken.tid    = TOK_EOS;
     }
     else {

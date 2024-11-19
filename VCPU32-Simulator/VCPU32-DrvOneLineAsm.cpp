@@ -237,7 +237,7 @@ DrvToken const asmTokTab[ ] = {
 // tokenizer input is set for the current work task.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvTokenizer *tok = new DrvTokenizer( );
+DrvTokenizer *tok;
 
 //------------------------------------------------------------------------------------------------------------
 // Token flags. They are used to communicate additional information about the the token to the assembly
@@ -2226,6 +2226,8 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
 DrvOneLineAsm::DrvOneLineAsm( VCPU32Globals *glb ) {
     
     this -> glb = glb;
+    
+    tok = new DrvTokenizer( glb );
 }
 
 bool DrvOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {

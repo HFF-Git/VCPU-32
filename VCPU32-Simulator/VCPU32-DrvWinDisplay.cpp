@@ -866,7 +866,7 @@ DrvWinProgState::DrvWinProgState( VCPU32Globals *glb ) : DrvWin( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinProgState::setDefaults( ) {
     
-    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setDefColumns( 12 + ( 8 * 11 ), 16 );
     setDefColumns( 12 + ( 8 * 13 ), 8  );
     setDefColumns( 12 + ( 8 * 11 ), 10 );
@@ -1013,7 +1013,7 @@ DrvWinSpecialRegs::DrvWinSpecialRegs( VCPU32Globals *glb )  : DrvWin( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinSpecialRegs::setDefaults( ) {
     
-    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setDefColumns( 12 + ( 8 * 11 ), 16 );
     setDefColumns( 12 + ( 8 * 13 ), 8 );
     setDefColumns( 12 + ( 8 * 11 ), 10 );
@@ -1157,7 +1157,7 @@ DrvWinPipeLineRegs::DrvWinPipeLineRegs( VCPU32Globals *glb ) : DrvWin( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinPipeLineRegs::setDefaults( ) {
     
-    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setDefColumns( 84, 16 );
     setDefColumns( 106, 8 );
     setDefColumns( 84, 10 );
@@ -1299,7 +1299,7 @@ DrvWinStatistics::DrvWinStatistics( VCPU32Globals *glb ) : DrvWin( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinStatistics::setDefaults( ) {
     
-    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setWinType( WT_ST_WIN );
     setEnable( false );
     setRows( 4 );
@@ -1360,7 +1360,7 @@ DrvWinAbsMem::DrvWinAbsMem( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinAbsMem::setDefaults( ) {
     
-    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setDefColumns( 12 + ( 8 * 11 ), 16 );
     setDefColumns( 14 + ( 8 * 13 ), 8 );
     setDefColumns( 12 + ( 8 * 11 ), 10 );
@@ -1491,7 +1491,7 @@ DrvWinCode::DrvWinCode( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinCode::setDefaults( ) {
     
-    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setColumns( 84 );
     setDefColumns( 84 );
     setRows( 9 );
@@ -1613,7 +1613,7 @@ DrvWinTlb::DrvWinTlb( VCPU32Globals *glb, int winType ) : DrvWinScrollable( glb 
 //------------------------------------------------------------------------------------------------------------
 void DrvWinTlb::setDefaults( ) {
     
-    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setDefColumns( 84, 16 );
     setDefColumns( 102, 8 );
     setDefColumns( 84, 10 );
@@ -1741,7 +1741,7 @@ void DrvWinCache::setDefaults( ) {
     
     uint32_t wordsPerBlock = cPtr -> getBlockSize( ) / 4;
     
-    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setDefColumns( 36 + ( wordsPerBlock * 11 ), 16 );
     setDefColumns( 36 + ( wordsPerBlock * 13 ), 8 );
     setDefColumns( 36 + ( wordsPerBlock * 11 ), 10 );
@@ -1872,7 +1872,7 @@ void DrvWinMemController::setDefaults( ) {
     else if ( winType == WT_UCACHE_S_WIN )  cPtr = glb -> cpu -> uCacheL2;
     else if ( winType == WT_MEM_S_WIN    )  cPtr = glb -> cpu -> physMem;
     
-    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setDefColumns( 84, 16 );
     setDefColumns( 108, 8 );
     setDefColumns( 84, 10 );
@@ -2019,7 +2019,7 @@ void DrvWinText::setDefaults( ) {
     setEnable( true );
     setRows( 11 );
     
-    int txWidth = glb -> env_n -> getEnvVarInt((char *) ENV_WIN_TEXT_LINE_WIDTH );
+    int txWidth = glb -> env -> getEnvVarInt((char *) ENV_WIN_TEXT_LINE_WIDTH );
     setRadix( txWidth );
     setDefColumns( txWidth );
     
@@ -2169,7 +2169,7 @@ DrvWinCommands::DrvWinCommands( VCPU32Globals *glb ) : DrvWin( glb ) { }
 //------------------------------------------------------------------------------------------------------------
 void DrvWinCommands::setDefaults( ) {
     
-    setRadix( glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
     setRows( 11 );
     setColumns( 80 );
     setDefColumns( 80 );
@@ -2404,7 +2404,7 @@ void DrvWinDisplay::reDraw( bool mustRedraw ) {
     
     int winStackColumns[ MAX_WIN_STACKS ]   = { 0 };
     int winStackRows[ MAX_WIN_STACKS ]      = { 0 };
-    int defRowSize                          = glb -> env_n -> getEnvVarInt((char *) ENV_WIN_MIN_ROWS );
+    int defRowSize                          = glb -> env -> getEnvVarInt((char *) ENV_WIN_MIN_ROWS );
     int maxRowsNeeded                       = 0;
     int maxColumnsNeeded                    = 0;
     int stackColumnGap                      = 2;

@@ -715,7 +715,7 @@ void displayOperands( uint32_t instr, int rdx = 10 ) {
 //------------------------------------------------------------------------------------------------------------
 // The object constructor. Nothing really to do here...
 //------------------------------------------------------------------------------------------------------------
-DrvDisAsm::DrvDisAsm( VCPU32Globals *glb ) {
+DrvDisAssembler::DrvDisAssembler( VCPU32Globals *glb ) {
     
     this -> glb = glb;
 }
@@ -725,30 +725,30 @@ DrvDisAsm::DrvDisAsm( VCPU32Globals *glb ) {
 // options, the source and the target. The opCode and options are grouped as are the target and operand.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvDisAsm::displayOpCodeAndOptions( uint32_t instr ) {
+void DrvDisAssembler::displayOpCodeAndOptions( uint32_t instr ) {
     
     displayOpCode( instr );
     displayOpCodeOptions( instr );
 }
 
-void DrvDisAsm::displayTargetAndOperands( uint32_t instr, int rdx ) {
+void DrvDisAssembler::displayTargetAndOperands( uint32_t instr, int rdx ) {
     
     displayTarget( instr, rdx );
     displayOperands( instr, rdx );
 }
 
-void DrvDisAsm::displayInstr( uint32_t instr, int rdx ) {
+void DrvDisAssembler::displayInstr( uint32_t instr, int rdx ) {
     
     displayOpCodeAndOptions( instr );
     displayTargetAndOperands( instr, rdx );
 }
 
-int DrvDisAsm::getOpCodeOptionsFieldWidth( ) {
+int DrvDisAssembler::getOpCodeOptionsFieldWidth( ) {
     
     return( 12 );
 }
 
-int DrvDisAsm::getTargetAndOperandsFieldWidth( ) {
+int DrvDisAssembler::getTargetAndOperandsFieldWidth( ) {
     
     return( 16 );
 }

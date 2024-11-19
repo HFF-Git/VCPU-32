@@ -55,6 +55,15 @@ DrvLineDisplay::DrvLineDisplay( VCPU32Globals *glb ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvLineDisplay::lineDefaults( ) {
+    
+    
+}
+
+//------------------------------------------------------------------------------------------------------------
 // "displayWord" lists out a 32-bit machine word in the specified number base. If the format parameter is
 // omitted or set to "default", the environment variable for the base number is used.
 //
@@ -397,7 +406,7 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx 
     
     uint32_t    index           = ( ofs / 4 ) * 4;
     uint32_t    limit           = ((( index + len ) + 3 ) / 4 ) * 4;
-    int         wordsPerLine    = glb -> env_n -> getEnvVarInt((char *) ENV_WORDS_PER_LINE );
+    int         wordsPerLine    = glb -> env -> getEnvVarInt((char *) ENV_WORDS_PER_LINE );
     CpuMem      *physMem        = glb -> cpu -> physMem;
     CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
     CpuMem      *ioMem          = glb -> cpu -> ioMem;

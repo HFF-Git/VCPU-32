@@ -26,48 +26,6 @@
 #include "VCPU32-Driver.h"
 #include "VCPU32-Core.h"
 
-
-//------------------------------------------------------------------------------------------------------------
-// Idea:
-//
-// It turns out that a better command line parser would be a more powerful way to analyze a command line.
-// We have commands that just execute a command and functions that return a value. When we have a parser
-// we could implement such functions as arguments to the commands. Commands them selves may just be just a
-// function with a void return.
-//
-//      <command>   ->  <cmdId> [ <argList> ]
-//      <function>  ->  <funcId> “(“ [ <argList> ] ")"
-//      <argList>   ->  <expr> { <expr> }
-//
-// Expression have a type, which are NUM, ADR, STR, SREG, GREG and CREG.
-//
-//      <factor> -> <number>                        |
-//                  <extAdr>                        |
-//                  <string>                        |
-//                  <envId>                         |
-//                  <gregId>                        |
-//                  <sregId>                        |
-//                  <cregId>                        |
-//                  "~" <factor>                    |
-//                  "(" [ <sreg> "," ] <greg> ")"   |
-//                  "(" <expr> ")"
-//
-//      <term>      ->  <factor> { <termOp> <factor> }
-//      <termOp>    ->  "*" | "/" | "%" | "&"
-//
-//      <expr>      ->  [ ( "+" | "-" ) ] <term> { <exprOp> <term> }
-//      <exprOp>    ->  "+" | "-" | "|" | "^"
-//
-// If a command is called, there is no output another than what the command was issuing itself.
-// If a function is called in the command place, the function result will be printed.
-// If an argument represents a function, its return value will be the argument in the command.
-//
-// The token table becomes a kind of dictionary with name, type and values.
-// The environment table needs to enhanced to allow for user defined variables.
-//
-//------------------------------------------------------------------------------------------------------------
-
-
 //------------------------------------------------------------------------------------------------------------
 // Local name space. We try to keep utility functions local to the file.
 //
@@ -87,8 +45,10 @@ DrvToken const cmdTokTab[ ] = {
     //
     //--------------------------------------------------------------------------------------------------------
     { .name = "NIL",                .typ = TYP_SYM,                 .tid = TOK_NIL,         .val = 0        },
-    { .name = "TRUE",               .typ = TYP_BOOL,                .tid = TOK_TRUE,        .val = 1        },
-    { .name = "FALSE",              .typ = TYP_BOOL,                .tid = TOK_FALSE,       .val = 0        },
+   
+    // ??? should true and false rather be a predefine vs. a resrved token ? YES
+    { .name = "TRUE",               .typ = TYP_BOOL,                .tid = TOK_IDENT,       .val = 1        },
+    { .name = "FALSE",              .typ = TYP_BOOL,                .tid = TOK_IDENT,       .val = 0        },
     
     { .name = "ALL",                .typ = TYP_SYM,                 .tid = TOK_ALL                          },
     { .name = "CPU",                .typ = TYP_SYM,                 .tid = TOK_CPU                          },
@@ -371,12 +331,6 @@ DrvToken const cmdTokTab[ ] = {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The command line is broken into tokens by the tokenizer object.
-//
-//------------------------------------------------------------------------------------------------------------
-DrvTokenizer *tok = new DrvTokenizer( );
-
-//------------------------------------------------------------------------------------------------------------
 // A little helper function to upshift a string in place.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -404,7 +358,7 @@ int setRadix( int rdx ) {
 //
 // ??? over time all text errors in the command should go here...
 //------------------------------------------------------------------------------------------------------------
-uint8_t cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
+ErrMsgId cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
     
     switch ( errNum ) {
             
@@ -467,6 +421,8 @@ uint8_t cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
         case ERR_CACHE_TYPE:                fprintf( stdout, "Expected a cache type\n" ); break;
         case ERR_CACHE_PURGE_OP:            fprintf( stdout, "Purge from cache operation error\n" ); break;
         case ERR_CACHE_NOT_CONFIGURED:      fprintf( stdout, "Cache type not configured\n" ); break;
+            
+        case ERR_UNEXPECTED_EOS:            fprintf( stdout, "Unexpectedd end of command line\n" ); break;
             
         default: {
             
@@ -586,28 +542,6 @@ void displayWindowHelp( ) {
     fprintf( stdout, "Example: WN PM     -> create a user defined physical memory window\n" );
     fprintf( stdout, "Example: WN 20, 11 -> scroll window 11 forward by 20 lines\n" );
     fprintf( stdout, "\n" );
-    
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "commandLineError" is a little helper that prints out the error encountered. We will print a caret marker
-// where we found the error, and then return a false. Parsing errors typically result in aborting the parsing
-// process.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t cmdLineError( ErrMsgId errNum, char *argStr = nullptr) {
-    
-    int     i           = 0;
-    int     tokIndex    = tok -> tokCharIndex( );
-
-    while (( i < tokIndex ) && ( i < strlen( tok -> tokenLineStr( )))) {
-        
-        fprintf( stdout, " " );
-        i ++;
-    }
-    
-    fprintf( stdout, "^\n" );
-    return( cmdErr( errNum, argStr ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -645,47 +579,8 @@ void removeComment( char *cmdBuf ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
-// Token analysis helper functions.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t checkEOS( ) {
-    
-    if ( tok -> isToken( TOK_EOS )) return( NO_ERR );
-    else return( cmdLineError( ERR_EXTRA_TOKEN_IN_STR ));
-}
-
-uint8_t acceptComma( ) {
-    
-    if ( tok -> isToken( TOK_COMMA )) {
-        
-        tok -> nextToken( );
-        return( NO_ERR );
-    }
-    else return( cmdLineError( ERR_EXPECTED_COMMA ));
-}
-
-uint8_t acceptLparen( ) {
-    
-    if ( tok -> isToken( TOK_LPAREN )) {
-        
-        tok -> nextToken( );
-        return( NO_ERR );
-    }
-    else return( cmdLineError( ERR_EXPECTED_LPAREN ));
-}
-
-uint8_t acceptRparen( ) {
-    
-    if ( tok -> isToken( TOK_RPAREN )) {
-        
-        tok -> nextToken( );
-        return( NO_ERR );
-    }
-    else return( cmdLineError( ERR_EXPECTED_LPAREN ));
-}
-
 }; // namespace
+
 
 //************************************************************************************************************
 //************************************************************************************************************
@@ -694,6 +589,7 @@ uint8_t acceptRparen( ) {
 //
 //************************************************************************************************************
 //************************************************************************************************************
+
 
 //------------------------------------------------------------------------------------------------------------
 // The object constructor. We just remember where globals are.
@@ -705,6 +601,8 @@ DrvCmds::DrvCmds( VCPU32Globals *glb ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Get the command interpreter ready.
+//
 // One day we will handle command line arguments....
 //
 //  -v           verbose
@@ -712,12 +610,77 @@ DrvCmds::DrvCmds( VCPU32Globals *glb ) {
 //
 // ??? to do ...
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::processCmdLineArgs( int argc, const char *argv[ ] ) {
+void DrvCmds::setupCmdInterpreter( int argc, const char *argv[ ] ) {
     
+
     while ( argc > 0 ) {
         
         argc --;
     }
+    
+    glb -> winDisplay  -> windowDefaults( );
+    glb -> lineDisplay -> lineDefaults( );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "commandLineError" is a little helper that prints out the error encountered. We will print a caret marker
+// where we found the error, and then return a false. Parsing errors typically result in aborting the parsing
+// process.
+//
+//------------------------------------------------------------------------------------------------------------
+ErrMsgId DrvCmds::cmdLineError( ErrMsgId errNum, char *argStr ) {
+    
+    int     i           = 0;
+    int     tokIndex    = glb -> tok -> tokCharIndex( );
+
+    while (( i < tokIndex ) && ( i < strlen( glb -> tok -> tokenLineStr( )))) {
+        
+        fprintf( stdout, " " );
+        i ++;
+    }
+    
+    fprintf( stdout, "^\n" );
+    return( cmdErr( errNum, argStr ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Token analysis helper functions.
+//
+//------------------------------------------------------------------------------------------------------------
+ErrMsgId DrvCmds::checkEOS( ) {
+    
+    if ( glb -> tok -> isToken( TOK_EOS )) return( NO_ERR );
+    else return( cmdLineError( ERR_EXTRA_TOKEN_IN_STR ));
+}
+
+ErrMsgId DrvCmds::acceptComma( ) {
+    
+    if ( glb -> tok -> isToken( TOK_COMMA )) {
+        
+        glb -> tok -> nextToken( );
+        return( NO_ERR );
+    }
+    else return( cmdLineError( ERR_EXPECTED_COMMA ));
+}
+
+ErrMsgId DrvCmds::acceptLparen( ) {
+    
+    if ( glb -> tok -> isToken( TOK_LPAREN )) {
+        
+        glb -> tok -> nextToken( );
+        return( NO_ERR );
+    }
+    else return( cmdLineError( ERR_EXPECTED_LPAREN ));
+}
+
+ErrMsgId DrvCmds::acceptRparen( ) {
+    
+    if ( glb -> tok -> isToken( TOK_RPAREN )) {
+        
+        glb -> tok -> nextToken( );
+        return( NO_ERR );
+    }
+    else return( cmdLineError( ERR_EXPECTED_LPAREN ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -737,12 +700,12 @@ TokId DrvCmds::getCurrentCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::printWelcome( ) {
     
-    glb -> env_n -> setEnvVar((char *) ENV_EXIT_CODE, 0 );
+    glb -> env -> setEnvVar((char *) ENV_EXIT_CODE, 0 );
     
     if ( isatty( fileno( stdin ))) {
        
-        fprintf( stdout, "VCPU-32 Simulator, Version: %s\n", glb -> env_n -> getEnvVarStr((char *) ENV_PROG_VERSION ));
-        fprintf( stdout, "Git Branch: %s\n", glb -> env_n -> getEnvVarStr((char *) ENV_GIT_BRANCH ));
+        fprintf( stdout, "VCPU-32 Simulator, Version: %s\n", glb -> env -> getEnvVarStr((char *) ENV_PROG_VERSION ));
+        fprintf( stdout, "Git Branch: %s\n", glb -> env -> getEnvVarStr((char *) ENV_GIT_BRANCH ));
     }
 }
 
@@ -756,8 +719,8 @@ void DrvCmds::promptCmdLine( ) {
     
     if ( isatty( fileno( stdin ))) {
         
-        if ( glb -> env_n -> getEnvVarBool((char *) ENV_SHOW_CMD_CNT ))
-            fprintf( stdout, "(%i) ", glb -> env_n -> getEnvVarInt((char *) ENV_CMD_CNT ));
+        if ( glb -> env -> getEnvVarBool((char *) ENV_SHOW_CMD_CNT ))
+            fprintf( stdout, "(%i) ", glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ));
         
         fprintf( stdout, "->" );
         fflush( stdout );
@@ -789,13 +752,13 @@ bool DrvCmds::readInputLine( char *cmdBuf ) {
             
             if ( strlen( cmdBuf ) > 0 ) {
                 
-                glb -> env_n -> setEnvVar((char *) ENV_CMD_CNT,
-                                          glb -> env_n -> getEnvVarInt((char *) ENV_CMD_CNT ) + 1 );
+                glb -> env -> setEnvVar((char *) ENV_CMD_CNT,
+                                          glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ) + 1 );
                 return( true );
             }
             else return( false );
         }
-        else if ( feof( stdin )) exit( glb -> env_n -> getEnvVarInt((char *) ENV_EXIT_CODE ));
+        else if ( feof( stdin )) exit( glb -> env -> getEnvVarInt((char *) ENV_EXIT_CODE ));
     }
     
     return( false );
@@ -822,7 +785,7 @@ uint8_t DrvCmds::execCmdsFromFile( char* fileName ) {
                 fgets( cmdLineBuf, sizeof( cmdLineBuf ), f );
                 cmdLineBuf[ strcspn( cmdLineBuf, "\r\n" ) ] = 0;
                 
-                if ( glb -> env_n -> getEnvVarBool((char *) ENV_ECHO_CMD_INPUT )) {
+                if ( glb -> env -> getEnvVarBool((char *) ENV_ECHO_CMD_INPUT )) {
                     
                     fprintf( stdout, "%s\n", cmdLineBuf );
                 }
@@ -839,240 +802,12 @@ uint8_t DrvCmds::execCmdsFromFile( char* fileName ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parseFactor" parses the factor syntax part of an expression.
-//
-//      <factor> -> <number>                        |
-//                  <extAdr>                        |
-//                  <gregId>                        |
-//                  <sregId>                        |
-//                  <cregId>                        |
-//                  "~" <factor>                    |
-//                  "(" [ <sreg> "," ] <greg> ")"   |
-//                  "(" <expr> ")"
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t DrvCmds::parseFactor( DrvExpr *rExpr ) {
-    
-    rExpr -> typ        = TYP_NIL;
-    rExpr -> numVal    = 0;
-    
-    if ( tok -> isTokenTyp( TYP_SYM ))  {
-        
-        rExpr -> typ    = tok -> tokTyp( );
-        rExpr -> tokId  = tok -> tokId( );
-        tok -> nextToken( );
-        return( NO_ERR );
-    }
-    else if ( tok -> isTokenTyp( TYP_CMD ))  {
-        
-        rExpr -> typ    = TYP_CMD;
-        rExpr -> tokId  = tok -> tokId( );
-        tok -> nextToken( );
-        return( NO_ERR );
-    }
-    else if ( tok -> isTokenTyp( TYP_NUM ))  {
-        
-        rExpr -> typ     = TYP_NUM;
-        rExpr -> numVal = tok -> tokVal( );
-        tok -> nextToken( );
-        return( NO_ERR );
-    }
-    else if ( tok -> isTokenTyp( TYP_EXT_ADR )) {
-        
-        rExpr -> typ    = TYP_EXT_ADR;
-        rExpr -> seg    = tok -> tokSeg( );
-        rExpr -> ofs    = tok -> tokOfs( );
-        return( NO_ERR );
-    }
-    else if ( tok -> isTokenTyp( TYP_STR ))  {
-        
-        rExpr -> typ = TYP_STR;
-        strcpy( rExpr -> strVal, tok -> tokStr( ));
-        tok -> nextToken( );
-        return( NO_ERR );
-    }
-    else if ( tok -> isTokenTyp( TYP_GREG ))  {
-        
-        rExpr -> typ     = TYP_GREG;
-        rExpr -> numVal = glb -> cpu -> getReg( RC_GEN_REG_SET, tok -> tokVal( ));
-        tok -> nextToken( );
-        return( NO_ERR );
-    }
-    else if ( tok -> isTokenTyp( TYP_SREG ))  {
-        
-        rExpr -> typ = TYP_SREG;
-        rExpr -> numVal = glb -> cpu -> getReg( RC_SEG_REG_SET, tok -> tokVal( ));
-        tok -> nextToken( );
-        return( NO_ERR );
-    }
-    else if ( tok -> isTokenTyp( TYP_CREG ))  {
-        
-        rExpr -> typ = TYP_CREG;
-        rExpr -> numVal = glb -> cpu -> getReg( RC_CTRL_REG_SET, tok -> tokVal( ));
-        tok -> nextToken( );
-        return( NO_ERR );
-    }
-    else if ( tok -> isTokenTyp( TYP_IDENT )) {
-        
-        rExpr -> typ    = TYP_IDENT;
-        rExpr -> tokId  = tok -> tokId( );
-        tok -> nextToken( );
-        return( NO_ERR );
-    }
-    else if ( tok -> isToken( TOK_NEG )) {
-        
-        parseFactor( rExpr );
-        rExpr -> numVal = ~ rExpr -> numVal;
-        return( NO_ERR );
-    }
-    else if ( tok -> isToken( TOK_LPAREN )) {
-     
-        tok -> nextToken( );
-        if ( tok -> isTokenTyp( TYP_SREG )) {
-            
-            rExpr -> typ    = TYP_EXT_ADR;
-            rExpr -> seg    = glb -> cpu -> getReg( RC_SEG_REG_SET, tok -> tokVal( ));
-            
-            tok -> nextToken( );
-            if ( acceptComma( ) != NO_ERR ) return( false );
-            
-            if ( tok -> isTokenTyp( TYP_GREG )) {
-                
-                rExpr -> ofs = glb -> cpu -> getReg( RC_GEN_REG_SET, tok -> tokVal( ));
-                tok -> nextToken( );
-            }
-            else return( cmdLineError( ERR_EXPECTED_GENERAL_REG ));
-        }
-        else if ( tok -> isTokenTyp( TYP_GREG )) {
-            
-            rExpr -> typ = TYP_ADR;
-            rExpr -> numVal = tok -> tokVal( );
-            tok -> nextToken( );
-        }
-        else if ( parseExpr( rExpr ) != NO_ERR ) return( false );
-        
-        return( acceptRparen( ));
-    }
-    else {
-        
-        cmdLineError( ERR_EXPR_FACTOR );
-        rExpr -> typ = TYP_NUM;
-        rExpr -> numVal = 0;
-        tok -> nextToken( );
-        return( ERR_EXPR_FACTOR );
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "parseTerm" parses the term syntax.
-//
-//      <term>      ->  <factor> { <termOp> <factor> }
-//      <termOp>    ->  "*" | "/" | "%" | "&"
-//
-// ??? type mix options ?
-//------------------------------------------------------------------------------------------------------------
-uint8_t DrvCmds::parseTerm( DrvExpr *rExpr ) {
-    
-    DrvExpr lExpr;
-    uint8_t rStat;
-    
-    rStat = parseFactor( rExpr );
-    
-    while (( tok -> tokId( ) == TOK_MULT )   ||
-           ( tok -> tokId( ) == TOK_DIV  )   ||
-           ( tok -> tokId( ) == TOK_MOD  )   ||
-           ( tok -> tokId( ) == TOK_AND  ))  {
-        
-        uint8_t op = tok -> tokId( );
-        
-        tok -> nextToken( );
-        rStat = parseFactor( &lExpr );
-        
-        if ( rExpr -> typ != lExpr.typ ) {
-            
-            return ( cmdLineError( ERR_EXPR_TYPE_MATCH ));
-        }
-        
-        switch( op ) {
-                
-            case TOK_MULT:   rExpr -> numVal = rExpr -> numVal * lExpr.numVal; break;
-            case TOK_DIV:    rExpr -> numVal = rExpr -> numVal / lExpr.numVal; break;
-            case TOK_MOD:    rExpr -> numVal = rExpr -> numVal % lExpr.numVal; break;
-            case TOK_AND:    rExpr -> numVal = rExpr -> numVal & lExpr.numVal; break;
-        }
-    }
-    
-    return( rStat );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "parseExpr" parses the expression syntax. The one line assembler parser routines use this call in many
-// places where a numeric expression or an address is needed.
-//
-//      <expr>      ->  [ ( "+" | "-" ) ] <term> { <exprOp> <term> }
-//      <exprOp>    ->  "+" | "-" | "|" | "^"
-//
-// ??? type mix options ?
-//------------------------------------------------------------------------------------------------------------
-uint8_t DrvCmds::parseExpr( DrvExpr *rExpr ) {
-    
-    DrvExpr lExpr;
-    uint8_t rStat;
-    
-    if ( tok -> isToken( TOK_PLUS )) {
-        
-        tok -> nextToken( );
-        rStat = parseTerm( rExpr );
-        
-        if ( rExpr -> typ != TYP_NUM ) {
-            
-            return( cmdLineError( ERR_EXPECTED_NUMERIC ));
-        }
-    }
-    else if ( tok -> isToken( TOK_MINUS )) {
-        
-        tok -> nextToken( );
-        rStat = parseTerm( rExpr );
-        
-        if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal = - rExpr -> numVal;
-        else return( cmdLineError( ERR_EXPECTED_NUMERIC ));
-    }
-    else rStat = parseTerm( rExpr );
-    
-    while (( tok -> isToken( TOK_PLUS   )) ||
-           ( tok -> isToken( TOK_MINUS  )) ||
-           ( tok -> isToken( TOK_OR     )) ||
-           ( tok -> isToken( TOK_XOR    ))) {
-        
-        uint8_t op = tok -> tokId( );
-        
-        tok -> nextToken( );
-        rStat = parseTerm( &lExpr );
-        
-        if ( rExpr -> typ != lExpr.typ ) {
-            
-            return ( cmdLineError( ERR_EXPR_TYPE_MATCH ));
-        }
-        
-        switch ( op ) {
-                
-            case TOK_PLUS:   rExpr -> numVal = rExpr -> numVal + lExpr.numVal; break;
-            case TOK_MINUS:  rExpr -> numVal = rExpr -> numVal - lExpr.numVal; break;
-            case TOK_OR:     rExpr -> numVal = rExpr -> numVal | lExpr.numVal; break;
-            case TOK_XOR:    rExpr -> numVal = rExpr -> numVal ^ lExpr.numVal; break;
-        }
-    }
-    
-    return( NO_ERR );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // Invalid command handler.
 //
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::invalidCmd( ) {
     
-    glb -> env_n -> setEnvVar((char *) ENV_EXIT_CODE, -1 );
+    glb -> env -> setEnvVar((char *) ENV_EXIT_CODE, -1 );
     return( cmdErr( ERR_INVALID_CMD ));
 }
 
@@ -1108,15 +843,15 @@ uint8_t DrvCmds::exitCmd( ) {
     DrvExpr rExpr;
     int  exitVal = 0;
     
-    if ( tok -> tokId( ) == TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
-        exitVal = glb -> env_n -> getEnvVarInt((char *) ENV_EXIT_CODE );
+        exitVal = glb -> env -> getEnvVarInt((char *) ENV_EXIT_CODE );
         exit(( exitVal > 255 ) ? 255 : exitVal );
         return( NO_ERR );
     }
     else {
         
-        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )
+        if (( glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )
             && ( rExpr.numVal >= 0 ) &&  ( rExpr.numVal <= 255 )) {
             
             exit( exitVal );
@@ -1138,48 +873,48 @@ uint8_t DrvCmds::envCmd( ) {
     
     uint8_t rStat = NO_ERR;
    
-    if ( tok -> tokId( ) == TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
-        glb -> env_n -> displayEnvTable( );
+        glb -> env -> displayEnvTable( );
     }
-    else if ( tok -> tokTyp( ) == TYP_IDENT ) {
+    else if ( glb -> tok -> tokTyp( ) == TYP_IDENT ) {
         
         DrvExpr rExpr;
         char    envName[ 32 ]; // ??? fix
         
-        strcpy( envName, tok -> tokStr( ));
+        strcpy( envName, glb -> tok -> tokStr( ));
         upshiftStr( envName );
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
         
-        if ( tok -> tokId( ) == TOK_EOS ) {
+        if ( glb -> tok -> tokId( ) == TOK_EOS ) {
             
-            rStat = glb-> env_n -> displayEnvTableEntry( envName );
+            rStat = glb-> env -> displayEnvTableEntry( envName );
         }
         else {
             
-            rStat = parseExpr( &rExpr );
+            rStat = glb -> eval -> parseExpr( &rExpr );
             if ( rStat != NO_ERR ) return( cmdLineError( ERR_ENV_VALUE_EXPR ));
             
             if ( rExpr.typ == TYP_NUM ) {
                 
-                rStat = glb -> env_n -> setEnvVar( envName, rExpr.numVal );
+                rStat = glb -> env -> setEnvVar( envName, rExpr.numVal );
             }
             else if ( rExpr.typ == TYP_BOOL ) {
                 
-                rStat = glb -> env_n -> setEnvVar( envName, rExpr.bVal );
+                rStat = glb -> env -> setEnvVar( envName, rExpr.bVal );
             }
             else if ( rExpr.typ == TYP_STR ) {
                 
-                rStat = glb -> env_n -> setEnvVar( envName, rExpr.strVal );
+                rStat = glb -> env -> setEnvVar( envName, rExpr.strVal );
             }
             else if ( rExpr.typ == TYP_EXT_ADR ) {
                 
-                rStat = glb -> env_n -> setEnvVar( envName, rExpr.seg, rExpr.ofs );
+                rStat = glb -> env -> setEnvVar( envName, rExpr.seg, rExpr.ofs );
             }
             else if (( rExpr.typ == TYP_SYM ) && ( rExpr.tokId == TOK_NIL )) {
                 
-                rStat = glb -> env_n -> removeEnvVar( envName );
+                rStat = glb -> env -> removeEnvVar( envName );
             }
         }
     }
@@ -1194,9 +929,9 @@ uint8_t DrvCmds::envCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::execFileCmd( ) {
     
-    if ( tok -> tokTyp( ) == TYP_STR ) {
+    if ( glb -> tok -> tokTyp( ) == TYP_STR ) {
         
-        return( execCmdsFromFile( tok -> tokStr( )));
+        return( execCmdsFromFile( glb -> tok -> tokStr( )));
     }
     else return cmdErr( NO_ERR, (char *) "Expected a file path" );
 }
@@ -1238,9 +973,9 @@ uint8_t DrvCmds::savePhysMemCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::resetCmd( ) {
     
-    if ( tok -> tokTyp( ) == TYP_SYM ) {
+    if ( glb -> tok -> tokTyp( ) == TYP_SYM ) {
         
-        switch( tok -> tokId( )) {
+        switch( glb -> tok -> tokId( )) {
                 
             case TOK_CPU: {
                 
@@ -1301,26 +1036,26 @@ uint8_t DrvCmds::stepCmd( ) {
     DrvExpr  rExpr;
     uint32_t numOfSteps = 1;
     
-    if ( tok -> tokTyp( ) == TYP_NUM ) {
+    if ( glb -> tok -> tokTyp( ) == TYP_NUM ) {
         
-        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+        if (( glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
             
             numOfSteps = rExpr.numVal;
         }
         else return( cmdLineError( ERR_EXPECTED_STEPS ));
     }
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        tok -> nextToken( );
-        if      ( tok -> tokId( ) == TOK_I ) glb -> cpu -> instrStep( numOfSteps );
-        else if ( tok -> tokId( ) == TOK_C ) glb -> cpu -> clockStep( numOfSteps );
+        glb -> tok -> nextToken( );
+        if      ( glb -> tok -> tokId( ) == TOK_I ) glb -> cpu -> instrStep( numOfSteps );
+        else if ( glb -> tok -> tokId( ) == TOK_C ) glb -> cpu -> clockStep( numOfSteps );
         else                                 return( cmdLineError( ERR_INVALID_STEP_OPTION ));
     }
     
     if ( checkEOS( ) == NO_ERR ) {
         
-        if ( glb -> env_n -> getEnvVarBool((char *) ENV_STEP_IN_CLOCKS ))   glb -> cpu -> clockStep( 1 );
+        if ( glb -> env -> getEnvVarBool((char *) ENV_STEP_IN_CLOCKS ))   glb -> cpu -> clockStep( 1 );
         else                                                                glb -> cpu -> instrStep( 1 );
     }
     
@@ -1336,27 +1071,27 @@ uint8_t DrvCmds::disAssembleCmd( ) {
     
     DrvExpr     rExpr;
     uint32_t    instr   = 0;
-    int         rdx     = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    int         rdx     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
         
         instr = rExpr.numVal;
         
-        if ( tok -> tokId( ) == TOK_COMMA ) {
+        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
             
-            tok -> nextToken( );
+            glb -> tok -> nextToken( );
             
-            if (( tok -> tokId( ) == TOK_HEX ) ||
-                ( tok -> tokId( ) == TOK_OCT ) ||
-                ( tok -> tokId( ) == TOK_DEC )) {
+            if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
+                ( glb -> tok -> tokId( ) == TOK_OCT ) ||
+                ( glb -> tok -> tokId( ) == TOK_DEC )) {
                 
-                rdx = tok -> tokVal( );
+                rdx = glb -> tok -> tokVal( );
                 
-                tok -> nextToken( );
+                glb -> tok -> nextToken( );
             }
-            else if ( tok -> tokId( ) == TOK_EOS ) {
+            else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
                 
-                rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+                rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
             }
             else return( cmdLineError( ERR_INVALID_FMT_OPT ));
         }
@@ -1379,25 +1114,25 @@ uint8_t DrvCmds::disAssembleCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::assembleCmd( ) {
     
-    int         rdx             = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    int         rdx             = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     uint32_t    instr           = 0;
     char        asmStr[ 256 ]   = { 0 };
     
-    if ( tok -> tokId( ) == TOK_STR ) {
+    if ( glb -> tok -> tokId( ) == TOK_STR ) {
         
-        strncpy( asmStr, tok -> tokStr( ), sizeof( asmStr ));
+        strncpy( asmStr, glb -> tok -> tokStr( ), sizeof( asmStr ));
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
         
-        if (( tok -> tokId( ) == TOK_HEX ) ||
-            ( tok -> tokId( ) == TOK_OCT ) ||
-            ( tok -> tokId( ) == TOK_DEC )) {
+        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
+            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
+            ( glb -> tok -> tokId( ) == TOK_DEC )) {
             
-            rdx = tok -> tokVal( );
+            rdx = glb -> tok -> tokVal( );
         }
-        else if ( tok -> tokId( ) == TOK_EOS ) {
+        else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
             
-            rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+            rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
         }
         else return( cmdLineError( ERR_INVALID_FMT_OPT ));
     }
@@ -1422,29 +1157,29 @@ uint8_t DrvCmds::assembleCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 uint8_t DrvCmds::displayRegCmd( ) {
     
-    int     rdx         = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    int     rdx         = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     TypeId  regSetId    = TYP_GREG;
     TokId   regId       = GR_SET;
     int     regNum      = 0;
     
-    if ( tok -> tokId( ) != TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
         
-        if (( tok -> tokTyp( ) == TYP_GREG )        ||
-            ( tok -> tokTyp( ) == TYP_SREG )        ||
-            ( tok -> tokTyp( ) == TYP_CREG )        ||
-            ( tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
-            ( tok -> tokTyp( ) == TYP_FD_PREG )     ||
-            ( tok -> tokTyp( ) == TYP_MA_PREG )     ||
-            ( tok -> tokTyp( ) == TYP_EX_PREG )     ||
-            ( tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
-            ( tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
-            ( tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
-            ( tok -> tokTyp( ) == TYP_ITLB_REG )    ||
-            ( tok -> tokTyp( ) == TYP_DTLB_REG )) {
+        if (( glb -> tok -> tokTyp( ) == TYP_GREG )        ||
+            ( glb -> tok -> tokTyp( ) == TYP_SREG )        ||
+            ( glb -> tok -> tokTyp( ) == TYP_CREG )        ||
+            ( glb -> tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
+            ( glb -> tok -> tokTyp( ) == TYP_FD_PREG )     ||
+            ( glb -> tok -> tokTyp( ) == TYP_MA_PREG )     ||
+            ( glb -> tok -> tokTyp( ) == TYP_EX_PREG )     ||
+            ( glb -> tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
+            ( glb -> tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
+            ( glb -> tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
+            ( glb -> tok -> tokTyp( ) == TYP_ITLB_REG )    ||
+            ( glb -> tok -> tokTyp( ) == TYP_DTLB_REG )) {
             
-            regSetId    = tok -> tokTyp( );
-            regId       = tok -> tokId( );
-            regNum      = tok -> tokVal( );
+            regSetId    = glb -> tok -> tokTyp( );
+            regId       = glb -> tok -> tokId( );
+            regNum      = glb -> tok -> tokVal( );
         }
         else {
             
@@ -1452,19 +1187,19 @@ uint8_t DrvCmds::displayRegCmd( ) {
             return ( NO_ERR );
         }
    
-        if ( tok -> tokId( ) == TOK_COMMA ) {
+        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
             
-            tok -> nextToken( );
+            glb -> tok -> nextToken( );
             
-            if (( tok -> tokId( ) == TOK_HEX ) ||
-                ( tok -> tokId( ) == TOK_OCT ) ||
-                ( tok -> tokId( ) == TOK_DEC )) {
+            if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
+                ( glb -> tok -> tokId( ) == TOK_OCT ) ||
+                ( glb -> tok -> tokId( ) == TOK_DEC )) {
                 
-                rdx = tok -> tokVal( );
+                rdx = glb -> tok -> tokVal( );
             }
-            else if ( tok -> tokId( ) == TOK_EOS ) {
+            else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
                 
-                rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+                rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
             }
             else return( cmdLineError( ERR_INVALID_FMT_OPT ));
         }
@@ -1541,14 +1276,14 @@ uint8_t DrvCmds::displayRegCmd( ) {
             
         case TYP_MA_PREG: {
             
-            if ( regId == FD_SET ) glb -> lineDisplay -> displayPlMemoryAccessRegSet( rdx );
+            if ( regId == MA_SET ) glb -> lineDisplay -> displayPlMemoryAccessRegSet( rdx );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, regNum ), rdx );
             
         } break;
             
         case TYP_EX_PREG: {
             
-            if ( regId == FD_SET ) glb -> lineDisplay -> displayPlExecuteRegSet( rdx );
+            if ( regId == EX_SET ) glb -> lineDisplay -> displayPlExecuteRegSet( rdx );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, regNum ), rdx );
             
         } break;
@@ -1573,33 +1308,33 @@ uint8_t DrvCmds::modifyRegCmd( ) {
     uint32_t    val         = 0;
     DrvExpr     rExpr;
     
-    if (( tok -> tokTyp( ) == TYP_GREG )        ||
-        ( tok -> tokTyp( ) == TYP_SREG )        ||
-        ( tok -> tokTyp( ) == TYP_CREG )        ||
-        ( tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
-        ( tok -> tokTyp( ) == TYP_FD_PREG )     ||
-        ( tok -> tokTyp( ) == TYP_MA_PREG )     ||
-        ( tok -> tokTyp( ) == TYP_EX_PREG )     ||
-        ( tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
-        ( tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
-        ( tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
-        ( tok -> tokTyp( ) == TYP_ITLB_REG )    ||
-        ( tok -> tokTyp( ) == TYP_DTLB_REG )) {
+    if (( glb -> tok -> tokTyp( ) == TYP_GREG )        ||
+        ( glb -> tok -> tokTyp( ) == TYP_SREG )        ||
+        ( glb -> tok -> tokTyp( ) == TYP_CREG )        ||
+        ( glb -> tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
+        ( glb -> tok -> tokTyp( ) == TYP_FD_PREG )     ||
+        ( glb -> tok -> tokTyp( ) == TYP_MA_PREG )     ||
+        ( glb -> tok -> tokTyp( ) == TYP_EX_PREG )     ||
+        ( glb -> tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
+        ( glb -> tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
+        ( glb -> tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
+        ( glb -> tok -> tokTyp( ) == TYP_ITLB_REG )    ||
+        ( glb -> tok -> tokTyp( ) == TYP_DTLB_REG )) {
         
-        regSetId    = tok -> tokTyp( );
-        regId       = tok -> tokId( );
-        regNum      = tok -> tokVal( );
-        tok -> nextToken( );
+        regSetId    = glb -> tok -> tokTyp( );
+        regId       = glb -> tok -> tokId( );
+        regNum      = glb -> tok -> tokVal( );
+        glb -> tok -> nextToken( );
     }
     else return( cmdLineError( ERR_INVALID_REG_ID ));
     
-    if ( tok -> tokId( ) == TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         fprintf( stdout, "Expected a value\n" );
         return( NO_ERR );
     }
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) val = rExpr.numVal;
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) val = rExpr.numVal;
     else return( cmdLineError( ERR_INVALID_NUM ));
     
     switch( regSetId ) {
@@ -1632,7 +1367,7 @@ uint8_t DrvCmds::hashVACmd( ) {
     
     DrvExpr rExpr;
   
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_EXT_ADR )) {
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_EXT_ADR )) {
         
         fprintf( stdout, "%i\n", glb -> cpu ->iTlb ->hashAdr( rExpr.seg, rExpr.ofs ));
         return( NO_ERR );
@@ -1651,38 +1386,38 @@ uint8_t DrvCmds::displayTLBCmd( ) {
     uint32_t    len         = 0;
     uint32_t    tlbSize     = 0;
     TokId       tlbTypeId   = TOK_I;
-    int         rdx         = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    int         rdx         = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
-    if ( tok -> tokId( ) == TOK_I ) {
+    if ( glb -> tok -> tokId( ) == TOK_I ) {
         
         tlbSize     = glb -> cpu -> iTlb -> getTlbSize( );
         tlbTypeId   = TOK_I;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
-    else if ( tok -> tokId( ) == TOK_D ) {
+    else if ( glb -> tok -> tokId( ) == TOK_D ) {
         
         tlbSize     = glb -> cpu -> dTlb -> getTlbSize( );
         tlbTypeId   = TOK_D;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
     else return( cmdLineError( ERR_TLB_TYPE ));
     
     if ( acceptComma( ) != NO_ERR ) return( ERR_EXPECTED_COMMA );
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         index = 0;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
     else {
         
         DrvExpr rExpr;
         
-        if ( parseExpr( &rExpr ) == NO_ERR ) {
+        if (  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) {
             
             index = rExpr.numVal;
             
-            if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
+            if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
         }
         else {
             
@@ -1691,19 +1426,19 @@ uint8_t DrvCmds::displayTLBCmd( ) {
         }
     }
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         len = 1;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
     else {
         
         DrvExpr rExpr;
         
-        if ( parseExpr( &rExpr ) == NO_ERR ) {
+        if (  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) {
             
             len = rExpr.numVal;
-            if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
+            if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
         }
         else {
             
@@ -1712,19 +1447,19 @@ uint8_t DrvCmds::displayTLBCmd( ) {
         }
     }
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
         
-        if (( tok -> tokId( ) == TOK_HEX ) ||
-            ( tok -> tokId( ) == TOK_OCT ) ||
-            ( tok -> tokId( ) == TOK_DEC )) {
+        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
+            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
+            ( glb -> tok -> tokId( ) == TOK_DEC )) {
             
-            rdx = tok -> tokVal( );
+            rdx = glb -> tok -> tokVal( );
         }
-        else if ( tok -> tokId( ) == TOK_EOS ) {
+        else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
             
-            rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+            rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
         }
         else return( cmdLineError( ERR_INVALID_FMT_OPT ));
     }
@@ -1755,21 +1490,21 @@ uint8_t DrvCmds::purgeTLBCmd( ) {
     uint32_t    tlbSize     = 0;
     TokId       tlbTypeId   = TOK_I;
     
-    if ( tok -> tokId( ) == TOK_I ) {
+    if ( glb -> tok -> tokId( ) == TOK_I ) {
         
         tlbSize     = glb -> cpu -> iTlb -> getTlbSize( );
         tlbTypeId   = TOK_I;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
-    else if ( tok -> tokId( ) == TOK_D ) {
+    else if ( glb -> tok -> tokId( ) == TOK_D ) {
         
         tlbSize     = glb -> cpu -> dTlb -> getTlbSize( );
         tlbTypeId   = TOK_D;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
     else return( cmdLineError( ERR_TLB_TYPE ));
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_EXT_ADR )) {
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_EXT_ADR )) {
         
         CpuTlb *tlbPtr = ( tlbTypeId == TOK_I ) ? glb -> cpu -> iTlb : glb -> cpu -> dTlb;
         if ( tlbPtr -> purgeTlbEntryData( rExpr.seg, rExpr.ofs )) return( NO_ERR );
@@ -1793,34 +1528,34 @@ uint8_t DrvCmds::insertTLBCmd( ) {
     uint32_t    argAcc          = 0;
     uint32_t    argAdr          = 0;
     
-    if ( tok -> tokId( ) == TOK_I ) {
+    if ( glb -> tok -> tokId( ) == TOK_I ) {
         
         tlbSize     = glb -> cpu -> iTlb -> getTlbSize( );
         tlbTypeId   = TOK_I;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
-    else if ( tok -> tokId( ) == TOK_D ) {
+    else if ( glb -> tok -> tokId( ) == TOK_D ) {
         
         tlbSize     = glb -> cpu -> dTlb -> getTlbSize( );
         tlbTypeId   = TOK_D;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
     else return( cmdLineError( ERR_TLB_TYPE ));
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_EXT_ADR )) {
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_EXT_ADR )) {
         
         seg = rExpr.seg;
         ofs = rExpr.ofs;
     }
     else return( cmdLineError( ERR_EXPECTED_EXT_ADR ));
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
         
         argAcc = rExpr.numVal;
     }
     else return( cmdLineError( ERR_TLB_ACC_DATA ));
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
         
         argAcc = rExpr.numVal;
     }
@@ -1843,27 +1578,27 @@ uint8_t DrvCmds::displayCacheCmd( ) {
     CpuMem      *cPtr           = nullptr;
     uint32_t    index           = 0;
     uint32_t    len             = 0;
-    int         rdx             = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    int         rdx             = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
-    if ( tok -> tokId( ) == TOK_I ) {
+    if ( glb -> tok -> tokId( ) == TOK_I ) {
         
         cacheSize     = glb -> cpu -> iTlb -> getTlbSize( );
         cacheTypeId   = TOK_I;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
-    else if ( tok -> tokId( ) == TOK_D ) {
+    else if ( glb -> tok -> tokId( ) == TOK_D ) {
         
         cacheSize     = glb -> cpu -> iCacheL1 -> getMemSize( );
         cacheTypeId   = TOK_D;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
-    else if ( tok -> tokId( ) == TOK_U ) {
+    else if ( glb -> tok -> tokId( ) == TOK_U ) {
         
         if ( glb -> cpu -> uCacheL2 != nullptr ) {
             
             cacheSize     = glb -> cpu -> uCacheL2 -> getMemSize( );
             cacheTypeId   = TOK_U;
-            tok -> nextToken( );
+            glb -> tok -> nextToken( );
         }
         else return( cmdLineError( ERR_CACHE_NOT_CONFIGURED ));
     }
@@ -1871,19 +1606,19 @@ uint8_t DrvCmds::displayCacheCmd( ) {
     
     if ( acceptComma( ) != NO_ERR ) return( ERR_EXPECTED_COMMA );
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         index = 0;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
     else {
         
         DrvExpr rExpr;
         
-        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+        if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
             
             index = rExpr.numVal;
-            if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
+            if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
         }
         else {
             
@@ -1892,19 +1627,19 @@ uint8_t DrvCmds::displayCacheCmd( ) {
         }
     }
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         len = 1;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
     else {
         
         DrvExpr rExpr;
         
-        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+        if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
             
             len = rExpr.numVal;
-            if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
+            if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
         }
         else {
             
@@ -1913,19 +1648,19 @@ uint8_t DrvCmds::displayCacheCmd( ) {
         }
     }
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
         
-        if (( tok -> tokId( ) == TOK_HEX ) ||
-            ( tok -> tokId( ) == TOK_OCT ) ||
-            ( tok -> tokId( ) == TOK_DEC )) {
+        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
+            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
+            ( glb -> tok -> tokId( ) == TOK_DEC )) {
             
-            rdx = tok -> tokVal( );
+            rdx = glb -> tok -> tokVal( );
         }
-        else if ( tok -> tokId( ) == TOK_EOS ) {
+        else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
             
-            rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+            rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
         }
         else return( cmdLineError( ERR_INVALID_FMT_OPT ));
     }
@@ -1969,28 +1704,28 @@ uint8_t DrvCmds::purgeCacheCmd( ) {
     CpuMem      *cPtr           = nullptr;
     uint32_t    index           = 0;
     uint32_t    len             = 0;
-    int         rdx             = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    int         rdx             = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     uint32_t    set             = 0;
    
-    if ( tok -> tokId( ) == TOK_I ) {
+    if ( glb -> tok -> tokId( ) == TOK_I ) {
         
         cacheSize     = glb -> cpu -> iTlb -> getTlbSize( );
         cacheTypeId   = TOK_I;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
-    else if ( tok -> tokId( ) == TOK_D ) {
+    else if ( glb -> tok -> tokId( ) == TOK_D ) {
         
         cacheSize     = glb -> cpu -> iCacheL1 -> getMemSize( );
         cacheTypeId   = TOK_D;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
-    else if ( tok -> tokId( ) == TOK_U ) {
+    else if ( glb -> tok -> tokId( ) == TOK_U ) {
         
         if ( glb -> cpu -> uCacheL2 != nullptr ) {
             
             cacheSize     = glb -> cpu -> uCacheL2 -> getMemSize( );
             cacheTypeId   = TOK_U;
-            tok -> nextToken( );
+            glb -> tok -> nextToken( );
         }
         else return( cmdLineError( ERR_CACHE_NOT_CONFIGURED ));
     }
@@ -1998,19 +1733,19 @@ uint8_t DrvCmds::purgeCacheCmd( ) {
     
     if ( acceptComma( ) != NO_ERR ) return( ERR_EXPECTED_COMMA );
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         index = 0;
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
     else {
         
         DrvExpr rExpr;
         
-        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+        if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
             
             index = rExpr.numVal;
-            if ( tok -> tokId( ) == TOK_COMMA ) tok -> nextToken( );
+            if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
         }
         else {
             
@@ -2057,39 +1792,39 @@ uint8_t DrvCmds::displayAbsMemCmd( ) {
     DrvExpr     rExpr;
     uint32_t    ofs     = 0;
     uint32_t    len     = 1;
-    int         rdx     = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    int         rdx     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) ofs = rExpr.numVal;
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) ofs = rExpr.numVal;
     else return( cmdLineError( ERR_EXPECTED_START_OFS ));
    
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        tok -> nextToken( );
-        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) len = rExpr.numVal;
+        glb -> tok -> nextToken( );
+        if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) len = rExpr.numVal;
         else return( cmdLineError( ERR_EXPECTED_LEN ));
     }
    
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
         
-        if (( tok -> tokId( ) == TOK_HEX ) ||
-            ( tok -> tokId( ) == TOK_OCT ) ||
-            ( tok -> tokId( ) == TOK_DEC )) {
+        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
+            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
+            ( glb -> tok -> tokId( ) == TOK_DEC )) {
             
-            rdx = tok -> tokVal( );
+            rdx = glb -> tok -> tokVal( );
         }
-        else if ( tok -> tokId( ) == TOK_CODE ) {
+        else if ( glb -> tok -> tokId( ) == TOK_CODE ) {
             
             rdx = 100; // ??? quick hack .... fix....
         }
-        else if ( tok -> tokId( ) == TOK_EOS ) {
+        else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
             
-            rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+            rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
         }
         else return( cmdLineError( ERR_INVALID_FMT_OPT ));
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
     
     if ( checkEOS( ) == NO_ERR ) {
@@ -2100,7 +1835,7 @@ uint8_t DrvCmds::displayAbsMemCmd( ) {
                 
                 glb -> lineDisplay -> displayAbsMemContentAsCode( ofs,
                                                                   len,
-                                                                  glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+                                                                  glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
             }
             else glb -> lineDisplay -> displayAbsMemContent( ofs, len, rdx );
         }
@@ -2126,12 +1861,12 @@ uint8_t DrvCmds::modifyAbsMemCmd( ) {
     CpuMem      *ioMem      = glb -> cpu -> ioMem;
     CpuMem      *mem        = nullptr;
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) ofs = rExpr.numVal;
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) ofs = rExpr.numVal;
     else return( cmdLineError( ERR_EXPECTED_OFS ));
     
     if ( acceptComma( ) != NO_ERR ) return( ERR_EXPECTED_COMMA );
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) val = rExpr.numVal;
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) val = rExpr.numVal;
     else return( cmdLineError( ERR_INVALID_NUM ));
     
     if ( checkEOS( ) == NO_ERR ) {
@@ -2167,12 +1902,12 @@ uint8_t DrvCmds::modifyAbsMemAsCodeCmd( ) {
     CpuMem      *ioMem      = glb -> cpu -> ioMem;
     CpuMem      *mem        = nullptr;
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) ofs = rExpr.numVal;
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) ofs = rExpr.numVal;
     else return( cmdLineError( ERR_EXPECTED_OFS ));
     
     if ( acceptComma( ) != NO_ERR ) return( ERR_EXPECTED_COMMA );
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_STR )) ;
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_STR )) ;
     else return( cmdLineError( ERR_INVALID_NUM ));
     
     if ( checkEOS( ) == NO_ERR ) {
@@ -2264,7 +1999,7 @@ uint8_t DrvCmds::winCurrentCmd( ) {
        
     DrvExpr rExpr;
     
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+    if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
         
         if ( glb -> winDisplay -> validWindowNum( rExpr.numVal )) {
             
@@ -2289,11 +2024,11 @@ uint8_t DrvCmds::winEnableCmd( TokId winCmd ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( tok -> tokId( ) != TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
         
         DrvExpr rExpr;
         
-        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) winNum = rExpr.numVal;
+        if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) winNum = rExpr.numVal;
         else return( cmdLineError( ERR_EXPECTED_WIN_ID ));
     }
     
@@ -2312,11 +2047,11 @@ uint8_t DrvCmds::winDisableCmd( TokId winCmd ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( tok -> tokId( ) != TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
         
         DrvExpr rExpr;
         
-        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) winNum = rExpr.numVal;
+        if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) winNum = rExpr.numVal;
         else return( cmdLineError( ERR_EXPECTED_WIN_ID ));
     }
     
@@ -2341,31 +2076,40 @@ uint8_t DrvCmds::winSetRadixCmd( TokId winCmd ) {
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
                                   
     DrvExpr rExpr;
-    int     rdx = 16;
+    int     winNum  = 0;
+    int     rdx     = 16;
         
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        rdx = glb -> env_n -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-        tok -> nextToken( );
+        rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+        glb -> tok -> nextToken( );
     }
     else {
         
-        if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+        if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
                 
             rdx = setRadix( rExpr.numVal );
         }
         else return( cmdLineError( ERR_INVALID_RADIX ));
     }
+    
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-    if (( parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
+        glb -> tok -> nextToken( );
+        if ((  glb -> eval -> parseExpr( &rExpr ) == NO_ERR ) && ( rExpr.typ == TYP_NUM )) {
             
-        if ( glb -> winDisplay -> validWindowNum( rExpr.numVal )) {
-                
-            glb -> winDisplay -> windowRadix( winCmd, rdx, rExpr.numVal );
-            return( NO_ERR );
+            winNum = rExpr.numVal;
+            glb -> tok -> nextToken( );
         }
-        else return( cmdLineError( ERR_INVALID_WIN_ID ));
+        else return( cmdLineError( ERR_INVALID_RADIX ));
     }
+    
+    if ( glb -> winDisplay -> validWindowNum( winNum )) {
+        
+        glb -> winDisplay -> windowRadix( winCmd, rdx, winNum );
+        return( NO_ERR );
+    }
+    else return( cmdLineError( ERR_INVALID_WIN_ID ));
     
     return( NO_ERR );
 }
@@ -2387,20 +2131,20 @@ uint8_t DrvCmds::winForwardCmd( TokId winCmd ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( tok -> tokId( ) == TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
         return( NO_ERR );
     }
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winItems = rExpr.numVal;
+    if ((  glb -> eval -> parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winItems = rExpr.numVal;
     else return( cmdLineError( ERR_INVALID_NUM ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        tok -> nextToken( );
+        glb ->  tok -> nextToken( );
         
-        if ( tok -> tokTyp( ) == TYP_NUM )winNum = tok -> tokVal( );
+        if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
         else return ( cmdLineError( ERR_INVALID_WIN_ID ));
         
         if ( ! glb -> winDisplay -> validWindowNum( winNum ))
@@ -2420,20 +2164,20 @@ uint8_t DrvCmds::winBackwardCmd( TokId winCmd ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( tok -> tokId( ) == TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
-        glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
+        glb -> winDisplay -> windowBackward( winCmd, winItems, winNum  );
         return( NO_ERR );
     }
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winItems = rExpr.numVal;
+    if ((  glb -> eval -> parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winItems = rExpr.numVal;
     else return( cmdLineError( ERR_INVALID_NUM ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
         
-        if ( tok -> tokTyp( ) == TYP_NUM )winNum = tok -> tokVal( );
+        if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
         else return ( cmdLineError( ERR_INVALID_WIN_ID ));
         
         if ( ! glb -> winDisplay -> validWindowNum( winNum ))
@@ -2441,7 +2185,7 @@ uint8_t DrvCmds::winBackwardCmd( TokId winCmd ) {
     }
     else winNum = 0;
     
-    glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
+    glb -> winDisplay -> windowBackward( winCmd, winItems, winNum  );
     return( NO_ERR );
 }
 
@@ -2460,20 +2204,20 @@ uint8_t DrvCmds::winHomeCmd( TokId winCmd ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( tok -> tokId( ) == TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowHome( winCmd, winPos, winNum  );
         return( NO_ERR );
     }
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winPos = rExpr.numVal;
+    if ((  glb -> eval -> parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winPos = rExpr.numVal;
     else return( cmdLineError( ERR_INVALID_NUM ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
         
-        if ( tok -> tokTyp( ) == TYP_NUM )winNum = tok -> tokVal( );
+        if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
         else return ( cmdLineError( ERR_INVALID_WIN_ID ));
         
         if ( ! glb -> winDisplay -> validWindowNum( winNum ))
@@ -2499,20 +2243,20 @@ uint8_t DrvCmds::winJumpCmd( TokId winCmd ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( tok -> tokId( ) == TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowHome( winCmd, winPos, winNum  );
         return( NO_ERR );
     }
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winPos = rExpr.numVal;
+    if ((  glb -> eval -> parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winPos = rExpr.numVal;
     else return( cmdLineError( ERR_INVALID_NUM ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
         
-        if ( tok -> tokTyp( ) == TYP_NUM )winNum = tok -> tokVal( );
+        if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
         else return ( cmdLineError( ERR_INVALID_WIN_ID ));
         
         if ( ! glb -> winDisplay -> validWindowNum( winNum ))
@@ -2538,20 +2282,20 @@ uint8_t DrvCmds::winSetRowsCmd( TokId winCmd ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( tok -> tokId( ) == TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowHome( winCmd, winLines, winNum  );
         return( NO_ERR );
     }
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winLines = rExpr.numVal;
+    if ((  glb -> eval -> parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winLines = rExpr.numVal;
     else return( cmdLineError( ERR_INVALID_NUM ));
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
         
-        if ( tok -> tokTyp( ) == TYP_NUM )winNum = tok -> tokVal( );
+        if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
         else return ( cmdLineError( ERR_INVALID_WIN_ID ));
         
         if ( ! glb -> winDisplay -> validWindowNum( winNum ))
@@ -2578,9 +2322,9 @@ uint8_t DrvCmds::winNewWinCmd( ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( tok -> tokTyp( ) == TYP_SYM ) {
+    if ( glb -> tok -> tokTyp( ) == TYP_SYM ) {
         
-        winType = tok -> tokId( );
+        winType = glb -> tok -> tokId( );
         
         if ((( winType == TOK_PM ) && ( glb -> cpu -> physMem == nullptr ))     ||
             (( winType == TOK_PC ) && ( glb -> cpu -> physMem == nullptr ))     ||
@@ -2596,14 +2340,14 @@ uint8_t DrvCmds::winNewWinCmd( ) {
         if ( ! glb -> winDisplay -> validUserWindowType( winType ))
             return( cmdLineError( ERR_INVALID_WIN_TYPE ));
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
     }
     
-    if ( tok -> tokId( ) == TOK_COMMA ) {
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        tok -> nextToken( );
+        glb -> tok -> nextToken( );
         
-        if ( tok -> tokTyp( ) == TYP_STR ) argStr = tok -> tokStr( );
+        if (glb ->  tok -> tokTyp( ) == TYP_STR ) argStr = glb -> tok -> tokStr( );
         else return( cmdLineError( ERR_INVALID_ARG ));
     }
     
@@ -2626,21 +2370,21 @@ uint8_t DrvCmds::winKillWinCmd( ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( tok -> tokId( ) == TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
         winNumEnd   = winNumStart;
     }
     else {
         
-        if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumStart = rExpr.numVal;
+        if ((  glb -> eval -> parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumStart = rExpr.numVal;
         else return ( cmdLineError( ERR_EXPECTED_NUMERIC ));
         
-        if ( tok -> tokId( ) == TOK_COMMA ) {
+        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
             
-            tok -> nextToken( );
+            glb -> tok -> nextToken( );
             
-            if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumEnd = rExpr.numVal;
+            if ((  glb -> eval -> parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumEnd = rExpr.numVal;
             else return ( cmdLineError( ERR_EXPECTED_NUMERIC ));
         }
         
@@ -2677,31 +2421,31 @@ uint8_t DrvCmds::winSetStackCmd( ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) stackNum = rExpr.numVal;
+    if ((  glb -> eval -> parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) stackNum = rExpr.numVal;
     else return ( cmdLineError( ERR_EXPECTED_STACK_ID ));
     
     if ( ! glb -> winDisplay -> validWindowStackNum( stackNum ))
         return( cmdLineError( ERR_INVALID_WIN_STACK_ID ));
         
-    if ( tok -> tokId( ) == TOK_EOS ) {
+    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
         winNumEnd   = winNumStart;
     }
     else {
         
-        if ( tok -> tokId( ) == TOK_COMMA ) {
+        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
             
-            tok -> nextToken( );
+            glb -> tok -> nextToken( );
             
-            if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumStart = rExpr.numVal;
+            if ((  glb -> eval -> parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumStart = rExpr.numVal;
             else return ( cmdLineError( ERR_EXPECTED_NUMERIC ));
             
-            if ( tok -> tokId( ) == TOK_COMMA ) {
+            if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
                 
-                tok -> nextToken( );
+                glb -> tok -> nextToken( );
                 
-                if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumEnd = rExpr.numVal;
+                if ((  glb -> eval -> parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) winNumEnd = rExpr.numVal;
                 else return ( cmdLineError( ERR_EXPECTED_NUMERIC ));
             }
             else winNumEnd = winNumStart;
@@ -2735,12 +2479,12 @@ uint8_t  DrvCmds::winToggleCmd( ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( tok -> tokTyp( ) == TYP_NUM ) {
+    if ( glb -> tok -> tokTyp( ) == TYP_NUM ) {
         
-        if ( ! glb -> winDisplay -> validWindowNum( tok -> tokVal( )))
+        if ( ! glb -> winDisplay -> validWindowNum( glb -> tok -> tokVal( )))
             return( cmdLineError( ERR_INVALID_WIN_ID ));
         
-            glb -> winDisplay -> windowToggle( tok -> tokVal( ));
+            glb -> winDisplay -> windowToggle( glb -> tok -> tokVal( ));
             return( NO_ERR );
     }
     else return( cmdLineError( ERR_EXPECTED_WIN_ID ));
@@ -2756,12 +2500,12 @@ uint8_t DrvCmds::winExchangeCmd( ) {
     
     if ( ! winModeOn ) return( cmdLineError( ERR_NOT_IN_WIN_MODE ));
     
-    if ( tok -> tokTyp( ) == TYP_NUM ) {
+    if ( glb -> tok -> tokTyp( ) == TYP_NUM ) {
         
-        if ( ! glb -> winDisplay -> validWindowNum( tok -> tokVal( )))
+        if ( ! glb -> winDisplay -> validWindowNum( glb -> tok -> tokVal( )))
             return( cmdLineError( ERR_INVALID_WIN_ID ));
         
-        glb -> winDisplay -> windowExchangeOrder( tok -> tokVal( ));
+        glb -> winDisplay -> windowExchangeOrder( glb -> tok -> tokVal( ));
         return( NO_ERR );
     }
     else return( cmdLineError( ERR_EXPECTED_WIN_ID ));
@@ -2778,10 +2522,10 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
     
     if ( strlen( cmdBuf ) > 0 ) {
         
-        if ( tok -> setupTokenizer( cmdBuf, (DrvToken *) cmdTokTab ) != NO_ERR ) return( ERR_INVALID_CMD );
-        tok -> nextToken( );
+        if ( glb -> tok -> setupTokenizer( cmdBuf, (DrvToken *) cmdTokTab ) != NO_ERR ) return( ERR_INVALID_CMD );
+        glb -> tok -> nextToken( );
         
-        if ( parseExpr( &rExpr ) != NO_ERR ) return( ERR_INVALID_CMD );
+        if ( glb -> eval -> parseExpr( &rExpr ) != NO_ERR ) return( ERR_INVALID_CMD );
         
         switch( rExpr.typ ) {
                 
@@ -2895,9 +2639,11 @@ uint8_t DrvCmds::evalInputLine( char *cmdBuf ) {
 //
 // ??? when is the best point to redraw the windows... exactly once ?
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::cmdLoop( ) {
+void DrvCmds::cmdInterpreterLoop( ) {
     
     char cmdLineBuf[ CMD_LINE_BUF_SIZE ] = { 0 };
+    
+    printWelcome( );
     
     while ( true ) {
         

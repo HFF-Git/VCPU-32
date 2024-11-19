@@ -46,330 +46,17 @@ void upshiftStr( char *str ) {
     }
 }
 
-#if 0
-//------------------------------------------------------------------------------------------------------------
-// Environment variables. The simulator has a set of variables that control and display options for the
-// simulator to set. Each variable has an assigned token name by which it can be referred to. The environment
-// variable table is filled with reasonable defaults. A script executed at program start could of course set
-// the variables to other values.
-//
-// ??? wouldn't it be nice to have also user defined variables ?
-//------------------------------------------------------------------------------------------------------------
-const int MAX_ENV_STR_SIZE = 256;
-
-struct EnvTabEntry {
-    
-    char  name[ MAX_ENV_STR_SIZE ];
-    TokId envId;
-    TokId envTyp;
-    bool  rOnly;
-    
-    union {
-        
-        TokId       tVal;
-        int32_t     iVal;
-        uint32_t    uVal;
-        bool        bVal;
-        char        *sVal;
-    };
-    
-} envTab[ ] = {
-    
-   
-    
-    
-    { .name = "SHOW-CMD-CNT",
-        .envId = ENV_SHOW_CMD_CNT,      .envTyp = ENV_TYP_BOOL, .rOnly = false,  .bVal = true      },
-    { .name = "CMD-CNT",
-        .envId = ENV_CMD_CNT,           .envTyp = ENV_TYP_INT,  .rOnly = true,   .iVal = 0         },
-    { .name = "ECHO-CMD-INPUT",
-        .envId = ENV_ECHO_CMD,          .envTyp = ENV_TYP_BOOL, .rOnly = false,  .bVal = false     },
-    { .name = "EXIT-CODE",
-        .envId = ENV_EXIT_CODE,         .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 0         },
-    { .name = "W-PER-LINE",
-        .envId = ENV_WORDS_PER_LINE,    .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 8         },
-    { .name = "VERSION",
-        .envId = ENV_PROG_VERSION,      .envTyp = ENV_TYP_STR,  .rOnly = false,  .sVal = nullptr   },
-    { .name = "GIT-BRANCH",
-        .envId = ENV_GIT_BRANCH,        .envTyp = ENV_TYP_STR,  .rOnly = false,  .sVal = nullptr   },
-    { .name = "PATCH_LEVEL",
-        .envId = ENV_PROG_PATCH_LEVEL,  .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 0         },
-    { .name = "STEP-IN-CLOCKS",
-        .envId = ENV_STEP_IN_CLOCKS,    .envTyp = ENV_TYP_BOOL, .rOnly = false,  .bVal = false     },
-    { .name = "SHOW-PSTAGE-INFO",
-        .envId = ENV_SHOW_PSTAGE_INFO,  .envTyp = ENV_TYP_BOOL, .rOnly = false,  .bVal = false     },
-    { .name = "PASS_CNT",
-        .envId = ENV_PASS_CNT,          .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 0         },
-    { .name = "FAIL_CNT",
-        .envId = ENV_FAIL_CNT,          .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 0         },
-    { .name = "I-TLB-SETS",
-        .envId = ENV_I_TLB_SETS,        .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1         },
-    { .name = "I-TLB-SIZE",
-        .envId = ENV_I_TLB_SIZE,        .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1024      },
-    { .name = "D-TLB-SETS",
-        .envId = ENV_D_TLB_SETS,        .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1         },
-    { .name = "D-TLB-SIZE",
-        .envId = ENV_D_TLB_SIZE,        .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1024      },
-    { .name = "I-CACHE-SETS",
-        .envId = ENV_I_CACHE_SETS,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1         },
-    { .name = "I-CACHE-SIZE",
-        .envId = ENV_I_CACHE_SIZE,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1024      },
-    { .name = "I-CACHE-LINE-SIZE",
-        .envId = ENV_I_CACHE_SIZE,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 4         },
-    { .name = "D-CACHE-SETS",
-        .envId = ENV_D_CACHE_SETS,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1         },
-    { .name = "D-CACHE-SIZE",
-        .envId = ENV_D_CACHE_SIZE,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1024      },
-    { .name = "D-CACHE-LINE-SIZE",
-        .envId = ENV_D_CACHE_SIZE,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 4         },
-    { .name = "MEM-SIZE",
-        .envId = ENV_MEM_SIZE,          .envTyp = ENV_TYP_UINT, .rOnly = false,  .uVal = MAX_MEMORY_SIZE },
-    { .name = "MEM-BANKS",
-        .envId = ENV_MEM_BANKS,         .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 1           },
-    { .name = "MEM-BANK-SIZE",
-        .envId = ENV_MEM_BANK_SIZE,     .envTyp = ENV_TYP_UINT, .rOnly = false,  .uVal = MAX_MEMORY_SIZE },
-    { .name = "WIN-MIN-ROWS",
-        .envId = ENV_WIN_MIN_ROWS,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 24          },
-    { .name = "WIN-TEXT-WIDTH",
-        .envId = ENV_WIN_TX_WIDTH,      .envTyp = ENV_TYP_INT,  .rOnly = false,  .iVal = 90          }
-};
-
-const int ENV_TAB_SIZE  = sizeof( envTab ) / sizeof( *envTab );
-
-
-//------------------------------------------------------------------------------------------------------------
-// A local function to display an environment variable.
-//
-//------------------------------------------------------------------------------------------------------------
-void displayEnvTabEntry( EnvTabEntry *entry ) {
-    
-    fprintf( stdout, "%-32s: ", entry -> name );
-    
-    if      ( entry -> envTyp == ENV_TYP_TOK )  fprintf( stdout, "%s\n", DrvCmds::tokIdToName( entry -> tVal ));
-    else if ( entry -> envTyp == ENV_TYP_INT )  fprintf( stdout, "%d\n", entry -> iVal );
-    else if ( entry -> envTyp == ENV_TYP_UINT ) fprintf( stdout, "%u\n", entry -> uVal );
-    else if ( entry -> envTyp == ENV_TYP_BOOL ) fprintf( stdout, "%s\n", ( entry -> bVal ? "true" : "false" ));
-    else if ( entry -> envTyp == ENV_TYP_STR ) {
-        
-        if ( entry -> sVal != nullptr ) fprintf( stdout, "%s\n", entry -> sVal );
-        else fprintf( stdout, "null\n" );
-    }
-    else fprintf( stdout, "****\n" );
-}
-
-
-
-#endif
-
-
 }; // namespace
 
 
 //************************************************************************************************************
+//************************************************************************************************************
+//
 // Object methods.
+//
+//************************************************************************************************************
 //************************************************************************************************************
 
-#if 0
-//------------------------------------------------------------------------------------------------------------
-// Object creator.
-//
-//------------------------------------------------------------------------------------------------------------
-DrvEnv::DrvEnv( VCPU32Globals *glb ) {
-    
-    this -> glb = glb;
-}
-
-//------------------------------------------------------------------------------------------------------------
-// ENV functions to get the type, attribute, and to get and set value.
-//
-//------------------------------------------------------------------------------------------------------------
-int DrvEnv::getEnvTabSize( ) {
-    
-    return ( ENV_TAB_SIZE );
-}
-
-TokId DrvEnv::lookupEnvTokId( char *str, TokId def ) {
-    
-    size_t len = strlen( str );
-    
-    if (( len == 0 ) || ( len > MAX_ENV_STR_SIZE )) return( def );
-    
-    char tmpStr[ MAX_ENV_STR_SIZE ];
-    strncpy( tmpStr, str, len + 1 );
-    
-    for ( size_t i = 0; i < len; i++ ) tmpStr[ i ] = (char) toupper((int) str[ i ] );
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if ( strcmp( tmpStr, envTab[ i ].name ) == 0 ) return( envTab[ i ].envId );
-    }
-    
-    return( def );
-}
-
-TokId DrvEnv::getEnvType( TokId envId ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if ( envTab[ i ].envId == envId ) return( envTab[ i ].envTyp );
-    }
-    
-    return( TOK_NIL );
-}
-
-bool DrvEnv::isReadOnly( TokId envId ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if ( envTab[ i ].envId == envId ) return( envTab[ i ].rOnly );
-    }
-    
-    return( true );
-}
-
-TokId DrvEnv::getEnvValTok( TokId envId ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_TOK ))
-            return( envTab[ i ].tVal );
-    }
-    
-    return( TOK_NIL );
-}
-
-int32_t DrvEnv::getEnvValInt( TokId envId ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_INT ))
-            return( envTab[ i ].iVal );
-    }
-    
-    return( 0 );
-}
-
-uint32_t DrvEnv::getEnvValUInt( TokId envId ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_INT ))
-            return( envTab[ i ].uVal );
-    }
-    
-    return( 0 );
-}
-
-bool DrvEnv::getEnvValBool( TokId envId ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_BOOL ))
-            return( envTab[ i ].bVal );
-    }
-    
-    return( false );
-}
-
-char *DrvEnv::getEnvValStr( TokId envId ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_STR ))
-            return( envTab[ i ].sVal );
-    }
-    
-    return((char *) "" );
-}
-
-void DrvEnv::setEnvVal( TokId envId, TokId val ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_TOK )) {
-            
-            envTab[ i ].tVal  = val;
-        }
-    }
-}
-
-void DrvEnv::setEnvVal( TokId envId, int32_t val ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_INT ))
-            envTab[ i ].iVal = val;
-    }
-}
-
-void DrvEnv::setEnvVal( TokId envId, uint32_t val ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_UINT ))
-            envTab[ i ].uVal = val;
-    }
-}
-
-void DrvEnv::setEnvVal( TokId envId, bool val ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_BOOL ))
-            envTab[ i ].bVal = val;
-    }
-}
-
-void DrvEnv::setEnvVal( TokId envId, char *str ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if (( envTab[ i ].envId == envId ) && ( envTab[ i ].envTyp == ENV_TYP_STR )) {
-            
-            if ( envTab[ i ].sVal != nullptr ) free((char *) envTab[ i ].sVal );
-            
-            size_t len = strlen( str );
-            if ( len > MAX_ENV_STR_SIZE ) len = MAX_ENV_STR_SIZE;
-            
-            char *tmpStr = (char *) calloc( len + 1, 1 );
-            strcpy((char *) tmpStr, str );
-            
-            envTab[ i ].sVal = tmpStr;
-        }
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Finally, we want to list the ENV table as well as an individual entry.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv::displayEnvTable( ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) ::displayEnvTabEntry( &envTab[ i ] );
-    return( 0 );
-}
-
-uint8_t DrvEnv::displayEnvTabEntry( TokId envId ) {
-    
-    for ( int i = 0; i < ENV_TAB_SIZE; i++ ) {
-        
-        if ( envTab[ i ].envId == envId  ) {
-            
-            ::displayEnvTabEntry( &envTab[ i ] );
-            return( 1 );
-        }
-    }
-    
-    return( 0 );
-}
-#endif
-
-
-//------------------------------------------------------------------------------------------------------------
-// ??? if we have predefined and user defined ENV variables, this module needs to be rewritten.
-// ??? shall we just use these variables by name  and not by token Id ?
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------
 // There predefined and user defined variables. Predefined variables are created at program start and
 // initialized. They are marked predefined and optional readonly by the ENV command. Also, their type cannot
@@ -379,13 +66,12 @@ uint8_t DrvEnv::displayEnvTabEntry( TokId envId ) {
 // and can also be removed.
 //------------------------------------------------------------------------------------------------------------
 
-
 //------------------------------------------------------------------------------------------------------------
 // The ENV variable object. The table is dynamically allocated, the HWM and limit pointer are used to manage
 // the search and entry add and remove functions.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvEnv_n::DrvEnv_n( VCPU32Globals *glb, uint32_t size ) {
+DrvEnv::DrvEnv( VCPU32Globals *glb, uint32_t size ) {
    
     table       = (DrvEnvTabEntry *) calloc( size, sizeof( DrvEnvTabEntry ));
     hwm         = table;
@@ -401,7 +87,7 @@ DrvEnv_n::DrvEnv_n( VCPU32Globals *glb, uint32_t size ) {
 // variable type is string and we set a value, the old string is deallocated.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv_n::setEnvVar( char *name, int iVal ) {
+uint8_t DrvEnv::setEnvVar( char *name, int iVal ) {
     
     int index = lookupEntry( name );
     
@@ -416,10 +102,10 @@ uint8_t DrvEnv_n::setEnvVar( char *name, int iVal ) {
         ptr -> iVal = iVal;
         return( NO_ERR );
     }
-    else return enterEnvVar( name, iVal );
+    else return enterEnvVar( name, ((int) iVal ));
 }
 
-uint8_t DrvEnv_n::setEnvVar( char *name, uint32_t uVal ) {
+uint8_t DrvEnv::setEnvVar( char *name, uint32_t uVal ) {
     
     int index = lookupEntry( name );
     
@@ -434,10 +120,10 @@ uint8_t DrvEnv_n::setEnvVar( char *name, uint32_t uVal ) {
         ptr -> uVal = uVal;
         return( NO_ERR );
     }
-    else return enterEnvVar( name, uVal );
+    else return enterEnvVar( name, ((uint32_t) uVal ));
 }
 
-uint8_t DrvEnv_n::setEnvVar( char *name, bool bVal )  {
+uint8_t DrvEnv::setEnvVar( char *name, bool bVal )  {
     
     int index = lookupEntry( name );
     
@@ -452,10 +138,10 @@ uint8_t DrvEnv_n::setEnvVar( char *name, bool bVal )  {
         ptr -> bVal = bVal;
         return( NO_ERR );
     }
-    else return enterEnvVar( name, bVal );
+    else return enterEnvVar( name, ((bool) bVal ));
 }
 
-uint8_t DrvEnv_n::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
+uint8_t DrvEnv::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
    
     int index = lookupEntry( name );
     
@@ -471,10 +157,10 @@ uint8_t DrvEnv_n::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
         ptr -> ofs = ofs;
         return( NO_ERR );
     }
-    else return enterEnvVar( name, seg, ofs );
+    else return enterEnvVar( name, ((uint32_t) seg), ((uint32_t) ofs ));
 }
 
-uint8_t DrvEnv_n::setEnvVar( char *name, char *str )  {
+uint8_t DrvEnv::setEnvVar( char *name, char *str )  {
    
     int index = lookupEntry( name );
     
@@ -482,10 +168,11 @@ uint8_t DrvEnv_n::setEnvVar( char *name, char *str )  {
         
         DrvEnvTabEntry *ptr = &table[ index ];
         
-        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
-        if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
-         
+        if (( ptr -> predefined ) && ( ptr -> typ != TYP_STR )) return ( 99 );
+        if (( ptr -> typ == TYP_STR ) && ( ptr -> str != nullptr )) free( ptr -> str );
+        
         ptr -> typ  = TYP_STR;
+        ptr -> str = (char *) malloc( strlen( str ) + 1 );
         strcpy( ptr -> str, str );
         return( NO_ERR );
     }
@@ -493,11 +180,11 @@ uint8_t DrvEnv_n::setEnvVar( char *name, char *str )  {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
+// Environemnt vriables getter functions. Just look up th entry and return the value. If the entry does not
+// exist, we return an optional default.
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvEnv_n::getEnvVarBool( char *name, bool def ) {
+bool DrvEnv::getEnvVarBool( char *name, bool def ) {
     
     int index = lookupEntry( name );
     
@@ -505,7 +192,7 @@ bool DrvEnv_n::getEnvVarBool( char *name, bool def ) {
     else                return ( def );
 }
 
-int  DrvEnv_n::getEnvVarInt( char *name, int def ) {
+int  DrvEnv::getEnvVarInt( char *name, int def ) {
     
     int index = lookupEntry( name );
     
@@ -513,7 +200,7 @@ int  DrvEnv_n::getEnvVarInt( char *name, int def ) {
     else                return ( def );
 }
 
-uint32_t  DrvEnv_n::getEnvVarUint( char *name, uint32_t def ) {
+uint32_t  DrvEnv::getEnvVarUint( char *name, uint32_t def ) {
     
     int index = lookupEntry( name );
     
@@ -521,7 +208,7 @@ uint32_t  DrvEnv_n::getEnvVarUint( char *name, uint32_t def ) {
     else                return ( def );
 }
 
-uint32_t  DrvEnv_n::getEnvVarExtAdrSeg( char *name, uint32_t def ) {
+uint32_t  DrvEnv::getEnvVarExtAdrSeg( char *name, uint32_t def ) {
     
     int index = lookupEntry( name );
     
@@ -530,7 +217,7 @@ uint32_t  DrvEnv_n::getEnvVarExtAdrSeg( char *name, uint32_t def ) {
     
 }
 
-uint32_t  DrvEnv_n::getEnvVarExtAdrOfs( char *name, uint32_t def ) {
+uint32_t  DrvEnv::getEnvVarExtAdrOfs( char *name, uint32_t def ) {
     
     int index = lookupEntry( name );
     
@@ -539,7 +226,7 @@ uint32_t  DrvEnv_n::getEnvVarExtAdrOfs( char *name, uint32_t def ) {
     
 }
 
-char *DrvEnv_n::getEnvVarStr( char *name, char *def ) {
+char *DrvEnv::getEnvVarStr( char *name, char *def ) {
     
     int index = lookupEntry( name );
     
@@ -553,7 +240,7 @@ char *DrvEnv_n::getEnvVarStr( char *name, char *def ) {
 // was at the high water mark, adjust the HWM.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv_n::removeEnvVar( char *name ) {
+uint8_t DrvEnv::removeEnvVar( char *name ) {
     
     int index = lookupEntry( name );
     
@@ -562,7 +249,7 @@ uint8_t DrvEnv_n::removeEnvVar( char *name ) {
         DrvEnvTabEntry *ptr = &table[ index ];
         
         if ( ptr -> predefined ) return( 99 );
-        if ( ptr -> typ == TYP_STR ) free( ptr -> str );
+        if (( ptr -> typ == TYP_STR ) && ( ptr -> str != nullptr )) free( ptr -> str );
         
         ptr -> valid    = false;
         ptr -> typ      = TYP_NIL;
@@ -582,7 +269,7 @@ uint8_t DrvEnv_n::removeEnvVar( char *name ) {
 // it is a predefined variable, the readonly flag marks the variable read only for the ENV command.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv_n::enterEnvVar( char *name, int32_t iVal, bool predefined, bool readOnly ) {
+uint8_t DrvEnv::enterEnvVar( char *name, int32_t iVal, bool predefined, bool readOnly ) {
     
     int index = findFreeEntry( );
     
@@ -601,7 +288,7 @@ uint8_t DrvEnv_n::enterEnvVar( char *name, int32_t iVal, bool predefined, bool r
     else return( 99 );
 }
 
-uint8_t DrvEnv_n::enterEnvVar( char *name, uint32_t uVal, bool predefined, bool readOnly ) {
+uint8_t DrvEnv::enterEnvVar( char *name, uint32_t uVal, bool predefined, bool readOnly ) {
     
     int index = findFreeEntry( );
     
@@ -620,7 +307,7 @@ uint8_t DrvEnv_n::enterEnvVar( char *name, uint32_t uVal, bool predefined, bool 
     else return( 99 );
 }
 
-uint8_t DrvEnv_n::enterEnvVar( char *name, bool bVal, bool predefined, bool readOnly ) {
+uint8_t DrvEnv::enterEnvVar( char *name, bool bVal, bool predefined, bool readOnly ) {
     
     int index = findFreeEntry( );
     
@@ -639,7 +326,7 @@ uint8_t DrvEnv_n::enterEnvVar( char *name, bool bVal, bool predefined, bool read
     else return( 99 );
 }
 
-uint8_t DrvEnv_n::enterEnvVar( char *name, char *str, bool predefined, bool readOnly ) {
+uint8_t DrvEnv::enterEnvVar( char *name, char *str, bool predefined, bool readOnly ) {
     
     int index = findFreeEntry( );
     
@@ -661,7 +348,7 @@ uint8_t DrvEnv_n::enterEnvVar( char *name, char *str, bool predefined, bool read
     else return( 99 );
 }
 
-uint8_t DrvEnv_n::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined, bool readOnly ) {
+uint8_t DrvEnv::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined, bool readOnly ) {
     
     int index = findFreeEntry( );
     
@@ -685,7 +372,7 @@ uint8_t DrvEnv_n::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool pred
 // Utility functions to return variable attributes.
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvEnv_n::isReadOnly( char *name ) {
+bool DrvEnv::isReadOnly( char *name ) {
     
     int index = lookupEntry( name );
     
@@ -693,8 +380,7 @@ bool DrvEnv_n::isReadOnly( char *name ) {
     else return( false );
 }
 
-
-bool DrvEnv_n::isPredefined( char *name ) {
+bool DrvEnv::isPredefined( char *name ) {
     
     int index = lookupEntry( name );
     
@@ -706,7 +392,7 @@ bool DrvEnv_n::isPredefined( char *name ) {
 // Look a variable. We just do a linear search up to the HWM. SIf not found a -1 is returned. Straightforward.
 //
 //------------------------------------------------------------------------------------------------------------
-int DrvEnv_n::lookupEntry( char *name ) {
+int DrvEnv::lookupEntry( char *name ) {
     
     DrvEnvTabEntry *entry = table;
     
@@ -724,7 +410,7 @@ int DrvEnv_n::lookupEntry( char *name ) {
 // none, we try to increase the HWM. If all fails, the table is full.
 //
 //------------------------------------------------------------------------------------------------------------
-int DrvEnv_n::findFreeEntry( ) {
+int DrvEnv::findFreeEntry( ) {
     
     DrvEnvTabEntry *entry = table;
     
@@ -746,7 +432,7 @@ int DrvEnv_n::findFreeEntry( ) {
 // List the entire ENV table up to the high water mark.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv_n::displayEnvTable( ) {
+uint8_t DrvEnv::displayEnvTable( ) {
     
     DrvEnvTabEntry *entry = table;
     
@@ -763,7 +449,7 @@ uint8_t DrvEnv_n::displayEnvTable( ) {
 // Display a ENV entry by name.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv_n::displayEnvTableEntry( char *name ) {
+uint8_t DrvEnv::displayEnvTableEntry( char *name ) {
     
     int index = lookupEntry( name );
     
@@ -776,26 +462,26 @@ uint8_t DrvEnv_n::displayEnvTableEntry( char *name ) {
 //
 // ??? what about the uVal variables.... TYP_NUM is not correct ....
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv_n::displayEnvTableEntry( DrvEnvTabEntry *entry ) {
+uint8_t DrvEnv::displayEnvTableEntry( DrvEnvTabEntry *entry ) {
     
     fprintf( stdout, "%-32s", entry -> name );
     
     switch ( entry -> typ ) {
             
-        case TYP_NUM:       fprintf( stdout, "%i", entry -> iVal ); break;
-        case TYP_EXT_ADR:   fprintf( stdout, "0x%04x.0x%08x", entry -> seg, entry -> ofs );
+        case TYP_NUM:       fprintf( stdout, "NUM:     %i", entry -> iVal ); break;
+        case TYP_EXT_ADR:   fprintf( stdout, "EXT_ADR: 0x%04x.0x%08x", entry -> seg, entry -> ofs );
             
         case TYP_STR: {
             
             // ??? any length checks ?
-            fprintf( stdout, "\"%s\"", entry -> str );
+            fprintf( stdout, "STR:     \"%s\"", entry -> str );
             
         } break;
             
         case TYP_BOOL:      {
             
-            if ( entry -> bVal ) fprintf( stdout, "TRUE");
-            else                 fprintf( stdout, "FALSE"); break;
+            if ( entry -> bVal ) fprintf( stdout, "BOOL:    TRUE");
+            else                 fprintf( stdout, "BOOL:    FALSE"); break;
         
         } break;
         
@@ -811,11 +497,11 @@ uint8_t DrvEnv_n::displayEnvTableEntry( DrvEnvTabEntry *entry ) {
 // Enter the predefind entries.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv_n::setupPredefined( ) {
+uint8_t DrvEnv::setupPredefined( ) {
     
     uint8_t rStat = NO_ERR;
     
-    if ( rStat == NO_ERR ) enterEnvVar((char *) ENV_PROG_VERSION, (char *) VERSION, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_PROG_VERSION, (char *) VERSION, true, false );
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_GIT_BRANCH, (char *) GIT_BRANCH, true, false );
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_PROG_PATCH_LEVEL, (int) PATCH_LEVEL, true, false );
     
@@ -848,6 +534,9 @@ uint8_t DrvEnv_n::setupPredefined( ) {
     
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_WIN_MIN_ROWS, (int) 24, true, false );
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_WIN_TEXT_LINE_WIDTH, (int) 90, true, false );
+    
+    // ??? should TRUE and FALSE rather be a predefine ?
+    // ??? this would only make sense when teh expression evaluator looks for identifiers here too ....
     
     return( rStat );
 }

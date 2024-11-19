@@ -32,6 +32,7 @@
 //
 // ??? do we keep all descriptors in one structure ? What if the CPU has two cores ?
 // ??? is the IO subsystem part of the CPU structure ? Still, we would need a memory range to configure...
+// ??? it would be nice to set some of the values via program argument inputs.whelp
 //------------------------------------------------------------------------------------------------------------
 int main( int argc, const char* argv[ ] ) {
     
@@ -105,19 +106,17 @@ int main( int argc, const char* argv[ ] ) {
  
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
     
-    glbDesc.env_n                       = new DrvEnv_n( &glbDesc, 256 ); // for testing ....
+    glbDesc.env                         = new DrvEnv( &glbDesc, MAX_ENV_VARIABLES );
     glbDesc.cmds                        = new DrvCmds( &glbDesc );
+    glbDesc.tok                         = new DrvTokenizer( &glbDesc );
+    glbDesc.eval                        = new DrvExprEvaluator( &glbDesc );
     glbDesc.lineDisplay                 = new DrvLineDisplay( &glbDesc );
     glbDesc.winDisplay                  = new DrvWinDisplay( &glbDesc );
-    glbDesc.disAsm                      = new DrvDisAsm( &glbDesc );
+    glbDesc.disAsm                      = new DrvDisAssembler( &glbDesc );
     glbDesc.oneLineAsm                  = new DrvOneLineAsm( &glbDesc );
     
-    glbDesc.env_n -> setupPredefined( );
-    glbDesc.env_n -> displayEnvTable( ); // just for testing ....
-    
-    glbDesc.cmds -> processCmdLineArgs( argc, argv );
-    glbDesc.cmds -> printWelcome( );
-    glbDesc.winDisplay -> windowDefaults( );
-    glbDesc.cpu -> reset( );
-    glbDesc.cmds -> cmdLoop( );
+    glbDesc.env         -> setupPredefined( );
+    glbDesc.cmds        -> setupCmdInterpreter( argc, argv );
+    glbDesc.cpu         -> reset( );
+    glbDesc.cmds        -> cmdInterpreterLoop( );
 }

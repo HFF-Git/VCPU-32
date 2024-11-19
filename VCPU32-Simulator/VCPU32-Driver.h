@@ -41,6 +41,13 @@
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
 
+//------------------------------------------------------------------------------------------------------------
+// General maximum sizs for commands, etc.
+//
+//------------------------------------------------------------------------------------------------------------
+const int CMD_LINE_BUF_SIZE     = 256;
+const int TOK_STR_SIZE          = 256;
+const int MAX_ENV_VARIABLES     = 256;
 
 //------------------------------------------------------------------------------------------------------------
 // Tokens and Expression have a type.
@@ -77,13 +84,13 @@ enum TokId : uint16_t {
     //
     //--------------------------------------------------------------------------------------------------------
     TOK_NIL                 = 0,        TOK_ERR                 = 1,        TOK_EOS                 = 2,
-    TOK_COMMA               = 2,        TOK_PERIOD              = 3,        TOK_LPAREN              = 4,
-    TOK_RPAREN              = 4,        TOK_QUOTE               = 5,        TOK_PLUS                = 6,
-    TOK_MINUS               = 7,        TOK_MULT                = 8,        TOK_DIV                 = 9,
-    TOK_MOD                 = 10,       TOK_REM                 = 11,       TOK_NEG                 = 12,
-    TOK_AND                 = 13,       TOK_OR                  = 14,       TOK_XOR                 = 15,
-    TOK_EQ                  = 16,       TOK_NE                  = 17,       TOK_LT                  = 18,
-    TOK_GT                  = 19,       TOK_LE                  = 20,       TOK_GE                  = 21,
+    TOK_COMMA               = 3,        TOK_PERIOD              = 4,        TOK_LPAREN              = 5,
+    TOK_RPAREN              = 6,        TOK_QUOTE               = 7,        TOK_PLUS                = 8,
+    TOK_MINUS               = 9,        TOK_MULT                = 10,       TOK_DIV                 = 11,
+    TOK_MOD                 = 12,       TOK_REM                 = 13,       TOK_NEG                 = 14,
+    TOK_AND                 = 15,       TOK_OR                  = 16,       TOK_XOR                 = 17,
+    TOK_EQ                  = 18,       TOK_NE                  = 19,       TOK_LT                  = 20,
+    TOK_GT                  = 21,       TOK_LE                  = 22,       TOK_GE                  = 23,
     
     //--------------------------------------------------------------------------------------------------------
     // Token symbols. They are just reserved names used in commands and functions. Their type and optional
@@ -91,8 +98,6 @@ enum TokId : uint16_t {
     //
     //--------------------------------------------------------------------------------------------------------
     TOK_IDENT               = 100,      TOK_NUM                 = 101,      TOK_STR                 = 102,
-    
-    TOK_TRUE                = 103,      TOK_FALSE               = 104,
     
     TOK_CPU                 = 105,      TOK_MEM                 = 106,      TOK_STATS               = 107,
     
@@ -320,6 +325,8 @@ enum ErrMsgId : uint16_t {
     ERR_EXPECTED_GENERAL_REG        = 108,
     ERR_EXPECTED_OFS                = 205,
     
+    ERR_UNEXPECTED_EOS              = 2000,
+    
     ERR_EXPECTED_START_OFS          = 201,
     ERR_EXPECTED_LEN                = 202,
     ERR_OFS_LEN_LIMIT_EXCEEDED      = 203,
@@ -392,15 +399,8 @@ const char ENV_MEM_BANKS[ ]             = "MEM_BANKS";
 const char ENV_MEM_BANK_SIZE[ ]         = "MEM_BANK_SIZE";
 
 const char ENV_WIN_MIN_ROWS[ ]          = "WIN_MIN_ROWS";
-const char ENV_WIN_TEXT_LINE_WIDTH[ ]   ="WIN_TEXT_WIDTH";
+const char ENV_WIN_TEXT_LINE_WIDTH[ ]   = "WIN_TEXT_WIDTH";
 
-//------------------------------------------------------------------------------------------------------------
-// The command line size. The command line is rather long so that we can read in long lines form perhaps
-// future script files.
-//
-//------------------------------------------------------------------------------------------------------------
-const int CMD_LINE_BUF_SIZE     = 256;
-const int TOK_STR_SIZE          = 256;
 
 //------------------------------------------------------------------------------------------------------------
 // Forward declaration of the globals structure. Every object will have access to the globals structure, so
@@ -439,42 +439,45 @@ struct DrvTokenizer {
 
     public:
 
-    DrvTokenizer( );
+    DrvTokenizer( VCPU32Globals *glb );
 
-    uint8_t     setupTokenizer( char *lineBuf, DrvToken *tokTab );
-    void        nextToken( );
-    DrvToken    token( );
+    uint8_t         setupTokenizer( char *lineBuf, DrvToken *tokTab );
+    void            nextToken( );
+    DrvToken        token( );
     
     
-    bool        isToken( TokId tokId );
-    bool        isTokenTyp( TypeId typId );
+    bool            isToken( TokId tokId );
+    bool            isTokenTyp( TypeId typId );
 
-    TypeId      tokTyp( );
-    TokId       tokId( );
-    int         tokVal( );
-    char        *tokStr( );
-    uint32_t    tokSeg( );
-    uint32_t    tokOfs( );
+    TypeId          tokTyp( );
+    TokId           tokId( );
+    int             tokVal( );
+    char            *tokStr( );
+    uint32_t        tokSeg( );
+    uint32_t        tokOfs( );
     
-    int         tokCharIndex( );
-    char        *tokenLineStr( );
+    int             tokCharIndex( );
+    char            *tokenLineStr( );
 
     private:
     
-    void        tokenError( char *errMsg );
-    void        nextChar( );
-    void        parseNum( );
-    void        parseString( );
-    void        parseIdent( );
+    void            tokenError( char *errMsg );
+    void            nextChar( );
+    void            parseNum( );
+    void            parseString( );
+    void            parseIdent( );
 
-    DrvToken    currentToken;
-    DrvToken    *tokTab                 = nullptr;
-    char        tokenLine[ 256 ]        = { 0 };
-    int         currentLineLen          = 0;
-    int         currentCharIndex        = 0;
-    int         currentTokCharIndex     = 0;
-    char        currentChar             = ' ';
+    DrvToken        currentToken;
+    DrvToken        *tokTab                 = nullptr;
+    char            tokenLine[ 256 ]        = { 0 };
+    int             currentLineLen          = 0;
+    int             currentCharIndex        = 0;
+    int             currentTokCharIndex     = 0;
+    char            currentChar             = ' ';
+    
+    VCPU32Globals   *glb                    = nullptr;
 };
+
 
 //------------------------------------------------------------------------------------------------------------
 // Expression value. The analysis of an expression results in a value. Depending on the expression type, the
@@ -496,6 +499,30 @@ struct DrvExpr {
         struct {    uint8_t  sReg;  uint8_t gReg;           };
         struct {    uint32_t seg;   uint32_t ofs;           };
     };
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The expression evaluator object.
+//
+//------------------------------------------------------------------------------------------------------------
+struct DrvExprEvaluator {
+    
+    public:
+    
+    DrvExprEvaluator( VCPU32Globals *glb );
+    
+    void            setTokenizer( DrvTokenizer *tok );
+    ErrMsgId        parseExpr( DrvExpr *rExpr );
+    
+   
+    private:
+    
+    ErrMsgId        parseTerm( DrvExpr *rExpr );
+    ErrMsgId        parseFactor( DrvExpr *rExpr );
+    
+    // ??? predefind functions ?
+    
+    VCPU32Globals   *glb = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -528,9 +555,9 @@ struct DrvEnvTabEntry {
 // with a high water mark concept. The table will be allocated at simulator start.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvEnv_n {
+struct DrvEnv {
     
-    DrvEnv_n( VCPU32Globals *glb, uint32_t size );
+    DrvEnv( VCPU32Globals *glb, uint32_t size );
     
     uint8_t         displayEnvTable( );
     uint8_t         displayEnvTableEntry( char *name );
@@ -561,7 +588,7 @@ struct DrvEnv_n {
     
     uint8_t         enterEnvVar( char *name, int32_t iVal, bool predefined = false, bool readOnly = false );
     uint8_t         enterEnvVar( char *name, uint32_t uVal, bool predefined = false, bool readOnly = false );
-    uint8_t         enterEnvVar( char *name, bool bVal, bool predefined, bool readOnly );
+    uint8_t         enterEnvVar( char *name, bool bVal, bool predefined = false, bool readOnly = false );
     uint8_t         enterEnvVar( char *name, char *str, bool predefined = false, bool readOnly = false );
     uint8_t         enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined = false, bool readOnly = false );
     
@@ -1023,6 +1050,7 @@ public:
     
     DrvLineDisplay( VCPU32Globals *glb );
     
+    void        lineDefaults( );
     void        displayWord( uint32_t val, int rdx = 16 );
     void        displayHalfWord( uint32_t val, int rdx = 16 );
     void        displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx = 16 );
@@ -1059,11 +1087,12 @@ private:
 // readable form.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvDisAsm {
+struct DrvDisAssembler {
     
 public:
     
-    DrvDisAsm( VCPU32Globals *glb );
+    DrvDisAssembler( VCPU32Globals *glb );
+    
     void displayInstr( uint32_t instr, int rdx = 16 );
     void displayOpCodeAndOptions( uint32_t instr );
     void displayTargetAndOperands( uint32_t instr, int rdx = 16 );
@@ -1097,33 +1126,33 @@ private:
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The CPU driver main object. This objects implements the command loop. It is essentially a list of the
-// command handlers and the functions needed to read in and analyze a command line.
+// The CPU driver main object. This objects implements the command interpreter loop. It is essentially a list
+// of the command handlers and the functions needed to read in and analyze a command line.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvCmds {
     
-public:
+    public:
     
     DrvCmds( VCPU32Globals *glb );
    
+    void            setupCmdInterpreter( int argc, const char *argv[ ] );
     void            printWelcome( );
-    void            processCmdLineArgs( int argc, const char *argv[ ] );
     TokId           getCurrentCmd( );
-    void            cmdLoop( );
+    void            cmdInterpreterLoop( );
+  
+    private:
     
-    static char     *tokIdToName( TokId tokId );
-    
-private:
+    ErrMsgId        cmdLineError( ErrMsgId errNum, char *argStr = nullptr );
+    ErrMsgId        checkEOS( );
+    ErrMsgId        acceptComma( );
+    ErrMsgId        acceptLparen( );
+    ErrMsgId        acceptRparen( );
     
     void            promptCmdLine( );
     bool            readInputLine( char *cmdBuf );
     uint8_t         evalInputLine( char *cmdBuf );
     uint8_t         execCmdsFromFile( char* fileName );
-    
-    uint8_t         parseExpr( DrvExpr *rExpr );
-    uint8_t         parseTerm( DrvExpr *rExpr );
-    uint8_t         parseFactor( DrvExpr *rExpr );
     
     uint8_t         invalidCmd( );
     uint8_t         exitCmd( );
@@ -1182,21 +1211,22 @@ private:
 
 //------------------------------------------------------------------------------------------------------------
 // The globals, accessible to all objects. Turns out that all main objects need to access data from all the
-// individual objects of the CPU. To ease the passing around there is the idea a global structure with a
-// reference to all the individual objects.
+// individual objects of the CPU. Also, the command interpreter consists of several objects. To ease the
+// passing around there is the idea a global structure with a reference to all the individual objects.
 //
+// ??? they also could be globals in the "main.cpp" with externals in the "cmd" files.... simplify ?
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals {
     
-    DrvEnv_n            *env_n          = nullptr;
-    
-    DrvDisAsm           *disAsm         = nullptr;
+    DrvTokenizer        *tok            = nullptr;
+    DrvExprEvaluator    *eval           = nullptr;
+    DrvDisAssembler           *disAsm         = nullptr;
     DrvOneLineAsm       *oneLineAsm     = nullptr;
-    
     DrvLineDisplay      *lineDisplay    = nullptr;
     DrvWinDisplay       *winDisplay     = nullptr;
     DrvCmds             *cmds           = nullptr;
-    
+    DrvEnv              *env            = nullptr;
+   
     CpuCore             *cpu            = nullptr;
 };
 
