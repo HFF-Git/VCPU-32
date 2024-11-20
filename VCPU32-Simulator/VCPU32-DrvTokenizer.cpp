@@ -91,7 +91,7 @@ DrvTokenizer::DrvTokenizer( VCPU32Globals *glb ) { }
 // the first before any other method can be called.
 //
 //------------------------------------------------------------------------------------------------------------
-ErrMsgId DrvTokenizer::setupTokenizer( char *lineBuf, DrvToken *tokTab ) {
+void DrvTokenizer::setupTokenizer( char *lineBuf, DrvToken *tokTab ) {
     
     strncpy( tokenLine, lineBuf, strlen( lineBuf ) + 1 );
     
@@ -100,7 +100,6 @@ ErrMsgId DrvTokenizer::setupTokenizer( char *lineBuf, DrvToken *tokTab ) {
     this -> currentCharIndex        = 0;
     this -> currentTokCharIndex     = 0;
     this -> currentChar             = ' ';
-    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------

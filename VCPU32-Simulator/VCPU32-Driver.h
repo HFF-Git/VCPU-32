@@ -47,6 +47,8 @@
 //------------------------------------------------------------------------------------------------------------
 const int CMD_LINE_BUF_SIZE     = 256;
 const int TOK_STR_SIZE          = 256;
+const int MAX_TOKEN_NAME_SIZE   = 32;
+const int MAX_ENV_NAME_SIZE     = 32;
 const int MAX_ENV_VARIABLES     = 256;
 
 //------------------------------------------------------------------------------------------------------------
@@ -295,90 +297,87 @@ enum TokId : uint16_t {
 enum ErrMsgId : uint16_t {
     
     NO_ERR                          = 0,
-    ERR_INVALID_CMD                 = 1,
-    ERR_NOT_IN_WIN_MODE             = 2,
-    ERR_OPEN_EXEC_FILE              = 3,
-    ERR_EXPECTED_FILE_NAME          = 4,
-    ERR_INVALID_WIN_STACK_ID        = 5,
-    ERR_INVALID_WIN_ID              = 6,
-    ERR_EXPECTED_WIN_ID             = 7,
-    ERR_INVALID_WIN_TYPE            = 8,
-    ERR_EXPECTED_WIN_TYPE           = 9,
-    ERR_EXPECTED_STACK_ID           = 10,
+    ERR_NOT_IN_WIN_MODE             = 1,
+    ERR_TOO_MANY_ARGS_CMD_LINE      = 2,
+    ERR_EXTRA_TOKEN_IN_STR          = 3,
     
-    ERR_INVALID_EXIT_VAL            = 1000,
-    ERR_ENV_VALUE_EXPR              = 1001,
+    ERR_INVALID_CMD                 = 10,
+    ERR_INVALID_ARG                 = 11,
+    ERR_INVALID_WIN_STACK_ID        = 12,
+    ERR_INVALID_WIN_ID              = 13,
+    ERR_INVALID_WIN_TYPE            = 14,
+    ERR_INVALID_EXIT_VAL            = 15,
+    ERR_INVALID_RADIX               = 16,
+    ERR_INVALID_REG_ID              = 17,
+    ERR_INVALID_STEP_OPTION         = 18,
+    ERR_INVALID_CHAR_IN_TOKEN_LINE  = 19,
+    ERR_INVALID_EXPR                = 20,
+    ERR_INVALID_INSTR_OPT           = 21,
+    ERR_INVALID_INSTR_MODE          = 22,
+    ERR_INVALID_FMT_OPT             = 23,
+    ERR_INVALID_NUM                 = 24,
+    ERR_INVALID_CHAR_IN_IDENT       = 25,
+    ERR_INVALID_REG_COMBO           = 26,
+    ERR_INVALID_OP_CODE             = 27,
+    ERR_INVALID_S_OP_CODE           = 28,
     
-    ERR_INVALID_REG_ID              = 200,
-    ERR_INVALID_RADIX               = 1003,
-    
-    ERR_WIN_TYPE_NOT_CONFIGURED     = 1004,
-    
-    ERR_EXTRA_TOKEN_IN_STR          = 100,
+    ERR_EXPECTED_COMMA              = 100,
     ERR_EXPECTED_LPAREN             = 101,
     ERR_EXPECTED_RPAREN             = 102,
-    ERR_EXPECTED_COMMA              = 103,
-    ERR_EXPECTED_NUMERIC            = 104,
-    ERR_EXPECTED_EXT_ADR            = 105,
-    ERR_EXPR_TYPE_MATCH             = 106,
-    ERR_EXPR_FACTOR                 = 107,
-    ERR_EXPECTED_GENERAL_REG        = 108,
-    ERR_EXPECTED_OFS                = 205,
+    ERR_EXPECTED_NUMERIC            = 103,
+    ERR_EXPECTED_EXT_ADR            = 104,
+    ERR_EXPECTED_FILE_NAME          = 105,
+    ERR_EXPECTED_WIN_ID             = 106,
+    ERR_EXPECTED_WIN_TYPE           = 107,
+    ERR_EXPECTED_STACK_ID           = 108,
+    ERR_EXPECTED_REG_OR_SET         = 109,
+    ERR_EXPECTED_REG_SET            = 110,
+    ERR_EXPECTED_GENERAL_REG        = 111,
+    ERR_EXPECTED_SEGMENT_REG        = 312,
+    ERR_EXPECTED_OFS                = 213,
+    ERR_EXPECTED_START_OFS          = 214,
+    ERR_EXPECTED_LEN                = 215,
+    ERR_EXPECTED_STEPS              = 116,
+    ERR_EXPECTED_INSTR_VAL          = 117,
+    ERR_EXPECTED_INSTR_OPT          = 318,
+    ERR_EXPECTED_SR1_SR3            = 319,
+    ERR_EXPECTED_LOGICAL_ADR        = 320,
+    ERR_EXPECTED_AN_OFFSET_VAL      = 321,
+    ERR_EXPECTED_FMT_OPT            = 322,
+    ERR_EXPECTED_CLOSING_QUOTE      = 323,
     
-    ERR_UNEXPECTED_EOS              = 2000,
+    ERR_UNEXPECTED_EOS              = 350,
     
-    ERR_EXPECTED_START_OFS          = 201,
-    ERR_EXPECTED_LEN                = 202,
-    ERR_OFS_LEN_LIMIT_EXCEEDED      = 203,
- 
-    ERR_INVALID_ARG                 = 109,
+    ERR_ENV_VALUE_EXPR              = 400,
+    ERR_OPEN_EXEC_FILE              = 401,
     
-    ERR_TLB_TYPE                    = 110,
-    ERR_TLB_PURGE_OP                = 111,
-    ERR_TLB_INSERT_OP               = 112,
-    ERR_TLB_ACC_DATA                = 113,
-    ERR_TLB_ADR_DATA                = 114,
-    ERR_TLB_NOT_CONFIGURED          = 115,
+    ERR_EXPR_TYPE_MATCH             = 402,
+    ERR_EXPR_FACTOR                 = 403,
+
+    ERR_OFS_LEN_LIMIT_EXCEEDED      = 404,
+    ERR_INSTR_HAS_NO_OPT            = 405,
+    ERR_IMM_VAL_RANGE               = 406,
+    ERR_INSTR_MODE_OPT_COMBO        = 407,
+    ERR_POS_VAL_RANGE               = 408,
+    ERR_LEN_VAL_RANGE               = 409,
+    ERR_OFFSET_VAL_RANGE            = 410,
     
-    ERR_CACHE_TYPE                  = 116,
-    ERR_CACHE_PURGE_OP              = 117,
-    ERR_CACHE_NOT_CONFIGURED        = 118,
+    ERR_OUT_OF_WINDOWS              = 411,
+    ERR_WIN_TYPE_NOT_CONFIGURED     = 412,
+
+    ERR_TLB_TYPE                    = 500,
+    ERR_TLB_PURGE_OP                = 501,
+    ERR_TLB_INSERT_OP               = 502,
+    ERR_TLB_ACC_DATA                = 503,
+    ERR_TLB_ADR_DATA                = 504,
+    ERR_TLB_NOT_CONFIGURED          = 505,
+    ERR_TLB_SIZE_EXCEEDED           = 506,
     
-    ERR_EXPECTED_STEPS              = 120,
-    ERR_INVALID_STEP_OPTION         = 121,
-    
-    ERR_EXPECTED_INSTR_VAL          = 122,
-    ERR_TOO_MANY_ARGS_CMD_LINE      = 123,
-    
-    ERR_INVALID_CHAR_IN_TOKEN_LINE  = 300,
-    ERR_INVALID_EXPR                = 301,
-    ERR_EXPECTED_INSTR_OPT          = 303,
-    ERR_INVALID_INSTR_OPT           = 304,
-    ERR_INSTR_HAS_NO_OPT            = 305,
-    ERR_EXPECTED_SR1_SR3            = 306,
-    ERR_EXPECTED_LOGICAL_ADR        = 307,
-    ERR_IMM_VAL_RANGE               = 308,
-    ERR_INVALID_INSTR_MODE          = 310,
-    ERR_INSTR_MODE_OPT_COMBO        = 311,
-    ERR_POS_VAL_RANGE               = 312,
-    ERR_LEN_VAL_RANGE               = 313,
-    
-    ERR_EXPECTED_AN_OFFSET_VAL      = 314,
-    ERR_OFFSET_VAL_RANGE            = 315,
-    ERR_INVALID_REG_COMBO           = 316,
-    ERR_EXPECTED_SEGMENT_REG        = 317,
-    ERR_INVALID_OP_CODE             = 318,
-    ERR_INVALID_S_OP_CODE           = 319,
-    
-    
-    ERR_INVALID_FMT_OPT             = 11,
-    ERR_EXPECTED_FMT_OPT            = 12,
-    
-    ERR_OUT_OF_WINDOWS              = 13,
-    
-    ERR_INVALID_NUM                 = 20,
-    ERR_EXPECTED_CLOSING_QUOTE      = 21,
-    ERR_INVALID_CHAR_IN_IDENT       = 22,
+    ERR_CACHE_TYPE                  = 600,
+    ERR_CACHE_PURGE_OP              = 601,
+    ERR_CACHE_SET_NUM               = 602,
+    ERR_CACHE_NOT_CONFIGURED        = 603,
+    ERR_CACHE_SIZE_EXCEEDED         = 604,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -428,6 +427,24 @@ const char ENV_WIN_TEXT_LINE_WIDTH[ ]   = "WIN_TEXT_WIDTH";
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals;
 
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+struct DrvErrMsgTabEntry {
+    
+    ErrMsgId    errNum;
+    char        *errStr;
+};
+
+struct DrvHelpMsgEntry {
+    
+    char        *cmdStr;
+    char        *helpStr;
+};
+
 //------------------------------------------------------------------------------------------------------------
 // The command line interpreter as well as the one line assembler work the command line or assembly line
 // processed as a list of tokens. A token found in a string is recorded using the token structure. The token
@@ -436,9 +453,9 @@ struct VCPU32Globals;
 //------------------------------------------------------------------------------------------------------------
 struct DrvToken {
 
-    char        name[ 32 ]  = { };
-    TypeId      typ         = TYP_NIL;
-    TokId       tid         = TOK_NIL;
+    char        name[ MAX_TOKEN_NAME_SIZE ] = { };
+    TypeId      typ                         = TYP_NIL;
+    TokId       tid                         = TOK_NIL;
     
     union {
         
@@ -460,7 +477,7 @@ struct DrvTokenizer {
 
     DrvTokenizer( VCPU32Globals *glb );
 
-    ErrMsgId        setupTokenizer( char *lineBuf, DrvToken *tokTab );
+    void            setupTokenizer( char *lineBuf, DrvToken *tokTab );
     void            nextToken( );
     
     bool            isToken( TokId tokId );

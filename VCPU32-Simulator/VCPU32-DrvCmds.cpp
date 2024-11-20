@@ -330,6 +330,42 @@ DrvToken const cmdTokTab[ ] = {
     
 };
 
+const int MAX_CMD_TOKEN_TAB = sizeof( cmdTokTab ) / sizeof( DrvToken );
+
+//------------------------------------------------------------------------------------------------------------
+// The error messgae table. Ech entry has the error number and the corresponding error message text.
+//
+//------------------------------------------------------------------------------------------------------------
+DrvErrMsgTabEntry  errTab [ ] = {
+    
+    { .errNum = NO_ERR, .errStr = (char *) "hugo " }
+    
+};
+
+const int MAX_ERR_MSG_TAB = sizeof( errTab ) / sizeof( DrvErrMsgTabEntry );
+
+//------------------------------------------------------------------------------------------------------------
+// COmmand help table.
+//
+//------------------------------------------------------------------------------------------------------------
+DrvHelpMsgEntry cmdHelpTab[ ] = {
+    
+    
+};
+
+const int MAX_CMD_HELP_TAB = sizeof( cmdHelpTab ) / sizeof( DrvHelpMsgEntry );
+
+//------------------------------------------------------------------------------------------------------------
+// Window command help table.
+//
+//------------------------------------------------------------------------------------------------------------
+DrvHelpMsgEntry winCmdHelpTab[ ] = {
+    
+    
+};
+
+const int MAX_WIN_CMD_HELP_TAB = sizeof( winCmdHelpTab ) / sizeof( DrvHelpMsgEntry );
+
 //------------------------------------------------------------------------------------------------------------
 // A little helper function to upshift a string in place.
 //
@@ -356,7 +392,7 @@ int setRadix( int rdx ) {
 //------------------------------------------------------------------------------------------------------------
 // Print out an error message text with an optional argument.
 //
-// ??? over time all text errors in the command should go here...
+// ??? how about a table with err msg id and string ? simplify this routine then...
 //------------------------------------------------------------------------------------------------------------
 ErrMsgId cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
     
@@ -383,6 +419,9 @@ ErrMsgId cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
             
         case ERR_ENV_VALUE_EXPR:            fprintf( stdout, "Invalid expression for ENV variable\n" ); break;
             
+        case ERR_EXPECTED_REG_SET:          fprintf( stdout, "Expected a register set\n" ); break;
+        case ERR_EXPECTED_REG_OR_SET:       fprintf( stdout, "Expected a register or register set\n" ); break;
+            
         case ERR_WIN_TYPE_NOT_CONFIGURED:   fprintf( stdout, "Win object type not configured\n" ); break;
             
         case ERR_EXPECTED_NUMERIC:          fprintf( stdout, "Expected a numeric value\n" ); break;
@@ -390,33 +429,33 @@ ErrMsgId cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
             
         case ERR_EXPR_TYPE_MATCH:           fprintf( stdout, "Expression type mismatch\n" ); break;
         case ERR_EXPR_FACTOR:               fprintf( stdout, "Expression error: factor\n" ); break;
-        case ERR_EXPECTED_GENERAL_REG:      fprintf( stdout, "Expression a general reg\n" ); break;
+        case ERR_EXPECTED_GENERAL_REG:          fprintf( stdout, "Expression a general reg\n" ); break;
             
-        case ERR_INVALID_ARG:               fprintf( stdout, "Invalid command argument\n" ); break;
-        case ERR_EXPECTED_STEPS:            fprintf( stdout, "Expected nuber of steps/instr\n" ); break;
-        case ERR_INVALID_STEP_OPTION:       fprintf( stdout, "Invalid steps/instr option\n" ); break;
+        case ERR_INVALID_ARG:                   fprintf( stdout, "Invalid argument for command\n" ); break;
+        case ERR_EXPECTED_STEPS:                fprintf( stdout, "Expected nuber of steps/instr\n" ); break;
+        case ERR_INVALID_STEP_OPTION:           fprintf( stdout, "Invalid steps/instr option\n" ); break;
             
-        case ERR_EXPECTED_INSTR_VAL:        fprintf( stdout, "Expected the instruction value\n" ); break;
-        case ERR_TOO_MANY_ARGS_CMD_LINE:    fprintf( stdout, "Too many args in command line\n" ); break;
+        case ERR_EXPECTED_INSTR_VAL:            fprintf( stdout, "Expected the instruction value\n" ); break;
+        case ERR_TOO_MANY_ARGS_CMD_LINE:        fprintf( stdout, "Too many args in command line\n" ); break;
             
-        case ERR_EXPECTED_START_OFS:        fprintf( stdout, "Expected start offset\n" ); break;
-        case ERR_EXPECTED_LEN:              fprintf( stdout, "Expected length argument\n" ); break;
-        case ERR_OFS_LEN_LIMIT_EXCEEDED:    fprintf( stdout, "Offset/Length exceeds limit\n" ); break;
-        case ERR_EXPECTED_OFS:              fprintf( stdout, "Expected an address\n" ); break;
+        case ERR_EXPECTED_START_OFS:            fprintf( stdout, "Expected start offset\n" ); break;
+        case ERR_EXPECTED_LEN:                  fprintf( stdout, "Expected length argument\n" ); break;
+        case ERR_OFS_LEN_LIMIT_EXCEEDED:        fprintf( stdout, "Offset/Length exceeds limit\n" ); break;
+        case ERR_EXPECTED_OFS:                  fprintf( stdout, "Expected an address\n" ); break;
             
         case ERR_INVALID_CHAR_IN_TOKEN_LINE:    fprintf( stdout, "Invalid char in input line\n" ); break;
             
         case ERR_INVALID_EXPR:              fprintf( stdout, "Invalid expression\n" ); break;
         case ERR_EXPECTED_INSTR_OPT:        fprintf( stdout, "Expected the instructon options\n" );
         case ERR_INVALID_INSTR_OPT:         fprintf( stdout, "INvalid instruction option\n" ); break;
-        case  ERR_INSTR_HAS_NO_OPT:         fprintf( stdout, "Instruction has no option\n" ); break;
+        case ERR_INSTR_HAS_NO_OPT:          fprintf( stdout, "Instruction has no option\n" ); break;
         case ERR_EXPECTED_SR1_SR3:          fprintf( stdout, "Expected SR1 .. SR3 as segment register\n" ); break;
         case ERR_EXPECTED_LOGICAL_ADR:      fprintf( stdout, "Expected a logical address\n" ); break;
         case ERR_IMM_VAL_RANGE:             fprintf( stdout, "Immediate value out of range\n" ); break;
         case ERR_INVALID_INSTR_MODE:        fprintf( stdout, "Invalid adr mode for instruction\n" ); break;
         case ERR_INSTR_MODE_OPT_COMBO:      fprintf( stdout, "Invalid opCode data width specifier for mode option\n" ); break;
         case ERR_POS_VAL_RANGE:             fprintf( stdout, "Bit position value out of range\n" ); break;
-        case ERR_LEN_VAL_RANGE:             fprintf( stdout, "Bitg field lenth value out of range\n" ); break;
+        case ERR_LEN_VAL_RANGE:             fprintf( stdout, "Bit field length value out of range\n" ); break;
             
         case ERR_EXPECTED_AN_OFFSET_VAL:    fprintf( stdout, "Excpected an offset valuen\n" ); break;
         case ERR_OFFSET_VAL_RANGE:          fprintf( stdout, "Offset value out of range\n" ); break;
@@ -436,10 +475,13 @@ ErrMsgId cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
         case ERR_TLB_ACC_DATA:              fprintf( stdout, "Invalid TLB insert access data\n" ); break;
         case ERR_TLB_ADR_DATA:              fprintf( stdout, "Invalid TLB insert address data\n" ); break;
         case ERR_TLB_NOT_CONFIGURED:        fprintf( stdout, "TLB type not configured\n" ); break;
+        case ERR_TLB_SIZE_EXCEEDED:         fprintf( stdout, "TLB size exceeded\n" ); break;
             
         case ERR_CACHE_TYPE:                fprintf( stdout, "Expected a cache type\n" ); break;
         case ERR_CACHE_PURGE_OP:            fprintf( stdout, "Purge from cache operation error\n" ); break;
         case ERR_CACHE_NOT_CONFIGURED:      fprintf( stdout, "Cache type not configured\n" ); break;
+        case ERR_CACHE_SIZE_EXCEEDED:       fprintf( stdout, "Cache size exceeded\n" ); break;
+        case ERR_CACHE_SET_NUM:             fprintf( stdout, "Invalid cache set\n" ); break;
             
         case ERR_UNEXPECTED_EOS:            fprintf( stdout, "Unexpectedd end of command line\n" ); break;
             
@@ -775,6 +817,7 @@ bool DrvCmds::readInputLine( char *cmdBuf ) {
 // "EXEC-F" command and also as the handler for the program argument option to execute a file before entering
 // the command loop.
 //
+// ??? which error would we like to report here vs. pass on to outer command loop ?
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::execCmdsFromFile( char* fileName ) {
     
@@ -889,7 +932,7 @@ void DrvCmds::envCmd( ) {
     else if ( glb -> tok -> tokTyp( ) == TYP_IDENT ) {
         
         DrvExpr rExpr;
-        char    envName[ 32 ]; // ??? fix
+        char    envName[ MAX_ENV_NAME_SIZE ];
         
         strcpy( envName, glb -> tok -> tokStr( ));
         upshiftStr( envName );
@@ -940,10 +983,7 @@ void DrvCmds::execFileCmd( ) {
         
         execCmdsFromFile( glb -> tok -> tokStr( ));
     }
-    else {
-        
-        cmdLineError( NO_ERR, (char *) "Expected a file path" );
-    }
+    else throw( ERR_EXPECTED_FILE_NAME );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1008,10 +1048,10 @@ void DrvCmds::resetCmd( ) {
               
             } break;
                 
-            default: fprintf( stdout, "Invalid option, use help\n" );
+            default: throw ( ERR_INVALID_ARG );
         }
     }
-    else fprintf( stdout, "Invalid option, use help\n" );
+    else throw ( ERR_INVALID_ARG );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1022,12 +1062,6 @@ void DrvCmds::resetCmd( ) {
 void DrvCmds::runCmd( ) {
     
     fprintf( stdout, "RUN command to come ... \n" );
-    
-    // ??? idea: detect a "B 0" instruction. This is an endless loop to itself.
-    // ??? drain the pipeline ?
-    
-    // ??? we could also have the trap handlers use this mechanism...
-    
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1059,8 +1093,8 @@ void DrvCmds::stepCmd( ) {
     
     checkEOS( );
     
-    if ( glb -> env -> getEnvVarBool((char *) ENV_STEP_IN_CLOCKS ))     glb -> cpu -> clockStep( 1 );
-    else                                                                glb -> cpu -> instrStep( 1 );
+    if ( glb -> env -> getEnvVarBool((char *) ENV_STEP_IN_CLOCKS )) glb -> cpu -> clockStep( 1 );
+    else                                                            glb -> cpu -> instrStep( 1 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1114,9 +1148,9 @@ void DrvCmds::disAssembleCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::assembleCmd( ) {
     
-    int         rdx             = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-    uint32_t    instr           = 0;
-    char        asmStr[ 256 ]   = { 0 };
+    int         rdx                     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    uint32_t    instr                   = 0;
+    char        asmStr[ TOK_STR_SIZE ]  = { 0 };
     
     if ( glb -> tok -> tokId( ) == TOK_STR ) {
         
@@ -1179,11 +1213,8 @@ void DrvCmds::displayRegCmd( ) {
             regId       = glb -> tok -> tokId( );
             regNum      = glb -> tok -> tokVal( );
         }
-        else {
-            
-            fprintf( stdout, "Invalid register or register set\n" );
-        }
-   
+        else throw( ERR_EXPECTED_REG_OR_SET );
+        
         if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
             
             glb -> tok -> nextToken( );
@@ -1246,7 +1277,7 @@ void DrvCmds::displayRegCmd( ) {
                 if ( regId == UC_L2_SET ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> uCacheL2, rdx );
                 else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_UC_L2_OBJ, regNum ), rdx );
             }
-            else fprintf( stdout, "L2 cache not configured \n" );
+            else throw ( ERR_CACHE_NOT_CONFIGURED );
             
         } break;
             
@@ -1324,11 +1355,7 @@ void DrvCmds::modifyRegCmd( ) {
     }
     else throw ( ERR_INVALID_REG_ID );
     
-    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
-        
-        fprintf( stdout, "Expected a value\n" );
-    }
-    
+    if ( glb -> tok -> tokId( ) == TOK_EOS ) throw( ERR_EXPECTED_NUMERIC );
     glb -> eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) val = rExpr.numVal;
@@ -1348,7 +1375,7 @@ void DrvCmds::modifyRegCmd( ) {
         case TYP_ITLB_REG:      glb -> cpu -> setReg( RC_ITLB_OBJ, regNum, val );       break;
         case TYP_DTLB_REG:      glb -> cpu -> setReg( RC_DTLB_OBJ, regNum, val );       break;
             
-        default:  fprintf( stdout, "Invalid Reg Set for operation\n" );
+        default: throw( ERR_EXPECTED_REG_SET );
     }
 }
 
@@ -1357,6 +1384,8 @@ void DrvCmds::modifyRegCmd( ) {
 // We will use the iTlb hash function for this command.
 //
 // HVA <seg>.<ofs>
+//
+// ??? this command could be come a function. But then we would need a way to display function rsults...
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::hashVACmd( ) {
     
@@ -1451,11 +1480,7 @@ void DrvCmds::displayTLBCmd( ) {
         else throw ( ERR_INVALID_FMT_OPT );
     }
     
-    if (( index > tlbSize ) || ( index + len > tlbSize )) {
-        
-        fprintf( stdout, "Index / Len exceed TLB size\n" );
-    }
-    
+    if (( index > tlbSize ) || ( index + len > tlbSize )) throw ( ERR_TLB_SIZE_EXCEEDED );
     if (( index == 0 ) && ( len == 0 )) len = tlbSize;
     
     if      ( tlbTypeId == TOK_I ) glb -> lineDisplay -> displayTlbEntries( glb -> cpu -> iTlb, index, len, rdx );
@@ -1599,7 +1624,6 @@ void DrvCmds::displayCacheCmd( ) {
     else {
         
         DrvExpr rExpr;
-        
         glb -> eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) {
@@ -1607,10 +1631,7 @@ void DrvCmds::displayCacheCmd( ) {
             index = rExpr.numVal;
             if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
         }
-        else {
-            
-            printf( "Expected the start index\n" );
-        }
+        else throw ( ERR_EXPECTED_NUMERIC );
     }
     
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
@@ -1629,10 +1650,7 @@ void DrvCmds::displayCacheCmd( ) {
             len = rExpr.numVal;
             if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
         }
-        else {
-            
-            printf( "Expected number of entries\n" );
-        }
+        else throw ( ERR_EXPECTED_NUMERIC );
     }
     
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
@@ -1652,11 +1670,8 @@ void DrvCmds::displayCacheCmd( ) {
         else throw ( ERR_INVALID_FMT_OPT );
     }
     
-    if (( index > cacheSize ) || ( index + len > cacheSize )) {
-        
-        fprintf( stdout, "Index / Len exceed Cache size\n" );
-    }
-    
+    if (( index > cacheSize ) || ( index + len > cacheSize )) throw( ERR_CACHE_SIZE_EXCEEDED );
+   
     if (( index == 0 ) && ( len == 0 )) len = cacheSize;
   
     if ( cPtr != nullptr ) {
@@ -1665,7 +1680,7 @@ void DrvCmds::displayCacheCmd( ) {
         
         if (( index > blockEntries ) || ( index + len > blockEntries )) {
             
-            fprintf( stdout, "Index / Len exceed cache size\n" );
+            throw( ERR_CACHE_SIZE_EXCEEDED );
         }
         
         if (( index == 0 ) && ( len == 0 )) len = blockEntries;
@@ -1687,8 +1702,6 @@ void DrvCmds::purgeCacheCmd( ) {
     uint32_t    cacheSize       = 0;
     CpuMem      *cPtr           = nullptr;
     uint32_t    index           = 0;
-    uint32_t    len             = 0;
-    int         rdx             = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     uint32_t    set             = 0;
    
     if ( glb -> tok -> tokId( ) == TOK_I ) {
@@ -1733,29 +1746,19 @@ void DrvCmds::purgeCacheCmd( ) {
             index = rExpr.numVal;
             if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
         }
-        else {
-            
-            printf( "Expected the start index\n" );
-        }
+        else throw (ERR_EXPECTED_NUMERIC );
     }
-    
-    
-    // ??? fix from here ....
-    
     
     if ( cPtr != nullptr ) {
         
-        if ( set > cPtr -> getBlockSets( ) - 1 ) {
-            
-            fprintf( stdout, "Invalid cache set number\n" );
-        }
+        if ( set > cPtr -> getBlockSets( ) - 1 ) throw ( ERR_CACHE_SET_NUM );
         
         MemTagEntry  *tagEntry = cPtr -> getMemTagEntry( index, set );
         if ( tagEntry != nullptr ) {
             
             tagEntry -> valid = false;
         }
-        else fprintf( stdout, "Cache Operation failed\n" );
+        else throw ( ERR_CACHE_PURGE_OP );
     }
 }
 
@@ -1775,6 +1778,7 @@ void DrvCmds::displayAbsMemCmd( ) {
     uint32_t    ofs     = 0;
     uint32_t    len     = 1;
     int         rdx     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    bool        asCode  = false;
     
     glb -> eval -> parseExpr( &rExpr );
     
@@ -1802,7 +1806,7 @@ void DrvCmds::displayAbsMemCmd( ) {
         }
         else if ( glb -> tok -> tokId( ) == TOK_CODE ) {
             
-            rdx = 100; // ??? quick hack .... fix....
+            asCode = true;
         }
         else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
             
@@ -1817,11 +1821,10 @@ void DrvCmds::displayAbsMemCmd( ) {
         
     if (((uint64_t) ofs + len ) <= UINT32_MAX ) {
         
-        if ( rdx == 100 ) {
+        if ( asCode ) {
             
-            glb -> lineDisplay -> displayAbsMemContentAsCode( ofs,
-                                                              len,
-                                                              glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+            glb -> lineDisplay -> displayAbsMemContentAsCode( ofs, len,
+                                                glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
         }
         else glb -> lineDisplay -> displayAbsMemContent( ofs, len, rdx );
     }
@@ -2443,10 +2446,8 @@ void  DrvCmds::winToggleCmd( ) {
     
     if ( glb -> tok -> tokTyp( ) == TYP_NUM ) {
         
-        if ( ! glb -> winDisplay -> validWindowNum( glb -> tok -> tokVal( )))
-            throw ( ERR_INVALID_WIN_ID );
-        
-            glb -> winDisplay -> windowToggle( glb -> tok -> tokVal( ));
+        if ( ! glb -> winDisplay -> validWindowNum( glb -> tok -> tokVal( ))) throw ( ERR_INVALID_WIN_ID );
+        glb -> winDisplay -> windowToggle( glb -> tok -> tokVal( ));
     }
     else throw ( ERR_EXPECTED_WIN_ID );
 }
@@ -2463,9 +2464,7 @@ void DrvCmds::winExchangeCmd( ) {
     
     if ( glb -> tok -> tokTyp( ) == TYP_NUM ) {
         
-        if ( ! glb -> winDisplay -> validWindowNum( glb -> tok -> tokVal( )))
-            throw ( ERR_INVALID_WIN_ID );
-        
+        if ( ! glb -> winDisplay -> validWindowNum( glb -> tok -> tokVal( ))) throw ( ERR_INVALID_WIN_ID );
         glb -> winDisplay -> windowExchangeOrder( glb -> tok -> tokVal( ));
     }
     else throw ( ERR_EXPECTED_WIN_ID );
@@ -2482,10 +2481,9 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
         
         if ( strlen( cmdBuf ) > 0 ) {
             
-            if ( glb -> tok -> setupTokenizer( cmdBuf, (DrvToken *) cmdTokTab ) != NO_ERR )
-                throw ( ERR_INVALID_CMD );
-            
+            glb -> tok -> setupTokenizer( cmdBuf, (DrvToken *) cmdTokTab );
             glb -> tok -> nextToken( );
+            
             if (  ! glb -> tok -> isTokenTyp( TYP_CMD )) throw ( ERR_INVALID_CMD );
             
             TokId cmdId = glb -> tok -> tokId( );
@@ -2494,7 +2492,7 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
             
             switch( cmdId ) {
                     
-                case TOK_NIL:           break;
+                case TOK_NIL:                                           break;
                 case CMD_EXIT:          exitCmd( );                     break;
                 case CMD_HELP:          helpCmd( );                     break;
                 case CMD_WHELP:         winHelpCmd( );                  break;

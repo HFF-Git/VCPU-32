@@ -23,7 +23,7 @@
 #ifndef VCPU32Version_hpp
 #define VCPU32Version_hpp
 
-const char VERSION[ ]       = "B.00.07";
+const char VERSION[ ]       = "B.00.08";
 const char GIT_BRANCH[ ]    = "Main Branch";
 const int  PATCH_LEVEL      = 1;
 
