@@ -6,7 +6,8 @@
 // The one line assembler assembles an instruction without further context. It is intended to for testing
 // instructions in the simulator. There is no symbol table or any concept of assembling multiple instructions.
 // The instruction to generate test is completely self sufficient. The parser is a straightforward recursive
-// descendant parser, LL1 grammar.
+// descendant parser, LL1 grammar. It uses the C++ try / catch to esape when an error is detected. Considering
+// that we only have one line to parse, there is no need to implement a beter parser error recovery method.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -331,13 +332,13 @@ bool isInRangeForBitFieldU( uint32_t val, uint8_t bitLen ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "parserError" is a little helper that prints out the error encountered. We will print the original
-// input line, a caret marker where we found the error, and then return a false. Parsing errors typically
-// result in aborting the parsing process. As this is a one line assembly, we do not need to be put effort
-// into continuing reasonably with the parsing process.
+// "asmError" is a little helper that prints out the error encountered. We will print the original input
+// line, a caret marker where we found the error, and then return a false. Errors typically result in aborting
+// the parsing process. As this is a one line assembly, we do not need to be put effort into teh parser for
+// continuing reasonably with the parsing process.
 //
 //------------------------------------------------------------------------------------------------------------
-bool parserError( char *errStr ) {
+ErrMsgId asmError( ErrMsgId errNum ) {
     
     fprintf( stdout, "%s\n", tok -> tokenLineStr( ));
     
@@ -350,8 +351,10 @@ bool parserError( char *errStr ) {
         i ++;
     }
     
-    fprintf( stdout, "^\n" "%s\n", errStr );
-    return( false );
+    fprintf( stdout, "Error: %d\n", errNum );
+   // fprintf( stdout, "^\n" "%s\n", errStr );
+  
+    return( errNum );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -359,51 +362,35 @@ bool parserError( char *errStr ) {
 // assembly line.
 //
 //------------------------------------------------------------------------------------------------------------
-bool checkEOS( ) {
+void checkEOS( ) {
     
-    if ( tok -> isToken( TOK_EOS )) return( true );
-    else return( parserError((char *) "Extra tokens in the assembler line" ));
+    if ( ! tok -> isToken( TOK_EOS )) throw( ERR_EXTRA_TOKEN_IN_STR );
 }
 
-//------------------------------------------------------------------------------------------------------------
-// Quite often the syntax has a construct that test the token and if correct get the next one.
-//
-//------------------------------------------------------------------------------------------------------------
-bool acceptComma( ) {
+void acceptComma( ) {
     
-    if ( tok -> isToken( TOK_COMMA )) {
-        
-        tok -> nextToken( );
-        return( true );
-    }
-    else return( parserError((char *) "Expected a comma" ));
+    if ( tok -> isToken( TOK_COMMA )) tok -> nextToken( );
+    else throw( ERR_EXPECTED_COMMA );
 }
 
-bool acceptLparen( ) {
+void acceptLparen( ) {
     
-    if ( tok -> isToken( TOK_LPAREN )) {
-        
-        tok -> nextToken( );
-        return( true );
-    }
-    else return( parserError((char *) "Expected a left paren" ));
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
+    else throw( ERR_EXPECTED_LPAREN );
 }
 
-bool acceptRparen( ) {
+void acceptRparen( ) {
     
-    if ( tok -> isToken( TOK_RPAREN )) {
-        
-        tok -> nextToken( );
-        return( true );
-    }
-    else return( parserError((char *) "Expected a right paren" ));
+    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
+    else throw( ERR_EXPECTED_RPAREN );
 }
+
 
 //------------------------------------------------------------------------------------------------------------
 // "parseExpr" needs to be declared forward.
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseExpr( DrvExpr *rExpr );
+void parseExpr( DrvExpr *rExpr );
 
 //------------------------------------------------------------------------------------------------------------
 // "parseFactor" parses the factor syntax part of an expression.
@@ -417,45 +404,39 @@ bool parseExpr( DrvExpr *rExpr );
 //                  "(" <expr> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseFactor( DrvExpr *rExpr ) {
+void parseFactor( DrvExpr *rExpr ) {
     
     rExpr -> typ  = TYP_NIL;
     rExpr -> numVal = 0;
 
-   
     if ( tok -> isTokenTyp( TYP_NUM ))  {
         
         rExpr -> typ = TYP_NUM;
         rExpr -> numVal = tok -> tokVal( );
         tok -> nextToken( );
-        return( true );
     }
     else  if ( tok -> isTokenTyp( TYP_GREG ))  {
         
         rExpr -> typ = TYP_GREG;
         rExpr -> numVal = tok -> tokVal( );
         tok -> nextToken( );
-        return( true );
     }
     else  if ( tok -> isTokenTyp( TYP_SREG ))  {
         
         rExpr -> typ = TYP_SREG;
         rExpr -> numVal = tok -> tokVal( );
         tok -> nextToken( );
-        return( true );
     }
     else  if ( tok -> isTokenTyp( TYP_CREG ))  {
         
         rExpr -> typ = TYP_CREG;
         rExpr -> numVal = tok -> tokVal( );
         tok -> nextToken( );
-        return( true );
     }
     else if ( tok -> isToken( TOK_NEG )) {
         
         parseFactor( rExpr );
         rExpr -> numVal = ~ rExpr -> numVal;
-        return( true );
     }
     else if ( tok -> isToken( TOK_LPAREN )) {
         
@@ -465,15 +446,14 @@ bool parseFactor( DrvExpr *rExpr ) {
             rExpr -> typ    = TYP_EXT_ADR;
             rExpr -> sReg   = tok -> tokVal( );
             
-            tok -> nextToken( );
-            if ( ! acceptComma( )) return( false );
-           
+            acceptComma( );
+            
             if ( tok -> isTokenTyp( TYP_GREG )) {
                 
                 rExpr -> gReg = tok -> tokVal( );
                 tok -> nextToken( );
             }
-            else return( parserError((char *) "Expected a general reg" ));
+            else throw( ERR_EXPECTED_GENERAL_REG );
         }
         else if ( tok -> isTokenTyp( TYP_GREG )) {
             
@@ -481,18 +461,17 @@ bool parseFactor( DrvExpr *rExpr ) {
             rExpr -> numVal = tok -> tokVal( );
             tok -> nextToken( );
         }
-        else if ( ! parseExpr( rExpr )) return( false );
+        else parseExpr( rExpr );
         
-        if ( ! acceptRparen( )) return( false );
-        return( true );
+        acceptRparen( );
     }
     else {
-        
-        parserError((char *) "Invalid factor in expression" );
+                
         rExpr -> typ    = TYP_NUM;
-        rExpr -> numVal   = 0;
+        rExpr -> numVal = 0;
         tok -> nextToken( );
-        return( false );
+        
+        throw ( ERR_INVALID_EXPR );
     }
 }
 
@@ -503,12 +482,11 @@ bool parseFactor( DrvExpr *rExpr ) {
 //      <termOp>    ->  "*" | "/" | "%" | "&"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseTerm( DrvExpr *rExpr ) {
+void parseTerm( DrvExpr *rExpr ) {
     
     DrvExpr lExpr;
-    bool rStat;
     
-    rStat = parseFactor( rExpr );
+    parseFactor( rExpr );
     
     while (( tok -> tokId( ) == TOK_MULT )   ||
            ( tok -> tokId( ) == TOK_DIV  )   ||
@@ -518,12 +496,9 @@ bool parseTerm( DrvExpr *rExpr ) {
         uint8_t op = tok -> tokId( );
         
         tok -> nextToken( );
-        rStat = parseFactor( &lExpr );
+        parseFactor( &lExpr );
         
-        if ( rExpr -> typ != lExpr.typ ) {
-            
-            return ( parserError((char *) "Expression type mismatch" ));
-        }
+        if ( rExpr -> typ != lExpr.typ ) throw ( ERR_EXPR_TYPE_MATCH );
        
         switch( op ) {
                 
@@ -533,8 +508,6 @@ bool parseTerm( DrvExpr *rExpr ) {
             case TOK_AND:    rExpr -> numVal = rExpr -> numVal & lExpr.numVal; break;
         }
     }
-    
-    return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -545,30 +518,26 @@ bool parseTerm( DrvExpr *rExpr ) {
 //      <exprOp>    ->  "+" | "-" | "|" | "^"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseExpr( DrvExpr *rExpr ) {
+void parseExpr( DrvExpr *rExpr ) {
     
     DrvExpr lExpr;
-    bool rStat;
     
     if ( tok -> isToken( TOK_PLUS )) {
         
         tok -> nextToken( );
-        rStat = parseTerm( rExpr );
+        parseTerm( rExpr );
         
-        if ( ! ( rExpr -> typ == TYP_NUM )) {
-            
-            return( parserError((char *) "Expected a numeric constant" ));
-        }
+        if ( ! ( rExpr -> typ == TYP_NUM )) throw ( ERR_EXPECTED_NUMERIC );
     }
     else if ( tok -> isToken( TOK_MINUS )) {
         
         tok -> nextToken( );
-        rStat = parseTerm( rExpr );
+        parseTerm( rExpr );
         
         if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal = - rExpr -> numVal;
-        else return( parserError((char *) "Expected a numeric constant" ));
+        else throw( ERR_EXPECTED_NUMERIC );
     }
-    else rStat = parseTerm( rExpr );
+    else parseTerm( rExpr );
     
     while (( tok -> tokId( ) == TOK_PLUS    ) ||
            ( tok -> tokId( ) == TOK_MINUS   ) ||
@@ -578,12 +547,9 @@ bool parseExpr( DrvExpr *rExpr ) {
         uint8_t op = tok -> tokId( );
         
         tok -> nextToken( );
-        rStat = parseTerm( &lExpr );
+        parseTerm( &lExpr );
         
-        if ( rExpr -> typ != lExpr.typ ) {
-            
-            return ( parserError((char *) "Expression type mismatch" ));
-        }
+        if ( rExpr -> typ != lExpr.typ ) throw ( ERR_EXPR_TYPE_MATCH );
         
         switch ( op ) {
                 
@@ -593,8 +559,6 @@ bool parseExpr( DrvExpr *rExpr ) {
             case TOK_XOR:    rExpr -> numVal = rExpr -> numVal ^ lExpr.numVal; break;
         }
     }
-    
-    return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -603,14 +567,10 @@ bool parseExpr( DrvExpr *rExpr ) {
 // also cases where the only option is a multi-character sequence. We detect invalid options but not when
 // the same option is repeated. E.g. a "LOL" will result in "L" and "O" set.
 //
-// ??? rework a little. The period is separate from this string...
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
+void parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
     
-    if ( ! tok -> isToken( TOK_IDENT )) {
-        
-        return( parserError((char *) "Expected the option qualifier(s)" ));
-    }
+    if ( ! tok -> isToken( TOK_IDENT )) throw ( ERR_EXPECTED_INSTR_OPT );
     
     char *optBuf = tok -> tokStr( );
     
@@ -622,7 +582,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
         case OP_STA:  {
             
             if ( optBuf[ 0 ] == 'M' ) setBit( instr, 11 );
-            else return( parserError((char *) "Invalid instruction option" ));
+            else throw ( ERR_INVALID_INSTR_OPT );
             
         } break;
             
@@ -635,7 +595,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
                 
                 if      ( optBuf[ i ] == 'L' ) setBit( instr, 10 );
                 else if ( optBuf[ i ] == 'O' ) setBit( instr, 11 );
-                else return( parserError((char *) "Invalid instruction option" ));
+                else throw ( ERR_INVALID_INSTR_OPT );
             }
             
         } break;
@@ -647,7 +607,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
                 
                 if      ( optBuf[ i ] == 'N' ) setBit( instr, 10 );
                 else if ( optBuf[ i ] == 'C' ) setBit( instr, 11 );
-                else return( parserError((char *) "Invalid instruction option" ));
+                else throw ( ERR_INVALID_INSTR_OPT );
             }
             
         } break;
@@ -655,7 +615,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
         case OP_XOR: {
             
             if ( optBuf[ 0 ] == 'N' ) setBit( instr, 10 );
-            else return( parserError((char *) "Invalid instruction option" ));
+            else throw ( ERR_INVALID_INSTR_OPT );
             
         } break;
             
@@ -666,7 +626,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
             else if ( strcmp( optBuf, ((char *) "LT" )) == 0 ) setBitField( instr, 11, 2, 1 );
             else if ( strcmp( optBuf, ((char *) "NE" )) == 0 ) setBitField( instr, 11, 2, 2 );
             else if ( strcmp( optBuf, ((char *) "LE" )) == 0 ) setBitField( instr, 11, 2, 3 );
-            else return( parserError((char *) "Invalid compare option" ));
+            else throw ( ERR_INVALID_INSTR_OPT );
 
         } break;
             
@@ -677,7 +637,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
             else if ( strcmp( optBuf, ((char *) "LT" )) == 0 ) setBitField( instr, 7, 2, 1 );
             else if ( strcmp( optBuf, ((char *) "NE" )) == 0 ) setBitField( instr, 7, 2, 2 );
             else if ( strcmp( optBuf, ((char *) "LE" )) == 0 ) setBitField( instr, 7, 2, 3 );
-            else return( parserError((char *) "Invalid compare option" ));
+            else throw ( ERR_INVALID_INSTR_OPT );
 
         } break;
             
@@ -691,7 +651,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
             else if ( strcmp( optBuf, ((char *) "LE" )) == 0 ) setBitField( instr, 13, 4, 5 );
             else if ( strcmp( optBuf, ((char *) "GE" )) == 0 ) setBitField( instr, 13, 4, 6 );
             else if ( strcmp( optBuf, ((char *) "OD" )) == 0 ) setBitField( instr, 13, 4, 7 );
-            else return( parserError((char *) "Invalid test option" ));
+            else throw ( ERR_INVALID_INSTR_OPT );
             
         } break;
             
@@ -701,7 +661,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
                 
                 if      ( optBuf[ i ] == 'S' ) setBit( instr, 10 );
                 else if ( optBuf[ i ] == 'A' ) setBit( instr, 11 );
-                else return( parserError((char *) "Invalid instruction option" ));
+                else throw ( ERR_INVALID_INSTR_OPT );
             }
             
         } break;
@@ -713,7 +673,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
                 if      ( optBuf[ i ] == 'Z' ) setBit( instr, 10 );
                 else if ( optBuf[ i ] == 'A' ) setBit( instr, 11 );
                 else if ( optBuf[ i ] == 'I' ) setBit( instr, 12 );
-                else return( parserError((char *) "Invalid instruction option" ));
+                else throw ( ERR_INVALID_INSTR_OPT );
             }
             
         } break;
@@ -721,7 +681,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
         case OP_DSR: {
             
             if ( optBuf[ 0 ] == 'A' ) setBit( instr, 11 );
-            else return( parserError((char *) "Invalid instruction option" ));
+            else throw ( ERR_INVALID_INSTR_OPT );
             
         } break;
             
@@ -732,7 +692,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
                 if      ( optBuf[ i ] == 'I' ) setBit( instr, 10 );
                 else if ( optBuf[ i ] == 'L' ) setBit( instr, 11 );
                 else if ( optBuf[ i ] == 'O' ) setBit( instr, 12 );
-                else return( parserError((char *) "Invalid instruction option" ));
+                else throw ( ERR_INVALID_INSTR_OPT );
             }
             
         } break;
@@ -743,7 +703,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
                 
                 if      ( optBuf[ i ] == 'D' ) setBit( instr, 10 );
                 else if ( optBuf[ i ] == 'M' ) setBit( instr, 11 );
-                else return( parserError((char *) "Invalid instruction option" ));
+                else throw ( ERR_INVALID_INSTR_OPT );
             }
             
         } break;
@@ -754,7 +714,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
                 
                 if      ( optBuf[ i ] == 'S' ) setImmValU( instr, 11, 2, 1 );
                 else if ( optBuf[ i ] == 'C' ) setImmValU( instr, 11, 2, 2 );
-                else return( parserError((char *) "Invalid instruction option" ));
+                else throw ( ERR_INVALID_INSTR_OPT );
             }
     
         } break;
@@ -765,7 +725,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
                 
                 if      ( optBuf[ i ] == 'W' ) setBit( instr, 10 );
                 else if ( optBuf[ i ] == 'I' ) setBit( instr, 11 );
-                else return( parserError((char *) "Invalid instruction option" ));
+                else throw ( ERR_INVALID_INSTR_OPT );
             }
             
         } break;
@@ -773,7 +733,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
         case OP_ITLB: {
             
             if ( optBuf[ 0 ] == 'T' ) setBit( instr, 11 );
-            else return( parserError((char *) "Invalid instruction option" ));
+            else throw ( ERR_INVALID_INSTR_OPT );
             
         } break;
             
@@ -783,7 +743,7 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
                 
                 if      ( optBuf[ i ] == 'T' ) setBit( instr, 10 );
                 else if ( optBuf[ i ] == 'M' ) setBit( instr, 11 );
-                else return( parserError((char *) "Invalid instruction option" ));
+                else throw ( ERR_INVALID_INSTR_OPT );
             }
             
         } break;
@@ -795,16 +755,15 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
                 if      ( optBuf[ i ] == 'T' ) setBit( instr, 10 );
                 else if ( optBuf[ i ] == 'M' ) setBit( instr, 11 );
                 else if ( optBuf[ i ] == 'F' ) setBit( instr, 14 );
-                else return( parserError((char *) "Invalid instruction option" ));
+                else throw ( ERR_INVALID_INSTR_OPT );
             }
             
         } break;
             
-        default: return( parserError((char *) "Instruction has no option" ));
+        default: throw ( ERR_INSTR_HAS_NO_OPT );
     }
     
     tok -> nextToken( );
-    return( true );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -813,26 +772,24 @@ bool parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
 //      "(" [ <segReg> "," ] <ofsReg> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseLogicalAdr( uint32_t *instr, uint32_t flags ) {
+void parseLogicalAdr( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
-    
-    if ( ! parseExpr( &rExpr )) return( false );
-        
+   
+    parseExpr( &rExpr );
+   
     if ( rExpr.typ == TYP_EXT_ADR ) {
         
         setBitField( instr, 31, 4, rExpr.gReg );
         
         if ( isInRange( rExpr.sReg, 1, 3 )) setBitField( instr, 13, 2, rExpr.sReg );
-        else return( parserError((char *) "Expected SR1 .. SR3 " ));
+        else throw ( ERR_EXPECTED_SR1_SR3 );
     }
     else if ( rExpr.typ == TYP_ADR ) {
         
         setBitField( instr, 31, 4, rExpr.adr );
     }
-    else return( parserError((char *) "Expected a logical address" ));
-    
-    return( true );
+    else throw ( ERR_EXPECTED_LOGICAL_ADR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -849,32 +806,32 @@ bool parseLogicalAdr( uint32_t *instr, uint32_t flags ) {
 // <storeInstr> [ "." <opt> ] <targetOperand>   "," <sourceReg>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
+void parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    DrvExpr  rExpr;
     
     if      ( flags & TF_BYTE_INSTR ) setBitField( instr, 15, 2, 0 );
     else if ( flags & TF_HALF_INSTR ) setBitField( instr, 15, 2, 1 );
     else if ( flags & TF_WORD_INSTR ) setBitField( instr, 15, 2, 2 );
   
-    if ( ! parseExpr( &rExpr )) return( false );
-    
+    parseExpr( &rExpr );
+   
     if ( rExpr.typ == TYP_NUM ) {
         
         if ( isInRangeForBitField( rExpr.numVal, 12 )) setImmVal( instr, 27, 12, rExpr.numVal );
-        else return( parserError((char *) "Immediate value out of range" ));
-        
-        if ( ! parseExpr( &rExpr )) return( false );
+        else throw ( ERR_IMM_VAL_RANGE );
+            
+        parseExpr( &rExpr );
     }
     else if ( rExpr.typ == TYP_GREG ) {
         
         if (( getBitField( *instr, 5, 6 ) == OP_LDR ) || ( getBitField( *instr, 5, 6 ) == OP_STC ))
-            return( parserError((char *) "Register based offset is not allowed for this instruction" ));
-        
+            throw ( ERR_INVALID_INSTR_MODE );
+            
         setBit( instr, 10 );
         setBitField( instr, 27, 4, rExpr.numVal );
         
-        if ( ! parseExpr( &rExpr )) return( false );
+        parseExpr( &rExpr );
     }
     
     if ( rExpr.typ == TYP_ADR ) {
@@ -885,18 +842,16 @@ bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
     else if ( rExpr.typ == TYP_EXT_ADR ) {
                     
         if (( getBitField( *instr, 5, 6 ) == OP_LDA ) || ( getBitField( *instr, 5, 6 ) == OP_STA )) {
-                    
-            return( parserError((char *) "Invalid address for instruction type" ));
+            
+            throw ( ERR_INVALID_INSTR_MODE );
         }
                 
         if ( isInRange( rExpr.sReg, 1, 3 )) setBitField( instr, 13, 2, rExpr.sReg );
-        else return( parserError((char *) "Expected SR1 .. SR3 " ));
-                    
+        else throw( ERR_EXPECTED_SR1_SR3 );
+        
         setBitField( instr, 31, 4, rExpr.gReg );
     }
-    else return( parserError((char *) "Expected an address" ));
-   
-    return( true );
+    else throw ( ERR_EXPECTED_LOGICAL_ADR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -909,10 +864,10 @@ bool parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
 //      opCode [ "." <opt> ] <targetReg> "," <indexReg> "(" <baseReg> ")"         - mode 2
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
+void parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
     
-    uint8_t targetRegId = 0;
-    DrvExpr    rExpr;
+    uint8_t     targetRegId = 0;
+    DrvExpr     rExpr;
    
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -920,33 +875,32 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
- 
-    if ( ! parseExpr( &rExpr )) return( false );
+    acceptComma( );
+    parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) {
      
         if ( tok -> isToken( TOK_EOS )) {
             
             if ( isInRangeForBitField( rExpr.numVal, 18 )) setImmVal( instr, 31, 18, rExpr.numVal );
-            else return( parserError((char *) "Immediate value out of range" ));
+            else throw ( ERR_IMM_VAL_RANGE );
         }
         else {
             
             if ( isInRangeForBitField( rExpr.numVal, 12 )) setImmVal( instr, 27, 12, rExpr.numVal );
-            else return( parserError((char *) "Immediate value out of range" ));
+            else throw ( ERR_IMM_VAL_RANGE );
             
-            if ( ! parseExpr( &rExpr )) return( false );
-            
+            parseExpr( &rExpr );
+        
             if ( rExpr.typ == TYP_ADR ) {
                 
                 setBitField( instr, 13, 2, 3 );
                 setBitField( instr, 31, 4, rExpr.numVal );
             }
-            else return( parserError((char *) "Expected an address" ));
-            
+            else throw ( ERR_EXPECTED_LOGICAL_ADR );
+               
             if      ( flags & TF_BYTE_INSTR ) setBitField( instr, 15, 2, 0 );
             else if ( flags & TF_HALF_INSTR ) setBitField( instr, 15, 2, 1 );
             else if ( flags & TF_WORD_INSTR ) setBitField( instr, 15, 2, 2 );
@@ -973,33 +927,34 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
                 setBitField( instr, 31, 4, tok -> tokVal( ));
                 tok -> nextToken( );
             }
-            else return( parserError((char *) "Expected a general reg" ));
+            else throw ( ERR_EXPECTED_GENERAL_REG );
         }
         else if ( tok -> isToken( TOK_LPAREN )) {
             
             setBitField( instr, 27, 4, rExpr.numVal );
             
-            if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_ADR )) {
+            parseExpr( &rExpr );
+            if ( rExpr.typ == TYP_ADR ) {
                 
                 setBitField( instr, 13, 2, 2 );
                 setBitField( instr, 31, 4, rExpr.numVal );
             }
-            else return( parserError((char *) "Expected a logical address" ));
+            else throw ( ERR_EXPECTED_LOGICAL_ADR );
             
             if      ( flags & TF_BYTE_INSTR ) setBitField( instr, 15, 2, 0 );
             else if ( flags & TF_HALF_INSTR ) setBitField( instr, 15, 2, 1 );
             else if ( flags & TF_WORD_INSTR ) setBitField( instr, 15, 2, 2 );
         }
     }
-    else return( parserError((char *) "Invalid operand" ));
+    else throw ( ERR_INVALID_INSTR_MODE );
     
     if (  getBitField( *instr, 13, 2 ) < 2 ) {
         
         if (( flags & TF_BYTE_INSTR ) || ( flags & TF_HALF_INSTR ))
-            return( parserError((char *) "Invalid opCode data width specifier for mode option" ));
+            throw ( ERR_INSTR_MODE_OPT_COMBO );
     }
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1008,25 +963,26 @@ bool parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
 //      <opCode> <targetReg> "," <sourceReg>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrLSID( uint32_t *instr, uint32_t flags ) {
+void parseInstrLSID( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_CLOSING_QUOTE );
     
-    if ( ! acceptComma( )) return( false );
-    
+    if ( tok -> isToken( TOK_COMMA )) tok -> nextToken( );
+    else throw ( ERR_EXPECTED_COMMA );
+               
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1040,7 +996,7 @@ bool parseInstrLSID( uint32_t *instr, uint32_t flags ) {
 //      DEP [ "." "AI" <opt> ]  <targetReg> "," <val> "," <len>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
+void parseInstrDEP( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
     
@@ -1049,18 +1005,18 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( ))      return( false );
-    if ( ! parseExpr( &rExpr )) return( false );
-    
+    acceptComma( );
+    parseExpr( &rExpr );
+
     if ( rExpr.typ == TYP_GREG ) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
-       
-        if ( ! acceptComma( ))      return( false );
-        if ( ! parseExpr( &rExpr )) return( false );
         
+        acceptComma( );
+        parseExpr( &rExpr );
+       
         if ( rExpr.typ == TYP_NUM ) {
             
             if ( isInRangeForBitFieldU( tok -> tokVal( ), 5 )) {
@@ -1068,21 +1024,22 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
                 if ( getBit( *instr, 11 ))  setBitField( instr, 21, 5, rExpr.numVal );
                 else                        setBitField( instr, 27, 5, rExpr.numVal );
             }
-            else return( parserError((char *) "Immediate value out of range" ));
+            else throw ( ERR_IMM_VAL_RANGE );
         }
-        else return( parserError((char *) "Expected a number" ));
+        else throw ( ERR_EXPECTED_NUMERIC );
         
         if ( ! getBit( *instr, 11 )) {
             
-            if ( ! acceptComma( ))      return( false );
-            if ( ! parseExpr( &rExpr )) return( false );
+            acceptComma( );
+            parseExpr( &rExpr );
+
             
             if ( rExpr.typ == TYP_NUM ) {
                 
                 if ( isInRangeForBitFieldU( rExpr.numVal, 5 )) setBitField( instr, 21, 5, rExpr.numVal );
-                else return( parserError((char *) "Immediate value out of range" ));
+                else throw ( ERR_IMM_VAL_RANGE );
             }
-            else return( parserError((char *) "Expected a number" ));
+            else throw ( ERR_EXPECTED_NUMERIC );
         }
     }
     else if ( rExpr.typ == TYP_NUM ) {
@@ -1090,33 +1047,34 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
         if ( getBit( *instr, 12 )) {
             
             if ( isInRangeForBitField( rExpr.numVal, 4 )) setBitField( instr, 31, 4, rExpr.numVal );
-            else return( parserError((char *) "Immediate value out of range" ));
+            else throw ( ERR_IMM_VAL_RANGE );
             
-            if ( ! acceptComma( )) return( false );
+            acceptComma( );
             
             if ( ! getBit( *instr, 11 )) {
                
                 if ( isInRangeForBitFieldU( tok -> tokVal( ), 5 )) setBitField( instr, 27, 5, tok -> tokVal( ));
-                else return( parserError((char *) "Pos value out of range" ));
+                else throw ( ERR_POS_VAL_RANGE );
                 
                 tok -> nextToken( );
-                if ( ! acceptComma( )) return( false );
+                if ( tok -> isToken( TOK_COMMA )) tok -> nextToken( );
+                else throw ( ERR_EXPECTED_COMMA );
             }
             
-            if ( ! parseExpr( &rExpr )) return( false );
-            
+            parseExpr( &rExpr );
+           
             if ( rExpr.typ == TYP_NUM ) {
                 
                 if ( isInRangeForBitFieldU( rExpr.numVal, 5 )) setBitField( instr, 21, 5, rExpr.numVal );
-                else return( parserError((char *) "Len value out of range" ));
+                else throw ( ERR_LEN_VAL_RANGE );
             }
-            else return( parserError((char *) "Expected a numeric value" ));
+            else throw ( ERR_EXPECTED_NUMERIC );
         }
-        else return( parserError((char *) "Expected a numeric value for the I-opt" ));
+        else throw ( ERR_EXPECTED_NUMERIC );
     }
-    else return( parserError((char *) "Expected a general register or a numeric value" ));
+    else throw ( ERR_EXPECTED_NUMERIC );
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1125,34 +1083,34 @@ bool parseInstrDEP( uint32_t *instr, uint32_t flags ) {
 //      DS <targetReg> "," <sourceRegA> "," <sourceRegB>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
+void parseInstrDS( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
-    
+    acceptComma( );
+   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
+    acceptComma( );
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1163,7 +1121,7 @@ bool parseInstrDS( uint32_t *instr, uint32_t flags ) {
 //      DSR [ ".“ "A"   ] <targetReg> "," <sourceRegA> "," <sourceRegB>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
+void parseInstrDSR( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
     
@@ -1172,40 +1130,40 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
+    acceptComma( );
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
+    acceptComma( );
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
     if ( ! getBit( *instr, 11 )) {
         
-        if ( ! acceptComma( ))      return( false );
-        if ( ! parseExpr( &rExpr )) return( false );
+        acceptComma( );
+        parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) {
             
             if ( isInRangeForBitFieldU( rExpr.numVal, 5 )) setBitField( instr, 21, 5, rExpr.numVal );
-            else return( parserError((char *) "Immediate value out of range" ));
+            else throw ( ERR_IMM_VAL_RANGE );
         }
-        else return( parserError((char *) "Expected a number" ));
+        else throw ( ERR_EXPECTED_NUMERIC );
     }
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1217,7 +1175,7 @@ bool parseInstrDSR( uint32_t *instr, uint32_t flags ) {
 //      EXTR "." "A" [ <opt> ]  <targetReg> "," <sourceReg> ", <len"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
+void parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
     
@@ -1226,19 +1184,19 @@ bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
-    
+    acceptComma( );
+   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( ))      return( false );
-    if ( ! parseExpr( &rExpr )) return( false );
+    acceptComma( );
+    parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) {
         
@@ -1247,27 +1205,27 @@ bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
             if ( getBit( *instr, 11 ))  setBitField( instr, 21, 5, rExpr.numVal );
             else                        setBitField( instr, 27, 5, rExpr.numVal );
         }
-        else return( parserError((char *) "Immediate value out of range" ));
+        else throw ( ERR_IMM_VAL_RANGE );
     }
-    else return( parserError((char *) "Expected a number" ));
+    else throw ( ERR_EXPECTED_NUMERIC );
     
     if ( ! getBit( *instr, 11 )) {
         
-        if ( ! acceptComma( ))      return( false );
-        if ( ! parseExpr( &rExpr )) return( false );
-        
+        acceptComma( );
+        parseExpr( &rExpr );
+       
         if ( rExpr.typ == TYP_NUM ) {
             
             if ( isInRangeForBitFieldU( rExpr.numVal, 5 )) {
                 
                 setBitField( instr, 21, 5, rExpr.numVal );
             }
-            else return( parserError((char *) "Immediate value out of range" ));
+            else throw ( ERR_IMM_VAL_RANGE );
         }
-        else return( parserError((char *) "Expected a number" ));
+        else throw ( ERR_EXPECTED_NUMERIC );
     }
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1277,62 +1235,60 @@ bool parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
 //      SHLA ".I" <targetReg> "," <sourceRegA> "," <val> "," <amt>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
+void parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
-    
+   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
-    
+    acceptComma( );
+   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( ))      return( false );
-    if ( ! parseExpr( &rExpr )) return( false );
-    
+    acceptComma( );
+    parseExpr( &rExpr );
+   
     if ( rExpr.typ == TYP_GREG ) {
         
-        if ( getBit( *instr, 10 )) return( parserError((char *) "Invalid option for register add" ));
+        if ( getBit( *instr, 10 )) throw ( ERR_INSTR_MODE_OPT_COMBO );
         else setBitField( instr, 31, 4, tok -> tokVal( ));
     }
     else if ( rExpr.typ == TYP_NUM ) {
         
         if ( getBit( *instr, 11 )) {
             
-            if ( ! isInRangeForBitFieldU( rExpr.numVal, 4 ))
-                return( parserError((char *) "Immediate value out of range"));
+            if ( ! isInRangeForBitFieldU( rExpr.numVal, 4 )) throw ( ERR_IMM_VAL_RANGE );
         }
         else {
             
-            if ( ! isInRangeForBitField( rExpr.numVal, 4 ))
-                return( parserError((char *) "Immediate value out of range"));
+            if ( ! isInRangeForBitField( rExpr.numVal, 4 )) throw ( ERR_IMM_VAL_RANGE );
         }
         
         setBitField( instr, 31, 4, rExpr.numVal );
     }
-    else return( parserError((char *) "Expected a general register or immediate value" ));
+    else throw ( ERR_EXPECTED_NUMERIC );
     
-    if ( ! acceptComma( ))      return( false );
-    if ( ! parseExpr( &rExpr )) return( false );
+    acceptComma( );
+    parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) {
         
         if ( isInRangeForBitFieldU( rExpr.numVal, 2 )) setBitField( instr, 21, 2, rExpr.numVal );
-        else return( parserError((char *) "Immediate value out of range" ));
+        else throw ( ERR_IMM_VAL_RANGE );
     }
-    else return( parserError((char *) "Expected the shift amount" ));
-    
-    return( checkEOS( ));
+    else throw ( ERR_EXPECTED_NUMERIC );
+       
+   checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1341,34 +1297,34 @@ bool parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
 //      CMR "." <cond> <targetReg> "," <regA> "," <regB>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrCMR( uint32_t *instr, uint32_t flags ) {
+void parseInstrCMR( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
+    acceptComma( );
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
-    
+    acceptComma( );
+   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1380,7 +1336,7 @@ bool parseInstrCMR( uint32_t *instr, uint32_t flags ) {
 //      ADDIL <sourceReg> "," <val>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
+void parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
     
@@ -1389,18 +1345,19 @@ bool parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
+    acceptComma( );
+    parseExpr( &rExpr );
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
+    if ( rExpr.typ == TYP_NUM ) {
 
         if ( isInRangeForBitFieldU( rExpr.numVal, 22 )) setImmValU( instr, 31, 22, rExpr.numVal  );
-        else return( parserError((char *) "Immediate value out of range" ));
+        else throw ( ERR_IMM_VAL_RANGE );
     }
-    else return( parserError((char *) "Expected a numeric expression" ));
+    else throw ( ERR_EXPECTED_NUMERIC );
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1409,38 +1366,38 @@ bool parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
 //      LDO <targetReg> "," [ <ofs> "," ] "(" <baseReg> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrLDO( uint32_t *instr, uint32_t flags ) {
+void parseInstrLDO( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
-    
+   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( ))      return( false );
-    if ( ! parseExpr( &rExpr )) return( false );
+    acceptComma( );
+    parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) {
         
         if ( isInRangeForBitField( rExpr.numVal, 18 )) setImmVal( instr, 27, 18, rExpr.numVal );
-        else return( parserError((char *) "Immediate value out of range" ));
+        else throw ( ERR_IMM_VAL_RANGE );
         
-        if ( ! parseExpr( &rExpr )) return( false );
+        parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_ADR ) setBitField( instr, 31, 4, rExpr.numVal );
-        else return( parserError((char *) "Expected the base register" ));
+        else throw ( ERR_EXPECTED_GENERAL_REG );
     }
     else if ( rExpr.typ == TYP_ADR ) {
         
         setImmVal( instr, 27, 18, 0 );
         setBitField( instr, 31, 4, rExpr.numVal );
     }
-    else return( parserError((char *) "Expected an offset or  left paren" ));
+    else throw ( ERR_EXPECTED_NUMERIC );
    
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1451,16 +1408,18 @@ bool parseInstrLDO( uint32_t *instr, uint32_t flags ) {
 //      GATE    <offset> [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
+void parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
+    parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_NUM ) {
         
         if ( isInRangeForBitField( rExpr.numVal, 22 )) setImmVal( instr, 31, 22, rExpr.numVal );
-        else return( parserError((char *) "Offset value out of range" ));
+        else throw ( ERR_OFFSET_VAL_RANGE );
     }
-    else return( parserError(( char *) "Expected an offset value" ));
+    else throw ( ERR_EXPECTED_AN_OFFSET_VAL );
     
     if ( tok -> isToken( TOK_COMMA )) {
         
@@ -1470,10 +1429,10 @@ bool parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
             setBitField( instr, 9, 4, tok -> tokVal( ));
             tok -> nextToken( );
         }
-        else return( parserError((char *) "Expected a general reg" ));
+        else throw ( ERR_EXPECTED_GENERAL_REG );
     }
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1483,19 +1442,19 @@ bool parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
 //      BR "(" <branchReg> ")" [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrBR( uint32_t *instr, uint32_t flags ) {
+void parseInstrBR( uint32_t *instr, uint32_t flags ) {
     
-    if ( ! acceptLparen( )) return( false );
+    acceptLparen( );
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ) );
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptRparen( )) return( false );
-    
+    acceptRparen( );
+   
     if ( tok -> isToken( TOK_COMMA )) {
         
         tok -> nextToken( );
@@ -1504,10 +1463,10 @@ bool parseInstrBR( uint32_t *instr, uint32_t flags ) {
             setBitField( instr, 9, 4, tok -> tokVal( ));
             tok -> nextToken( );
         }
-        else return( parserError((char *) "Expected a general register" ));
+        else throw ( ERR_EXPECTED_GENERAL_REG );
     }
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1517,19 +1476,19 @@ bool parseInstrBR( uint32_t *instr, uint32_t flags ) {
 //      BV "(" <targetAdrReg> ")" [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrBV( uint32_t *instr, uint32_t flags ) {
+void parseInstrBV( uint32_t *instr, uint32_t flags ) {
     
-    if ( ! acceptLparen( )) return( false );
-    
+    acceptLparen( );
+   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptRparen( )) return( false );
-    
+    acceptRparen( );
+   
     if ( tok -> isToken( TOK_COMMA )) {
         
         tok -> nextToken( );
@@ -1538,10 +1497,10 @@ bool parseInstrBV( uint32_t *instr, uint32_t flags ) {
             setBitField( instr, 31, 4, tok -> tokVal( ));
             tok -> nextToken( );
         }
-        else return( parserError((char *) "Expected a general register" ));
+        else throw ( ERR_EXPECTED_GENERAL_REG );
     }
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1552,18 +1511,18 @@ bool parseInstrBV( uint32_t *instr, uint32_t flags ) {
 //      BE [ <ofs> ] "(" <segReg> "," <ofsReg> ")" [ "," <retSeg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrBE( uint32_t *instr, uint32_t flags ) {
+void parseInstrBE( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
-    
-    if ( ! parseExpr( &rExpr )) return( false );
+   
+    parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) {
         
         if ( isInRangeForBitField( rExpr.numVal, 22 )) setImmVal( instr, 23, 14, rExpr.numVal );
-        else return( parserError((char *) "Immediate value out of range" ));
-        
-        if ( !parseExpr( &rExpr )) return( false );
+        else throw ( ERR_IMM_VAL_RANGE );
+           
+        parseExpr( &rExpr );
     }
     
     if ( rExpr.typ == TYP_EXT_ADR ) {
@@ -1571,7 +1530,7 @@ bool parseInstrBE( uint32_t *instr, uint32_t flags ) {
         setBitField( instr, 27, 4, rExpr.sReg );
         setBitField( instr, 31, 4, rExpr.gReg );
     }
-    else return( parserError((char *) "Expected a virtual address" ));
+    else throw ( ERR_EXPECTED_EXT_ADR );
     
     if ( tok -> isToken( TOK_COMMA )) {
         
@@ -1581,10 +1540,10 @@ bool parseInstrBE( uint32_t *instr, uint32_t flags ) {
             setBitField( instr, 9, 4, tok -> tokVal( ));
             tok -> nextToken( );
         }
-        else return( parserError((char *) "Expected a general register" ));
+        else throw ( ERR_EXPECTED_GENERAL_REG );
     }
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1594,7 +1553,7 @@ bool parseInstrBE( uint32_t *instr, uint32_t flags ) {
 //      BVE [ <offsetReg> ] "(" <baseReg> ")" [ "," <returnReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrBVE( uint32_t *instr, uint32_t flags ) {
+void parseInstrBVE( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
     
@@ -1604,14 +1563,14 @@ bool parseInstrBVE( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( ! parseExpr( &rExpr )) return( false );
+    parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_ADR ) {
         
         setBitField( instr, 31, 4, rExpr.numVal );
     }
-    else return( parserError((char *) "Expected a logical address" ));
-    
+    else throw ( ERR_EXPECTED_LOGICAL_ADR );
+      
     if ( tok -> isToken( TOK_COMMA )) {
         
         tok -> nextToken( );
@@ -1620,10 +1579,10 @@ bool parseInstrBVE( uint32_t *instr, uint32_t flags ) {
             setBitField( instr, 9, 4, tok -> tokVal( ));
             tok -> nextToken( );
         }
-        else return( parserError((char *) "Expected a general register" ));
+        else throw ( ERR_EXPECTED_GENERAL_REG );
     }
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1634,7 +1593,7 @@ bool parseInstrBVE( uint32_t *instr, uint32_t flags ) {
 //      CBRU .<cond> <a>, <b>, <ofs>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
+void parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
     
@@ -1644,29 +1603,30 @@ bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( ! acceptComma( )) return( false );
-    
+    acceptComma( );
+   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
+    acceptComma( );
+    parseExpr( &rExpr );
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
+    if ( rExpr.typ == TYP_NUM ) {
     
         if ( isInRangeForBitField( rExpr.numVal, 16 )) {
             
             setImmVal( instr, 23, 16, rExpr.numVal );
             tok -> nextToken( );
         }
-        else return( parserError((char *) "Immediate value out of range" ));
+        else throw ( ERR_IMM_VAL_RANGE );
     }
-    else return( parserError((char *) "Expected an offset value" ));
+    else throw ( ERR_EXPECTED_AN_OFFSET_VAL );
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1676,18 +1636,17 @@ bool parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
 //      <opCode>.<opt> <targetReg>, <sourceOperand>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrLoadAndStore( uint32_t *instr, uint32_t flags ) {
+void parseInstrLoadAndStore( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
-    
-    return( parseLoadStoreOperand( instr, flags ));
+    acceptComma( );
+    parseLoadStoreOperand( instr, flags );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1699,14 +1658,14 @@ bool parseInstrLoadAndStore( uint32_t *instr, uint32_t flags ) {
 //      MR <targetReg> "," <sourceReg>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
+void parseInstrMR( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         uint8_t tRegId = tok -> tokVal( );
         
         tok -> nextToken( );
-        if ( ! acceptComma( )) return( false );
+        acceptComma( );
         
         if ( tok -> isTokenTyp( TYP_GREG )) {
             
@@ -1737,8 +1696,8 @@ bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
         uint8_t tRegId = tok -> tokVal( );
         
         tok -> nextToken( );
-        if ( ! acceptComma( )) return( false );
-    
+        acceptComma( );
+       
         if ( tok -> isTokenTyp( TYP_GREG )) {
             
             setBit( instr, 10 );
@@ -1746,15 +1705,15 @@ bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
             setBitField( instr, 9, 4, tok -> tokVal( ));
             tok -> nextToken( );
         }
-        else return( parserError((char *) "Only SREG <- GREG is allowed" ));
+        else throw ( ERR_INVALID_REG_COMBO );
     }
     else if ( tok -> isTokenTyp( TYP_CREG )) {
         
         uint8_t tRegId = tok -> tokVal( );
         
         tok -> nextToken( );
-        if ( ! acceptComma( )) return( false );
-        
+        acceptComma( );
+       
         if ( tok -> isTokenTyp( TYP_GREG )) {
             
             setBit( instr, 10 );
@@ -1763,10 +1722,10 @@ bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
             setBitField( instr, 9, 4, tok -> tokVal( ) );
             tok -> nextToken( );
         }
-        else return( parserError((char *) "Only CREG <- GREG is allowed" ));
+        else throw ( ERR_INVALID_REG_COMBO );
     }
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1779,7 +1738,7 @@ bool parseInstrMR( uint32_t *instr, uint32_t flags ) {
 //      MST.C <val>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrMST( uint32_t *instr, uint32_t flags ) {
+void parseInstrMST( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
     
@@ -1788,10 +1747,10 @@ bool parseInstrMST( uint32_t *instr, uint32_t flags ) {
         setBitField( instr, 9, 4, tok -> tokVal( ) );
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( ))      return( false );
-    if ( ! parseExpr( &rExpr )) return( false );
+    acceptComma( );
+    parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_GREG ) {
         
@@ -1800,20 +1759,20 @@ bool parseInstrMST( uint32_t *instr, uint32_t flags ) {
             setBitField( instr, 31, 4, rExpr.numVal );
             tok -> nextToken( );
         }
-        else return( parserError((char *) "Invalid option for the MST instruction" ));
+        else throw ( ERR_INVALID_INSTR_OPT );
     }
     else if ( rExpr.typ == TYP_NUM ) {
         
         if (( getBitField( *instr, 11, 2 ) == 1 ) || ( getBitField( *instr, 11, 2 ) == 2 )) {
             
             if ( isInRangeForBitFieldU( rExpr.numVal, 6 )) setBitField( instr, 31, 6, rExpr.numVal );
-            else return( parserError((char *) "Status bit field value out of range" ));
+            else throw ( ERR_IMM_VAL_RANGE );
         }
-        else  return( parserError((char *) "Invalid option for the MST instruction" ));
+        else throw ( ERR_INVALID_INSTR_OPT );
     }
-    else return( parserError((char *) "Expected the status bit argument" ));
+    else throw ( ERR_EXPECTED_NUMERIC );
   
-    return( checkEOS( ));
+   checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1823,7 +1782,7 @@ bool parseInstrMST( uint32_t *instr, uint32_t flags ) {
 //      LDPA <targetReg> ","  <indexReg> "(" [ <segmentReg>, ] <offsetReg > ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
+void parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
     
@@ -1833,7 +1792,7 @@ bool parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( ! acceptComma( )) return( false );
+    acceptComma( );
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1841,7 +1800,7 @@ bool parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    return( parseLogicalAdr( instr, flags ));
+    parseLogicalAdr( instr, flags );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1851,36 +1810,36 @@ bool parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
 //      PRB [ "." <opt> ] <targetReg> "," "(" [ <segmentReg>, ] <offsetReg > ")" [ "," <argReg> ]
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrPRB( uint32_t *instr, uint32_t flags ) {
+void parseInstrPRB( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
-    
+    DrvExpr     rExpr;
+   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ) );
         tok -> nextToken( );
     }
     
-    if ( ! acceptComma( ))                  return( false );
-    if ( ! parseLogicalAdr( instr, flags )) return( false );
-    if ( ! acceptComma( ))                  return( false );
-    if ( ! parseExpr( &rExpr ))             return( false );
-    
+    acceptComma( );
+    parseLogicalAdr( instr, flags );
+    acceptComma( );
+    parseExpr( &rExpr );
+   
     if ( getBit( *instr, 11 )) {
         
         if ( rExpr.typ == TYP_NUM ) {
             
             if ( isInRangeForBitFieldU( rExpr.numVal, 1 )) setBit( instr, 27, rExpr.numVal );
         }
-        else return( parserError((char *) "Expected a 0 or 1" ));
+        else throw ( ERR_IMM_VAL_RANGE );
     }
     else if ( rExpr.typ == TYP_GREG ) {
         
         setBitField( instr, 27, 4, rExpr.numVal );
     }
-    else return( parserError((char *) "Expected a register or numeric value" ));
-    
-    return( checkEOS( ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
+        
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1890,7 +1849,7 @@ bool parseInstrPRB( uint32_t *instr, uint32_t flags ) {
 //      ITLB [.<opt>] <tlbInfoReg> "," "(" <segmentReg> "," <offsetReg> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrITLB( uint32_t *instr, uint32_t flags ) {
+void parseInstrITLB( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1898,28 +1857,27 @@ bool parseInstrITLB( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( ! acceptComma( ))  return( false );
-    if ( ! acceptLparen( )) return( false );
-    
+    acceptComma( );
+    acceptLparen( );
+   
     if ( tok -> isTokenTyp( TYP_SREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a segment register" ));
+    else throw ( ERR_EXPECTED_SEGMENT_REG );
     
-    if ( ! acceptComma( )) return( false );
-    
+    acceptComma( );
+   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ));
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptRparen( )) return( false );
-   
-    return( checkEOS( ));
+    acceptRparen( );
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1929,7 +1887,7 @@ bool parseInstrITLB( uint32_t *instr, uint32_t flags ) {
 //      PTLB [ "." <opt> ] [ <indexReg" ] "(" [ <segmentReg>, ] <offsetReg > ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrPTLB( uint32_t *instr, uint32_t flags ) {
+void parseInstrPTLB( uint32_t *instr, uint32_t flags ) {
 
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1937,13 +1895,10 @@ bool parseInstrPTLB( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( tok -> isToken( TOK_LPAREN )) {
+    if ( tok -> isToken( TOK_LPAREN )) parseLogicalAdr( instr, flags );
+    else throw ( ERR_EXPECTED_LOGICAL_ADR );
         
-        if ( ! parseLogicalAdr( instr, flags )) return( false );
-    }
-    else return( parserError((char *) "Expected an index register or address" ));
-        
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1952,7 +1907,7 @@ bool parseInstrPTLB( uint32_t *instr, uint32_t flags ) {
 //      PCA [ "." <opt> ] [ <indexReg" ] "(" [ <segmentReg>, ] <offsetReg > ")"
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrPCA( uint32_t *instr, uint32_t flags ) {
+void parseInstrPCA( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1960,13 +1915,10 @@ bool parseInstrPCA( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( tok -> isToken( TOK_LPAREN )) {
+    if ( tok -> isToken( TOK_LPAREN )) parseLogicalAdr( instr, flags );
+    else throw ( ERR_EXPECTED_LOGICAL_ADR );
         
-        if ( ! parseLogicalAdr( instr, flags )) return( false );
-    }
-    else return( parserError((char *) "Expected an index register" ));
-        
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1975,7 +1927,7 @@ bool parseInstrPCA( uint32_t *instr, uint32_t flags ) {
 //      DIAG <resultReg> "," <parmRegA> "," <parmRegB> "," <info>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
+void parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
     
@@ -1985,38 +1937,39 @@ bool parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
         tok -> nextToken( );
     }
     
-    if ( ! acceptComma( )) return( false );
-    
+    acceptComma( );
+   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ) );
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
+    acceptComma( );
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 31, 4, tok -> tokVal( ) );
         tok -> nextToken( );
     }
-    else return( parserError((char *) "Expected a general register" ));
+    else throw ( ERR_EXPECTED_GENERAL_REG );
     
-    if ( ! acceptComma( )) return( false );
+    acceptComma( );
+    parseExpr( &rExpr );
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
+    if ( rExpr.typ == TYP_NUM ) {
             
         if ( isInRangeForBitFieldU( rExpr.numVal, 4 )) {
                 
             setBitField( instr, 13, 4, rExpr.numVal );
             tok -> nextToken( );
         }
-        else return( parserError((char *) "Immediate value out of range" ));
+        else throw ( ERR_IMM_VAL_RANGE );
     }
-    else return( parserError((char *) "Expected a number" ));
-   
-    return( checkEOS( ));
+    else throw ( ERR_EXPECTED_NUMERIC );
+       
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2026,9 +1979,9 @@ bool parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
 //      RFI
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrRFI( uint32_t *instr, uint32_t flags ) {
+void parseInstrRFI( uint32_t *instr, uint32_t flags ) {
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2037,27 +1990,30 @@ bool parseInstrRFI( uint32_t *instr, uint32_t flags ) {
 //      BRK <info1> "," <info2>
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseInstrBRK( uint32_t *instr, uint32_t flags ) {
+void parseInstrBRK( uint32_t *instr, uint32_t flags ) {
     
     DrvExpr rExpr;
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
+    parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_NUM ) {
         
         if ( isInRangeForBitFieldU( rExpr.numVal, 4 )) setImmValU( instr, 9, 4, rExpr.numVal );
-        else return( parserError((char *) "Immediate value out of range" ));
+        else throw ( ERR_IMM_VAL_RANGE );
     }
-    else return( parserError((char *) "Expected the info1 parm" ));
+    else throw ( ERR_EXPECTED_NUMERIC );
     
-    if ( ! acceptComma( )) return( false );
+    acceptComma( );
+    parseExpr( &rExpr );
     
-    if (( parseExpr( &rExpr )) && ( rExpr.typ == TYP_NUM )) {
+    if ( rExpr.typ == TYP_NUM ) {
     
         if ( isInRangeForBitFieldU( rExpr.numVal, 16 )) setImmValU( instr, 31, 16, rExpr.numVal );
-        else return( parserError((char *) "Immediate value out of range" ));
+        else throw ( ERR_IMM_VAL_RANGE );
     }
-    else return( parserError((char *) "Expected the info2 parm" ));
+    else  throw ( ERR_EXPECTED_NUMERIC );
     
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2066,12 +2022,12 @@ bool parseInstrBRK( uint32_t *instr, uint32_t flags ) {
 //      NOP
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseSynthInstrNop( uint32_t *instr, uint32_t flags ) {
+void parseSynthInstrNop( uint32_t *instr, uint32_t flags ) {
     
     *instr = 0x0;
     
     tok -> nextToken( );
-    return( checkEOS( ));
+    checkEOS( );
 }
 
 // ??? add shift and rotate synthetic ops....
@@ -2092,7 +2048,7 @@ bool parseSynthInstrNop( uint32_t *instr, uint32_t flags ) {
 // final instruction bit pattern.
 //
 //------------------------------------------------------------------------------------------------------------
-bool parseLine( char *inputStr, uint32_t *instr ) {
+void parseLine( char *inputStr, uint32_t *instr ) {
     
     uint32_t    flags   = 0;
     TokId       opCode  = TOK_NIL;
@@ -2110,7 +2066,7 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
         while ( tok -> isToken( TOK_PERIOD )) {
             
             tok -> nextToken( );
-            if ( ! parseInstrOptions( instr, &flags )) return( false );
+            parseInstrOptions( instr, &flags );
         }
         
         switch( opCode ) {
@@ -2195,8 +2151,8 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
             case OP_CODE_DIAG:      return( parseInstrDIAG( instr, flags ));
             case OP_CODE_RFI:       return( parseInstrRFI( instr, flags ));
             case OP_CODE_BRK:       return( parseInstrBRK( instr, flags ));
-            
-            default: return( parserError((char *) "Invalid opcode" ));
+              
+            default: throw ( ERR_INVALID_OP_CODE );
         }
     }
     else if ( tok -> isTokenTyp( TYP_OP_CODE_S )) {
@@ -2207,12 +2163,12 @@ bool parseLine( char *inputStr, uint32_t *instr ) {
        
         switch ( opCode ) {
                 
-            case OP_CODE_S_NOP:    return( parseSynthInstrNop( instr, flags ));
-                
-            default: return( parserError((char *) "Invalid synthetic opcode" ));
+            case OP_CODE_S_NOP: return( parseSynthInstrNop( instr, flags ));
+            
+            default: throw ( ERR_INVALID_S_OP_CODE );
         }
     }
-    else return( parserError((char *) "Expected an opcode" ));
+    else throw ( ERR_INVALID_OP_CODE );
 }
 
 } // namespace
@@ -2230,7 +2186,16 @@ DrvOneLineAsm::DrvOneLineAsm( VCPU32Globals *glb ) {
     tok = new DrvTokenizer( glb );
 }
 
-bool DrvOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {
+ErrMsgId DrvOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {
     
-    return ( parseLine( inputStr, instr ));
+    try {
+        
+        parseLine( inputStr, instr );
+        return( NO_ERR );
+    }
+    catch ( ErrMsgId errNum ) {
+        
+        asmError( errNum );
+        return( errNum );
+    }
 }

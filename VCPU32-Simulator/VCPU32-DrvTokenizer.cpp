@@ -3,9 +3,8 @@
 // VCPU32 - A 32-bit CPU - Simulator Tokenizer
 //
 //------------------------------------------------------------------------------------------------------------
-// Welcome to the test driver commands. This a rather simple command loop resting on the "sscanf" C library
-// routine to do the parsing.
-//
+// The tokenizer will accept an input line and return one token at a time. Upon an error, the tokenizer will
+// raise an execption.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -85,16 +84,14 @@ int lookupToken( char *inputStr, DrvToken *tokTab ) {
 // The object constructor, nothing to do for now.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvTokenizer::DrvTokenizer( VCPU32Globals *glb ) {
-    
-}
+DrvTokenizer::DrvTokenizer( VCPU32Globals *glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // We initialize a couple of globals that represent the current state of the parsing process. This call is
 // the first before any other method can be called.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvTokenizer::setupTokenizer( char *lineBuf, DrvToken *tokTab ) {
+ErrMsgId DrvTokenizer::setupTokenizer( char *lineBuf, DrvToken *tokTab ) {
     
     strncpy( tokenLine, lineBuf, strlen( lineBuf ) + 1 );
     
@@ -107,33 +104,9 @@ uint8_t DrvTokenizer::setupTokenizer( char *lineBuf, DrvToken *tokTab ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "tokenError" is a little helper that prints out the error encountered. We will print the original
-// input line, a caret marker where we found the error, and then return a false. Parsing errors typically
-// result in aborting the parsing process. As this is a one line assembly, we do not need to be put effort
-// into continuing reasonably with the parsing process.
-//
-// ??? Can we just set an error index and code and let the highwer level routines do the printing ?
-//------------------------------------------------------------------------------------------------------------
-void DrvTokenizer::tokenError( char *errStr ) {
-    
-    fprintf( stdout, "%s\n", tokenLine );
-    
-    int i = 0;
-
-    while ( i < currentTokCharIndex ) {
-        
-        fprintf( stdout, " " );
-        i ++;
-    }
-    
-    fprintf( stdout, "^\n" "%s\n", errStr );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // helper functions for the current token.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvToken    DrvTokenizer::token( )                      { return( currentToken ); }
 bool        DrvTokenizer::isToken( TokId tokId )        { return( currentToken.tid == tokId ); }
 bool        DrvTokenizer::isTokenTyp( TypeId typId )    { return( currentToken.typ == typId ); }
 
@@ -143,9 +116,6 @@ int         DrvTokenizer::tokVal( )                     { return( currentToken.v
 char        *DrvTokenizer::tokStr( )                    { return( currentToken.str ); }
 uint32_t    DrvTokenizer::tokSeg( )                     { return( currentToken.seg ); }
 uint32_t    DrvTokenizer::tokOfs( )                     { return( currentToken.ofs ); }
-
-
-// ??? the error interface .... rethink ....
 
 int         DrvTokenizer::tokCharIndex( )               { return( currentCharIndex ); }
 char        *DrvTokenizer::tokenLineStr( )              { return( tokenLine ); }
@@ -186,18 +156,13 @@ void DrvTokenizer::parseNum( ) {
     } while ( isxdigit( currentChar )   || ( currentChar == 'X' ) || ( currentChar == 'O' )
                                         || ( currentChar == 'x' ) || ( currentChar == 'o' ));
     
-    if ( sscanf( tmpStr, "%i", &currentToken.val ) != 1 )
-      tokenError((char *) "Invalid number" );
-    
+    if ( sscanf( tmpStr, "%i", &currentToken.val ) != 1 ) throw ( ERR_INVALID_NUM );
+      
     if ( currentChar == '.' ) {
         
         nextChar( );
-        if ( ! isdigit( currentChar )) {
-            
-            tokenError((char *) "Invalid extended address" );
-            return;
-        }
-        
+        if ( ! isdigit( currentChar )) throw ( ERR_EXPECTED_EXT_ADR );
+           
         currentToken.seg = currentToken.val;
         currentToken.typ = TYP_EXT_ADR;
         
@@ -209,8 +174,7 @@ void DrvTokenizer::parseNum( ) {
         } while ( isxdigit( currentChar )   || ( currentChar == 'X' ) || ( currentChar == 'O' )
                                             || ( currentChar == 'x' ) || ( currentChar == 'o' ));
         
-        if ( sscanf( tmpStr, "%i", &currentToken.ofs ) != 1 )
-          tokenError((char *) "Invalid number" );
+        if ( sscanf( tmpStr, "%i", &currentToken.ofs ) != 1 ) throw ( ERR_INVALID_NUM );
     }
 }
 
@@ -239,12 +203,7 @@ void DrvTokenizer::parseString( ) {
                 else if ( currentChar == '\\' ) strcat( currentToken.str, (char *) "\\" );
                 else                            strcat( currentToken.str, &currentChar );
             }
-            else {
-                
-                currentToken.str[ 0 ]  = '\0';
-                tokenError((char *) "Expected a closing quote" );
-                break;
-            }
+            else throw ( ERR_EXPECTED_CLOSING_QUOTE );
         }
         else strcat( currentToken.str, &currentChar );
         
@@ -284,9 +243,8 @@ void DrvTokenizer::parseIdent( ) {
                 
                 parseNum( );
                 currentToken.val &= 0xFFFFFC00;
-                return;
             }
-            else tokenError((char *) "Invalid character in identifier" );
+            else throw ( ERR_INVALID_CHAR_IN_IDENT );
         }
     }
     else if ( currentChar == 'R' ) {
@@ -303,9 +261,8 @@ void DrvTokenizer::parseIdent( ) {
                 
                 parseNum( );
                 currentToken.val &= 0x3FF;
-                return;
             }
-            else tokenError((char *) "Invalid character in identifier" );
+            else throw ( ERR_INVALID_CHAR_IN_IDENT );
         }
     }
     
@@ -429,8 +386,8 @@ void DrvTokenizer::nextToken( ) {
         currentToken.tid    = TOK_EOS;
     }
     else {
-        
-        tokenError((char *) "Invalid character in input string" );
+    
         currentToken.tid = TOK_ERR;
+        throw ( ERR_INVALID_CHAR_IN_TOKEN_LINE );
     }
 }

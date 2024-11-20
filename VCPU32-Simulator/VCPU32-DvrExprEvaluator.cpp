@@ -99,7 +99,7 @@ DrvExprEvaluator::DrvExprEvaluator( VCPU32Globals *glb ) {
 //                  "(" <expr> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-ErrMsgId DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
+void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
     
     rExpr -> typ       = TYP_NIL;
     rExpr -> numVal    = 0;
@@ -109,56 +109,48 @@ ErrMsgId DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
         rExpr -> typ    = glb -> tok -> tokTyp( );
         rExpr -> tokId  = glb -> tok -> tokId( );
         glb -> tok -> nextToken( );
-        return( NO_ERR );
     }
     else if ( glb -> tok -> isTokenTyp( TYP_CMD ))  {
         
         rExpr -> typ    = TYP_CMD;
         rExpr -> tokId  = glb -> tok -> tokId( );
         glb -> tok -> nextToken( );
-        return( NO_ERR );
     }
     else if ( glb -> tok -> isTokenTyp( TYP_NUM ))  {
         
         rExpr -> typ     = TYP_NUM;
         rExpr -> numVal  = glb -> tok -> tokVal( );
         glb -> tok -> nextToken( );
-        return( NO_ERR );
     }
     else if ( glb -> tok -> isTokenTyp( TYP_EXT_ADR )) {
         
         rExpr -> typ    = TYP_EXT_ADR;
         rExpr -> seg    = glb -> tok -> tokSeg( );
         rExpr -> ofs    = glb -> tok -> tokOfs( );
-        return( NO_ERR );
     }
     else if ( glb -> tok -> isTokenTyp( TYP_STR ))  {
         
         rExpr -> typ = TYP_STR;
         strcpy( rExpr -> strVal, glb -> tok -> tokStr( ));
         glb -> tok -> nextToken( );
-        return( NO_ERR );
     }
     else if ( glb -> tok -> isTokenTyp( TYP_GREG ))  {
         
         rExpr -> typ     = TYP_GREG;
         rExpr -> numVal = glb -> cpu -> getReg( RC_GEN_REG_SET, glb -> tok -> tokVal( ));
         glb -> tok -> nextToken( );
-        return( NO_ERR );
     }
     else if ( glb -> tok -> isTokenTyp( TYP_SREG ))  {
         
         rExpr -> typ = TYP_SREG;
         rExpr -> numVal = glb -> cpu -> getReg( RC_SEG_REG_SET, glb -> tok -> tokVal( ));
         glb -> tok -> nextToken( );
-        return( NO_ERR );
     }
     else if ( glb -> tok -> isTokenTyp( TYP_CREG ))  {
         
         rExpr -> typ = TYP_CREG;
         rExpr -> numVal = glb -> cpu -> getReg( RC_CTRL_REG_SET, glb -> tok -> tokVal( ));
         glb -> tok -> nextToken( );
-        return( NO_ERR );
     }
     else if ( glb -> tok -> isToken( TOK_IDENT )) {
         
@@ -186,13 +178,11 @@ ErrMsgId DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
         }
     
         glb -> tok -> nextToken( );
-        return( NO_ERR );
     }
     else if ( glb -> tok -> isToken( TOK_NEG )) {
         
         parseFactor( rExpr );
         rExpr -> numVal = ~ rExpr -> numVal;
-        return( NO_ERR );
     }
     else if ( glb -> tok -> isToken( TOK_LPAREN )) {
       
@@ -205,14 +195,14 @@ ErrMsgId DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
             glb -> tok -> nextToken( );
             
             if ( glb -> tok -> isToken( TOK_COMMA )) glb -> tok -> nextToken( );
-            else return( ERR_EXPECTED_COMMA );
+            else throw ( ERR_EXPECTED_COMMA );
             
             if ( glb -> tok -> isTokenTyp( TYP_GREG )) {
                 
                 rExpr -> ofs = glb -> cpu -> getReg( RC_GEN_REG_SET, glb -> tok -> tokVal( ));
                 glb -> tok -> nextToken( );
             }
-            else return( ERR_EXPECTED_GENERAL_REG );
+            else throw ( ERR_EXPECTED_GENERAL_REG );
         }
         else if ( glb -> tok -> isTokenTyp( TYP_GREG )) {
             
@@ -220,29 +210,22 @@ ErrMsgId DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
             rExpr -> numVal = glb -> tok -> tokVal( );
             glb -> tok -> nextToken( );
         }
-        else {
+        else parseExpr( rExpr );
             
-            ErrMsgId rStat = parseExpr( rExpr );
-            if ( rStat != NO_ERR ) return( rStat );
-        }
-        
         if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
-        else return( ERR_EXPECTED_RPAREN );
+        else throw ( ERR_EXPECTED_RPAREN );
     }
     else if (( glb -> tok -> tokTyp( ) == TYP_NIL ) && ( glb -> tok -> tokId( ) == TOK_EOS )) {
         
         rExpr -> typ = TYP_NIL;
-        return( NO_ERR );
     }
     else {
         
         rExpr -> typ = TYP_NUM;
         rExpr -> numVal = 0;
         glb -> tok -> nextToken( );
-        return( ERR_EXPR_FACTOR );
+        throw ( ERR_EXPR_FACTOR );
     }
-    
-    return( NO_ERR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -253,10 +236,11 @@ ErrMsgId DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
 //
 // ??? type mix options ?
 //------------------------------------------------------------------------------------------------------------
-ErrMsgId DrvExprEvaluator::parseTerm( DrvExpr *rExpr ) {
+void DrvExprEvaluator::parseTerm( DrvExpr *rExpr ) {
     
-    DrvExpr  lExpr;
-    ErrMsgId rStat = parseFactor( rExpr );
+    DrvExpr lExpr;
+   
+    parseFactor( rExpr );
     
     while (( glb -> tok -> tokId( ) == TOK_MULT )   ||
            ( glb -> tok -> tokId( ) == TOK_DIV  )   ||
@@ -266,16 +250,13 @@ ErrMsgId DrvExprEvaluator::parseTerm( DrvExpr *rExpr ) {
         uint8_t op = glb -> tok -> tokId( );
         
         glb -> tok -> nextToken( );
-        rStat = parseFactor( &lExpr );
+        parseFactor( &lExpr );
         
         if ( lExpr.typ != TYP_NIL ) {
             
-            if ( rExpr -> typ != lExpr.typ ) {
-                
-                return ( ERR_EXPR_TYPE_MATCH );
-            }
+            if ( rExpr -> typ != lExpr.typ ) throw ( ERR_EXPR_TYPE_MATCH );
         }
-        else return( ERR_UNEXPECTED_EOS );
+        else throw ( ERR_UNEXPECTED_EOS );
         
         switch( op ) {
                 
@@ -285,8 +266,6 @@ ErrMsgId DrvExprEvaluator::parseTerm( DrvExpr *rExpr ) {
             case TOK_AND:    rExpr -> numVal = rExpr -> numVal & lExpr.numVal; break;
         }
     }
-    
-    return( rStat );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -298,30 +277,26 @@ ErrMsgId DrvExprEvaluator::parseTerm( DrvExpr *rExpr ) {
 //
 // ??? type mix options ?
 //------------------------------------------------------------------------------------------------------------
-ErrMsgId DrvExprEvaluator::parseExpr( DrvExpr *rExpr ) {
+void DrvExprEvaluator::parseExpr( DrvExpr *rExpr ) {
     
     DrvExpr lExpr;
-    uint8_t rStat;
     
     if ( glb -> tok -> isToken( TOK_PLUS )) {
         
         glb -> tok -> nextToken( );
-        rStat = parseTerm( rExpr );
+        parseTerm( rExpr );
         
-        if ( rExpr -> typ != TYP_NUM ) {
-            
-            return( ERR_EXPECTED_NUMERIC );
-        }
+        if ( rExpr -> typ != TYP_NUM ) throw ( ERR_EXPECTED_NUMERIC );
     }
     else if ( glb -> tok -> isToken( TOK_MINUS )) {
         
         glb -> tok -> nextToken( );
-        rStat = parseTerm( rExpr );
+        parseTerm( rExpr );
         
         if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal = - rExpr -> numVal;
-        else return( ERR_EXPECTED_NUMERIC );
+        else throw ( ERR_EXPECTED_NUMERIC );
     }
-    else rStat = parseTerm( rExpr );
+    else parseTerm( rExpr );
     
     while (( glb -> tok -> isToken( TOK_PLUS   )) ||
            ( glb -> tok -> isToken( TOK_MINUS  )) ||
@@ -331,16 +306,13 @@ ErrMsgId DrvExprEvaluator::parseExpr( DrvExpr *rExpr ) {
         uint8_t op = glb -> tok -> tokId( );
         
         glb -> tok -> nextToken( );
-        rStat = parseTerm( &lExpr );
+        parseTerm( &lExpr );
         
         if ( lExpr.typ != TYP_NIL ) {
             
-            if ( rExpr -> typ != lExpr.typ ) {
-                
-                return ( ERR_EXPR_TYPE_MATCH );
-            }
+            if ( rExpr -> typ != lExpr.typ ) throw ( ERR_EXPR_TYPE_MATCH );
         }
-        else return( ERR_UNEXPECTED_EOS );
+        else throw ( ERR_UNEXPECTED_EOS );
         
         switch ( op ) {
                 
@@ -350,7 +322,5 @@ ErrMsgId DrvExprEvaluator::parseExpr( DrvExpr *rExpr ) {
             case TOK_XOR:    rExpr -> numVal = rExpr -> numVal ^ lExpr.numVal; break;
         }
     }
-    
-    return( NO_ERR );
 }
 

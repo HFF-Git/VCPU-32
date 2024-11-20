@@ -2741,9 +2741,7 @@ void DrvWinDisplay::windowJump( TokId winCmd, int pos, int winNum ) {
     if ( winNum == 0 ) winNum = getCurrentUserWindow( );
     
     if ( validUserWindowNum( winNum )) {
-        
-        if ( winNum == 0 ) winNum = getCurrentUserWindow( );
-        
+      
         ((DrvWinScrollable *) windowList[ winNum ] ) -> winJump( pos );
         setCurrentUserWindow( winNum );
     }
@@ -2757,12 +2755,9 @@ void DrvWinDisplay::windowJump( TokId winCmd, int pos, int winNum ) {
 //-----------------------------------------------------------------------------------------------------------
 void DrvWinDisplay::windowToggle( int winNum ) {
     
-   
     if ( winNum == 0 ) winNum = getCurrentUserWindow( );
     
     if ( validUserWindowNum( winNum )) {
-        
-        if ( winNum == 0 ) winNum = getCurrentUserWindow( );
         
         ((DrvWinScrollable *) windowList[ winNum ] ) -> toggleWin( );
         setCurrentUserWindow( winNum );

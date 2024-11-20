@@ -350,6 +350,25 @@ enum ErrMsgId : uint16_t {
     ERR_EXPECTED_INSTR_VAL          = 122,
     ERR_TOO_MANY_ARGS_CMD_LINE      = 123,
     
+    ERR_INVALID_CHAR_IN_TOKEN_LINE  = 300,
+    ERR_INVALID_EXPR                = 301,
+    ERR_EXPECTED_INSTR_OPT          = 303,
+    ERR_INVALID_INSTR_OPT           = 304,
+    ERR_INSTR_HAS_NO_OPT            = 305,
+    ERR_EXPECTED_SR1_SR3            = 306,
+    ERR_EXPECTED_LOGICAL_ADR        = 307,
+    ERR_IMM_VAL_RANGE               = 308,
+    ERR_INVALID_INSTR_MODE          = 310,
+    ERR_INSTR_MODE_OPT_COMBO        = 311,
+    ERR_POS_VAL_RANGE               = 312,
+    ERR_LEN_VAL_RANGE               = 313,
+    
+    ERR_EXPECTED_AN_OFFSET_VAL      = 314,
+    ERR_OFFSET_VAL_RANGE            = 315,
+    ERR_INVALID_REG_COMBO           = 316,
+    ERR_EXPECTED_SEGMENT_REG        = 317,
+    ERR_INVALID_OP_CODE             = 318,
+    ERR_INVALID_S_OP_CODE           = 319,
     
     
     ERR_INVALID_FMT_OPT             = 11,
@@ -432,7 +451,7 @@ struct DrvToken {
 //------------------------------------------------------------------------------------------------------------
 // Tokenizer object. The command line interface as well as the one line assembler parse their buffer line.
 // The tokenizer will return the tokens found in the line. The tokenizer will will work with the global
-// token table found in the tokenizer source file.
+// token table found in the tokenizer source file. The tokenizer raises execptions.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvTokenizer {
@@ -441,10 +460,8 @@ struct DrvTokenizer {
 
     DrvTokenizer( VCPU32Globals *glb );
 
-    uint8_t         setupTokenizer( char *lineBuf, DrvToken *tokTab );
+    ErrMsgId        setupTokenizer( char *lineBuf, DrvToken *tokTab );
     void            nextToken( );
-    DrvToken        token( );
-    
     
     bool            isToken( TokId tokId );
     bool            isTokenTyp( TypeId typId );
@@ -502,7 +519,7 @@ struct DrvExpr {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The expression evaluator object.
+// The expression evaluator object. The evaluator raises execptions.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvExprEvaluator {
@@ -511,14 +528,14 @@ struct DrvExprEvaluator {
     
     DrvExprEvaluator( VCPU32Globals *glb );
     
-    void            setTokenizer( DrvTokenizer *tok );
-    ErrMsgId        parseExpr( DrvExpr *rExpr );
+    void        setTokenizer( DrvTokenizer *tok );
+    void        parseExpr( DrvExpr *rExpr );
     
    
     private:
     
-    ErrMsgId        parseTerm( DrvExpr *rExpr );
-    ErrMsgId        parseFactor( DrvExpr *rExpr );
+    void        parseTerm( DrvExpr *rExpr );
+    void        parseFactor( DrvExpr *rExpr );
     
     // ??? predefind functions ?
     
@@ -1116,7 +1133,7 @@ struct DrvOneLineAsm {
 public:
     
     DrvOneLineAsm( VCPU32Globals *glb );
-    bool parseAsmLine( char *inputStr, uint32_t *instr );
+    ErrMsgId parseAsmLine( char *inputStr, uint32_t *instr );
     
 private:
     
@@ -1143,65 +1160,66 @@ struct DrvCmds {
   
     private:
     
-    ErrMsgId        cmdLineError( ErrMsgId errNum, char *argStr = nullptr );
-    ErrMsgId        checkEOS( );
-    ErrMsgId        acceptComma( );
-    ErrMsgId        acceptLparen( );
-    ErrMsgId        acceptRparen( );
+    void            cmdLineError( ErrMsgId errNum, char *argStr = nullptr );
+    
+    void            checkEOS( );
+    void            acceptComma( );
+    void            acceptLparen( );
+    void            acceptRparen( );
     
     void            promptCmdLine( );
     bool            readInputLine( char *cmdBuf );
-    uint8_t         evalInputLine( char *cmdBuf );
-    uint8_t         execCmdsFromFile( char* fileName );
+    void            evalInputLine( char *cmdBuf );
+    void            execCmdsFromFile( char* fileName );
     
-    uint8_t         invalidCmd( );
-    uint8_t         exitCmd( );
-    uint8_t         helpCmd( );
-    uint8_t         winHelpCmd( );
-    uint8_t         envCmd( );
-    uint8_t         execFileCmd( );
-    uint8_t         loadPhysMemCmd( );
-    uint8_t         savePhysMemCmd( );
+    void            invalidCmd( );
+    void            exitCmd( );
+    void            helpCmd( );
+    void            winHelpCmd( );
+    void            envCmd( );
+    void            execFileCmd( );
+    void            loadPhysMemCmd( );
+    void            savePhysMemCmd( );
     
-    uint8_t         resetCmd( );
-    uint8_t         runCmd( );
-    uint8_t         stepCmd( );
+    void            resetCmd( );
+    void            runCmd( );
+    void            stepCmd( );
    
-    uint8_t         disAssembleCmd( );
-    uint8_t         assembleCmd( );
-    uint8_t         displayRegCmd( );
-    uint8_t         modifyRegCmd( );
-    uint8_t         hashVACmd( );
-    uint8_t         displayTLBCmd( );
-    uint8_t         purgeTLBCmd( );
-    uint8_t         insertTLBCmd( );
-    uint8_t         displayCacheCmd( );
-    uint8_t         purgeCacheCmd( );
-    uint8_t         displayAbsMemCmd( );
-    uint8_t         modifyAbsMemCmd( );
-    uint8_t         modifyAbsMemAsCodeCmd( );
+    void            disAssembleCmd( );
+    void            assembleCmd( );
+    void            displayRegCmd( );
+    void            modifyRegCmd( );
+    void            hashVACmd( );
+    void            displayTLBCmd( );
+    void            purgeTLBCmd( );
+    void            insertTLBCmd( );
+    void            displayCacheCmd( );
+    void            purgeCacheCmd( );
+    void            displayAbsMemCmd( );
+    void            modifyAbsMemCmd( );
+    void            modifyAbsMemAsCodeCmd( );
     
-    uint8_t         winOnCmd( );
-    uint8_t         winOffCmd( );
-    uint8_t         winDefCmd( );
-    uint8_t         winStacksEnable( );
-    uint8_t         winStacksDisable( );
+    void            winOnCmd( );
+    void            winOffCmd( );
+    void            winDefCmd( );
+    void            winStacksEnable( );
+    void            winStacksDisable( );
 
-    uint8_t         winCurrentCmd( );
-    uint8_t         winEnableCmd( TokId winCmd );
-    uint8_t         winDisableCmd( TokId winCmd );
-    uint8_t         winSetRadixCmd( TokId winCmd );
+    void            winCurrentCmd( );
+    void            winEnableCmd( TokId winCmd );
+    void            winDisableCmd( TokId winCmd );
+    void            winSetRadixCmd( TokId winCmd );
     
-    uint8_t         winForwardCmd( TokId winCmd );
-    uint8_t         winBackwardCmd( TokId winCmd );
-    uint8_t         winHomeCmd( TokId winCmd );
-    uint8_t         winJumpCmd( TokId winCmd );
-    uint8_t         winSetRowsCmd( TokId winCmd );
-    uint8_t         winNewWinCmd( );
-    uint8_t         winKillWinCmd( );
-    uint8_t         winSetStackCmd( );
-    uint8_t         winToggleCmd( );
-    uint8_t         winExchangeCmd( );
+    void            winForwardCmd( TokId winCmd );
+    void            winBackwardCmd( TokId winCmd );
+    void            winHomeCmd( TokId winCmd );
+    void            winJumpCmd( TokId winCmd );
+    void            winSetRowsCmd( TokId winCmd );
+    void            winNewWinCmd( );
+    void            winKillWinCmd( );
+    void            winSetStackCmd( );
+    void            winToggleCmd( );
+    void            winExchangeCmd( );
     
     VCPU32Globals   *glb       = nullptr;
     bool            winModeOn  = false;

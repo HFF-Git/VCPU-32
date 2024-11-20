@@ -530,7 +530,7 @@ void displayOperands( uint32_t instr, int rdx = 10 ) {
             else {
                 
                 fprintf( stdout, ", " );
-                printImmVal(  immGenPosLenLowSign( instr, 27, 12 ), TOK_DEC );
+                printImmVal(  immGenPosLenLowSign( instr, 27, 12 ), 10 );
                
                 if ( getBitField( instr, 13, 2 ) == 0 ) {
                     
