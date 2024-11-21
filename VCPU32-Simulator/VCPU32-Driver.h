@@ -57,11 +57,12 @@ const int MAX_ENV_VARIABLES     = 256;
 //------------------------------------------------------------------------------------------------------------
 enum TypeId : uint16_t {
 
-    TYP_NIL                 = 0,        TYP_SYM             = 1,            TYP_IDENT           = 2,
-    TYP_NUM                 = 3,        TYP_STR             = 4,            TYP_BOOL            = 5,
-    TYP_ADR                 = 6,        TYP_EXT_ADR         = 7,            TYP_CMD             = 8,
-    TYP_FUNC                = 9,        TYP_TYPE            = 10,           TYP_OP_CODE         = 11,
-    TYP_OP_CODE_S           = 12,
+    TYP_NIL                 = 0,        TYP_CMD                 = 1,        TYP_SYM             = 2,
+    TYP_IDENT               = 3,        TYP_PREDEFINED_FUNC     = 4,
+    
+    TYP_NUM                 = 10,       TYP_STR                 = 11,       TYP_BOOL            = 12,
+    TYP_ADR                 = 13,       TYP_EXT_ADR             = 14,       TYP_OP_CODE         = 15,
+    TYP_OP_CODE_S           = 16,
     
     TYP_REG                 = 20,       TYP_REG_PAIR        = 21,
     
@@ -487,6 +488,7 @@ struct DrvTokenizer {
     bool            isToken( TokId tokId );
     bool            isTokenTyp( TypeId typId );
 
+    DrvToken        token( );
     TypeId          tokTyp( );
     TokId           tokId( );
     int             tokVal( );
@@ -557,6 +559,9 @@ struct DrvExprEvaluator {
     
     void        parseTerm( DrvExpr *rExpr );
     void        parseFactor( DrvExpr *rExpr );
+    void        parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr );
+    
+    void        pFuncAssemble( DrvToken funcId, DrvExpr *rExpr );
     
     // ??? predefind functions ?
     
@@ -615,10 +620,11 @@ struct DrvEnv {
     char            *getEnvVarStr( char *name, char *def = nullptr );
     DrvEnvTabEntry  *getEnvVarEntry( char *name );
     
-    uint8_t         removeEnvVar( char *name );
-    
+    bool            isValid( char *name );
     bool            isReadOnly( char *name );
     bool            isPredefined( char *name );
+    
+    uint8_t         removeEnvVar( char *name );
     
     private:
     

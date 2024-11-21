@@ -592,33 +592,36 @@ void DrvCmds::exitCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::envCmd( ) {
     
-    uint8_t rStat = NO_ERR;
-   
     if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         glb -> env -> displayEnvTable( );
     }
     else if ( glb -> tok -> tokTyp( ) == TYP_IDENT ) {
         
-        DrvExpr rExpr;
-        char    envName[ MAX_ENV_NAME_SIZE ];
+        char envName[ MAX_ENV_NAME_SIZE ];
         
         strcpy( envName, glb -> tok -> tokStr( ));
         upshiftStr( envName );
         
         glb -> tok -> nextToken( );
-        
         if ( glb -> tok -> tokId( ) == TOK_EOS ) {
             
-            // ??? check whether the var does exist...
-            
-            rStat = glb-> env -> displayEnvTableEntry( envName );
+            if ( glb -> env -> isValid( envName )) {
+                
+                glb-> env -> displayEnvTableEntry( envName );
+            }
+            else ; // throw entry does not exist...
         }
         else {
             
-            // ??? if the idenifier does not exist yet, need to allocate it .....
+            if ( ! glb -> env -> isValid( envName )) {
+                
+                // ??? allocate a new ENV
+                
+            }
             
-            // ??? if found then do the stff below, else allocate the ENV then do the stuff below.
+            uint8_t rStat = NO_ERR;
+            DrvExpr rExpr;
             
             glb -> eval -> parseExpr( &rExpr );
             if ( rStat != NO_ERR ) throw ( ERR_ENV_VALUE_EXPR );

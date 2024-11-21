@@ -109,6 +109,7 @@ void DrvTokenizer::setupTokenizer( char *lineBuf, DrvToken *tokTab ) {
 bool        DrvTokenizer::isToken( TokId tokId )        { return( currentToken.tid == tokId ); }
 bool        DrvTokenizer::isTokenTyp( TypeId typId )    { return( currentToken.typ == typId ); }
 
+DrvToken    DrvTokenizer::token( )                      { return( currentToken );     }
 TypeId      DrvTokenizer::tokTyp( )                     { return( currentToken.typ ); }
 TokId       DrvTokenizer::tokId( )                      { return( currentToken.tid ); }
 int         DrvTokenizer::tokVal( )                     { return( currentToken.val ); }

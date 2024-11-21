@@ -154,7 +154,6 @@ void DrvLineDisplay::displayControlRegSet( int rdx ) {
     fprintf( stdout, "\n" );
 }
 
-// ??? changed ....
 void DrvLineDisplay::displayPStateRegSet( int rdx ) {
     
     fprintf( stdout, "PSW0=   " );

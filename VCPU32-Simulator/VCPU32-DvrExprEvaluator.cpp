@@ -78,13 +78,40 @@ namespace {
 
 
 //------------------------------------------------------------------------------------------------------------
-//
-//
+// Evaluation Expression Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
 DrvExprEvaluator::DrvExprEvaluator( VCPU32Globals *glb ) {
     
     this -> glb = glb;
+}
+
+
+//------------------------------------------------------------------------------------------------------------
+// Example function ....
+//
+// ??? assemble "(" <str> ")"
+//------------------------------------------------------------------------------------------------------------
+void DrvExprEvaluator::pFuncAssemble( DrvToken funcId, DrvExpr *rExpr ) {
+    
+    
+    // parse argument list.
+    // execute the function.
+    // return the result.
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Entry point to the predefined functions. We dispatch based on ...
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvExprEvaluator::parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr ) {
+    
+    switch( funcId.tid ) {
+            
+            
+            
+        default: ; // unknown function ...
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -105,19 +132,7 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
     rExpr -> typ       = TYP_NIL;
     rExpr -> numVal    = 0;
     
-    if ( glb -> tok -> isTokenTyp( TYP_SYM ))  {
-        
-        rExpr -> typ    = glb -> tok -> tokTyp( );
-        rExpr -> tokId  = glb -> tok -> tokId( );
-        glb -> tok -> nextToken( );
-    }
-    else if ( glb -> tok -> isTokenTyp( TYP_CMD ))  {
-        
-        rExpr -> typ    = TYP_CMD;
-        rExpr -> tokId  = glb -> tok -> tokId( );
-        glb -> tok -> nextToken( );
-    }
-    else if ( glb -> tok -> isTokenTyp( TYP_NUM ))  {
+    if ( glb -> tok -> isTokenTyp( TYP_NUM ))  {
         
         rExpr -> typ     = TYP_NUM;
         rExpr -> numVal  = glb -> tok -> tokVal( );
@@ -137,20 +152,25 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
     }
     else if ( glb -> tok -> isTokenTyp( TYP_GREG ))  {
         
-        rExpr -> typ     = TYP_GREG;
+        rExpr -> typ    = TYP_NUM;
         rExpr -> numVal = glb -> cpu -> getReg( RC_GEN_REG_SET, glb -> tok -> tokVal( ));
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> isTokenTyp( TYP_SREG ))  {
         
-        rExpr -> typ = TYP_SREG;
+        rExpr -> typ    = TYP_SREG;
         rExpr -> numVal = glb -> cpu -> getReg( RC_SEG_REG_SET, glb -> tok -> tokVal( ));
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> isTokenTyp( TYP_CREG ))  {
         
-        rExpr -> typ = TYP_CREG;
+        rExpr -> typ    = TYP_CREG;
         rExpr -> numVal = glb -> cpu -> getReg( RC_CTRL_REG_SET, glb -> tok -> tokVal( ));
+        glb -> tok -> nextToken( );
+    }
+    else if ( glb -> tok -> isTokenTyp( TYP_PREDEFINED_FUNC )) {
+        
+        parsePredefinedFunction( glb -> tok -> token( ), rExpr );
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> isToken( TOK_IDENT )) {
@@ -163,9 +183,10 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
             
             switch( rExpr -> typ ) {
                     
-                case TYP_BOOL:  rExpr -> bVal     = glb -> tok -> tokVal( );         break;
-                case TYP_NUM:   rExpr -> numVal   = glb -> tok -> tokVal( );         break;
-                case TYP_STR:   strcpy( rExpr -> strVal, glb -> tok -> tokStr( ));   break;
+                case TYP_BOOL:  rExpr -> bVal       = glb -> tok -> tokVal( );          break;
+                case TYP_NUM:   rExpr -> numVal     = glb -> tok -> tokVal( );          break;
+                case TYP_ADR:   rExpr -> adr        = glb -> tok -> tokVal( );          break;
+                case TYP_STR:   strcpy( rExpr -> strVal, glb -> tok -> tokStr( ));      break;
                 
                 case TYP_EXT_ADR: {
                     
@@ -174,9 +195,8 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
                     
                 } break;
                     
-                default: fprintf( stdout, "**** uncaptured type, fix ... \n" );
+                default: fprintf( stdout, "**** uncaptured type in factor, fix ... \n" );
             }
-            
         }
         else throw( ERR_ENV_VAR_NOT_FOUND );
         
@@ -188,32 +208,9 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
         rExpr -> numVal = ~ rExpr -> numVal;
     }
     else if ( glb -> tok -> isToken( TOK_LPAREN )) {
-      
+        
         glb -> tok -> nextToken( );
-        if ( glb -> tok -> isTokenTyp( TYP_SREG )) {
-            
-            rExpr -> typ    = TYP_EXT_ADR;
-            rExpr -> seg    = glb -> cpu -> getReg( RC_SEG_REG_SET, glb -> tok -> tokVal( ));
-            
-            glb -> tok -> nextToken( );
-            
-            if ( glb -> tok -> isToken( TOK_COMMA )) glb -> tok -> nextToken( );
-            else throw ( ERR_EXPECTED_COMMA );
-            
-            if ( glb -> tok -> isTokenTyp( TYP_GREG )) {
-                
-                rExpr -> ofs = glb -> cpu -> getReg( RC_GEN_REG_SET, glb -> tok -> tokVal( ));
-                glb -> tok -> nextToken( );
-            }
-            else throw ( ERR_EXPECTED_GENERAL_REG );
-        }
-        else if ( glb -> tok -> isTokenTyp( TYP_GREG )) {
-            
-            rExpr -> typ = TYP_ADR;
-            rExpr -> numVal = glb -> tok -> tokVal( );
-            glb -> tok -> nextToken( );
-        }
-        else parseExpr( rExpr );
+        parseExpr( rExpr );
             
         if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
         else throw ( ERR_EXPECTED_RPAREN );

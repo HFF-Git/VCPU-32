@@ -373,6 +373,14 @@ uint8_t DrvEnv::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predef
 // Utility functions to return variable attributes.
 //
 //------------------------------------------------------------------------------------------------------------
+bool DrvEnv::isValid( char *name ) {
+    
+    int index = lookupEntry( name );
+    
+    if ( index >= 0 ) return( table[ index ].valid );
+    else return( false );
+}
+
 bool DrvEnv::isReadOnly( char *name ) {
     
     int index = lookupEntry( name );
