@@ -24,6 +24,7 @@
 #include "VCPU32-Version.h"
 #include "VCPU32-Types.h"
 #include "VCPU32-Driver.h"
+#include "VCPU32-DrvTables.h"
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -386,6 +387,13 @@ bool DrvEnv::isPredefined( char *name ) {
     
     if ( index >= 0 ) return( table[ index ].predefined );
     else return( false );
+}
+
+DrvEnvTabEntry  *DrvEnv::getEnvVarEntry( char *name ) {
+    
+    int index = lookupEntry( name );
+    if ( index >= 0 ) return( &table[ index ] );
+    else return( nullptr );
 }
 
 //------------------------------------------------------------------------------------------------------------

@@ -23,6 +23,7 @@
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
 #include "VCPU32-Driver.h"
+#include "VCPU32-DrvTables.h"
 
 //------------------------------------------------------------------------------------------------------------
 //

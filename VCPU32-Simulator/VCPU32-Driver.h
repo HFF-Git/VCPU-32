@@ -21,8 +21,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#ifndef VCPU32TestDriver_h
-#define VCPU32TestDriver_h
+#ifndef VCPU32Driver_h
+#define VCPU32Driver_h
 
 //------------------------------------------------------------------------------------------------------------
 // Mac and Windows know different include files and procedure names for some POSIX routines.
@@ -348,22 +348,23 @@ enum ErrMsgId : uint16_t {
     
     ERR_UNEXPECTED_EOS              = 350,
     
-    ERR_ENV_VALUE_EXPR              = 400,
-    ERR_OPEN_EXEC_FILE              = 401,
+    ERR_ENV_VAR_NOT_FOUND           = 400,
+    ERR_ENV_VALUE_EXPR              = 401,
+    ERR_OPEN_EXEC_FILE              = 402,
     
-    ERR_EXPR_TYPE_MATCH             = 402,
-    ERR_EXPR_FACTOR                 = 403,
+    ERR_EXPR_TYPE_MATCH             = 403,
+    ERR_EXPR_FACTOR                 = 404,
 
-    ERR_OFS_LEN_LIMIT_EXCEEDED      = 404,
-    ERR_INSTR_HAS_NO_OPT            = 405,
-    ERR_IMM_VAL_RANGE               = 406,
-    ERR_INSTR_MODE_OPT_COMBO        = 407,
-    ERR_POS_VAL_RANGE               = 408,
-    ERR_LEN_VAL_RANGE               = 409,
-    ERR_OFFSET_VAL_RANGE            = 410,
+    ERR_OFS_LEN_LIMIT_EXCEEDED      = 405,
+    ERR_INSTR_HAS_NO_OPT            = 406,
+    ERR_IMM_VAL_RANGE               = 407,
+    ERR_INSTR_MODE_OPT_COMBO        = 408,
+    ERR_POS_VAL_RANGE               = 409,
+    ERR_LEN_VAL_RANGE               = 410,
+    ERR_OFFSET_VAL_RANGE            = 411,
     
-    ERR_OUT_OF_WINDOWS              = 411,
-    ERR_WIN_TYPE_NOT_CONFIGURED     = 412,
+    ERR_OUT_OF_WINDOWS              = 412,
+    ERR_WIN_TYPE_NOT_CONFIGURED     = 413,
 
     ERR_TLB_TYPE                    = 500,
     ERR_TLB_PURGE_OP                = 501,
@@ -427,9 +428,7 @@ const char ENV_WIN_TEXT_LINE_WIDTH[ ]   = "WIN_TEXT_WIDTH";
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals;
 
-
 //------------------------------------------------------------------------------------------------------------
-//
 //
 //
 //------------------------------------------------------------------------------------------------------------
@@ -439,8 +438,13 @@ struct DrvErrMsgTabEntry {
     char        *errStr;
 };
 
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
 struct DrvHelpMsgEntry {
     
+    TokId       cmdTokId;
     char        *cmdStr;
     char        *helpStr;
 };
@@ -609,6 +613,7 @@ struct DrvEnv {
     uint32_t        getEnvVarExtAdrSeg( char *name, uint32_t def = 0U );
     uint32_t        getEnvVarExtAdrOfs( char *name, uint32_t def = 0U );
     char            *getEnvVarStr( char *name, char *def = nullptr );
+    DrvEnvTabEntry  *getEnvVarEntry( char *name );
     
     uint8_t         removeEnvVar( char *name );
     
@@ -1265,4 +1270,4 @@ struct VCPU32Globals {
     CpuCore             *cpu            = nullptr;
 };
 
-#endif  // VCPU32TestDriver_h
+#endif  // VCPU32Driver_h

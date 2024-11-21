@@ -24,6 +24,7 @@
 #include "VCPU32-Version.h"
 #include "VCPU32-Types.h"
 #include "VCPU32-Driver.h"
+#include "VCPU32-DrvTables.h"
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -153,30 +154,32 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> isToken( TOK_IDENT )) {
-        
-        
-        // ??? we need to look up the ident in ENV ?
-        
-        
-        rExpr -> typ    = glb -> tok -> tokTyp( );
-        rExpr -> tokId  = glb -> tok -> tokId( );
-        
-        switch( rExpr -> typ ) {
-                
-            case TYP_BOOL:  rExpr -> bVal     = glb -> tok -> tokVal( );         break;
-            case TYP_NUM:   rExpr -> numVal   = glb -> tok -> tokVal( );         break;
-            case TYP_STR:   strcpy( rExpr -> strVal, glb -> tok -> tokStr( ));   break;
-            
-            case TYP_EXT_ADR: {
-                
-                rExpr -> seg = glb -> tok -> tokSeg( );
-                rExpr -> ofs = glb -> tok -> tokOfs( );
-                
-            } break;
-                
-            default: fprintf( stdout, "**** uncaptured type, fix ... \n" );
-        }
     
+        DrvEnvTabEntry *entry = glb -> env -> getEnvVarEntry ( glb -> tok -> tokStr( ));
+        
+        if ( entry != nullptr ) {
+            
+            rExpr -> typ = entry -> typ;
+            
+            switch( rExpr -> typ ) {
+                    
+                case TYP_BOOL:  rExpr -> bVal     = glb -> tok -> tokVal( );         break;
+                case TYP_NUM:   rExpr -> numVal   = glb -> tok -> tokVal( );         break;
+                case TYP_STR:   strcpy( rExpr -> strVal, glb -> tok -> tokStr( ));   break;
+                
+                case TYP_EXT_ADR: {
+                    
+                    rExpr -> seg = glb -> tok -> tokSeg( );
+                    rExpr -> ofs = glb -> tok -> tokOfs( );
+                    
+                } break;
+                    
+                default: fprintf( stdout, "**** uncaptured type, fix ... \n" );
+            }
+            
+        }
+        else throw( ERR_ENV_VAR_NOT_FOUND );
+        
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> isToken( TOK_NEG )) {
@@ -219,13 +222,7 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
         
         rExpr -> typ = TYP_NIL;
     }
-    else {
-        
-        rExpr -> typ = TYP_NUM;
-        rExpr -> numVal = 0;
-        glb -> tok -> nextToken( );
-        throw ( ERR_EXPR_FACTOR );
-    }
+    else throw (ERR_EXPR_FACTOR );
 }
 
 //------------------------------------------------------------------------------------------------------------
