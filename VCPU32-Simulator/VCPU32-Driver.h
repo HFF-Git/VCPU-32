@@ -129,14 +129,13 @@ enum TokId : uint16_t {
     CMD_HELP                = 1003,     CMD_WHELP               = 1004,
     
     CMD_RESET               = 1010,     CMD_RUN                 = 1011,     CMD_STEP                = 1012,
-    CMD_XF                  = 1013,     CMD_DIS_ASM             = 1014,     CMD_ASM                 = 1015,
+    CMD_XF                  = 1013,     CMD_WRITE_LINE          = 1014,
+    CMD_DIS_ASM             = 1015,
    
     CMD_DR                  = 1020,     CMD_MR                  = 1021,
     CMD_DA                  = 1027,     CMD_MA                  = 1028,
-    CMD_MAA                 = 1030,
     CMD_LMF                 = 1031,     CMD_SMF                 = 1032,
     
-    CMD_HASH_VA             = 1033,
     CMD_D_TLB               = 1034,     CMD_I_TLB               = 1035,     CMD_P_TLB               = 1036,
     CMD_D_CACHE             = 1037,     CMD_P_CACHE             = 1038,
     
@@ -161,9 +160,9 @@ enum TokId : uint16_t {
     //--------------------------------------------------------------------------------------------------------
     // Predefined Function Tokens.
     //
-    //--------------------------------------------------------------------------------------------------------
     // ??? assign 3000 number range ...
-    
+    //--------------------------------------------------------------------------------------------------------
+    PF_ASSEMBLE             = 3000,     PF_DIS_ASSEMBLE         = 3001,     PF_HASH                 = 3002,
     
     //--------------------------------------------------------------------------------------------------------
     // General, Segment and Control Registers Tokens.
@@ -346,6 +345,7 @@ enum ErrMsgId : uint16_t {
     ERR_EXPECTED_AN_OFFSET_VAL      = 321,
     ERR_EXPECTED_FMT_OPT            = 322,
     ERR_EXPECTED_CLOSING_QUOTE      = 323,
+    ERR_EXPECTED_STR                = 324,
     
     ERR_UNEXPECTED_EOS              = 350,
     
@@ -366,6 +366,8 @@ enum ErrMsgId : uint16_t {
     
     ERR_OUT_OF_WINDOWS              = 412,
     ERR_WIN_TYPE_NOT_CONFIGURED     = 413,
+    
+    ERR_UNDEFINED_PFUNC             = 414,
 
     ERR_TLB_TYPE                    = 500,
     ERR_TLB_PURGE_OP                = 501,
@@ -445,7 +447,7 @@ struct DrvErrMsgTabEntry {
 //------------------------------------------------------------------------------------------------------------
 struct DrvHelpMsgEntry {
     
-    TokId       cmdTokId;
+    TokId       helpTokId;
     char        *cmdStr;
     char        *helpStr;
 };
@@ -561,10 +563,11 @@ struct DrvExprEvaluator {
     void        parseFactor( DrvExpr *rExpr );
     void        parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr );
     
-    void        pFuncAssemble( DrvToken funcId, DrvExpr *rExpr );
+    void        pFuncAssemble( DrvExpr *rExpr );
+    void        pFuncDisAssemble( DrvExpr *rExpr );
+    void        pFuncHash( DrvExpr *rExpr );
     
-    // ??? predefind functions ?
-    
+  
     VCPU32Globals   *glb = nullptr;
 };
 
@@ -1200,7 +1203,6 @@ struct DrvCmds {
     void            evalInputLine( char *cmdBuf );
     void            execCmdsFromFile( char* fileName );
     
-    void            invalidCmd( );
     void            exitCmd( );
     void            helpCmd( );
     void            winHelpCmd( );
@@ -1213,11 +1215,10 @@ struct DrvCmds {
     void            runCmd( );
     void            stepCmd( );
    
+    void            writeLineCmd( );
     void            disAssembleCmd( );
-    void            assembleCmd( );
     void            displayRegCmd( );
     void            modifyRegCmd( );
-    void            hashVACmd( );
     void            displayTLBCmd( );
     void            purgeTLBCmd( );
     void            insertTLBCmd( );

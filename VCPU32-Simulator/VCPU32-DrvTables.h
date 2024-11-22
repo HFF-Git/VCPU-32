@@ -75,9 +75,9 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "STEP",               .typ = TYP_CMD,                 .tid = CMD_STEP                         },
     { .name = "S",                  .typ = TYP_CMD,                 .tid = CMD_STEP                         },
     
+    { .name = "W",                  .typ = TYP_CMD,                 .tid = CMD_WRITE_LINE                   },
     { .name = "DIS",                .typ = TYP_CMD,                 .tid = CMD_DIS_ASM                      },
-    { .name = "ASM",                .typ = TYP_CMD,                 .tid = CMD_ASM                          },
-    
+   
     { .name = "XF",                 .typ = TYP_CMD,                 .tid = CMD_XF                           },
     
     { .name = "DR",                 .typ = TYP_CMD,                 .tid = CMD_DR                           },
@@ -85,7 +85,6 @@ DrvToken const cmdTokTab[ ] = {
     
     { .name = "DA",                 .typ = TYP_CMD,                 .tid = CMD_DA                           },
     { .name = "MA",                 .typ = TYP_CMD,                 .tid = CMD_MA                           },
-    { .name = "MAA",                .typ = TYP_CMD,                 .tid = CMD_MAA                          },
    
     { .name = "ITLB",               .typ = TYP_CMD,                 .tid = CMD_I_TLB                        },
     { .name = "DTLB",               .typ = TYP_CMD,                 .tid = CMD_D_TLB                        },
@@ -93,8 +92,6 @@ DrvToken const cmdTokTab[ ] = {
     
     { .name = "DCA",                .typ = TYP_CMD,                 .tid = CMD_D_CACHE                      },
     { .name = "PCA",                .typ = TYP_CMD,                 .tid = CMD_P_CACHE                      },
-    
-    { .name = "HVA",                .typ = TYP_CMD,                 .tid = CMD_HASH_VA                      },
     
     { .name = "LOAD_MEM",           .typ = TYP_CMD,                 .tid = CMD_LMF                          },
     { .name = "SAVE_MEM",           .typ = TYP_CMD,                 .tid = CMD_SMF                          },
@@ -314,11 +311,15 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "DTLB_REQ_OFS",       .typ = TYP_DTLB_REG,        .tid = DTLB_REQ_OFS,        .val = 3        },
     { .name = "DTLBL1",             .typ = TYP_DTLB_REG,        .tid = DTLB_SET,            .val = 4        },
     
+    
     //--------------------------------------------------------------------------------------------------------
-    // The last token to mark the list end.
+    //
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "",                   .typ = TYP_NIL,             .tid = TOK_LAST                             }
+    { .name = "ASSEMBLE",           .typ = TYP_PREDEFINED_FUNC, .tid = PF_ASSEMBLE,         .val = 0        },
+    { .name = "DISASSEMBLE",        .typ = TYP_PREDEFINED_FUNC, .tid = PF_DIS_ASSEMBLE,     .val = 0        },
+    { .name = "HASH",               .typ = TYP_PREDEFINED_FUNC, .tid = PF_HASH,             .val = 0        }
+
     
 };
 
@@ -330,7 +331,7 @@ const int MAX_CMD_TOKEN_TAB = sizeof( cmdTokTab ) / sizeof( DrvToken );
 //------------------------------------------------------------------------------------------------------------
 DrvErrMsgTabEntry const errTab [ ] = {
     
-    { .errNum = NO_ERR, .errStr = (char *) "hugo " }
+    { .errNum = NO_ERR, .errStr = (char *) "NO_ERR" }
     
 };
 
@@ -341,6 +342,10 @@ const int MAX_ERR_MSG_TAB = sizeof( errTab ) / sizeof( DrvErrMsgTabEntry );
 //
 //------------------------------------------------------------------------------------------------------------
 DrvHelpMsgEntry const cmdHelpTab[ ] = {
+    
+    {   .helpTokId  = CMD_HELP,
+        .cmdStr     = (char *) "help",
+        .helpStr    = (char *) "list help information" },
     
     
 };
@@ -544,18 +549,13 @@ DrvToken const asmTokTab[ ] = {
     { .name = "ASL",            .typ = TYP_OP_CODE_S,   .tid = OP_CODE_S_ASL,       .val =  0           },
     { .name = "ASR",            .typ = TYP_OP_CODE_S,   .tid = OP_CODE_S_ASR,       .val =  0           },
     { .name = "ROR",            .typ = TYP_OP_CODE_S,   .tid = OP_CODE_S_ROR,       .val =  0           },
-    { .name = "ROL",            .typ = TYP_OP_CODE_S,   .tid = OP_CODE_S_ROL,       .val =  0           },
+    { .name = "ROL",            .typ = TYP_OP_CODE_S,   .tid = OP_CODE_S_ROL,       .val =  0           }
     
     //--------------------------------------------------------------------------------------------------------
     // Runtime register mnemonics.
     //
     //--------------------------------------------------------------------------------------------------------
     // ??? to fill in ...
-    
-    //--------------------------------------------------------------------------------------------------------
-    // The last token to mark the list end.
-    //--------------------------------------------------------------------------------------------------------
-    { .name = "",               .typ = TYP_NIL,             .tid = TOK_LAST,           .val =  0       }
     
 };
 

@@ -85,8 +85,9 @@ ErrMsgId cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
         case ERR_INVALID_EXIT_VAL:          fprintf( stdout, "Invalid program exit code\n" ); break;
             
         case ERR_ENV_VALUE_EXPR:            fprintf( stdout, "Invalid expression for ENV variable\n" ); break;
+        case ERR_EXPECTED_STR:              fprintf( stdout, "Expected a string value\n" ); break;
             
-        case ERR_ENV_VAR_NOT_FOUND:         fprintf( stdout, "ENV variable not found\n" );
+        case ERR_ENV_VAR_NOT_FOUND:         fprintf( stdout, "ENV variable not found\n" ); break;
             
         case ERR_EXPECTED_REG_SET:          fprintf( stdout, "Expected a register set\n" ); break;
         case ERR_EXPECTED_REG_OR_SET:       fprintf( stdout, "Expected a register or register set\n" ); break;
@@ -113,9 +114,10 @@ ErrMsgId cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
         case ERR_EXPECTED_OFS:                  fprintf( stdout, "Expected an address\n" ); break;
             
         case ERR_INVALID_CHAR_IN_TOKEN_LINE:    fprintf( stdout, "Invalid char in input line\n" ); break;
+        case ERR_UNDEFINED_PFUNC:           fprintf( stdout, "Unknown predefined function\n" ); break;
             
         case ERR_INVALID_EXPR:              fprintf( stdout, "Invalid expression\n" ); break;
-        case ERR_EXPECTED_INSTR_OPT:        fprintf( stdout, "Expected the instructon options\n" );
+        case ERR_EXPECTED_INSTR_OPT:        fprintf( stdout, "Expected the instructon options\n" ); break;
         case ERR_INVALID_INSTR_OPT:         fprintf( stdout, "INvalid instruction option\n" ); break;
         case ERR_INSTR_HAS_NO_OPT:          fprintf( stdout, "Instruction has no option\n" ); break;
         case ERR_EXPECTED_SR1_SR3:          fprintf( stdout, "Expected SR1 .. SR3 as segment register\n" ); break;
@@ -192,10 +194,6 @@ void displayHelp( ) {
     fprintf( stdout, FMT_STR, "da       <ofs> [ , <len> ] [ , <fmt> ]", "display memory" );
     fprintf( stdout, FMT_STR, "ma       <ofs> , <val>", "modify memory" );
     fprintf( stdout, FMT_STR, "maa      <ofs> , <asm-str>", "modify memory as code" );
-    
-    fprintf( stdout, FMT_STR, "dis      <instr-val>", "disassemble an instruction" );
-    fprintf( stdout, FMT_STR, "asm      <instr-string>", "assemble an instruction" );
-    fprintf( stdout, FMT_STR, "hva      <ext-adr>",  "returns the hash value function result" );
     
     
     // ??? fix the syntax...
@@ -459,7 +457,9 @@ bool DrvCmds::readInputLine( char *cmdBuf ) {
     
     while ( true ) {
         
-        fflush( stdout );
+       //  fflush( stdout );
+        
+#if 1 // current version
         
         if ( fgets( cmdBuf, CMD_LINE_BUF_SIZE, stdin ) != nullptr ) {
             
@@ -467,18 +467,79 @@ bool DrvCmds::readInputLine( char *cmdBuf ) {
             
             removeComment( cmdBuf );
             
+     
             if ( strlen( cmdBuf ) > 0 ) {
                 
                 glb -> env -> setEnvVar((char *) ENV_CMD_CNT,
-                                          glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ) + 1 );
+                                        glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ) + 1 );
                 return( true );
             }
             else return( false );
         }
         else if ( feof( stdin )) exit( glb -> env -> getEnvVarInt((char *) ENV_EXIT_CODE ));
+        
+        return( false );
+        
+#else
+        
+        // we need another version of command input for sharing with a running CPU. The idea is that in
+        // running mode the terminal input is actally handled by a CPU monitor program with console IO
+        // functions. Our job is then to move characters directly to howver the console IO is implemented.
+        // A "control Y" input is taking us back to the simulator.
+        //
+        // Unfortunately, windows and macs differ. The standard system calls typically buffer the input
+        // up to the carriage return. To avoid this, the terminal needs to be place in "raw" mode. And this
+        // is diffferent for the two platforms.
+        //
+        // ??? need a seprate method for placing in raw mode, resettimg this mode, and reading and writing
+        // a single character.
+        //
+        char    ch;
+        int     index = 0;
+        
+        while ( true ) {
+            
+            ch = getchar( );
+            
+            if ( ch == 0x19 ) {
+                
+                // handle control Y
+            }
+            else if (( ch == '\n' ) || ( ch == '\r' )) {
+                
+                cmdBuf[ index ] = '\0';
+                putchar( ch );
+                return ( true );
+            }
+            else if ( ch == '\b' ) {
+               
+                if ( index > 0 ) {
+                    
+                    index --;
+                    
+                    putchar( '\b' );
+                    putchar( ' ' );
+                    putchar( '\b' );
+                    continue;
+                }
+            }
+            
+            if ( index < CMD_LINE_BUF_SIZE - 1 ) {
+                
+                cmdBuf[ index ] = ch;
+                index ++;
+                putchar( ch );
+            }
+            else {
+            
+                cmdBuf[ index ] = '\0';
+                return( false );
+            }
+        }
+        
+#endif
+        
     }
-    
-    return( false );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -523,16 +584,6 @@ void DrvCmds::execCmdsFromFile( char* fileName ) {
         
         throw ( errNum );  // for now ...
     }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Invalid command handler.
-//
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::invalidCmd( ) {
-    
-    glb -> env -> setEnvVar((char *) ENV_EXIT_CODE, -1 );
-    throw ( ERR_INVALID_CMD );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -776,9 +827,65 @@ void DrvCmds::stepCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Writeline command.
+//
+// WL <epr> [ "," <rdx> ]
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::writeLineCmd( ) {
+    
+    DrvExpr  rExpr;
+    int      rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    
+    glb -> eval -> parseExpr( &rExpr );
+    
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        
+        glb -> tok -> nextToken( );
+        
+        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
+            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
+            ( glb -> tok -> tokId( ) == TOK_DEC )) {
+            
+            rdx = glb -> tok -> tokVal( );
+            
+            glb -> tok -> nextToken( );
+        }
+        else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+            
+            rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+        }
+        else throw ( ERR_INVALID_FMT_OPT );
+    }
+    
+    checkEOS( );
+    
+    switch ( rExpr.typ ) {
+            
+        case TYP_NUM: {
+            
+            if      ( rdx == 10 )  fprintf( stdout, "%d", rExpr.numVal );
+            else if ( rdx == 8  )  fprintf( stdout, "%#012o", rExpr.numVal );
+            else if ( rdx == 16 )  {
+                
+                if ( rExpr.numVal == 0 ) fprintf( stdout, "0x0" );
+                else fprintf( stdout, "%#010x", rExpr.numVal );
+            }
+            else fprintf( stdout, "**num**" );
+            
+            fprintf( stdout, "\n" );
+            
+        } break;
+       
+        case TYP_STR: printf( "\"%s\"\n", rExpr.strVal ); break;
+       
+        default: throw (  ERR_INVALID_EXPR );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Disassemble command.
 //
-// DIS <instr> [ "," fmt ]
+// DIS <instr> [ "," <rdx> ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::disAssembleCmd( ) {
     
@@ -817,44 +924,6 @@ void DrvCmds::disAssembleCmd( ) {
         fprintf( stdout, "\n" );
     }
     else throw ( ERR_EXPECTED_INSTR_VAL );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Assemble command. We enter the routine with the token past the command token.
-//
-// ASM <instr-str> [ fmt ]
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::assembleCmd( ) {
-    
-    int         rdx                     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-    uint32_t    instr                   = 0;
-    char        asmStr[ TOK_STR_SIZE ]  = { 0 };
-    
-    if ( glb -> tok -> tokId( ) == TOK_STR ) {
-        
-        strncpy( asmStr, glb -> tok -> tokStr( ), sizeof( asmStr ));
-        
-        glb -> tok -> nextToken( );
-        
-        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
-            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
-            ( glb -> tok -> tokId( ) == TOK_DEC )) {
-            
-            rdx = glb -> tok -> tokVal( );
-        }
-        else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
-            
-            rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-        }
-        else throw ( ERR_INVALID_FMT_OPT );
-    }
-    else throw ( ERR_INVALID_ARG );
-    
-    if ( glb -> oneLineAsm -> parseAsmLine( asmStr, &instr ) == NO_ERR ) {
-        
-        glb -> lineDisplay -> displayWord( instr, rdx );
-        fprintf( stdout, "\n" );
-    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1055,29 +1124,6 @@ void DrvCmds::modifyRegCmd( ) {
             
         default: throw( ERR_EXPECTED_REG_SET );
     }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Hash virtual address command. The TLB is indexed by a hash function, which we can test with this command.
-// We will use the iTlb hash function for this command.
-//
-// HVA <seg>.<ofs>
-//
-// ??? this command could be come a function. But then we would need a way to display function rsults...
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::hashVACmd( ) {
-    
-    DrvExpr rExpr;
-    
-    glb -> tok -> nextToken( );
-    
-    glb -> eval -> parseExpr( &rExpr );
-  
-    if ( rExpr.typ == TYP_EXT_ADR ) {
-        
-        fprintf( stdout, "%i\n", glb -> cpu ->iTlb ->hashAdr( rExpr.seg, rExpr.ofs ));
-    }
-    else throw ( ERR_EXPECTED_EXT_ADR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1466,10 +1512,18 @@ void DrvCmds::displayAbsMemCmd( ) {
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         glb -> tok -> nextToken( );
-        glb -> eval -> parseExpr( &rExpr );
         
-        if ( rExpr.typ == TYP_NUM ) len = rExpr.numVal;
-        else throw ( ERR_EXPECTED_LEN );
+        if ( glb -> tok -> isToken( TOK_COMMA )) {
+            
+            len = 4;
+        }
+        else {
+            
+            glb -> eval -> parseExpr( &rExpr );
+            
+            if ( rExpr.typ == TYP_NUM ) len = rExpr.numVal;
+            else throw ( ERR_EXPECTED_LEN );
+        }
     }
    
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
@@ -1545,47 +1599,6 @@ void DrvCmds::modifyAbsMemCmd( ) {
     if (((uint64_t) ofs + 4 ) > UINT32_MAX ) throw ( ERR_OFS_LEN_LIMIT_EXCEEDED );
     
     mem -> putMemDataWord( ofs, val );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Modify absolute code memory command. This command accepts an address and string that represents the code
-// word in assembly format.
-//
-// MAA <ofs> "," <asm-string>
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::modifyAbsMemAsCodeCmd( ) {
-    
-    DrvExpr     rExpr;
-    uint32_t    ofs         = 0;
-    uint32_t    instr       = 0;
-    CpuMem      *physMem    = glb -> cpu -> physMem;
-    CpuMem      *pdcMem     = glb -> cpu -> pdcMem;
-    CpuMem      *ioMem      = glb -> cpu -> ioMem;
-    CpuMem      *mem        = nullptr;
-    
-    glb -> eval -> parseExpr( &rExpr );
-    
-    if ( rExpr.typ == TYP_NUM ) ofs = rExpr.numVal;
-    else throw ( ERR_EXPECTED_OFS );
-    
-    acceptComma( );
-    glb -> eval -> parseExpr( &rExpr );
-    
-    if ( rExpr.typ == TYP_STR ) ;
-    else throw ( 99 );
-    
-    checkEOS( );
-        
-    if      (( physMem != nullptr ) && ( physMem -> validAdr( ofs ))) mem = physMem;
-    else if (( pdcMem  != nullptr ) && ( pdcMem  -> validAdr( ofs ))) mem = pdcMem;
-    else if (( ioMem   != nullptr ) && ( ioMem   -> validAdr( ofs ))) mem = ioMem;
-    
-    if (((uint64_t) ofs + 4 ) > UINT32_MAX ) throw ( ERR_OFS_LEN_LIMIT_EXCEEDED );
-    
-    if ( glb -> oneLineAsm -> parseAsmLine( rExpr.strVal, &instr )) {
-        
-        mem -> putMemDataWord( ofs, instr );
-    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2162,85 +2175,87 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
             glb -> tok -> setupTokenizer( cmdBuf, (DrvToken *) cmdTokTab );
             glb -> tok -> nextToken( );
             
-            if (  ! glb -> tok -> isTokenTyp( TYP_CMD )) throw ( ERR_INVALID_CMD );
-            
-            TokId cmdId = glb -> tok -> tokId( );
-            
-            glb -> tok -> nextToken( );
-            
-            switch( cmdId ) {
-                    
-                case TOK_NIL:                                           break;
-                case CMD_EXIT:          exitCmd( );                     break;
-                case CMD_HELP:          helpCmd( );                     break;
-                case CMD_WHELP:         winHelpCmd( );                  break;
-                case CMD_ENV:           envCmd( );                      break;
-                case CMD_XF:            execFileCmd( );                 break;
-                case CMD_LMF:           loadPhysMemCmd( );              break;
-                case CMD_SMF:           savePhysMemCmd( );              break;
-                case CMD_RESET:         resetCmd( );                    break;
-                case CMD_RUN:           runCmd( );                      break;
-                case CMD_STEP:          stepCmd( );                     break;
-                case CMD_DIS_ASM:       disAssembleCmd( );              break;
-                case CMD_ASM:           assembleCmd( );                 break;
-                case CMD_DR:            displayRegCmd( );               break;
-                case CMD_MR:            modifyRegCmd( );                break;
-                case CMD_HASH_VA:       hashVACmd( );                   break;
-                case CMD_D_TLB:         displayTLBCmd( );               break;
-                case CMD_I_TLB:         insertTLBCmd( );                break;
-                case CMD_P_TLB:         purgeTLBCmd( );                 break;
-                case CMD_D_CACHE:       displayCacheCmd( );             break;
-                case CMD_P_CACHE:       purgeCacheCmd( );               break;
-                case CMD_DA:            displayAbsMemCmd( );            break;
-                case CMD_MA:            modifyAbsMemCmd( );             break;
-                case CMD_MAA:           modifyAbsMemAsCodeCmd( );       break;
-                    
-                case CMD_WON:           winOnCmd( );                    break;
-                case CMD_WOFF:          winOffCmd( );                   break;
-                case CMD_WDEF:          winDefCmd( );                   break;
-                case CMD_WSE:           winStacksEnable( );             break;
-                case CMD_WSD:           winStacksDisable( );            break;
-                    
-                case CMD_WC:            winCurrentCmd( );               break;
-                case CMD_WN:            winNewWinCmd( );                break;
-                case CMD_WK:            winKillWinCmd( );               break;
-                case CMD_WS:            winSetStackCmd( );              break;
-                case CMD_WT:            winToggleCmd( );                break;
-                case CMD_WX:            winExchangeCmd( );              break;
-                    
-                case CMD_WF:            winForwardCmd( cmdId );         break;
-                case CMD_WB:            winBackwardCmd( cmdId );        break;
-                case CMD_WH:            winHomeCmd( cmdId );            break;
-                case CMD_WJ:            winJumpCmd( cmdId );            break;
-                    
-                case CMD_PSE:
-                case CMD_SRE:
-                case CMD_PLE:
-                case CMD_SWE:
-                case CMD_WE:            winEnableCmd( cmdId );          break;
-                    
-                case CMD_PSD:
-                case CMD_SRD:
-                case CMD_PLD:
-                case CMD_SWD:
-                case CMD_WD:            winDisableCmd( cmdId );         break;
-                    
-                case CMD_PSR:
-                case CMD_SRR:
-                case CMD_PLR:
-                case CMD_SWR:
-                case CMD_WR:            winSetRadixCmd( cmdId );        break;
-                    
-                case CMD_CWL:
-                case CMD_WL:            winSetRowsCmd( cmdId );         break;
-                    
-                default:                invalidCmd( );
+            if ( glb -> tok -> isTokenTyp( TYP_CMD )) {
+                
+                TokId cmdId = glb -> tok -> tokId( );
+                
+                glb -> tok -> nextToken( );
+                
+                switch( cmdId ) {
+                        
+                    case TOK_NIL:                                           break;
+                    case CMD_EXIT:          exitCmd( );                     break;
+                    case CMD_HELP:          helpCmd( );                     break;
+                    case CMD_WHELP:         winHelpCmd( );                  break;
+                    case CMD_ENV:           envCmd( );                      break;
+                    case CMD_XF:            execFileCmd( );                 break;
+                    case CMD_LMF:           loadPhysMemCmd( );              break;
+                    case CMD_SMF:           savePhysMemCmd( );              break;
+                    case CMD_RESET:         resetCmd( );                    break;
+                    case CMD_RUN:           runCmd( );                      break;
+                    case CMD_STEP:          stepCmd( );                     break;
+                    case CMD_WRITE_LINE:    writeLineCmd( );                break;
+                    case CMD_DIS_ASM:       disAssembleCmd( );              break;
+                    case CMD_DR:            displayRegCmd( );               break;
+                    case CMD_MR:            modifyRegCmd( );                break;
+    
+                    case CMD_D_TLB:         displayTLBCmd( );               break;
+                    case CMD_I_TLB:         insertTLBCmd( );                break;
+                    case CMD_P_TLB:         purgeTLBCmd( );                 break;
+                    case CMD_D_CACHE:       displayCacheCmd( );             break;
+                    case CMD_P_CACHE:       purgeCacheCmd( );               break;
+                    case CMD_DA:            displayAbsMemCmd( );            break;
+                    case CMD_MA:            modifyAbsMemCmd( );             break;
+                        
+                    case CMD_WON:           winOnCmd( );                    break;
+                    case CMD_WOFF:          winOffCmd( );                   break;
+                    case CMD_WDEF:          winDefCmd( );                   break;
+                    case CMD_WSE:           winStacksEnable( );             break;
+                    case CMD_WSD:           winStacksDisable( );            break;
+                        
+                    case CMD_WC:            winCurrentCmd( );               break;
+                    case CMD_WN:            winNewWinCmd( );                break;
+                    case CMD_WK:            winKillWinCmd( );               break;
+                    case CMD_WS:            winSetStackCmd( );              break;
+                    case CMD_WT:            winToggleCmd( );                break;
+                    case CMD_WX:            winExchangeCmd( );              break;
+                        
+                    case CMD_WF:            winForwardCmd( cmdId );         break;
+                    case CMD_WB:            winBackwardCmd( cmdId );        break;
+                    case CMD_WH:            winHomeCmd( cmdId );            break;
+                    case CMD_WJ:            winJumpCmd( cmdId );            break;
+                        
+                    case CMD_PSE:
+                    case CMD_SRE:
+                    case CMD_PLE:
+                    case CMD_SWE:
+                    case CMD_WE:            winEnableCmd( cmdId );          break;
+                        
+                    case CMD_PSD:
+                    case CMD_SRD:
+                    case CMD_PLD:
+                    case CMD_SWD:
+                    case CMD_WD:            winDisableCmd( cmdId );         break;
+                        
+                    case CMD_PSR:
+                    case CMD_SRR:
+                    case CMD_PLR:
+                    case CMD_SWR:
+                    case CMD_WR:            winSetRadixCmd( cmdId );        break;
+                        
+                    case CMD_CWL:
+                    case CMD_WL:            winSetRowsCmd( cmdId );         break;
+                        
+                    default:                throw ( ERR_INVALID_CMD );
+                }
             }
+            else throw ( ERR_INVALID_CMD );
         }
     }
     
     catch ( ErrMsgId errNum ) {
     
+        glb -> env -> setEnvVar((char *) ENV_EXIT_CODE, -1 );
         cmdLineError( errNum );
     }
 }

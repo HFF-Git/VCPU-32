@@ -24,6 +24,7 @@
 #include "VCPU32-Version.h"
 #include "VCPU32-Types.h"
 #include "VCPU32-Driver.h"
+#include "VCPU32-DrvTables.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Local namespace. These routines are not visible outside this source file.
@@ -65,13 +66,10 @@ int lookupToken( char *inputStr, DrvToken *tokTab ) {
     char tmpStr[ TOK_INPUT_LINE_SIZE ];
     strcpy( tmpStr, inputStr );
     upshiftStr( tmpStr );
-    
-    DrvToken *tok = tokTab;
-    
-    while (( tok -> typ != TYP_NIL ) || ( tok -> tid != TOK_NIL )) {
+   
+    for ( int i = 0; i < MAX_CMD_TOKEN_TAB; i++  ) {
         
-        if ( strcmp( tmpStr, tok -> name ) == 0 )   return((int) ( tok - tokTab ));
-        else                                        tok ++;
+        if ( strcmp( tmpStr, tokTab[ i ].name ) == 0 ) return( i );
     }
     
     return( -1 );
@@ -278,7 +276,6 @@ void DrvTokenizer::parseIdent( ) {
         
         currentToken.typ = TYP_IDENT;
         currentToken.tid = TOK_IDENT;
-        
         strcpy( currentToken.str, identBuf );
     }
     else currentToken = tokTab[ index ];

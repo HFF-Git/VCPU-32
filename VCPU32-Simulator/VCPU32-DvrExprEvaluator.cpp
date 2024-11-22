@@ -88,29 +88,126 @@ DrvExprEvaluator::DrvExprEvaluator( VCPU32Globals *glb ) {
 
 
 //------------------------------------------------------------------------------------------------------------
-// Example function ....
+// Assemble function.
 //
-// ??? assemble "(" <str> ")"
+// ASSEMBLE "(" <str> ")"
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::pFuncAssemble( DrvToken funcId, DrvExpr *rExpr ) {
+void DrvExprEvaluator::pFuncAssemble( DrvExpr *rExpr ) {
     
+    DrvExpr     lExpr;
+    uint32_t    instr;
     
-    // parse argument list.
-    // execute the function.
-    // return the result.
+    glb -> tok -> nextToken( );
+    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    else throw ( ERR_EXPECTED_LPAREN );
+        
+    parseExpr( &lExpr );
+    if ( lExpr.typ == TYP_STR ) {
+        
+        glb -> oneLineAsm -> parseAsmLine( lExpr.strVal,&instr );
+        rExpr -> typ    = TYP_NUM;
+        rExpr -> numVal = instr;
+    }
+    else throw ( ERR_EXPECTED_STR );
+
+    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    else throw ( ERR_EXPECTED_RPAREN );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Entry point to the predefined functions. We dispatch based on ...
+// Dis-assemble function.
+//
+// DISASSEMBLE "(" <str> [ "," <rdx> ] ")"
+//------------------------------------------------------------------------------------------------------------
+void DrvExprEvaluator::pFuncDisAssemble( DrvExpr *rExpr ) {
+    
+    DrvExpr     lExpr;
+    uint32_t    instr;
+    char        asmStr[ CMD_LINE_BUF_SIZE ] = "Need to rewrite disassembler first ...";
+    int         rdx     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    
+    glb -> tok -> nextToken( );
+    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    else throw ( ERR_EXPECTED_LPAREN );
+    
+    glb -> eval -> parseExpr( &lExpr );
+    
+    if ( lExpr.typ == TYP_NUM ) {
+        
+        instr = lExpr.numVal;
+        
+        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+            
+            glb -> tok -> nextToken( );
+            
+            if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
+                ( glb -> tok -> tokId( ) == TOK_OCT ) ||
+                ( glb -> tok -> tokId( ) == TOK_DEC )) {
+                
+                rdx = glb -> tok -> tokVal( );
+                
+                glb -> tok -> nextToken( );
+            }
+            else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+                
+                throw ( ERR_UNEXPECTED_EOS );
+            }
+            else throw ( ERR_INVALID_FMT_OPT );
+        }
+        
+        if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+        else throw ( ERR_EXPECTED_RPAREN );
+        
+        rExpr -> typ = TYP_STR;
+        strcpy( rExpr -> strVal, asmStr );
+    
+        // ??? need to rewrite disassembler to produce a string vs. printing
+        
+    }
+    else throw ( ERR_EXPECTED_INSTR_VAL );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Virtual address hash function.
+//
+// HASH "(" <extAdr> ")"
+//------------------------------------------------------------------------------------------------------------
+void DrvExprEvaluator::pFuncHash( DrvExpr *rExpr ) {
+    
+    DrvExpr     lExpr;
+    uint32_t    hashVal;
+    
+    glb -> tok -> nextToken( );
+    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    else throw ( ERR_EXPECTED_LPAREN );
+        
+    parseExpr( &lExpr );
+    if ( lExpr.typ == TYP_EXT_ADR ) {
+        
+        hashVal = glb -> cpu -> iTlb -> hashAdr( lExpr.seg, lExpr.ofs );
+        
+        rExpr -> typ    = TYP_NUM;
+        rExpr -> numVal = hashVal;
+    }
+    else throw ( ERR_EXPECTED_STR );
+
+    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    else throw ( ERR_EXPECTED_RPAREN );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Entry point to the predefined functions. We dispatch based on the predefined function token Id.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvExprEvaluator::parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr ) {
     
     switch( funcId.tid ) {
             
+        case PF_ASSEMBLE:       pFuncAssemble( rExpr );     break;
+        case PF_DIS_ASSEMBLE:   pFuncDisAssemble( rExpr );  break;
+        case PF_HASH:           pFuncHash( rExpr );         break;
             
-            
-        default: ; // unknown function ...
+        default: throw ( ERR_UNDEFINED_PFUNC );
     }
 }
 
@@ -143,6 +240,7 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
         rExpr -> typ    = TYP_EXT_ADR;
         rExpr -> seg    = glb -> tok -> tokSeg( );
         rExpr -> ofs    = glb -> tok -> tokOfs( );
+        glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> isTokenTyp( TYP_STR ))  {
         
@@ -171,7 +269,6 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
     else if ( glb -> tok -> isTokenTyp( TYP_PREDEFINED_FUNC )) {
         
         parsePredefinedFunction( glb -> tok -> token( ), rExpr );
-        glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> isToken( TOK_IDENT )) {
     
