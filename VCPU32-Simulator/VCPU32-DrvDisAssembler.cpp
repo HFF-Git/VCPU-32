@@ -9,7 +9,7 @@
 //      OpCode [ Opcode Options ] [ target ] [ source ] 
 //
 // The disassemble routine will analyze an instruction word and present the instruction portion in the above
-// order. It does make heavy use of the CPU24Instr inline routines to get to the fields and values.
+// order.The result is a string with the disassembled instruction.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -30,10 +30,6 @@
 #include "VCPU32-Driver.h"
 #include "VCPU32-DrvTables.h"
 #include "VCPU32-Core.h"
-
-//
-// ??? it would be better to produce a string rather than printing to stdout....
-//
 
 //------------------------------------------------------------------------------------------------------------
 // Local namespace. These routines are not visible outside this source file.
@@ -62,7 +58,7 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     else        return( tmpA & tmpM );
 }
 
-static inline uint32_t lowSignExtend32( uint32_t arg, int len ) {
+uint32_t lowSignExtend32( uint32_t arg, int len ) {
     
     len = len % 32;
     
@@ -75,7 +71,7 @@ static inline uint32_t lowSignExtend32( uint32_t arg, int len ) {
     else        return( arg &= tmpM );
 }
 
-static inline uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
+uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
    
     return( lowSignExtend32( getBitField( instr, pos, len ), len ));
 }
@@ -83,66 +79,69 @@ static inline uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
 //------------------------------------------------------------------------------------------------------------
 // "printImmVal" display an immediate value in the selected radix. Octals and hex numbers are printed unsigned
 // quantities, decimal numbers are interpreted as signed integers. Most often decimal notation is used to
-// specify offsets on indexed addressing modes.
+// specify offsets on indexed addressing modes. The function returns the characters written. The maximum
+// size of what is added is set to 16.
 //
 //------------------------------------------------------------------------------------------------------------
-void printImmVal( uint32_t val, int rdx = 16 ) {
+int printImmVal( char *buf, uint32_t val, int rdx = 16 ) {
     
-    if ( val == 0 ) fprintf( stdout, "0" );
+    if ( val == 0 ) return( snprintf( buf, sizeof( buf ), "0" ));
     
     else {
        
-        if      ( rdx == 10 )  fprintf( stdout, "%d", ((int) val ));
-        else if ( rdx == 8  )  fprintf( stdout, "%#0o", val );
-        else if ( rdx == 16 )  fprintf( stdout, "%#0x", val );
-        else                   fprintf( stdout, "**num***" );
+        if      ( rdx == 10 )  return( snprintf( buf, 16, "%d", ((int) val )));
+        else if ( rdx == 8  )  return( snprintf( buf, 16, "%#0o", val ));
+        else if ( rdx == 16 )  return( snprintf( buf, 16, "%#0x", val ));
+        else                   return( snprintf( buf, 16, "**num***" ));
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
 // A little helper function to display the comparison condition in human readable form. We only decode the
 // two bits which map to EQ, NE, LT and LE. A possible GT and GE cases cannot be deduced from just looking
-// at the instruction.
+// at the instruction. The function returns the characters written. The maximum size of what is added is set
+// to 2.
 //
 //------------------------------------------------------------------------------------------------------------
-void displayComparisonCodes( uint32_t cmpCode ) {
+int formatComparisonCodes( char *buf, uint32_t cmpCode ) {
     
     switch( cmpCode ) {
             
-        case CC_EQ:  fprintf( stdout, "EQ" ); return;
-        case CC_LT:  fprintf( stdout, "LT" ); return;
-        case CC_NE:  fprintf( stdout, "NE" ); return;
-        case CC_LE:  fprintf( stdout, "LE" ); return;
-        default:     fprintf( stdout, "**" ); return;
+        case CC_EQ:  return( snprintf( buf, 2, "EQ" ));
+        case CC_LT:  return( snprintf( buf, 2, "LT" ));
+        case CC_NE:  return( snprintf( buf, 2, "NE" ));
+        case CC_LE:  return( snprintf( buf, 2, "LE" ));
+        default:     return( snprintf( buf, 2, "**" ));
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// A little helper function to display the test condition in human readable form.
+// A little helper function to display the test condition in human readable form. The function returns the
+// characters written. The maximum size of what is added is set to 2.
 //
-// ??? this is currently only used by the CMR instruction ... to think about ...
 //------------------------------------------------------------------------------------------------------------
-void displayTestCodes( uint32_t tstCode ) {
+int formatTestCodes( char *buf, uint32_t tstCode ) {
     
     switch( tstCode ) {
             
-        case TC_EQ: fprintf( stdout, "EQ" ); return;
-        case TC_LT: fprintf( stdout, "LT" ); return;
-        case TC_GT: fprintf( stdout, "GT" ); return;
-        case TC_EV: fprintf( stdout, "EV" ); return;
-        case TC_NE: fprintf( stdout, "NE" ); return;
-        case TC_LE: fprintf( stdout, "LE" ); return;
-        case TC_GE: fprintf( stdout, "GE" ); return;
-        case TC_OD: fprintf( stdout, "OD" ); return;
-        default:    fprintf( stdout, "**" ); return;
+        case TC_EQ: return( snprintf( buf, 2, "EQ" ));
+        case TC_LT: return( snprintf( buf, 2, "LT" ));
+        case TC_GT: return( snprintf( buf, 2, "GT" ));
+        case TC_EV: return( snprintf( buf, 2, "EV" ));
+        case TC_NE: return( snprintf( buf, 2, "NE" ));
+        case TC_LE: return( snprintf( buf, 2, "LE" ));
+        case TC_GE: return( snprintf( buf, 2, "GE" ));
+        case TC_OD: return( snprintf( buf, 2, "OD" ));
+        default:    return( snprintf( buf, 2, "**" ));
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
 // There are instructions that use the operand argument format. This routine will format such an operand.
+// The function returns the characters written. The function returns the characters written.
 //
 //------------------------------------------------------------------------------------------------------------
-void displayOperandModeField( uint32_t instr, int rdx = 10 ) {
+int formatOperandModeField( char *buf, uint32_t instr, int rdx = 10 ) {
     
     uint32_t opMode = getBitField( instr, 13, 2 );
     
@@ -150,28 +149,30 @@ void displayOperandModeField( uint32_t instr, int rdx = 10 ) {
             
         case OP_MODE_IMM: {
             
-            printImmVal( immGenPosLenLowSign( instr, 31, 18 ), TOK_DEC );
+            return( printImmVal( buf, immGenPosLenLowSign( instr, 31, 18 ), TOK_DEC ));
             
         } break;
           
         case OP_MODE_REG: {
-          
-            fprintf( stdout, "r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            
+            return( snprintf( buf, 16, "r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 )));
             
         } break;
             
         case OP_MODE_REG_INDX: {
            
-            fprintf( stdout, "r%d(r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            return( snprintf( buf, 16, "r%d(r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 )));
             
         } break;
             
         case OP_MODE_INDX: {
             
-            printImmVal( immGenPosLenLowSign( instr, 27, 12 ), TOK_DEC );
-            fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
+            int len = printImmVal( buf, immGenPosLenLowSign( instr, 27, 12 ), TOK_DEC );
+            return ( snprintf( buf + len , 16, "(r%d)", getBitField( instr, 31, 4 )));
             
         } break;
+            
+        default: return( 0 );
     }
 }
 
@@ -182,25 +183,26 @@ void displayOperandModeField( uint32_t instr, int rdx = 10 ) {
 // length to append a character to indicate byte, half-word or word access.
 //
 // There are also instructions have the same opCode but result in a different mnemonic. For example the MR
-// instruction will decode to four different mnemonics.
+// instruction will decode to four different mnemonics. The function returns the characters written.
 //
 //------------------------------------------------------------------------------------------------------------
-void displayOpCode( uint32_t instr ) {
+int formatOpCode( char *buf, uint32_t instr ) {
     
     uint32_t opCode = getBitField( instr, 5, 6 );
+    int     cursor  = 0;
     
     if ( opCodeTab[ opCode ].flags & OP_MODE_INSTR ) {
         
-        fprintf( stdout, "%s", opCodeTab[ opCode ].mnemonic );
+        cursor += snprintf( buf + cursor, 16, "%s", opCodeTab[ opCode ].mnemonic );
         
         if (( getBitField( instr, 13, 2 ) == 2 ) || ( getBitField( instr, 13, 2 ) == 3 )) {
             
             switch ( getBitField( instr, 15, 2 )) {
                     
-                case 0:  fprintf( stdout, "B" ); break;
-                case 1:  fprintf( stdout, "H" ); break;
+                case 0:  cursor += snprintf( buf + cursor, 16, "B" ); break;
+                case 1:  cursor += snprintf( buf + cursor, 16, "H" ); break;
                 case 2:  break;
-                default: fprintf( stdout, "**dw**" );
+                default: cursor += snprintf( buf + cursor, 16, "**dw**" );
             }
         }
     }
@@ -211,31 +213,35 @@ void displayOpCode( uint32_t instr ) {
             case OP_LD: 
             case OP_ST: {
                 
-                fprintf( stdout, "%s", opCodeTab[ opCode ].mnemonic );
+                cursor += snprintf( buf + cursor, 16, "%s", opCodeTab[ opCode ].mnemonic );
                 
                 switch ( getBitField( instr, 15, 2 )) {
                         
-                    case 0:  fprintf( stdout, "B" ); break;
-                    case 1:  fprintf( stdout, "H" ); break;
+                    case 0:  cursor += snprintf( buf + cursor, 16, "B" ); break;
+                    case 1:  cursor += snprintf( buf + cursor, 16, "H" ); break;
                     case 2:  break;
-                    default: fprintf( stdout, "**dw**" );
+                    default: cursor += snprintf( buf + cursor, 16, "**dw**" );
                 }
                 
             } break;
             
-            default: fprintf( stdout, "%s", opCodeTab[ opCode ].mnemonic );
+            default: cursor += snprintf( buf + cursor, 16, "%s", opCodeTab[ opCode ].mnemonic );
         }
     }
+    
+    return( cursor );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Some instructions have a set of further qualifiers. They are listed after a "." and are single characters.
-// If there is no option in a given set is set or it is the common case value, nothing is printed.
+// If there is no option in a given set is set or it is the common case value, nothing is printed. The
+// function returns the characters written.
 //
 //------------------------------------------------------------------------------------------------------------
-void displayOpCodeOptions( uint32_t instr ) {
+int formatOpCodeOptions( char *buf, uint32_t instr ) {
     
-    uint32_t opCode = getBitField( instr, 5, 6 );
+    uint32_t    opCode = getBitField( instr, 5, 6 );
+    int         cursor = 0;
     
     switch ( opCode ) {
             
@@ -244,7 +250,7 @@ void displayOpCodeOptions( uint32_t instr ) {
         case OP_LDA:    
         case OP_STA: {
             
-            if ( getBit( instr, 11 )) fprintf( stdout, ".M" );
+            if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 4, ".M" );
             
         } break;
             
@@ -255,9 +261,9 @@ void displayOpCodeOptions( uint32_t instr ) {
             
             if ( getBitField( instr, 11, 2 ) > 0 ) {
                 
-                fprintf( stdout, "." );
-                if ( getBit( instr, 10 ))   fprintf( stdout, "L" );
-                if ( getBit( instr, 11 ))   fprintf( stdout, "O" );
+                cursor += snprintf( buf + cursor, 4, "." );
+                if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, "L" );
+                if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 4, "O" );
             }
             
         } break;
@@ -267,24 +273,24 @@ void displayOpCodeOptions( uint32_t instr ) {
             
             if ( getBitField( instr, 11, 2 ) > 0 ) {
                 
-                fprintf( stdout, "." );
-                if ( getBit( instr, 10 )) fprintf( stdout, "N" );
-                if ( getBit( instr, 11 )) fprintf( stdout, "C" );
+                cursor += snprintf( buf + cursor, 4, "." );
+                if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, "N" );
+                if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 4, "C" );
             }
             
         } break;
         
         case OP_XOR: {
             
-            if ( getBit( instr, 10 )) fprintf( stdout, ".N" );
+            if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, ".N" );
             
         } break;
             
         case OP_CMP: 
         case OP_CMPU: {
             
-            fprintf( stdout, "." );
-            displayComparisonCodes( getBitField( instr, 11, 2 ));
+            cursor += snprintf( buf + cursor, 4, "." );
+            cursor += formatComparisonCodes( buf + cursor, getBitField( instr, 11, 2 ));
             
         } break;
             
@@ -292,9 +298,9 @@ void displayOpCodeOptions( uint32_t instr ) {
             
             if ( getBitField( instr, 11, 2 )) {
                 
-                fprintf( stdout, "." );
-                if ( getBit( instr, 10 )) fprintf( stdout, "S" );
-                if ( getBit( instr, 11 )) fprintf( stdout, "A" );
+                cursor += snprintf( buf + cursor, 4, "." );
+                if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, "S" );
+                if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 4, "A" );
             }
             
         } break;
@@ -303,10 +309,10 @@ void displayOpCodeOptions( uint32_t instr ) {
             
             if ( getBitField( instr, 12, 3 )) {
                 
-                fprintf( stdout, "." );
-                if ( getBit( instr, 10 )) fprintf( stdout, "Z" );
-                if ( getBit( instr, 11 )) fprintf( stdout, "A" );
-                if ( getBit( instr, 12 )) fprintf( stdout, "I" );
+                cursor += snprintf( buf + cursor, 4, "." );
+                if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, "Z" );
+                if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 4, "A" );
+                if ( getBit( instr, 12 )) cursor += snprintf( buf + cursor, 4, "I" );
             }
             
         } break;
@@ -315,8 +321,8 @@ void displayOpCodeOptions( uint32_t instr ) {
             
             if ( getBit( instr, 11 )) {
                 
-                fprintf( stdout, "." );
-                if ( getBit( instr, 11 )) fprintf( stdout, "A" );
+                cursor += snprintf( buf + cursor, 4, "." );
+                if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 4, "A" );
             }
             
         } break;
@@ -325,26 +331,26 @@ void displayOpCodeOptions( uint32_t instr ) {
             
             if ( getBitField( instr, 12, 3 ) > 0 ) {
                 
-                fprintf( stdout, "." );
-                if ( getBit( instr, 10 ))   fprintf( stdout, "I" );
-                if ( getBit( instr, 11 ))   fprintf( stdout, "L" );
-                if ( getBit( instr, 12 ))   fprintf( stdout, "O" );
+                cursor += snprintf( buf + cursor, 4, "." );
+                if ( getBit( instr, 10 ))   cursor += snprintf( buf + cursor, 4, "I" );
+                if ( getBit( instr, 11 ))   cursor += snprintf( buf + cursor, 4, "L" );
+                if ( getBit( instr, 12 ))   cursor += snprintf( buf + cursor, 4, "O" );
             }
             
         } break;
             
         case OP_CMR: {
             
-            fprintf( stdout, "." );
-            displayTestCodes( getBitField( instr, 13, 4 ));
+            cursor += snprintf( buf + cursor, 4, "." );
+            cursor += formatTestCodes( buf + cursor, getBitField( instr, 13, 4 ));
             
         } break;
             
         case OP_CBR: 
         case OP_CBRU: {
             
-            fprintf( stdout, "." );
-            displayComparisonCodes( getBitField( instr, 7, 2 ));
+            cursor += snprintf( buf + cursor, 4, "." );
+            cursor += formatComparisonCodes( buf + cursor, getBitField( instr, 7, 2 ));
             
         } break;
             
@@ -352,10 +358,10 @@ void displayOpCodeOptions( uint32_t instr ) {
             
             switch ( getBitField( instr, 11, 2 )) {
                     
-                case 0:                                 break;
-                case 1:     fprintf( stdout, ".S" );    break;
-                case 2:     fprintf( stdout, ".C" );    break;
-                default:    fprintf( stdout, ".***" );  break;
+                case 0:                                                    break;
+                case 1:     cursor += snprintf( buf + cursor, 4, ".S" );   break;
+                case 2:     cursor += snprintf( buf + cursor, 4, ".C" );   break;
+                default:    cursor += snprintf( buf + cursor, 4, ".***" ); break;
             }
             
         } break;
@@ -364,22 +370,22 @@ void displayOpCodeOptions( uint32_t instr ) {
             
             if (( getBit( instr, 10 ) || getBit( instr, 11 ))) {
                 
-                fprintf( stdout, "." );
-                if ( getBit( instr, 10 )) fprintf( stdout, "W" );
-                if ( getBit( instr, 11 ))fprintf( stdout, "I" );
+                cursor += snprintf( buf + cursor, 1, "." );
+                if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, "W" );
+                if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 4, "I" );
             }
            
         } break;
             
         case OP_ITLB: {
             
-            if ( getBit( instr, 10 )) fprintf( stdout, ".T" );
+            if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, ".T" );
            
         } break;
             
         case OP_PTLB: {
             
-            if ( getBit( instr, 10 )) fprintf( stdout, ".T" );
+            if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, ".T" );
           
         } break;
             
@@ -387,16 +393,17 @@ void displayOpCodeOptions( uint32_t instr ) {
             
             if (( getBit( instr, 10 ) || getBit( instr, 11 ))) {
                 
-                fprintf( stdout, "." );
-                if ( getBit( instr, 10 )) fprintf( stdout, "T" );
-                if ( getBit( instr, 11 )) fprintf( stdout, "M" );
-                if ( getBit( instr, 14 )) fprintf( stdout, "F" );
+                cursor += snprintf( buf + cursor, 4, "." );
+                if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, "T" );
+                if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 4, "M" );
+                if ( getBit( instr, 14 )) cursor += snprintf( buf + cursor, 4, "F" );
             }
             
         } break;
     }
     
-    fprintf( stdout, " " );
+    cursor += snprintf( buf + cursor, 4, " " );
+    return ( cursor );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -404,112 +411,117 @@ void displayOpCodeOptions( uint32_t instr ) {
 // type instructions the target address is decoded and printed. Finally there are the MTR instructions which
 // which will use a segment or control register as the target. There is one further exception. The BLE
 // instruction will produce a register value, the return link stored in R0. This is however not shown in the
-// disassembly printout.
+// disassembly printout. The function returns the characters written.
 //
 //------------------------------------------------------------------------------------------------------------
-void displayTarget( uint32_t instr, int rdx = 10 ) {
+int formatTarget( char *buf, uint32_t instr, int rdx = 10 ) {
     
-    uint32_t opCode = getBitField( instr, 5, 6 );
+    uint32_t    opCode = getBitField( instr, 5, 6 );
+    int         cursor = 0;
     
     if (( opCodeTab[ opCode ].flags & REG_R_INSTR ) && ( ! ( opCodeTab[ opCode ].flags & BRANCH_INSTR ))) {
         
-        fprintf( stdout, "r%d", getBitField( instr, 9, 4 ));
+        cursor += snprintf( buf + cursor, 8, "r%d", getBitField( instr, 9, 4 ));
     }
     else if ( opCodeTab[ opCode ].flags & STORE_INSTR ) {
         
-        fprintf( stdout, "r%d", getBitField( instr, 9, 4 ));
+        cursor += snprintf( buf + cursor, 8, "r%d", getBitField( instr, 9, 4 ));
     }
     else if ( opCode == OP_MR ) {
         
         if ( getBit( instr, 10 )) {
             
-            if ( getBit( instr, 11 )) fprintf( stdout, "c%d", getBitField( instr, 31, 5 ));
-            else fprintf( stdout, "s%d", getBitField( instr, 31, 4 ));
+            if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 8, "c%d", getBitField( instr, 31, 5 ));
+            else cursor += snprintf( buf + cursor, 8, "s%d", getBitField( instr, 31, 4 ));
         }
-        else fprintf( stdout, "r%d", getBitField( instr, 9, 4 ));
+        else cursor += snprintf( buf + cursor, 8, "r%d", getBitField( instr, 9, 4 ));
     }
+    
+    return( cursor );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Instruction have operands. For most of the instructions this is the operand field with the defined
 // addressing modes. For others it is highly instruction specific. The operand routine also has a parameter
-// to specify in what radix a value is shown. Address offsets are however always printed in decimal.
+// to specify in what radix a value is shown. Address offsets are however always printed in decimal. The
+// function returns the characters written.
 //
 //------------------------------------------------------------------------------------------------------------
-void displayOperands( uint32_t instr, int rdx = 10 ) {
+int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
     
-    uint32_t opCode = getBitField( instr, 5, 6 );
+    uint32_t    opCode = getBitField( instr, 5, 6 );
+    int         cursor = 0;
     
     switch ( opCode ) {
             
         case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_CMP:
         case OP_CMPU:   case OP_AND:    case OP_OR:     case OP_XOR: {
             
-            fprintf( stdout, ", " );
-            displayOperandModeField( instr, rdx );
+            cursor += snprintf( buf + cursor, 4, ", " );
+            cursor += formatOperandModeField( buf + cursor, instr, rdx );
             
         } break;
             
         case OP_EXTR: {
             
-            fprintf( stdout, ", r%d", getBitField( instr, 31, 4 ));
+            cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 31, 4 ));
             
             if ( ! getBit( instr, 11 )) {
                 
-                fprintf( stdout, ", %d", getBitField( instr, 27, 5 ));
-                fprintf( stdout, ", %d", getBitField( instr, 21, 5 ));
+                cursor += snprintf( buf + cursor, 8, ", %d", getBitField( instr, 27, 5 ));
+                cursor += snprintf( buf + cursor, 8, ", %d", getBitField( instr, 21, 5 ));
                 
-            } else fprintf( stdout, ", %d", getBitField( instr, 21, 5 ));
+            } else cursor += snprintf( buf + cursor, 8, ", %d", getBitField( instr, 21, 5 ));
             
         } break;
             
         case OP_DEP: {
             
-            if ( getBit( instr, 12 ))   fprintf( stdout, ", %d", getBitField( instr, 31, 4 ));
-            else                        fprintf( stdout, ", r%d", getBitField( instr, 31, 4 ));
+            if ( getBit( instr, 12 ))   cursor += snprintf( buf + cursor, 8, ", %d", getBitField( instr, 31, 4 ));
+            else                        cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 31, 4 ));
             
             if ( ! getBit( instr, 11 )) {
                 
-                fprintf( stdout, ", %d", getBitField( instr, 27, 5 ));
-                fprintf( stdout, ", %d", getBitField( instr, 21, 5 ));
+                cursor += snprintf( buf + cursor, 8, ", %d", getBitField( instr, 27, 5 ));
+                cursor += snprintf( buf + cursor, 8, ", %d", getBitField( instr, 21, 5 ));
                 
-            } else fprintf( stdout, ", %d", getBitField( instr, 21, 5 ));
+            } else cursor += snprintf( buf + cursor, 8, ", %d", getBitField( instr, 21, 5 ));
             
         } break;
             
         case OP_DSR: {
             
-            fprintf( stdout, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-            if ( ! getBit( instr, 11 )) fprintf( stdout, ", %d", getBitField( instr, 21, 5 ));
+            cursor += snprintf( buf + cursor, 16, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            if ( ! getBit( instr, 11 )) cursor += snprintf( buf + cursor, 8, ", %d", getBitField( instr, 21, 5 ));
             
         } break;
             
         case OP_DS: {
             
-            fprintf( stdout, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            cursor += snprintf( buf + cursor, 16, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_LSID: {
             
-            fprintf( stdout, ", r%d", getBitField( instr, 31, 4 ));
+            cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_CMR: {
             
-            fprintf( stdout, ", r%d", getBitField( instr, 27, 4 ));
-            fprintf( stdout, ", r%d", getBitField( instr, 31, 4 ));
+            cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 27, 4 ));
+            cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_DIAG: {
             
-            fprintf( stdout, ",r%d, r%d, r%d, %d",
-                    getBitField( instr, 9, 4  ),
-                    getBitField( instr, 27, 4 ),
-                    getBitField( instr, 31, 4 ),
-                    getBitField( instr, 13, 4 ));
+            cursor += snprintf( buf + cursor, 32, ",r%d, r%d, r%d, %d",
+                                getBitField( instr, 9, 4  ),
+                                getBitField( instr, 27, 4 ),
+                                getBitField( instr, 31, 4 ),
+                                getBitField( instr, 13, 4 ));
         } break;
             
         case OP_LD: case OP_ST: case OP_LDR: case OP_STC: {
@@ -518,28 +530,28 @@ void displayOperands( uint32_t instr, int rdx = 10 ) {
                 
                 if ( getBitField( instr, 13, 2 ) == 0 ) {
                     
-                    fprintf( stdout, ", r%d(r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+                    cursor += snprintf( buf + cursor, 16, ", r%d(r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
                 }
                 else {
                     
-                    fprintf( stdout, ", r%d(s%d, r%d)",
-                            getBitField( instr, 27, 4 ),
-                            getBitField( instr, 13, 2 ),
-                            getBitField( instr, 31, 4 ));
+                    cursor += snprintf( buf + cursor, 16, ", r%d(s%d, r%d)",
+                                        getBitField( instr, 27, 4 ),
+                                        getBitField( instr, 13, 2 ),
+                                        getBitField( instr, 31, 4 ));
                 }
             }
             else {
                 
-                fprintf( stdout, ", " );
-                printImmVal(  immGenPosLenLowSign( instr, 27, 12 ), 10 );
+                cursor += snprintf( buf + cursor, 4, ", " );
+                cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 27, 12 ), 10 );
                
                 if ( getBitField( instr, 13, 2 ) == 0 ) {
                     
-                    fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
+                    cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
                 }
                 else {
                     
-                    fprintf( stdout, "(s%d, r%d)", getBitField( instr, 13, 2 ), getBitField( instr, 31, 4 ));
+                    cursor += snprintf( buf + cursor, 16, "(s%d, r%d)", getBitField( instr, 13, 2 ), getBitField( instr, 31, 4 ));
                 }
             }
         
@@ -549,106 +561,106 @@ void displayOperands( uint32_t instr, int rdx = 10 ) {
             
             if ( getBit( instr, 10 )) {
                 
-                fprintf( stdout, ", r%d(r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+                cursor += snprintf( buf + cursor, 16, ", r%d(r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             }
             else {
                 
-                fprintf( stdout, ", " );
-                printImmVal( immGenPosLenLowSign( instr, 27, 12 ), TOK_DEC );
-                fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
+                cursor += snprintf( buf + cursor, 4, ", " );
+                cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 27, 12 ), TOK_DEC );
+                cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
             }
         
         } break;
             
         case OP_SHLA: {
             
-            fprintf( stdout, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-            if ( getBitField( instr, 21, 2 ) > 0 ) fprintf( stdout, ", %d",  getBitField( instr, 21, 2 ));
+            cursor += snprintf( buf + cursor, 16, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            if ( getBitField( instr, 21, 2 ) > 0 ) cursor += snprintf( buf + cursor, 8, ", %d",  getBitField( instr, 21, 2 ));
             
         } break;
             
         case OP_LDIL:
         case OP_ADDIL: {
             
-            fprintf( stdout, ", " );
-            printImmVal( getBitField( instr, 31, 22 ), rdx );
+            cursor += snprintf( buf + cursor, 4, ", " );
+            cursor += printImmVal( buf + cursor, getBitField( instr, 31, 22 ), rdx );
             
         } break;
             
         case OP_LDO: {
             
-            fprintf( stdout, ", " );
-            printImmVal( immGenPosLenLowSign( instr, 27, 18 ));
-            fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
+            cursor += snprintf( buf + cursor, 4, ", " );
+            cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 27, 18 ));
+            cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_B: 
         case OP_GATE: {
             
-            printImmVal( immGenPosLenLowSign( instr, 31, 22 ) << 2, TOK_DEC );
-            if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
+            cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 31, 22 ) << 2, TOK_DEC );
+            if ( getBitField( instr, 9, 4 ) > 0 ) cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 9, 4 ));
         
         } break;
             
         case OP_BR: {
            
-            fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
-            if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
+            cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
+            if ( getBitField( instr, 9, 4 ) > 0 ) cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 9, 4 ));
             
         } break;
             
         case OP_BV: {
            
-            fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
-            if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
+            cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
+            if ( getBitField( instr, 9, 4 ) > 0 ) cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 9, 4 ));
             
         } break;
             
         case OP_BE: {
             
-            printImmVal( immGenPosLenLowSign( instr, 23, 14 ) << 2, TOK_DEC );
-            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-            if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
+            cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 23, 14 ) << 2, TOK_DEC );
+            cursor += snprintf( buf + cursor, 16, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            if ( getBitField( instr, 9, 4 ) > 0 ) cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 9, 4 ));
             
         } break;
             
         case OP_BVE: {
             
-            if ( getBitField( instr, 27,4 )) fprintf( stdout, "r%d", getBitField( instr, 27,4 ));
-            fprintf( stdout, "(r%d)", getBitField( instr, 31,4 ));
-            if ( getBitField( instr, 9, 4 ) > 0 ) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
+            if ( getBitField( instr, 27,4 )) cursor += snprintf( buf + cursor, 8, "r%d", getBitField( instr, 27,4 ));
+            cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31,4 ));
+            if ( getBitField( instr, 9, 4 ) > 0 ) cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 9, 4 ));
             
         } break;
             
         case OP_CBR: 
         case OP_CBRU: {
             
-            fprintf( stdout, "r%d, r%d,", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-            printImmVal( immGenPosLenLowSign( instr, 23, 15 ) << 2 );
+            cursor += snprintf( buf + cursor, 16, "r%d, r%d,", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 23, 15 ) << 2 );
             
         } break;
             
         case OP_MR: {
             
-            if ( getBit( instr, 10 )) fprintf( stdout, ", r%d", getBitField( instr, 9, 4 ));
+            if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 9, 4 ));
             else {
                 
-                if ( getBit( instr, 11 )) fprintf( stdout, ", c%d", getBitField( instr, 31, 5 ));
-                else fprintf( stdout, ", s%d", getBitField( instr, 31, 3 ));
+                if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 8, ", c%d", getBitField( instr, 31, 5 ));
+                else cursor += snprintf( buf + cursor, 8, ", s%d", getBitField( instr, 31, 3 ));
             }
             
         } break;
             
         case OP_MST: {
             
-            fprintf( stdout, "," );
+            cursor += snprintf( buf + cursor, 4, "," );
             switch( getBitField( instr, 11, 2 )) {
                     
-                case 0:  fprintf( stdout, "r%d", getBitField( instr, 31, 4 ));  break;
+                case 0:  cursor += snprintf( buf + cursor, 8, "r%d", getBitField( instr, 31, 4 ));  break;
                 case 1:
-                case 2:  fprintf( stdout, "0x%x", getBitField( instr, 31, 6 )); break;
-                default: fprintf( stdout, "***" );
+                case 2:  cursor += snprintf( buf + cursor, 8, "0x%x", getBitField( instr, 31, 6 )); break;
+                default: cursor += snprintf( buf + cursor, 4, "***" );
             }
             
         } break;
@@ -657,53 +669,55 @@ void displayOperands( uint32_t instr, int rdx = 10 ) {
             
             if ( getBitField( instr, 13, 2 ) > 0 ) {
                 
-                fprintf( stdout, ", (s%d, r%d)", getBitField(instr, 13, 2 ), getBitField( instr, 31, 4 ));
+                cursor += snprintf( buf + cursor, 16, ", (s%d, r%d)", getBitField(instr, 13, 2 ), getBitField( instr, 31, 4 ));
             }
-            else fprintf( stdout, ", (r%d)", getBitField( instr, 31, 4 ));
+            else cursor += snprintf( buf + cursor, 8, ", (r%d)", getBitField( instr, 31, 4 ));
             
-            if ( getBit( instr, 11 ))   fprintf( stdout, ", %d", getBit( instr, 27 ));
-            else                        fprintf( stdout, ", r%d", getBitField( instr, 27, 4 ));
+            if ( getBit( instr, 11 ))   cursor += snprintf( buf + cursor, 8, ", %d", getBit( instr, 27 ));
+            else                        cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 27, 4 ));
             
         } break;
         
         case OP_LDPA: {
             
-            if ( getBitField( instr, 27, 4 ) != 0 ) fprintf( stdout, "r%d", getBitField( instr, 27, 4 ));
+            if ( getBitField( instr, 27, 4 ) != 0 ) cursor += snprintf( buf + cursor, 8, "r%d", getBitField( instr, 27, 4 ));
             
             if ( getBitField( instr, 13, 2 ) > 0 ) {
                 
-                fprintf( stdout, "(s%d, r%d)", getBitField(instr, 13, 2 ), getBitField( instr, 31, 4 ));
+                cursor += snprintf( buf + cursor, 16, "(s%d, r%d)", getBitField(instr, 13, 2 ), getBitField( instr, 31, 4 ));
             }
-            else fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
+            else cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
                                                           
         } break;
             
         case OP_ITLB: {
             
-            fprintf( stdout, "r%d, ", getBitField( instr, 9, 4 ));
-            fprintf( stdout, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            cursor += snprintf( buf + cursor, 8, "r%d, ", getBitField( instr, 9, 4 ));
+            cursor += snprintf( buf + cursor, 16, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_PTLB:
         case OP_PCA:{
             
-            if ( getBitField( instr, 27, 4 ) != 0 ) fprintf( stdout, "r%d", getBitField( instr, 27, 4 ));
+            if ( getBitField( instr, 27, 4 ) != 0 ) cursor += snprintf( buf + cursor, 8, "r%d", getBitField( instr, 27, 4 ));
             
             if ( getBitField( instr, 13, 2 ) > 0 ) {
                 
-                fprintf( stdout, "(s%d, r%d)", getBitField(instr, 13, 2 ), getBitField( instr, 31, 4 ));
+                cursor += snprintf( buf + cursor, 16, "(s%d, r%d)", getBitField(instr, 13, 2 ), getBitField( instr, 31, 4 ));
             }
-            else fprintf( stdout, "(r%d)", getBitField( instr, 31, 4 ));
+            else cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
             
         } break;
             
         case OP_BRK: {
             
-            fprintf( stdout, "%d, %d", getBitField( instr, 9, 4 ), getBitField( instr, 31, 16 ));
+            cursor += snprintf( buf + cursor, 16, "%d, %d", getBitField( instr, 9, 4 ), getBitField( instr, 31, 16 ));
            
         } break;
     }
+    
+    return( cursor );
 }
 
 }; // namespace
@@ -726,22 +740,61 @@ DrvDisAssembler::DrvDisAssembler( VCPU32Globals *glb ) {
 // options, the source and the target. The opCode and options are grouped as are the target and operand.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvDisAssembler::displayOpCodeAndOptions( uint32_t instr ) {
+int DrvDisAssembler::formatInstr( char *buf, int bufLen, uint32_t instr, int rdx ) {
     
-    displayOpCode( instr );
-    displayOpCodeOptions( instr );
+    int cursor = 0;
+    
+    cursor += formatOpCodeAndOptions( buf + cursor, bufLen, instr, rdx );
+    cursor += formatTargetAndOperands( buf + cursor, bufLen, instr );
+    return( cursor );
 }
 
-void DrvDisAssembler::displayTargetAndOperands( uint32_t instr, int rdx ) {
+int DrvDisAssembler::formatOpCodeAndOptions( char *buf, int bufLen, uint32_t instr, int rdx ) {
     
-    displayTarget( instr, rdx );
-    displayOperands( instr, rdx );
+    int cursor = 0;
+   
+    cursor += formatOpCode( buf + cursor, instr );
+    cursor += formatOpCodeOptions( buf + cursor, instr );
+    return( cursor );
 }
 
-void DrvDisAssembler::displayInstr( uint32_t instr, int rdx ) {
+int DrvDisAssembler::formatTargetAndOperands( char *buf, int bufLen, uint32_t instr, int rdx ) {
     
-    displayOpCodeAndOptions( instr );
-    displayTargetAndOperands( instr, rdx );
+    int cursor = 0;
+   
+    cursor += formatTarget( buf + cursor, instr, rdx );
+    cursor += formatOperands( buf + cursor, instr, rdx );
+    return( cursor );
+}
+
+int DrvDisAssembler::displayOpCodeAndOptions( uint32_t instr ) {
+    
+    int cursor = 0;
+    char buf[ 128 ];
+    
+    cursor = formatOpCodeAndOptions( buf, sizeof( buf ), instr );
+    fprintf( stdout, "%s", buf );
+    return( cursor );
+}
+
+int DrvDisAssembler::displayTargetAndOperands( uint32_t instr, int rdx ) {
+    
+    int cursor = 0;
+    char buf[ 64 ];
+    
+    cursor += formatTargetAndOperands( buf, sizeof( buf ), instr, rdx );
+    fprintf( stdout, "%s", buf );
+    return( cursor );
+}
+
+int DrvDisAssembler::displayInstr( uint32_t instr, int rdx ) {
+    
+    int cursor = 0;
+    
+    cursor += displayOpCodeAndOptions( instr );
+    fprintf( stdout, " " );
+    cursor += displayTargetAndOperands( instr, rdx );
+    return( cursor );
 }
 
 int DrvDisAssembler::getOpCodeOptionsFieldWidth( ) {

@@ -127,11 +127,10 @@ enum TokId : uint16_t {
     //--------------------------------------------------------------------------------------------------------
     CMD_ENV                 = 1001,     CMD_EXIT                = 1002,
     CMD_HELP                = 1003,     CMD_WHELP               = 1004,
+    CMD_XF                  = 1005,     CMD_WRITE_LINE          = 1006,
     
     CMD_RESET               = 1010,     CMD_RUN                 = 1011,     CMD_STEP                = 1012,
-    CMD_XF                  = 1013,     CMD_WRITE_LINE          = 1014,
-    CMD_DIS_ASM             = 1015,
-   
+    
     CMD_DR                  = 1020,     CMD_MR                  = 1021,
     CMD_DA                  = 1027,     CMD_MA                  = 1028,
     CMD_LMF                 = 1031,     CMD_SMF                 = 1032,
@@ -447,6 +446,7 @@ struct DrvErrMsgTabEntry {
 //------------------------------------------------------------------------------------------------------------
 struct DrvHelpMsgEntry {
     
+    TypeId      helpTypeId;
     TokId       helpTokId;
     char        *cmdStr;
     char        *helpStr;
@@ -1141,9 +1141,13 @@ public:
     
     DrvDisAssembler( VCPU32Globals *glb );
     
-    void displayInstr( uint32_t instr, int rdx = 16 );
-    void displayOpCodeAndOptions( uint32_t instr );
-    void displayTargetAndOperands( uint32_t instr, int rdx = 16 );
+    int  displayInstr( uint32_t instr, int rdx = 16 );
+    int  displayOpCodeAndOptions( uint32_t instr );
+    int  displayTargetAndOperands( uint32_t instr, int rdx = 16 );
+    
+    int formatInstr( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int formatOpCodeAndOptions( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int formatTargetAndOperands( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
     
     int  getOpCodeOptionsFieldWidth( );
     int  getTargetAndOperandsFieldWidth( );
@@ -1210,13 +1214,12 @@ struct DrvCmds {
     void            execFileCmd( );
     void            loadPhysMemCmd( );
     void            savePhysMemCmd( );
+    void            writeLineCmd( );
     
     void            resetCmd( );
     void            runCmd( );
     void            stepCmd( );
    
-    void            writeLineCmd( );
-    void            disAssembleCmd( );
     void            displayRegCmd( );
     void            modifyRegCmd( );
     void            displayTLBCmd( );

@@ -23,17 +23,17 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "40DE46C0-6E79-4B8A-8C92-25C09400F228"
+            uuid = "B83C9CCD-D851-4492-8673-8ED14F9B31E9"
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "VCPU32-Simulator/VCPU32-DvrExprEvaluator.cpp"
+            filePath = "VCPU32-Simulator/VCPU32-DrvOneLineAsm.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "122"
-            endingLineNumber = "122"
-            landmarkName = "DrvExprEvaluator::pFuncDisAssemble(rExpr)"
-            landmarkType = "7">
+            startingLineNumber = "1809"
+            endingLineNumber = "1809"
+            landmarkName = "parseInstrBRK(instr, flags)"
+            landmarkType = "9">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

@@ -69,20 +69,16 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "HELP",               .typ = TYP_CMD,                 .tid = CMD_HELP                         },
     { .name = "?",                  .typ = TYP_CMD,                 .tid = CMD_HELP                         },
     { .name = "WHELP",              .typ = TYP_CMD,                 .tid = CMD_WHELP                        },
-    
+    { .name = "XF",                 .typ = TYP_CMD,                 .tid = CMD_XF                           },
     { .name = "RESET",              .typ = TYP_CMD,                 .tid = CMD_RESET                        },
     { .name = "RUN",                .typ = TYP_CMD,                 .tid = CMD_RUN                          },
     { .name = "STEP",               .typ = TYP_CMD,                 .tid = CMD_STEP                         },
     { .name = "S",                  .typ = TYP_CMD,                 .tid = CMD_STEP                         },
     
     { .name = "W",                  .typ = TYP_CMD,                 .tid = CMD_WRITE_LINE                   },
-    { .name = "DIS",                .typ = TYP_CMD,                 .tid = CMD_DIS_ASM                      },
-   
-    { .name = "XF",                 .typ = TYP_CMD,                 .tid = CMD_XF                           },
-    
+
     { .name = "DR",                 .typ = TYP_CMD,                 .tid = CMD_DR                           },
     { .name = "MR",                 .typ = TYP_CMD,                 .tid = CMD_MR                           },
-    
     { .name = "DA",                 .typ = TYP_CMD,                 .tid = CMD_DA                           },
     { .name = "MA",                 .typ = TYP_CMD,                 .tid = CMD_MA                           },
    
@@ -311,7 +307,6 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "DTLB_REQ_OFS",       .typ = TYP_DTLB_REG,        .tid = DTLB_REQ_OFS,        .val = 3        },
     { .name = "DTLBL1",             .typ = TYP_DTLB_REG,        .tid = DTLB_SET,            .val = 4        },
     
-    
     //--------------------------------------------------------------------------------------------------------
     //
     //
@@ -338,15 +333,94 @@ DrvErrMsgTabEntry const errTab [ ] = {
 const int MAX_ERR_MSG_TAB = sizeof( errTab ) / sizeof( DrvErrMsgTabEntry );
 
 //------------------------------------------------------------------------------------------------------------
-// COmmand help table.
+// Help message text table. Each entry has a type field, a token field, a command syntax field and an
+// explanation field.
 //
 //------------------------------------------------------------------------------------------------------------
 DrvHelpMsgEntry const cmdHelpTab[ ] = {
     
-    {   .helpTokId  = CMD_HELP,
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_HELP,
         .cmdStr     = (char *) "help",
-        .helpStr    = (char *) "list help information" },
+        .helpStr    = (char *) "list help information"
+    },
     
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_EXIT,
+        .cmdStr     = (char *) "exit (e) [ <val> ]",
+        .helpStr    = (char *) "program exit"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_ENV,
+        .cmdStr     = (char *) "env      [ <var> [ , <val> ]]",
+        .helpStr    = (char *) "lists the env tab, a variable, sets a variable"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_ENV,
+        .cmdStr     = (char *) "XF     <filepath",
+        .helpStr    = (char *) "execute commands from a file"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_LMF,
+        .cmdStr     = (char *) "lmf      <path> [ , <opt> ]",
+        .helpStr    = (char *) "loads memory from a file"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_SMF,
+        .cmdStr     = (char *) "smf      <path> <ofs> [ , <len> ]",
+        .helpStr    = (char *) "stores memory to a file"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_RESET,
+        .cmdStr     = (char *) "reset    ( CPU|MEM|STATS|ALL )",
+        .helpStr    = (char *) "resets the CPU"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_RUN,
+        .cmdStr     = (char *) "run",
+        .helpStr    = (char *) "run the CPU"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_STEP,
+        .cmdStr     = (char *) "s        [ <num> ] [ , I|C ]",
+        .helpStr    = (char *) "single step for instruction or clock cycle"
+    },
+    
+#if 0
+   
+    fprintf( stdout, FMT_STR, "#",      "echoes the command input" );
+    
+    fprintf( stdout, FMT_STR, "dr       [ <regSet>| <reg> ] [ , <fmt> ]", "display registers" );
+    fprintf( stdout, FMT_STR, "mr       <reg> , <val>", "modify registers" );
+    
+    fprintf( stdout, FMT_STR, "da       <ofs> [ , <len> ] [ , <fmt> ]", "display memory" );
+    fprintf( stdout, FMT_STR, "ma       <ofs> , <val>", "modify memory" );
+    fprintf( stdout, FMT_STR, "maa      <ofs> , <asm-str>", "modify memory as code" );
+    
+    
+    // ??? fix the syntax...
+    fprintf( stdout, FMT_STR, "dca      <I|D|U> \",\" [<index> <len>]", "display cache content" );
+    fprintf( stdout, FMT_STR, "pca      <I|D|U> \",\" <index> [<F>]", "flushes and purges cache data" );
+    
+    fprintf( stdout, FMT_STR, "dtlb     <I|D> [<index> <len>]", "display TLB content" );
+    fprintf( stdout, FMT_STR, "itlb     <I|D> <seg> <ofs> <argAcc> <argAdr>", "inserts an entry into the TLB" );
+    fprintf( stdout, FMT_STR, "ptlb     <I|D> <seg> <ofs>", "purges an entry from the TLB" );
+   
+    fprintf( stdout, FMT_STR, "won",    "switches to windows mode" );
+    fprintf( stdout, FMT_STR, "woff",   "switches to command line mode" );
+    fprintf( stdout, FMT_STR, "wdef",   "reset the windows to their default values" );
+    fprintf( stdout, FMT_STR, "wse",    "enable window stacks" );
+    fprintf( stdout, FMT_STR, "wsd",    "disable window stacks" );
+    fprintf( stdout, FMT_STR, "<win><cmd> [<args-list>]", "issue a window command, use whelp for details." );
+    fprintf( stdout, "\n" );
+#endif
     
 };
 
@@ -362,8 +436,6 @@ DrvHelpMsgEntry const winCmdHelpTab[ ] = {
 };
 
 const int MAX_WIN_CMD_HELP_TAB = sizeof( winCmdHelpTab ) / sizeof( DrvHelpMsgEntry );
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // The global token table or the one line assembler. All reserved words are allocated in this table. Each

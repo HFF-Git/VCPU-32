@@ -123,7 +123,7 @@ void DrvExprEvaluator::pFuncDisAssemble( DrvExpr *rExpr ) {
     
     DrvExpr     lExpr;
     uint32_t    instr;
-    char        asmStr[ CMD_LINE_BUF_SIZE ] = "Need to rewrite disassembler first ...";
+    char        asmStr[ CMD_LINE_BUF_SIZE ];
     int         rdx     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
     glb -> tok -> nextToken( );
@@ -158,11 +158,10 @@ void DrvExprEvaluator::pFuncDisAssemble( DrvExpr *rExpr ) {
         if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
         else throw ( ERR_EXPECTED_RPAREN );
         
+        glb -> disAsm -> formatInstr( asmStr, sizeof( asmStr ), instr );
+        
         rExpr -> typ = TYP_STR;
         strcpy( rExpr -> strVal, asmStr );
-    
-        // ??? need to rewrite disassembler to produce a string vs. printing
-        
     }
     else throw ( ERR_EXPECTED_INSTR_VAL );
 }

@@ -56,6 +56,20 @@ enum TokenFlags : uint32_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
+// A little helper function to upshift a string in place.
+//
+//------------------------------------------------------------------------------------------------------------
+void upshiftStr( char *str ) {
+    
+    size_t len = strlen( str );
+    
+    if ( len > 0 ) {
+        
+        for ( size_t i = 0; i < len; i++ ) str[ i ] = (char) toupper((int) str[ i ] );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Instruction encoding means to fiddle with bits and bit fields. Here is a set of helper functions.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -154,7 +168,7 @@ ErrMsgId asmError( ErrMsgId errNum ) {
     }
     
     fprintf( stdout, "Error: %d\n", errNum );
-   // fprintf( stdout, "^\n" "%s\n", errStr );
+    // fprintf( stdout, "^\n" "%s\n", errStr );
   
     return( errNum );
 }
@@ -1992,7 +2006,10 @@ ErrMsgId DrvOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {
     
     try {
         
-        parseLine( inputStr, instr );
+        char tmpBuf[ CMD_LINE_BUF_SIZE ];
+        strcpy( tmpBuf, inputStr );
+        upshiftStr( tmpBuf );
+        parseLine( tmpBuf, instr );
         return( NO_ERR );
     }
     catch ( ErrMsgId errNum ) {

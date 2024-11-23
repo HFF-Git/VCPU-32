@@ -883,50 +883,6 @@ void DrvCmds::writeLineCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Disassemble command.
-//
-// DIS <instr> [ "," <rdx> ]
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::disAssembleCmd( ) {
-    
-    DrvExpr     rExpr;
-    uint32_t    instr   = 0;
-    int         rdx     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-    
-    glb -> eval -> parseExpr( &rExpr );
-    
-    if ( rExpr.typ == TYP_NUM ) {
-        
-        instr = rExpr.numVal;
-        
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
-            
-            glb -> tok -> nextToken( );
-            
-            if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
-                ( glb -> tok -> tokId( ) == TOK_OCT ) ||
-                ( glb -> tok -> tokId( ) == TOK_DEC )) {
-                
-                rdx = glb -> tok -> tokVal( );
-                
-                glb -> tok -> nextToken( );
-            }
-            else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
-                
-                rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-            }
-            else throw ( ERR_INVALID_FMT_OPT );
-        }
-        
-        checkEOS( );
-        
-        glb -> disAsm -> displayInstr( instr, rdx );
-        fprintf( stdout, "\n" );
-    }
-    else throw ( ERR_EXPECTED_INSTR_VAL );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // Display register command. This is a rather versatile command, which displays register set, register and
 // all of them in one format.
 //
@@ -2191,22 +2147,24 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
                     case CMD_XF:            execFileCmd( );                 break;
                     case CMD_LMF:           loadPhysMemCmd( );              break;
                     case CMD_SMF:           savePhysMemCmd( );              break;
+                  
+                    case CMD_WRITE_LINE:    writeLineCmd( );                break;
+                        
                     case CMD_RESET:         resetCmd( );                    break;
                     case CMD_RUN:           runCmd( );                      break;
                     case CMD_STEP:          stepCmd( );                     break;
-                    case CMD_WRITE_LINE:    writeLineCmd( );                break;
-                    case CMD_DIS_ASM:       disAssembleCmd( );              break;
+                        
                     case CMD_DR:            displayRegCmd( );               break;
                     case CMD_MR:            modifyRegCmd( );                break;
+                    case CMD_DA:            displayAbsMemCmd( );            break;
+                    case CMD_MA:            modifyAbsMemCmd( );             break;
     
                     case CMD_D_TLB:         displayTLBCmd( );               break;
                     case CMD_I_TLB:         insertTLBCmd( );                break;
                     case CMD_P_TLB:         purgeTLBCmd( );                 break;
                     case CMD_D_CACHE:       displayCacheCmd( );             break;
                     case CMD_P_CACHE:       purgeCacheCmd( );               break;
-                    case CMD_DA:            displayAbsMemCmd( );            break;
-                    case CMD_MA:            modifyAbsMemCmd( );             break;
-                        
+                   
                     case CMD_WON:           winOnCmd( );                    break;
                     case CMD_WOFF:          winOffCmd( );                   break;
                     case CMD_WDEF:          winDefCmd( );                   break;
