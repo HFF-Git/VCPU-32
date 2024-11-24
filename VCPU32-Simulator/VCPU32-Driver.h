@@ -125,6 +125,8 @@ enum TokId : uint16_t {
     // Line Commands.
     //
     //--------------------------------------------------------------------------------------------------------
+    CMD_SET                 = 1000,
+    
     CMD_ENV                 = 1001,     CMD_EXIT                = 1002,
     CMD_HELP                = 1003,     CMD_WHELP               = 1004,
     CMD_XF                  = 1005,     CMD_WRITE_LINE          = 1006,
@@ -159,9 +161,10 @@ enum TokId : uint16_t {
     //--------------------------------------------------------------------------------------------------------
     // Predefined Function Tokens.
     //
-    // ??? assign 3000 number range ...
     //--------------------------------------------------------------------------------------------------------
-    PF_ASSEMBLE             = 3000,     PF_DIS_ASSEMBLE         = 3001,     PF_HASH                 = 3002,
+    PF_SET                  = 3000,
+    
+    PF_ASSEMBLE             = 3001,     PF_DIS_ASSEMBLE         = 3002,     PF_HASH                 = 3003,
     
     //--------------------------------------------------------------------------------------------------------
     // General, Segment and Control Registers Tokens.
@@ -384,7 +387,7 @@ enum ErrMsgId : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Predefined environment variable names. When you create another one, pu its name here.
+// Predefined environment variable names. When you create another one, put its name here.
 //
 //------------------------------------------------------------------------------------------------------------
 const char ENV_GIT_BRANCH[ ]            = "GIT_BRANCH";
@@ -448,7 +451,8 @@ struct DrvHelpMsgEntry {
     
     TypeId      helpTypeId;
     TokId       helpTokId;
-    char        *cmdStr;
+    char        *cmdNameStr;
+    char        *cmdSyntaxStr;
     char        *helpStr;
 };
 
@@ -1253,9 +1257,12 @@ struct DrvCmds {
     void            winToggleCmd( );
     void            winExchangeCmd( );
     
+    private:
+    
     VCPU32Globals   *glb       = nullptr;
     bool            winModeOn  = false;
     TokId           currentCmd = TOK_NIL;
+    int             promptLen  = 0;
     
 };
 

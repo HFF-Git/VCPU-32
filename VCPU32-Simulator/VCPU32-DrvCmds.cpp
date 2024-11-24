@@ -57,164 +57,6 @@ int setRadix( int rdx ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Print out an error message text with an optional argument.
-//
-// ??? how about a table with err msg id and string ? simplify this routine then...
-//------------------------------------------------------------------------------------------------------------
-ErrMsgId cmdErr( ErrMsgId errNum, char *argStr = nullptr ) {
-    
-    switch ( errNum ) {
-            
-        case ERR_NOT_IN_WIN_MODE:           fprintf( stdout, "Command only valid in Windows mode\n" ); break;
-        case ERR_OPEN_EXEC_FILE:            fprintf( stdout, "Error while opening file: \"%s\"\n", argStr ); break;
-        case ERR_EXPECTED_FILE_NAME:        fprintf( stdout, "Expected a file name\n" ); break;
-        case ERR_INVALID_CMD:               fprintf( stdout, "Invalid command, use help or whelp\n"); break;
-        case ERR_INVALID_WIN_STACK_ID:      fprintf( stdout, "Invalid window stack Id\n" ); break;
-        case ERR_EXPECTED_STACK_ID:         fprintf( stdout, "Expected stack Id\n" ); break;
-        case ERR_INVALID_WIN_ID:            fprintf( stdout, "Invalid window Id\n" ); break;
-        case ERR_EXPECTED_WIN_ID:           fprintf( stdout, "Expected a window Id\n" ); break;
-            
-        case ERR_INVALID_REG_ID:            fprintf( stdout, "Invalid register Id\n" ); break;
-        case ERR_INVALID_RADIX:             fprintf( stdout, "Invalid radix\n" ); break;
-            
-        case ERR_EXTRA_TOKEN_IN_STR:        fprintf( stdout, "Extra tokens in command line\n" ); break;
-        case ERR_EXPECTED_LPAREN:           fprintf( stdout, "Expected a left paren\n" ); break;
-        case ERR_EXPECTED_RPAREN:           fprintf( stdout, "Expected a right paren\n" ); break;
-        case ERR_EXPECTED_COMMA:            fprintf( stdout, "Expected a comma\n" ); break;
-            
-        case ERR_INVALID_EXIT_VAL:          fprintf( stdout, "Invalid program exit code\n" ); break;
-            
-        case ERR_ENV_VALUE_EXPR:            fprintf( stdout, "Invalid expression for ENV variable\n" ); break;
-        case ERR_EXPECTED_STR:              fprintf( stdout, "Expected a string value\n" ); break;
-            
-        case ERR_ENV_VAR_NOT_FOUND:         fprintf( stdout, "ENV variable not found\n" ); break;
-            
-        case ERR_EXPECTED_REG_SET:          fprintf( stdout, "Expected a register set\n" ); break;
-        case ERR_EXPECTED_REG_OR_SET:       fprintf( stdout, "Expected a register or register set\n" ); break;
-            
-        case ERR_WIN_TYPE_NOT_CONFIGURED:   fprintf( stdout, "Win object type not configured\n" ); break;
-            
-        case ERR_EXPECTED_NUMERIC:          fprintf( stdout, "Expected a numeric value\n" ); break;
-        case ERR_EXPECTED_EXT_ADR:          fprintf( stdout, "Expected a virtual address\n" ); break;
-            
-        case ERR_EXPR_TYPE_MATCH:           fprintf( stdout, "Expression type mismatch\n" ); break;
-        case ERR_EXPR_FACTOR:               fprintf( stdout, "Expression error: factor\n" ); break;
-        case ERR_EXPECTED_GENERAL_REG:          fprintf( stdout, "Expression a general reg\n" ); break;
-            
-        case ERR_INVALID_ARG:                   fprintf( stdout, "Invalid argument for command\n" ); break;
-        case ERR_EXPECTED_STEPS:                fprintf( stdout, "Expected nuber of steps/instr\n" ); break;
-        case ERR_INVALID_STEP_OPTION:           fprintf( stdout, "Invalid steps/instr option\n" ); break;
-            
-        case ERR_EXPECTED_INSTR_VAL:            fprintf( stdout, "Expected the instruction value\n" ); break;
-        case ERR_TOO_MANY_ARGS_CMD_LINE:        fprintf( stdout, "Too many args in command line\n" ); break;
-            
-        case ERR_EXPECTED_START_OFS:            fprintf( stdout, "Expected start offset\n" ); break;
-        case ERR_EXPECTED_LEN:                  fprintf( stdout, "Expected length argument\n" ); break;
-        case ERR_OFS_LEN_LIMIT_EXCEEDED:        fprintf( stdout, "Offset/Length exceeds limit\n" ); break;
-        case ERR_EXPECTED_OFS:                  fprintf( stdout, "Expected an address\n" ); break;
-            
-        case ERR_INVALID_CHAR_IN_TOKEN_LINE:    fprintf( stdout, "Invalid char in input line\n" ); break;
-        case ERR_UNDEFINED_PFUNC:           fprintf( stdout, "Unknown predefined function\n" ); break;
-            
-        case ERR_INVALID_EXPR:              fprintf( stdout, "Invalid expression\n" ); break;
-        case ERR_EXPECTED_INSTR_OPT:        fprintf( stdout, "Expected the instructon options\n" ); break;
-        case ERR_INVALID_INSTR_OPT:         fprintf( stdout, "INvalid instruction option\n" ); break;
-        case ERR_INSTR_HAS_NO_OPT:          fprintf( stdout, "Instruction has no option\n" ); break;
-        case ERR_EXPECTED_SR1_SR3:          fprintf( stdout, "Expected SR1 .. SR3 as segment register\n" ); break;
-        case ERR_EXPECTED_LOGICAL_ADR:      fprintf( stdout, "Expected a logical address\n" ); break;
-        case ERR_IMM_VAL_RANGE:             fprintf( stdout, "Immediate value out of range\n" ); break;
-        case ERR_INVALID_INSTR_MODE:        fprintf( stdout, "Invalid adr mode for instruction\n" ); break;
-        case ERR_INSTR_MODE_OPT_COMBO:      fprintf( stdout, "Invalid opCode data width specifier for mode option\n" ); break;
-        case ERR_POS_VAL_RANGE:             fprintf( stdout, "Bit position value out of range\n" ); break;
-        case ERR_LEN_VAL_RANGE:             fprintf( stdout, "Bit field length value out of range\n" ); break;
-            
-        case ERR_EXPECTED_AN_OFFSET_VAL:    fprintf( stdout, "Excpected an offset valuen\n" ); break;
-        case ERR_OFFSET_VAL_RANGE:          fprintf( stdout, "Offset value out of range\n" ); break;
-        case ERR_INVALID_REG_COMBO:         fprintf( stdout, "Invalid register combo for instruction\n" ); break;
-        case ERR_EXPECTED_SEGMENT_REG:      fprintf( stdout, "Expected a segment register\n" ); break;
-        case ERR_INVALID_S_OP_CODE:         fprintf( stdout, "Invalid synthetic instruction opcode\n" ); break;
-            
-        case ERR_INVALID_FMT_OPT:           fprintf( stdout, "Invalid format option\n" ); break;
-        case ERR_EXPECTED_FMT_OPT:          fprintf( stdout, "Expected a format option\n" ); break;
-        case ERR_INVALID_WIN_TYPE:          fprintf( stdout, "Invalid window type\n" ); break;
-        case ERR_EXPECTED_WIN_TYPE:         fprintf( stdout, "Expected a window type\n" ); break;
-        case ERR_OUT_OF_WINDOWS:            fprintf( stdout, "Cannot create more windows\n" ); break;
-            
-        case ERR_TLB_TYPE:                  fprintf( stdout, "Expected a TLB type\n" ); break;
-        case ERR_TLB_INSERT_OP:             fprintf( stdout, "Insert in TLB operation error\n" ); break;
-        case ERR_TLB_PURGE_OP:              fprintf( stdout, "Purge from TLB operation error\n" ); break;
-        case ERR_TLB_ACC_DATA:              fprintf( stdout, "Invalid TLB insert access data\n" ); break;
-        case ERR_TLB_ADR_DATA:              fprintf( stdout, "Invalid TLB insert address data\n" ); break;
-        case ERR_TLB_NOT_CONFIGURED:        fprintf( stdout, "TLB type not configured\n" ); break;
-        case ERR_TLB_SIZE_EXCEEDED:         fprintf( stdout, "TLB size exceeded\n" ); break;
-            
-        case ERR_CACHE_TYPE:                fprintf( stdout, "Expected a cache type\n" ); break;
-        case ERR_CACHE_PURGE_OP:            fprintf( stdout, "Purge from cache operation error\n" ); break;
-        case ERR_CACHE_NOT_CONFIGURED:      fprintf( stdout, "Cache type not configured\n" ); break;
-        case ERR_CACHE_SIZE_EXCEEDED:       fprintf( stdout, "Cache size exceeded\n" ); break;
-        case ERR_CACHE_SET_NUM:             fprintf( stdout, "Invalid cache set\n" ); break;
-            
-        case ERR_UNEXPECTED_EOS:            fprintf( stdout, "Unexpectedd end of command line\n" ); break;
-            
-        default: {
-            
-            fprintf( stdout, "Error: %d", errNum );
-            if ( argStr != nullptr ) fprintf( stdout, "%32s", argStr );
-            fprintf( stdout, "/n" );
-        }
-    }
-    
-    return( errNum );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Just list all commands that we have.
-//
-//------------------------------------------------------------------------------------------------------------
-void displayHelp( ) {
-    
-    const char FMT_STR[ ] = "%-50s%s\n";
-    
-    fprintf( stdout, FMT_STR, "help",   "displays syntax and a short description" );
-    fprintf( stdout, FMT_STR, "#",      "echoes the command input" );
-    fprintf( stdout, FMT_STR, "e        [ <val> ]", "program exit" );
-    fprintf( stdout, FMT_STR, "env      [ <var> [ , <val> ]]", "lists the env tab, a variable, sets a variable" );
-    
-    fprintf( stdout, FMT_STR, "xf       <filepath>", "execute commands from a file" );
-    fprintf( stdout, FMT_STR, "lmf      <path> [ , <opt> ]", "loads memory from a file" );
-    fprintf( stdout, FMT_STR, "smf      <path> <ofs> [ , <len> ]", "stores memory to a file" );
-    
-    fprintf( stdout, FMT_STR, "reset    ( CPU|MEM|STATS|ALL )", "resets the CPU" );
-    fprintf( stdout, FMT_STR, "run",    "run the CPU" );
-    fprintf( stdout, FMT_STR, "s        [ <num> ] [ , I|C ]", "single step for instruction or clock cycle" );
-    
-    fprintf( stdout, FMT_STR, "dr       [ <regSet>| <reg> ] [ , <fmt> ]", "display registers" );
-    fprintf( stdout, FMT_STR, "mr       <reg> , <val>", "modify registers" );
-    
-    fprintf( stdout, FMT_STR, "da       <ofs> [ , <len> ] [ , <fmt> ]", "display memory" );
-    fprintf( stdout, FMT_STR, "ma       <ofs> , <val>", "modify memory" );
-    fprintf( stdout, FMT_STR, "maa      <ofs> , <asm-str>", "modify memory as code" );
-    
-    
-    // ??? fix the syntax...
-    fprintf( stdout, FMT_STR, "dca      <I|D|U> \",\" [<index> <len>]", "display cache content" );
-    fprintf( stdout, FMT_STR, "pca      <I|D|U> \",\" <index> [<F>]", "flushes and purges cache data" );
-    
-    fprintf( stdout, FMT_STR, "dtlb     <I|D> [<index> <len>]", "display TLB content" );
-    fprintf( stdout, FMT_STR, "itlb     <I|D> <seg> <ofs> <argAcc> <argAdr>", "inserts an entry into the TLB" );
-    fprintf( stdout, FMT_STR, "ptlb     <I|D> <seg> <ofs>", "purges an entry from the TLB" );
-   
-    fprintf( stdout, FMT_STR, "won",    "switches to windows mode" );
-    fprintf( stdout, FMT_STR, "woff",   "switches to command line mode" );
-    fprintf( stdout, FMT_STR, "wdef",   "reset the windows to their default values" );
-    fprintf( stdout, FMT_STR, "wse",    "enable window stacks" );
-    fprintf( stdout, FMT_STR, "wsd",    "disable window stacks" );
-    fprintf( stdout, FMT_STR, "<win><cmd> [<args-list>]", "issue a window command, use whelp for details." );
-    fprintf( stdout, "\n" );
-    
-}
-
-//------------------------------------------------------------------------------------------------------------
 // List the ehlp for widows command.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -359,16 +201,28 @@ void DrvCmds::setupCmdInterpreter( int argc, const char *argv[ ] ) {
 void DrvCmds::cmdLineError( ErrMsgId errNum, char *argStr ) {
     
     int     i           = 0;
-    int     tokIndex    = glb -> tok -> tokCharIndex( );
+    int     tokIndex    = promptLen + glb -> tok -> tokCharIndex( );
 
-    while (( i < tokIndex ) && ( i < strlen( glb -> tok -> tokenLineStr( )))) {
+    while ( i < tokIndex ) {
         
         fprintf( stdout, " " );
         i ++;
     }
     
-    fprintf( stdout, "^\n" );
-    cmdErr( errNum, argStr );
+    fprintf( stdout, "^ \n" );
+    
+    for ( int i = 0; i < MAX_ERR_MSG_TAB; i++ ) {
+        
+        if ( errMsgTab[ i ].errNum == errNum ) {
+            
+            fprintf( stdout, "%s\n", errMsgTab[ i ].errStr );
+            return;
+        }
+    }
+        
+    fprintf( stdout, "Error: %d", errNum );
+    if ( argStr != nullptr ) fprintf( stdout, "%32s", argStr );
+    fprintf( stdout, "/n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -435,9 +289,9 @@ void DrvCmds::promptCmdLine( ) {
     if ( isatty( fileno( stdin ))) {
         
         if ( glb -> env -> getEnvVarBool((char *) ENV_SHOW_CMD_CNT ))
-            fprintf( stdout, "(%i) ", glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ));
+            promptLen = fprintf( stdout, "(%i) ", glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ));
         
-        fprintf( stdout, "->" );
+        promptLen += fprintf( stdout, "->" );
         fflush( stdout );
     }
 }
@@ -587,13 +441,73 @@ void DrvCmds::execCmdsFromFile( char* fileName ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Help command. With no arguments, a short help overview is printed. If there is an optional argument,
-// specific help on the topic is given.
+// Help command. With no arguments, a short help overview is printed. There are commands and predefined
+// functions.
 //
+// HELP [ <cmdId> | <pFuncId> ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::helpCmd( ) {
     
-    displayHelp( );
+    const char FMT_STR_SUMMARY[ ] = "%-16s%s\n";
+    const char FMT_STR_DETAILS[ ] = "%s - %s\n";
+    
+    if ( glb -> tok -> isToken( TOK_EOS )) {
+        
+        for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
+            
+            if ( cmdHelpTab[ i ].helpTypeId == TYP_CMD )
+                fprintf( stdout, FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+        }
+        
+        fprintf( stdout, "\n" );
+    }
+    else if ( glb -> tok -> isTokenTyp( TYP_CMD )) {
+        
+        if ( glb -> tok -> isToken( CMD_SET )) {
+            
+            for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
+                
+                if ( cmdHelpTab[ i ].helpTypeId == TYP_CMD )
+                    fprintf( stdout, FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+            }
+            
+            fprintf( stdout, "\n" );
+        }
+        else {
+            
+            for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
+                
+                if ( cmdHelpTab[ i ].helpTokId == glb -> tok -> tokId( )) {
+                    
+                    fprintf( stdout, FMT_STR_DETAILS, cmdHelpTab[ i ].cmdSyntaxStr, cmdHelpTab[ i ].helpStr );
+                }
+            }
+        }
+    }
+    else if ( glb -> tok -> isTokenTyp( TYP_PREDEFINED_FUNC )) {
+        
+        if ( glb -> tok -> isToken( PF_SET )) {
+            
+            for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
+                
+                if ( cmdHelpTab[ i ].helpTypeId == TYP_PREDEFINED_FUNC )
+                    fprintf( stdout, FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+            }
+            
+            fprintf( stdout, "\n" );
+        }
+        else {
+            
+            for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
+                
+                if ( cmdHelpTab[ i ].helpTokId == glb -> tok -> tokId( )) {
+                    
+                    fprintf( stdout, FMT_STR_DETAILS, cmdHelpTab[ i ].cmdSyntaxStr, cmdHelpTab[ i ].helpStr );
+                }
+            }
+        }
+    }
+    else throw ( ERR_INVALID_ARG );
 }
 
 //------------------------------------------------------------------------------------------------------------

@@ -202,7 +202,7 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
 }
 
 //-----------------------------------------------------------------------------------------------------------
-// All fprintf calls are routed through this routine. I want to see if any of the fprintf function calls
+// All print calls are routed through this routine. I want to see if any of the fprintf function calls
 // returns an error, which may be the clue to why sometimes the screen hangs. We use snprintf to produce
 // the string. This can be done many times without loosing or doubling any data. If the print operation is
 // successful, we have the buffer for writing. Then we issue the write operation. It is the same idea, if

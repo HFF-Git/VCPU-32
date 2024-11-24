@@ -3,7 +3,7 @@
 //  VCPU32 - A 32-bit CPU - Simulator Driver
 //
 //------------------------------------------------------------------------------------------------------------
-// 
+//
 //
 //
 //------------------------------------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ DrvToken const cmdTokTab[ ] = {
     //
     //--------------------------------------------------------------------------------------------------------
     { .name = "NIL",                .typ = TYP_SYM,                 .tid = TOK_NIL,         .val = 0        },
-   
+    
     // ??? should true and false rather be a predefine vs. a resrved token ? YES
     { .name = "TRUE",               .typ = TYP_BOOL,                .tid = TOK_IDENT,       .val = 1        },
     { .name = "FALSE",              .typ = TYP_BOOL,                .tid = TOK_IDENT,       .val = 0        },
@@ -76,12 +76,12 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "S",                  .typ = TYP_CMD,                 .tid = CMD_STEP                         },
     
     { .name = "W",                  .typ = TYP_CMD,                 .tid = CMD_WRITE_LINE                   },
-
+    
     { .name = "DR",                 .typ = TYP_CMD,                 .tid = CMD_DR                           },
     { .name = "MR",                 .typ = TYP_CMD,                 .tid = CMD_MR                           },
     { .name = "DA",                 .typ = TYP_CMD,                 .tid = CMD_DA                           },
     { .name = "MA",                 .typ = TYP_CMD,                 .tid = CMD_MA                           },
-   
+    
     { .name = "ITLB",               .typ = TYP_CMD,                 .tid = CMD_I_TLB                        },
     { .name = "DTLB",               .typ = TYP_CMD,                 .tid = CMD_D_TLB                        },
     { .name = "PTLB",               .typ = TYP_CMD,                 .tid = CMD_P_TLB                        },
@@ -91,6 +91,8 @@ DrvToken const cmdTokTab[ ] = {
     
     { .name = "LOAD_MEM",           .typ = TYP_CMD,                 .tid = CMD_LMF                          },
     { .name = "SAVE_MEM",           .typ = TYP_CMD,                 .tid = CMD_SMF                          },
+    
+    { .name = "COMMANDS",           .typ = TYP_CMD,                 .tid = CMD_SET                          },
     
     //--------------------------------------------------------------------------------------------------------
     // Window command tokens.
@@ -237,7 +239,7 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "PSW0",               .typ = TYP_FD_PREG,         .tid = FD_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "PSW1",               .typ = TYP_FD_PREG,         .tid = FD_PSW1,             .val = PSTAGE_REG_ID_PSW_1      },
     { .name = "PS",                 .typ = TYP_FD_PREG,         .tid = FD_SET,              .val = 0                        },
-  
+    
     { .name = "MA_PSW0",            .typ = TYP_MA_PREG,         .tid = MA_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "MA_PSW1",            .typ = TYP_MA_PREG,         .tid = MA_PSW1,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "MA_INSTR",           .typ = TYP_MA_PREG,         .tid = MA_INSTR,            .val = PSTAGE_REG_ID_INSTR      },
@@ -311,10 +313,11 @@ DrvToken const cmdTokTab[ ] = {
     //
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "ASSEMBLE",           .typ = TYP_PREDEFINED_FUNC, .tid = PF_ASSEMBLE,         .val = 0        },
-    { .name = "DISASSEMBLE",        .typ = TYP_PREDEFINED_FUNC, .tid = PF_DIS_ASSEMBLE,     .val = 0        },
+    { .name = "PREDEFINED",         .typ = TYP_PREDEFINED_FUNC, .tid = PF_SET                               },
+    
+    { .name = "ASM",                .typ = TYP_PREDEFINED_FUNC, .tid = PF_ASSEMBLE,         .val = 0        },
+    { .name = "DISASM",             .typ = TYP_PREDEFINED_FUNC, .tid = PF_DIS_ASSEMBLE,     .val = 0        },
     { .name = "HASH",               .typ = TYP_PREDEFINED_FUNC, .tid = PF_HASH,             .val = 0        }
-
     
 };
 
@@ -323,14 +326,106 @@ const int MAX_CMD_TOKEN_TAB = sizeof( cmdTokTab ) / sizeof( DrvToken );
 //------------------------------------------------------------------------------------------------------------
 // The error messgae table. Ech entry has the error number and the corresponding error message text.
 //
+// ??? sort the entries...
 //------------------------------------------------------------------------------------------------------------
-DrvErrMsgTabEntry const errTab [ ] = {
+DrvErrMsgTabEntry const errMsgTab [ ] = {
     
-    { .errNum = NO_ERR, .errStr = (char *) "NO_ERR" }
+    { .errNum = NO_ERR,                         .errStr = (char *) "NO_ERR" },
+    
+    { .errNum = ERR_NOT_IN_WIN_MODE,            .errStr = (char *) "Command only valid in Windows mode" },
+    { .errNum = ERR_OPEN_EXEC_FILE,             .errStr = (char *)  "Error while opening file" },
+    { .errNum = ERR_EXPECTED_FILE_NAME,         .errStr = (char *) "Expected a file name" },
+    { .errNum = ERR_INVALID_CMD,                .errStr = (char *) "Invalid command, use help or whelp" },
+    { .errNum = ERR_INVALID_WIN_STACK_ID,       .errStr = (char *) "Invalid window stack Id" },
+    { .errNum = ERR_EXPECTED_STACK_ID,          .errStr = (char *) "Expected stack Id" },
+    { .errNum = ERR_INVALID_WIN_ID,             .errStr = (char *) "Invalid window Id" },
+    { .errNum = ERR_EXPECTED_WIN_ID,            .errStr = (char *) "Expected a window Id" },
+    
+    { .errNum = ERR_INVALID_REG_ID,             .errStr = (char *) "Invalid register Id" },
+    { .errNum = ERR_INVALID_RADIX,              .errStr = (char *) "Invalid radix" },
+        
+    { .errNum = ERR_EXTRA_TOKEN_IN_STR,         .errStr = (char *) "Extra tokens in command line" },
+    { .errNum = ERR_EXPECTED_LPAREN,            .errStr = (char *) "Expected a left paren" },
+    { .errNum = ERR_EXPECTED_RPAREN,            .errStr = (char *) "Expected a right paren" },
+    { .errNum = ERR_EXPECTED_COMMA,             .errStr = (char *) "Expected a comma" },
+        
+    { .errNum = ERR_INVALID_EXIT_VAL,           .errStr = (char *)  "Invalid program exit code" },
+        
+    { .errNum = ERR_ENV_VALUE_EXPR,             .errStr = (char *) "Invalid expression for ENV variable" },
+    { .errNum = ERR_EXPECTED_STR,               .errStr = (char *) "Expected a string value" },
+        
+    { .errNum = ERR_ENV_VAR_NOT_FOUND,          .errStr = (char *) "ENV variable not found" },
+        
+    { .errNum = ERR_EXPECTED_REG_SET,           .errStr = (char *) "Expected a register set" },
+    { .errNum = ERR_EXPECTED_REG_OR_SET,        .errStr = (char *) "Expected a register or register set" },
+        
+    { .errNum = ERR_WIN_TYPE_NOT_CONFIGURED,    .errStr = (char *) "Win object type not configured" },
+        
+    { .errNum = ERR_EXPECTED_NUMERIC,           .errStr = (char *) "Expected a numeric value" },
+    { .errNum = ERR_EXPECTED_EXT_ADR,           .errStr = (char *)  "Expected a virtual address" },
+        
+    { .errNum = ERR_EXPR_TYPE_MATCH,            .errStr = (char *) "Expression type mismatch" },
+    { .errNum = ERR_EXPR_FACTOR,                .errStr = (char *) "Expression error: factor" },
+    { .errNum = ERR_EXPECTED_GENERAL_REG,       .errStr = (char *) "Expression a general reg" },
+        
+    { .errNum = ERR_INVALID_ARG,                .errStr = (char *) "Invalid argument for command" },
+    { .errNum = ERR_EXPECTED_STEPS,             .errStr = (char *) "Expected nuber of steps/instr" },
+    { .errNum = ERR_INVALID_STEP_OPTION,        .errStr = (char *) "Invalid steps/instr option" },
+        
+    { .errNum = ERR_EXPECTED_INSTR_VAL,         .errStr = (char *) "Expected the instruction value" },
+    { .errNum = ERR_TOO_MANY_ARGS_CMD_LINE,     .errStr = (char *) "Too many args in command line" },
+    
+    { .errNum = ERR_EXPECTED_START_OFS,         .errStr = (char *) "Expected start offset" },
+    { .errNum = ERR_EXPECTED_LEN,               .errStr = (char *) "Expected length argument" },
+    { .errNum = ERR_OFS_LEN_LIMIT_EXCEEDED,     .errStr = (char *) "Offset/Length exceeds limit" },
+    { .errNum = ERR_EXPECTED_OFS,               .errStr = (char *) "Expected an address" },
+        
+    { .errNum = ERR_INVALID_CHAR_IN_TOKEN_LINE, .errStr = (char *) "Invalid char in input line" },
+    { .errNum = ERR_UNDEFINED_PFUNC,            .errStr = (char *) "Unknown predefined function" },
+        
+    { .errNum = ERR_INVALID_EXPR,               .errStr = (char *) "Invalid expression" },
+    { .errNum = ERR_EXPECTED_INSTR_OPT,         .errStr = (char *)  "Expected the instructon options" },
+    { .errNum = ERR_INVALID_INSTR_OPT,          .errStr = (char *)  "INvalid instruction option" },
+    { .errNum = ERR_INSTR_HAS_NO_OPT,           .errStr = (char *) "Instruction has no option" },
+    { .errNum = ERR_EXPECTED_SR1_SR3,           .errStr = (char *) "Expected SR1 .. SR3 as segment register" },
+    { .errNum = ERR_EXPECTED_LOGICAL_ADR,       .errStr = (char *) "Expected a logical address" },
+    { .errNum = ERR_IMM_VAL_RANGE,              .errStr = (char *) "Immediate value out of range" },
+    { .errNum = ERR_INVALID_INSTR_MODE,         .errStr = (char *) "Invalid adr mode for instruction" },
+    { .errNum = ERR_INSTR_MODE_OPT_COMBO,       .errStr = (char *)  "Invalid opCode data width specifier for mode option" },
+    { .errNum = ERR_POS_VAL_RANGE,              .errStr = (char *)  "Bit position value out of range" },
+    { .errNum = ERR_LEN_VAL_RANGE,              .errStr = (char *) "Bit field length value out of range" },
+        
+    { .errNum = ERR_EXPECTED_AN_OFFSET_VAL,     .errStr = (char *)  "Excpected an offset valuen" },
+    { .errNum = ERR_OFFSET_VAL_RANGE,           .errStr = (char *)  "Offset value out of range" },
+    { .errNum = ERR_INVALID_REG_COMBO,          .errStr = (char *)  "Invalid register combo for instruction" },
+    { .errNum = ERR_EXPECTED_SEGMENT_REG,       .errStr = (char *)  "Expected a segment register" },
+    { .errNum = ERR_INVALID_S_OP_CODE,          .errStr = (char *)  "Invalid synthetic instruction opcode" },
+        
+    { .errNum = ERR_INVALID_FMT_OPT,            .errStr = (char *) "Invalid format option" },
+    { .errNum = ERR_EXPECTED_FMT_OPT,           .errStr = (char *)  "Expected a format option" },
+    { .errNum = ERR_INVALID_WIN_TYPE,           .errStr = (char *)  "Invalid window type" },
+    { .errNum = ERR_EXPECTED_WIN_TYPE,          .errStr = (char *)  "Expected a window type" },
+    { .errNum = ERR_OUT_OF_WINDOWS,             .errStr = (char *)  "Cannot create more windows" },
+        
+    { .errNum = ERR_TLB_TYPE,                   .errStr = (char *)  "Expected a TLB type" },
+    { .errNum = ERR_TLB_INSERT_OP,              .errStr = (char *)  "Insert in TLB operation error" },
+    { .errNum = ERR_TLB_PURGE_OP,               .errStr = (char *)  "Purge from TLB operation error" },
+    { .errNum = ERR_TLB_ACC_DATA,               .errStr = (char *) "Invalid TLB insert access data" },
+    { .errNum = ERR_TLB_ADR_DATA,               .errStr = (char *)  "Invalid TLB insert address data" },
+    { .errNum = ERR_TLB_NOT_CONFIGURED,         .errStr = (char *)  "TLB type not configured" },
+    { .errNum = ERR_TLB_SIZE_EXCEEDED,          .errStr = (char *)  "TLB size exceeded" },
+        
+    { .errNum = ERR_CACHE_TYPE,                 .errStr = (char *)  "Expected a cache type" },
+    { .errNum = ERR_CACHE_PURGE_OP,             .errStr = (char *)  "Purge from cache operation error" },
+    { .errNum = ERR_CACHE_NOT_CONFIGURED,       .errStr = (char *)  "Cache type not configured" },
+    { .errNum = ERR_CACHE_SIZE_EXCEEDED,        .errStr = (char *)  "Cache size exceeded" },
+    { .errNum = ERR_CACHE_SET_NUM,              .errStr = (char *)  "Invalid cache set" },
+    
+    { .errNum = ERR_UNEXPECTED_EOS,             .errStr = (char *)  "Unexpectedd end of command line" }
     
 };
 
-const int MAX_ERR_MSG_TAB = sizeof( errTab ) / sizeof( DrvErrMsgTabEntry );
+const int MAX_ERR_MSG_TAB = sizeof( errMsgTab ) / sizeof( DrvErrMsgTabEntry );
 
 //------------------------------------------------------------------------------------------------------------
 // Help message text table. Each entry has a type field, a token field, a command syntax field and an
@@ -341,87 +436,192 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_HELP,
-        .cmdStr     = (char *) "help",
-        .helpStr    = (char *) "list help information"
+        .cmdNameStr     = (char *) "help",
+        .cmdSyntaxStr   = (char *) "help",
+        .helpStr        = (char *) "list help information"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_EXIT,
-        .cmdStr     = (char *) "exit (e) [ <val> ]",
-        .helpStr    = (char *) "program exit"
+        .cmdNameStr     = (char *) "exit",
+        .cmdSyntaxStr   = (char *) "exit (e) [ <val> ]",
+        .helpStr        = (char *) "program exit"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_ENV,
-        .cmdStr     = (char *) "env      [ <var> [ , <val> ]]",
-        .helpStr    = (char *) "lists the env tab, a variable, sets a variable"
+        .cmdNameStr     = (char *) "env",
+        .cmdSyntaxStr   = (char *) "env [ <var> [ , <val> ]]",
+        .helpStr        = (char *) "lists the env tab, a variable, sets a variable"
     },
     
     {
-        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_ENV,
-        .cmdStr     = (char *) "XF     <filepath",
-        .helpStr    = (char *) "execute commands from a file"
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_XF,
+        .cmdNameStr     = (char *) "xf",
+        .cmdSyntaxStr   = (char *) "xf <filepath",
+        .helpStr        = (char *) "execute commands from a file"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_LMF,
-        .cmdStr     = (char *) "lmf      <path> [ , <opt> ]",
-        .helpStr    = (char *) "loads memory from a file"
+        .cmdNameStr     = (char *) "lmf",
+        .cmdSyntaxStr   = (char *) "lmf <path> [ , <opt> ]",
+        .helpStr        = (char *) "loads memory from a file"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_SMF,
-        .cmdStr     = (char *) "smf      <path> <ofs> [ , <len> ]",
-        .helpStr    = (char *) "stores memory to a file"
+        .cmdNameStr     = (char *) "smf",
+        .cmdSyntaxStr   = (char *) "smf <path> <ofs> [ , <len> ]",
+        .helpStr        = (char *) "stores memory to a file"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_RESET,
-        .cmdStr     = (char *) "reset    ( CPU|MEM|STATS|ALL )",
-        .helpStr    = (char *) "resets the CPU"
+        .cmdNameStr     = (char *) "reset",
+        .cmdSyntaxStr   = (char *) "reset ( CPU|MEM|STATS|ALL )",
+        .helpStr        = (char *) "resets the CPU"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_RUN,
-        .cmdStr     = (char *) "run",
-        .helpStr    = (char *) "run the CPU"
+        .cmdNameStr     = (char *) "run",
+        .cmdSyntaxStr   = (char *) "run",
+        .helpStr        = (char *) "run the CPU"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_STEP,
-        .cmdStr     = (char *) "s        [ <num> ] [ , I|C ]",
-        .helpStr    = (char *) "single step for instruction or clock cycle"
+        .cmdNameStr     = (char *) "step",
+        .cmdSyntaxStr   = (char *) "s [ <num> ] [ , I|C ]",
+        .helpStr        = (char *) "single step for instruction or clock cycle"
     },
     
-#if 0
-   
-    fprintf( stdout, FMT_STR, "#",      "echoes the command input" );
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_DR,
+        .cmdNameStr     = (char *) "dr",
+        .cmdSyntaxStr   = (char *) "dr [ <regSet>| <reg> ] [ , <fmt> ]",
+        .helpStr        = (char *) "display register or register sets"
+    },
     
-    fprintf( stdout, FMT_STR, "dr       [ <regSet>| <reg> ] [ , <fmt> ]", "display registers" );
-    fprintf( stdout, FMT_STR, "mr       <reg> , <val>", "modify registers" );
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_MR,
+        .cmdNameStr     = (char *) "mr",
+        .cmdSyntaxStr   = (char *) "mr <reg> , <val>",
+        .helpStr        = (char *) "modify registers"
+    },
     
-    fprintf( stdout, FMT_STR, "da       <ofs> [ , <len> ] [ , <fmt> ]", "display memory" );
-    fprintf( stdout, FMT_STR, "ma       <ofs> , <val>", "modify memory" );
-    fprintf( stdout, FMT_STR, "maa      <ofs> , <asm-str>", "modify memory as code" );
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_DA,
+        .cmdNameStr     = (char *) "da",
+        .cmdSyntaxStr   = (char *) "da <ofs> [ , <len> ] [ , <fmt> ]",
+        .helpStr        = (char *) "display absolute memory"
+    },
     
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_MA,
+        .cmdNameStr     = (char *) "ma",
+        .cmdSyntaxStr   = (char *) "ma <ofs> , <val>",
+        .helpStr        = (char *) "modify absolute memory"
+    },
     
-    // ??? fix the syntax...
-    fprintf( stdout, FMT_STR, "dca      <I|D|U> \",\" [<index> <len>]", "display cache content" );
-    fprintf( stdout, FMT_STR, "pca      <I|D|U> \",\" <index> [<F>]", "flushes and purges cache data" );
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_D_CACHE,
+        .cmdNameStr     = (char *) "dca",
+        .cmdSyntaxStr   = (char *) "dca <I|D|U> \",\" [<index> <len>]",
+        .helpStr        = (char *) "display cache content"
+    },
     
-    fprintf( stdout, FMT_STR, "dtlb     <I|D> [<index> <len>]", "display TLB content" );
-    fprintf( stdout, FMT_STR, "itlb     <I|D> <seg> <ofs> <argAcc> <argAdr>", "inserts an entry into the TLB" );
-    fprintf( stdout, FMT_STR, "ptlb     <I|D> <seg> <ofs>", "purges an entry from the TLB" );
-   
-    fprintf( stdout, FMT_STR, "won",    "switches to windows mode" );
-    fprintf( stdout, FMT_STR, "woff",   "switches to command line mode" );
-    fprintf( stdout, FMT_STR, "wdef",   "reset the windows to their default values" );
-    fprintf( stdout, FMT_STR, "wse",    "enable window stacks" );
-    fprintf( stdout, FMT_STR, "wsd",    "disable window stacks" );
-    fprintf( stdout, FMT_STR, "<win><cmd> [<args-list>]", "issue a window command, use whelp for details." );
-    fprintf( stdout, "\n" );
-#endif
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_P_CACHE,
+        .cmdNameStr     = (char *) "pca",
+        .cmdSyntaxStr   = (char *) "pca <I|D|U> \",\" <index> [<F>]",
+        .helpStr        = (char *) "flushes and purges cache data"
+    },
     
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_D_TLB,
+        .cmdNameStr     = (char *) "dtlb",
+        .cmdSyntaxStr   = (char *) "dtlb <I|D> [<index> <len>]",
+        .helpStr        = (char *) "display TLB content"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_I_TLB,
+        .cmdNameStr     = (char *) "itlb",
+        .cmdSyntaxStr   = (char *) "itlb <I|D> <seg> <ofs> <argAcc> <argAdr>",
+        .helpStr        = (char *) "inserts an entry into the TLB"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_P_TLB,
+        .cmdNameStr     = (char *) "ptlb",
+        .cmdSyntaxStr   = (char *) "ptlb <I|D> <seg> <ofs>",
+        .helpStr        = (char *) "purges an entry from the TLB"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_WON,
+        .cmdNameStr     = (char *) "won",
+        .cmdSyntaxStr   = (char *) "won",
+        .helpStr        = (char *) "switches to windows mode"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_WOFF,
+        .cmdNameStr     = (char *) "woff",
+        .cmdSyntaxStr   = (char *) "woff",
+        .helpStr        = (char *) "switches to command line mode"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_WDEF,
+        .cmdNameStr     = (char *) "wdef",
+        .cmdSyntaxStr   = (char *) "wdef",
+        .helpStr        = (char *) "reset the windows to their default values"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_WSE,
+        .cmdNameStr     = (char *) "wse",
+        .cmdSyntaxStr   = (char *) "wse",
+        .helpStr        = (char *) "enable window stacks"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_WSD,
+        .cmdNameStr     = (char *) "wsd",
+        .cmdSyntaxStr   = (char *) "wsd",
+        .helpStr        = (char *) "disable window stacks"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_WHELP,
+        .cmdNameStr     = (char *) "whelp",
+        .cmdSyntaxStr   = (char *) "whelp",
+        .helpStr        = (char *) "show window command help"
+    },
+    
+    {
+        .helpTypeId = TYP_PREDEFINED_FUNC,  .helpTokId  = PF_HASH,
+        .cmdNameStr     = (char *) "hash",
+        .cmdSyntaxStr   = (char *) "hash ( <extAdr> )",
+        .helpStr        = (char *) "returns the hash value of a virtual address"
+    },
+    
+    {
+        .helpTypeId = TYP_PREDEFINED_FUNC,  .helpTokId  = PF_ASSEMBLE,
+        .cmdNameStr     = (char *) "asm",
+        .cmdSyntaxStr   = (char *) "asm ( <asmStr> )",
+        .helpStr        = (char *) "returns the instruction value for an assemble string"
+    },
+    
+    {
+        .helpTypeId = TYP_PREDEFINED_FUNC,  .helpTokId  = PF_DIS_ASSEMBLE,
+        .cmdNameStr     = (char *) "disasm",
+        .cmdSyntaxStr   = (char *) "disasm ( <instr> )",
+        .helpStr        = (char *) "returns the assemble string for an instruction value"
+    }
 };
 
 const int MAX_CMD_HELP_TAB = sizeof( cmdHelpTab ) / sizeof( DrvHelpMsgEntry );
@@ -465,7 +665,7 @@ DrvToken const asmTokTab[ ] = {
     { .name = "R13",            .typ = TYP_GREG,         .tid = GR_13,               .val = 13          },
     { .name = "R14",            .typ = TYP_GREG,         .tid = GR_14,               .val = 14          },
     { .name = "R15",            .typ = TYP_GREG,         .tid = GR_15,               .val = 15          },
-
+    
     //--------------------------------------------------------------------------------------------------------
     // Segment registers.
     //
@@ -515,7 +715,7 @@ DrvToken const asmTokTab[ ] = {
     { .name = "C29",            .typ = TYP_CREG,        .tid = CR_29,               .val = 29           },
     { .name = "C30",            .typ = TYP_CREG,        .tid = CR_30,               .val = 30           },
     { .name = "C31",            .typ = TYP_CREG,        .tid = CR_31,               .val = 31           },
-        
+    
     //--------------------------------------------------------------------------------------------------------
     // Assembler mnemonics.
     //
@@ -526,54 +726,54 @@ DrvToken const asmTokTab[ ] = {
     { .name = "LDW",            .typ = TYP_OP_CODE,     .tid = OP_CODE_LDW,         .val = 0xC0000000   },
     { .name = "LDR",            .typ = TYP_OP_CODE,     .tid = OP_CODE_LDR,         .val = 0xD0000000   },
     { .name = "LDA",            .typ = TYP_OP_CODE,     .tid = OP_CODE_LDA,         .val = 0xC8000000   },
-        
+    
     { .name = "ST",             .typ = TYP_OP_CODE,     .tid = OP_CODE_ST,          .val = 0xC4000000   },
     { .name = "STB",            .typ = TYP_OP_CODE,     .tid = OP_CODE_STB,         .val = 0xC4000000   },
     { .name = "STH",            .typ = TYP_OP_CODE,     .tid = OP_CODE_STH,         .val = 0xC4000000   },
     { .name = "STW",            .typ = TYP_OP_CODE,     .tid = OP_CODE_STW,         .val = 0xC4000000   },
     { .name = "STC",            .typ = TYP_OP_CODE,     .tid = OP_CODE_STC,         .val = 0xD4000000   },
     { .name = "STA",            .typ = TYP_OP_CODE,     .tid = OP_CODE_STA,         .val = 0xCC000000   },
-        
+    
     { .name = "ADD",            .typ = TYP_OP_CODE,     .tid = OP_CODE_ADD,         .val = 0x40000000   },
     { .name = "ADDB",           .typ = TYP_OP_CODE,     .tid = OP_CODE_ADDB,        .val = 0x40000000   },
     { .name = "ADDH",           .typ = TYP_OP_CODE,     .tid = OP_CODE_ADDH,        .val = 0x40000000   },
     { .name = "ADDW",           .typ = TYP_OP_CODE,     .tid = OP_CODE_ADDW,        .val = 0x40000000   },
-        
+    
     { .name = "ADC",            .typ = TYP_OP_CODE,     .tid = OP_CODE_ADC,         .val = 0x44000000   },
     { .name = "ADCB",           .typ = TYP_OP_CODE,     .tid = OP_CODE_ADCB,        .val = 0x44000000   },
     { .name = "ADCH",           .typ = TYP_OP_CODE,     .tid = OP_CODE_ADCH,        .val = 0x44000000   },
     { .name = "ADCW",           .typ = TYP_OP_CODE,     .tid = OP_CODE_ADCW,        .val = 0x44000000   },
-        
+    
     { .name = "SUB",            .typ = TYP_OP_CODE,     .tid = OP_CODE_SUB,         .val = 0x48000000   },
     { .name = "SUBB",           .typ = TYP_OP_CODE,     .tid = OP_CODE_SUBB,        .val = 0x48000000   },
     { .name = "SUBH",           .typ = TYP_OP_CODE,     .tid = OP_CODE_SUBH,        .val = 0x48000000   },
     { .name = "SUBW",           .typ = TYP_OP_CODE,     .tid = OP_CODE_SUBW,        .val = 0x48000000   },
-        
+    
     { .name = "SBC",            .typ = TYP_OP_CODE,     .tid = OP_CODE_SBC,         .val = 0x4C000000   },
     { .name = "SBCB",           .typ = TYP_OP_CODE,     .tid = OP_CODE_SBCB,        .val = 0x4C000000   },
     { .name = "SBCH",           .typ = TYP_OP_CODE,     .tid = OP_CODE_SBCH,        .val = 0x4C000000   },
     { .name = "SBCW",           .typ = TYP_OP_CODE,     .tid = OP_CODE_SBCW,        .val = 0x4C000000   },
-        
+    
     { .name = "AND",            .typ = TYP_OP_CODE,     .tid = OP_CODE_AND,         .val = 0x50000000   },
     { .name = "ANDB",           .typ = TYP_OP_CODE,     .tid = OP_CODE_ANDB,        .val = 0x50000000   },
     { .name = "ANDH",           .typ = TYP_OP_CODE,     .tid = OP_CODE_ANDH,        .val = 0x50000000   },
     { .name = "ANDW",           .typ = TYP_OP_CODE,     .tid = OP_CODE_ANDW,        .val = 0x50000000   },
-        
+    
     { .name = "OR" ,            .typ = TYP_OP_CODE,     .tid = OP_CODE_OR,          .val = 0x54000000   },
     { .name = "ORB",            .typ = TYP_OP_CODE,     .tid = OP_CODE_ORB,         .val = 0x54000000   },
     { .name = "ORH",            .typ = TYP_OP_CODE,     .tid = OP_CODE_ORH,         .val = 0x54000000   },
     { .name = "ORW",            .typ = TYP_OP_CODE,     .tid = OP_CODE_ORW,         .val = 0x54000000   },
-        
+    
     { .name = "XOR" ,           .typ = TYP_OP_CODE,     .tid = OP_CODE_XOR,         .val = 0x58000000   },
     { .name = "XORB",           .typ = TYP_OP_CODE,     .tid = OP_CODE_XORB,        .val = 0x58000000   },
     { .name = "XORH",           .typ = TYP_OP_CODE,     .tid = OP_CODE_XORH,        .val = 0x58000000   },
     { .name = "XORW",           .typ = TYP_OP_CODE,     .tid = OP_CODE_XORW,        .val = 0x58000000   },
-        
+    
     { .name = "CMP" ,           .typ = TYP_OP_CODE,     .tid = OP_CODE_CMP,         .val = 0x5C000000   },
     { .name = "CMPB",           .typ = TYP_OP_CODE,     .tid = OP_CODE_CMPB,        .val = 0x5C000000   },
     { .name = "CMPH",           .typ = TYP_OP_CODE,     .tid = OP_CODE_CMPH,        .val = 0x5C000000   },
     { .name = "CMPW",           .typ = TYP_OP_CODE,     .tid = OP_CODE_CMPW,        .val = 0x5C000000   },
-        
+    
     { .name = "CMPU" ,          .typ = TYP_OP_CODE,     .tid = OP_CODE_CMPU,        .val = 0x60000000   },
     { .name = "CMPUB",          .typ = TYP_OP_CODE,     .tid = OP_CODE_CMPUB,       .val = 0x60000000   },
     { .name = "CMPUH",          .typ = TYP_OP_CODE,     .tid = OP_CODE_CMPUH,       .val = 0x60000000   },
@@ -585,7 +785,7 @@ DrvToken const asmTokTab[ ] = {
     { .name = "DSR",            .typ = TYP_OP_CODE,     .tid = OP_CODE_DSR,         .val = 0x1C000000   },
     { .name = "SHLA",           .typ = TYP_OP_CODE,     .tid = OP_CODE_SHLA,        .val = 0x20000000   },
     { .name = "CMR",            .typ = TYP_OP_CODE,     .tid = OP_CODE_CMR,         .val = 0x24000000   },
-        
+    
     { .name = "LDIL",           .typ = TYP_OP_CODE,     .tid = OP_CODE_LDIL,        .val = 0x04000000   },
     { .name = "ADDIL",          .typ = TYP_OP_CODE,     .tid = OP_CODE_ADDIL,       .val = 0x08000000   },
     { .name = "LDO",            .typ = TYP_OP_CODE,     .tid = OP_CODE_LDO,         .val = 0x0C000000   },
@@ -598,7 +798,7 @@ DrvToken const asmTokTab[ ] = {
     { .name = "BVE",            .typ = TYP_OP_CODE,     .tid = OP_CODE_BVE,         .val = 0x94000000   },
     { .name = "CBR",            .typ = TYP_OP_CODE,     .tid = OP_CODE_CBR,         .val = 0x98000000   },
     { .name = "CBRU",           .typ = TYP_OP_CODE,     .tid = OP_CODE_CBRU,        .val = 0x9C000000   },
-        
+    
     { .name = "MR",             .typ = TYP_OP_CODE,     .tid = OP_CODE_MR,          .val = 0x28000000   },
     { .name = "MST",            .typ = TYP_OP_CODE,     .tid = OP_CODE_MST,         .val = 0x2C000000   },
     { .name = "DS",             .typ = TYP_OP_CODE,     .tid = OP_CODE_DS,          .val = 0x30000000   },
@@ -610,7 +810,7 @@ DrvToken const asmTokTab[ ] = {
     { .name = "DIAG",           .typ = TYP_OP_CODE,     .tid = OP_CODE_DIAG,        .val = 0xF8000000   },
     { .name = "RFI",            .typ = TYP_OP_CODE,     .tid = OP_CODE_RFI,         .val = 0xFC000000   },
     { .name = "BRK",            .typ = TYP_OP_CODE,     .tid = OP_CODE_BRK,         .val = 0x00000000   },
-        
+    
     //--------------------------------------------------------------------------------------------------------
     // Synthetic instruction mnemonics.
     //

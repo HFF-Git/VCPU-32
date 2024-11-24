@@ -282,7 +282,7 @@ void DrvLineDisplay::displayTlbEntry( TlbEntry *entry, int rdx ) {
     
     fprintf( stdout, " Acc: (%d,%d,%d)", entry -> tPageType( ), entry -> tPrivL1( ), entry -> tPrivL2( ));
     
-    fprintf( stdout,  " Pid: " );
+    fprintf( stdout, " Pid: " );
     displayHalfWord( entry -> tSegId( ), rdx );
     
     fprintf( stdout, " Vpn-H: " );
