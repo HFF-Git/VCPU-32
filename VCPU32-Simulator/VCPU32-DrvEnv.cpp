@@ -88,7 +88,7 @@ DrvEnv::DrvEnv( VCPU32Globals *glb, uint32_t size ) {
 // variable type is string and we set a value, the old string is deallocated.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv::setEnvVar( char *name, int iVal ) {
+void DrvEnv::setEnvVar( char *name, int iVal ) {
     
     int index = lookupEntry( name );
     
@@ -96,17 +96,16 @@ uint8_t DrvEnv::setEnvVar( char *name, int iVal ) {
         
         DrvEnvTabEntry *ptr = &table[ index ];
         
-        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
-        if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
+        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) throw ( ERR_ENV_VALUE_EXPR );
+        if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
          
-        ptr -> typ  = TYP_NUM;
-        ptr -> iVal = iVal;
-        return( NO_ERR );
+        ptr -> typ    = TYP_NUM;
+        ptr -> iVal   = iVal;
     }
-    else return enterEnvVar( name, ((int) iVal ));
+    else enterEnvVar( name, ((int) iVal ));
 }
 
-uint8_t DrvEnv::setEnvVar( char *name, uint32_t uVal ) {
+void DrvEnv::setEnvVar( char *name, uint32_t uVal ) {
     
     int index = lookupEntry( name );
     
@@ -114,17 +113,16 @@ uint8_t DrvEnv::setEnvVar( char *name, uint32_t uVal ) {
         
         DrvEnvTabEntry *ptr = &table[ index ];
         
-        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
-        if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
+        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) throw ( ERR_ENV_VALUE_EXPR );
+        if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
          
         ptr -> typ  = TYP_NUM;
         ptr -> uVal = uVal;
-        return( NO_ERR );
     }
-    else return enterEnvVar( name, ((uint32_t) uVal ));
+    else enterEnvVar( name, ((uint32_t) uVal ));
 }
 
-uint8_t DrvEnv::setEnvVar( char *name, bool bVal )  {
+void DrvEnv::setEnvVar( char *name, bool bVal )  {
     
     int index = lookupEntry( name );
     
@@ -132,17 +130,16 @@ uint8_t DrvEnv::setEnvVar( char *name, bool bVal )  {
         
         DrvEnvTabEntry *ptr = &table[ index ];
         
-        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
-        if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
+        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) throw ( ERR_ENV_VALUE_EXPR );
+        if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
          
         ptr -> typ  = TYP_BOOL;
         ptr -> bVal = bVal;
-        return( NO_ERR );
     }
-    else return enterEnvVar( name, ((bool) bVal ));
+    else enterEnvVar( name, ((bool) bVal ));
 }
 
-uint8_t DrvEnv::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
+void DrvEnv::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
    
     int index = lookupEntry( name );
     
@@ -150,18 +147,17 @@ uint8_t DrvEnv::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
         
         DrvEnvTabEntry *ptr = &table[ index ];
         
-        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) return ( 99 );
-        if ( ptr -> typ == TYP_STR )                            free( ptr -> str );
+        if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) throw ( ERR_ENV_VALUE_EXPR );
+        if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
          
         ptr -> typ  = TYP_EXT_ADR;
-        ptr -> seg = seg;
-        ptr -> ofs = ofs;
-        return( NO_ERR );
+        ptr -> seg  = seg;
+        ptr -> ofs  = ofs;
     }
-    else return enterEnvVar( name, ((uint32_t) seg), ((uint32_t) ofs ));
+    else enterEnvVar( name, ((uint32_t) seg), ((uint32_t) ofs ));
 }
 
-uint8_t DrvEnv::setEnvVar( char *name, char *str )  {
+void DrvEnv::setEnvVar( char *name, char *str )  {
    
     int index = lookupEntry( name );
     
@@ -169,19 +165,18 @@ uint8_t DrvEnv::setEnvVar( char *name, char *str )  {
         
         DrvEnvTabEntry *ptr = &table[ index ];
         
-        if (( ptr -> predefined ) && ( ptr -> typ != TYP_STR )) return ( 99 );
-        if (( ptr -> typ == TYP_STR ) && ( ptr -> str != nullptr )) free( ptr -> str );
+        if (( ptr -> predefined ) && ( ptr -> typ != TYP_STR )) throw ( ERR_ENV_VALUE_EXPR );
+        if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
         
-        ptr -> typ  = TYP_STR;
-        ptr -> str = (char *) malloc( strlen( str ) + 1 );
-        strcpy( ptr -> str, str );
-        return( NO_ERR );
+        ptr -> typ = TYP_STR;
+        ptr -> strVal = (char *) malloc( strlen( str ) + 1 );
+        strcpy( ptr -> strVal, str );
     }
-    else return enterEnvVar( name, str );
+    else enterEnvVar( name, str );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Environemnt vriables getter functions. Just look up th entry and return the value. If the entry does not
+// Environment variables getter functions. Just look up the entry and return the value. If the entry does not
 // exist, we return an optional default.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -231,7 +226,7 @@ char *DrvEnv::getEnvVarStr( char *name, char *def ) {
     
     int index = lookupEntry( name );
     
-    if ( index >= 0 )   return( table[ index ].str );
+    if ( index >= 0 )   return( table[ index ].strVal );
     else                return (def );
 }
 
@@ -241,7 +236,7 @@ char *DrvEnv::getEnvVarStr( char *name, char *def ) {
 // was at the high water mark, adjust the HWM.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv::removeEnvVar( char *name ) {
+void DrvEnv::removeEnvVar( char *name ) {
     
     int index = lookupEntry( name );
     
@@ -249,8 +244,8 @@ uint8_t DrvEnv::removeEnvVar( char *name ) {
         
         DrvEnvTabEntry *ptr = &table[ index ];
         
-        if ( ptr -> predefined ) return( 99 );
-        if (( ptr -> typ == TYP_STR ) && ( ptr -> str != nullptr )) free( ptr -> str );
+        if ( ptr -> predefined ) throw( ERR_ENV_PREDEFINED );
+        if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
         
         ptr -> valid    = false;
         ptr -> typ      = TYP_NIL;
@@ -259,10 +254,8 @@ uint8_t DrvEnv::removeEnvVar( char *name ) {
             
             while (( ptr >= table ) && ( ptr -> valid )) hwm --;
         }
-        
-        return( NO_ERR );
     }
-    else return ( 99 );
+    else throw ( ERR_ENV_VAR_NOT_FOUND );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -270,7 +263,7 @@ uint8_t DrvEnv::removeEnvVar( char *name ) {
 // it is a predefined variable, the readonly flag marks the variable read only for the ENV command.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv::enterEnvVar( char *name, int32_t iVal, bool predefined, bool readOnly ) {
+void DrvEnv::enterEnvVar( char *name, int32_t iVal, bool predefined, bool rOnly ) {
     
     int index = findFreeEntry( );
     
@@ -281,15 +274,14 @@ uint8_t DrvEnv::enterEnvVar( char *name, int32_t iVal, bool predefined, bool rea
         tmp.typ         = TYP_NUM;
         tmp.valid       = true;
         tmp.predefined  = predefined;
-        tmp.readOnly    = readOnly;
+        tmp.readOnly    = rOnly;
         tmp.iVal        = iVal;
         table[ index ]  = tmp;
-        return( NO_ERR );
     }
-    else return( 99 );
+    else throw( ERR_ENV_TABLE_FULL );
 }
 
-uint8_t DrvEnv::enterEnvVar( char *name, uint32_t uVal, bool predefined, bool readOnly ) {
+void DrvEnv::enterEnvVar( char *name, uint32_t uVal, bool predefined, bool rOnly ) {
     
     int index = findFreeEntry( );
     
@@ -300,15 +292,14 @@ uint8_t DrvEnv::enterEnvVar( char *name, uint32_t uVal, bool predefined, bool re
         tmp.typ         = TYP_NUM;
         tmp.valid       = true;
         tmp.predefined  = predefined;
-        tmp.readOnly    = readOnly;
+        tmp.readOnly    = rOnly;
         tmp.uVal        = uVal;
         table[ index ]  = tmp;
-        return( NO_ERR );
     }
-    else return( 99 );
+    else throw( ERR_ENV_TABLE_FULL );
 }
 
-uint8_t DrvEnv::enterEnvVar( char *name, bool bVal, bool predefined, bool readOnly ) {
+void DrvEnv::enterEnvVar( char *name, bool bVal, bool predefined, bool rOnly ) {
     
     int index = findFreeEntry( );
     
@@ -319,15 +310,14 @@ uint8_t DrvEnv::enterEnvVar( char *name, bool bVal, bool predefined, bool readOn
         tmp.typ         = TYP_BOOL;
         tmp.valid       = true;
         tmp.predefined  = predefined;
-        tmp.readOnly    = readOnly;
+        tmp.readOnly    = rOnly;
         tmp.bVal        = bVal;
         table[ index ]  = tmp;
-        return( NO_ERR );
     }
-    else return( 99 );
+    else throw( ERR_ENV_TABLE_FULL );
 }
 
-uint8_t DrvEnv::enterEnvVar( char *name, char *str, bool predefined, bool readOnly ) {
+void DrvEnv::enterEnvVar( char *name, char *str, bool predefined, bool rOnly ) {
     
     int index = findFreeEntry( );
     
@@ -338,18 +328,15 @@ uint8_t DrvEnv::enterEnvVar( char *name, char *str, bool predefined, bool readOn
         tmp.valid       = true;
         tmp.typ         = TYP_STR;
         tmp.predefined  = predefined;
-        tmp.readOnly    = readOnly;
-        
-        tmp.str         = (char *) calloc( strlen( str ), sizeof( char ));
-        strcpy( tmp.str, str );
-        
+        tmp.readOnly    = rOnly;
+        tmp.strVal      = (char *) calloc( strlen( str ), sizeof( char ));
+        strcpy( tmp.strVal, str );
         table[ index ]  = tmp;
-        return( NO_ERR );
     }
-    else return( 99 );
+    else throw( ERR_ENV_TABLE_FULL );
 }
 
-uint8_t DrvEnv::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined, bool readOnly ) {
+void DrvEnv::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined, bool rOnly ) {
     
     int index = findFreeEntry( );
     
@@ -360,13 +347,12 @@ uint8_t DrvEnv::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predef
         tmp.typ         = TYP_EXT_ADR;
         tmp.valid       = true;
         tmp.predefined  = predefined;
-        tmp.readOnly    = readOnly;
+        tmp.readOnly    = rOnly;
         tmp.seg         = seg;
         tmp.ofs         = ofs;
         table[ index ]  = tmp;
-        return( NO_ERR );
     }
-    else return( 99 );
+    else throw( ERR_ENV_TABLE_FULL );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -485,12 +471,12 @@ uint8_t DrvEnv::displayEnvTableEntry( DrvEnvTabEntry *entry ) {
     switch ( entry -> typ ) {
             
         case TYP_NUM:       fprintf( stdout, "NUM:     %i", entry -> iVal ); break;
-        case TYP_EXT_ADR:   fprintf( stdout, "EXT_ADR: 0x%04x.0x%08x", entry -> seg, entry -> ofs );
+        case TYP_EXT_ADR:   fprintf( stdout, "EXT_ADR: 0x%04x.0x%08x", entry -> seg, entry -> ofs ); break;
             
         case TYP_STR: {
             
             // ??? any length checks ?
-            fprintf( stdout, "STR:     \"%s\"", entry -> str );
+            fprintf( stdout, "STR:     \"%s\"", entry -> strVal );
             
         } break;
             
@@ -510,10 +496,10 @@ uint8_t DrvEnv::displayEnvTableEntry( DrvEnvTabEntry *entry ) {
 
 
 //------------------------------------------------------------------------------------------------------------
-// Enter the predefind entries.
+// Enter the predefined entries.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv::setupPredefined( ) {
+void DrvEnv::setupPredefined( ) {
     
     uint8_t rStat = NO_ERR;
     
@@ -552,7 +538,5 @@ uint8_t DrvEnv::setupPredefined( ) {
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_WIN_TEXT_LINE_WIDTH, (int) 90, true, false );
     
     // ??? should TRUE and FALSE rather be a predefine ?
-    // ??? this would only make sense when teh expression evaluator looks for identifiers here too ....
-    
-    return( rStat );
+    // ??? this would only make sense when the expression evaluator looks for identifiers here too ....
 }

@@ -6,8 +6,8 @@
 // The one line assembler assembles an instruction without further context. It is intended to for testing
 // instructions in the simulator. There is no symbol table or any concept of assembling multiple instructions.
 // The instruction to generate test is completely self sufficient. The parser is a straightforward recursive
-// descendant parser, LL1 grammar. It uses the C++ try / catch to esape when an error is detected. Considering
-// that we only have one line to parse, there is no need to implement a beter parser error recovery method.
+// descendant parser, LL1 grammar. It uses the C++ try / catch to escape when an error is detected. Considering
+// that we only have one line to parse, there is no need to implement a better parser error recovery method.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -148,13 +148,11 @@ bool isInRangeForBitFieldU( uint32_t val, uint8_t bitLen ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "asmError" is a little helper that prints out the error encountered. We will print the original input
-// line, a caret marker where we found the error, and then return a false. Errors typically result in aborting
-// the parsing process. As this is a one line assembly, we do not need to be put effort into teh parser for
-// continuing reasonably with the parsing process.
+// "asmError" is a little helper that prints out the original input line and a caret marker where we found
+// the error.
 //
 //------------------------------------------------------------------------------------------------------------
-ErrMsgId asmError( ErrMsgId errNum ) {
+ErrMsgId markAsmError( ErrMsgId errNum ) {
     
     fprintf( stdout, "%s\n", tok -> tokenLineStr( ));
     
@@ -167,9 +165,7 @@ ErrMsgId asmError( ErrMsgId errNum ) {
         i ++;
     }
     
-    fprintf( stdout, "Error: %d\n", errNum );
-    // fprintf( stdout, "^\n" "%s\n", errStr );
-  
+    fprintf( stdout, "^ \n" );
     return( errNum );
 }
 
@@ -2014,7 +2010,8 @@ ErrMsgId DrvOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {
     }
     catch ( ErrMsgId errNum ) {
         
-        asmError( errNum );
+        *instr = 0;
+        markAsmError( errNum );
         return( errNum );
     }
 }

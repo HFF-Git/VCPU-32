@@ -49,7 +49,6 @@
 //                  <sregId>                        |
 //                  <cregId>                        |
 //                  "~" <factor>                    |
-//                  "(" [ <sreg> "," ] <greg> ")"   |
 //                  "(" <expr> ")"
 //
 //      <term>      ->  <factor> { <termOp> <factor> }
@@ -86,7 +85,6 @@ DrvExprEvaluator::DrvExprEvaluator( VCPU32Globals *glb ) {
     this -> glb = glb;
 }
 
-
 //------------------------------------------------------------------------------------------------------------
 // Assemble function.
 //
@@ -96,6 +94,7 @@ void DrvExprEvaluator::pFuncAssemble( DrvExpr *rExpr ) {
     
     DrvExpr     lExpr;
     uint32_t    instr;
+    ErrMsgId    ret;
     
     glb -> tok -> nextToken( );
     if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
@@ -104,9 +103,14 @@ void DrvExprEvaluator::pFuncAssemble( DrvExpr *rExpr ) {
     parseExpr( &lExpr );
     if ( lExpr.typ == TYP_STR ) {
         
-        glb -> oneLineAsm -> parseAsmLine( lExpr.strVal,&instr );
-        rExpr -> typ    = TYP_NUM;
-        rExpr -> numVal = instr;
+        ret = glb -> oneLineAsm -> parseAsmLine( lExpr.strVal, &instr );
+        
+        if ( ret == NO_ERR ) {
+            
+            rExpr -> typ    = TYP_NUM;
+            rExpr -> numVal = instr;
+        }
+        else throw ( ret );
     }
     else throw ( ERR_EXPECTED_STR );
 
@@ -124,7 +128,7 @@ void DrvExprEvaluator::pFuncDisAssemble( DrvExpr *rExpr ) {
     DrvExpr     lExpr;
     uint32_t    instr;
     char        asmStr[ CMD_LINE_BUF_SIZE ];
-    int         rdx     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    int         rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
     glb -> tok -> nextToken( );
     if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
@@ -279,18 +283,18 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
             
             switch( rExpr -> typ ) {
                     
-                case TYP_BOOL:  rExpr -> bVal       = glb -> tok -> tokVal( );          break;
-                case TYP_NUM:   rExpr -> numVal     = glb -> tok -> tokVal( );          break;
-                case TYP_ADR:   rExpr -> adr        = glb -> tok -> tokVal( );          break;
-                case TYP_STR:   strcpy( rExpr -> strVal, glb -> tok -> tokStr( ));      break;
+                case TYP_BOOL:  rExpr -> bVal       =  entry -> bVal;           break;
+                case TYP_NUM:   rExpr -> numVal     =  entry -> iVal;           break;
+                case TYP_ADR:   rExpr -> adr        =  entry -> uVal;           break;
+                case TYP_STR:   strcpy( rExpr -> strVal, entry -> strVal );     break;
                 
                 case TYP_EXT_ADR: {
                     
-                    rExpr -> seg = glb -> tok -> tokSeg( );
-                    rExpr -> ofs = glb -> tok -> tokOfs( );
+                    rExpr -> seg = entry -> seg;
+                    rExpr -> ofs = entry -> ofs;
                     
                 } break;
-                    
+                
                 default: fprintf( stdout, "**** uncaptured type in factor, fix ... \n" );
             }
         }

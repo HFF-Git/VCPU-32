@@ -38,7 +38,7 @@ DrvToken const cmdTokTab[ ] = {
     //--------------------------------------------------------------------------------------------------------
     { .name = "NIL",                .typ = TYP_SYM,                 .tid = TOK_NIL,         .val = 0        },
     
-    // ??? should true and false rather be a predefine vs. a resrved token ? YES
+    // ??? should true and false rather be a predefine vs. a reserved token ? YES
     { .name = "TRUE",               .typ = TYP_BOOL,                .tid = TOK_IDENT,       .val = 1        },
     { .name = "FALSE",              .typ = TYP_BOOL,                .tid = TOK_IDENT,       .val = 0        },
     
@@ -324,7 +324,7 @@ DrvToken const cmdTokTab[ ] = {
 const int MAX_CMD_TOKEN_TAB = sizeof( cmdTokTab ) / sizeof( DrvToken );
 
 //------------------------------------------------------------------------------------------------------------
-// The error messgae table. Ech entry has the error number and the corresponding error message text.
+// The error message table. Each entry has the error number and the corresponding error message text.
 //
 // ??? sort the entries...
 //------------------------------------------------------------------------------------------------------------
@@ -369,7 +369,7 @@ DrvErrMsgTabEntry const errMsgTab [ ] = {
     { .errNum = ERR_EXPECTED_GENERAL_REG,       .errStr = (char *) "Expression a general reg" },
         
     { .errNum = ERR_INVALID_ARG,                .errStr = (char *) "Invalid argument for command" },
-    { .errNum = ERR_EXPECTED_STEPS,             .errStr = (char *) "Expected nuber of steps/instr" },
+    { .errNum = ERR_EXPECTED_STEPS,             .errStr = (char *) "Expected number of steps/instr" },
     { .errNum = ERR_INVALID_STEP_OPTION,        .errStr = (char *) "Invalid steps/instr option" },
         
     { .errNum = ERR_EXPECTED_INSTR_VAL,         .errStr = (char *) "Expected the instruction value" },
@@ -382,10 +382,13 @@ DrvErrMsgTabEntry const errMsgTab [ ] = {
         
     { .errNum = ERR_INVALID_CHAR_IN_TOKEN_LINE, .errStr = (char *) "Invalid char in input line" },
     { .errNum = ERR_UNDEFINED_PFUNC,            .errStr = (char *) "Unknown predefined function" },
+    
+    { .errNum = ERR_ENV_PREDEFINED,             .errStr = (char *) "ENV variable is predefined" },
+    { .errNum = ERR_ENV_TABLE_FULL,             .errStr = (char *) "ENV Table is full" },
         
     { .errNum = ERR_INVALID_EXPR,               .errStr = (char *) "Invalid expression" },
-    { .errNum = ERR_EXPECTED_INSTR_OPT,         .errStr = (char *)  "Expected the instructon options" },
-    { .errNum = ERR_INVALID_INSTR_OPT,          .errStr = (char *)  "INvalid instruction option" },
+    { .errNum = ERR_EXPECTED_INSTR_OPT,         .errStr = (char *)  "Expected the instruction options" },
+    { .errNum = ERR_INVALID_INSTR_OPT,          .errStr = (char *)  "Invalid instruction option" },
     { .errNum = ERR_INSTR_HAS_NO_OPT,           .errStr = (char *) "Instruction has no option" },
     { .errNum = ERR_EXPECTED_SR1_SR3,           .errStr = (char *) "Expected SR1 .. SR3 as segment register" },
     { .errNum = ERR_EXPECTED_LOGICAL_ADR,       .errStr = (char *) "Expected a logical address" },
@@ -395,10 +398,11 @@ DrvErrMsgTabEntry const errMsgTab [ ] = {
     { .errNum = ERR_POS_VAL_RANGE,              .errStr = (char *)  "Bit position value out of range" },
     { .errNum = ERR_LEN_VAL_RANGE,              .errStr = (char *) "Bit field length value out of range" },
         
-    { .errNum = ERR_EXPECTED_AN_OFFSET_VAL,     .errStr = (char *)  "Excpected an offset valuen" },
+    { .errNum = ERR_EXPECTED_AN_OFFSET_VAL,     .errStr = (char *)  "Expected an offset value" },
     { .errNum = ERR_OFFSET_VAL_RANGE,           .errStr = (char *)  "Offset value out of range" },
     { .errNum = ERR_INVALID_REG_COMBO,          .errStr = (char *)  "Invalid register combo for instruction" },
     { .errNum = ERR_EXPECTED_SEGMENT_REG,       .errStr = (char *)  "Expected a segment register" },
+    { .errNum = ERR_INVALID_OP_CODE,            .errStr = (char *)  "Invalid instruction opcode" },
     { .errNum = ERR_INVALID_S_OP_CODE,          .errStr = (char *)  "Invalid synthetic instruction opcode" },
         
     { .errNum = ERR_INVALID_FMT_OPT,            .errStr = (char *) "Invalid format option" },
@@ -421,7 +425,7 @@ DrvErrMsgTabEntry const errMsgTab [ ] = {
     { .errNum = ERR_CACHE_SIZE_EXCEEDED,        .errStr = (char *)  "Cache size exceeded" },
     { .errNum = ERR_CACHE_SET_NUM,              .errStr = (char *)  "Invalid cache set" },
     
-    { .errNum = ERR_UNEXPECTED_EOS,             .errStr = (char *)  "Unexpectedd end of command line" }
+    { .errNum = ERR_UNEXPECTED_EOS,             .errStr = (char *)  "Unexpected end of command line" }
     
 };
 
@@ -458,7 +462,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_XF,
         .cmdNameStr     = (char *) "xf",
-        .cmdSyntaxStr   = (char *) "xf <filepath",
+        .cmdSyntaxStr   = (char *) "xf <filePath>",
         .helpStr        = (char *) "execute commands from a file"
     },
     
@@ -632,6 +636,58 @@ const int MAX_CMD_HELP_TAB = sizeof( cmdHelpTab ) / sizeof( DrvHelpMsgEntry );
 //------------------------------------------------------------------------------------------------------------
 DrvHelpMsgEntry const winCmdHelpTab[ ] = {
     
+    // ??? to convert ....
+    
+#if 0
+    fprintf( stdout, "Commands:\n" );
+    fprintf( stdout, FMT_STR, "E [ <wNum> ]", "Enable window display" );
+    fprintf( stdout, FMT_STR, "D [ <wNum> ]", "Disable window display" );
+    fprintf( stdout, FMT_STR, "B <amt> [ , <wNum> ]", "Move backward by n items" );
+    fprintf( stdout, FMT_STR, "F <amt> [ , <wNum> ]", "Move forward by n items" );
+    fprintf( stdout, FMT_STR, "H <pos> [ , <wNum> ]", "Set window home position or set new home position" );
+    fprintf( stdout, FMT_STR, "J <pos> [ , <wNum> ]", "Set window start to new position");
+    fprintf( stdout, FMT_STR, "L <lines> [ , <wNum> ]", "Set window lines including banner line" );
+    fprintf( stdout, FMT_STR, "R <radix> [ , <wNum> ]", "Set window radix ( OCT, DEC, HEX )" );
+    fprintf( stdout, FMT_STR, "C <wNum>", "set the window <wNum> as current window" );
+    fprintf( stdout, FMT_STR, "T <wNum>", "toggle through alternate window content" );
+    fprintf( stdout, FMT_STR, "X <wNum>", "exchange current window with this window");
+    fprintf( stdout, FMT_STR, "N <type> [ , <arg> ]", "New user defined window ( PM, PC, IT, DT, IC, ICR, DCR, MCR, TX )" );
+    fprintf( stdout, FMT_STR, "K <wNumStart> [ , <wNumEnd> ]", "Removes a range of user defined window" );
+    fprintf( stdout, FMT_STR, "S <stackNum> [ , <wNumStart> ] [ , <wNumEnd>]", "moves a range of user windows into stack <stackNum>" );
+    fprintf( stdout, "\n" );
+    
+    fprintf( stdout, "Windows help \n\n" );
+    fprintf( stdout, "General Syntax for Win Commands: <win><cmd> [ args ]\n\n" );
+    fprintf( stdout, "Windows:\n" );
+    fprintf( stdout, FMT_STR, "PS",  "Program state window" );
+    fprintf( stdout, FMT_STR, "SR",  "Special Register window" );
+    fprintf( stdout, FMT_STR, "PL",  "CPU Pipeline Registers window" );
+    fprintf( stdout, FMT_STR, "ST",  "Statistics window" );
+    fprintf( stdout, FMT_STR, "IT",  "CPU Instruction TLB window" );
+    fprintf( stdout, FMT_STR, "DT",  "CPU Data TLB window" );
+    fprintf( stdout, FMT_STR, "IC",  "CPU Instruction Cache (L1) window" );
+    fprintf( stdout, FMT_STR, "DC",  "CPU Data Cache (L1) window" );
+    fprintf( stdout, FMT_STR, "UC",  "CPU Unified Cache (L2) window" );
+    fprintf( stdout, FMT_STR, "PM",  "Physical Memory window" );
+    fprintf( stdout, FMT_STR, "PC",  "Program Code Window" );
+    fprintf( stdout, FMT_STR, "ICR", "CPU Instruction Cache (L1) controller registers" );
+    fprintf( stdout, FMT_STR, "DCR", "CPU Data Cache (L1) controller registers" );
+    fprintf( stdout, FMT_STR, "UCR", "CPU Unified Cache (L2) controller registers" );
+    fprintf( stdout, FMT_STR, "MCR", "Physical Memory controller registers" );
+    fprintf( stdout, FMT_STR, "ITR", "CPU Instruction TLB controller registers" );
+    fprintf( stdout, FMT_STR, "DTR", "CPU Data TLB controller registers" );
+    fprintf( stdout, FMT_STR, "PCR", "PDC Memory controller registers" );
+    fprintf( stdout, FMT_STR, "IOR", "IO Memory controller registers" );
+    fprintf( stdout, FMT_STR, "TX",  "Text Window" );
+    fprintf( stdout, FMT_STR, "CW",  "Command Line window" );
+    fprintf( stdout, FMT_STR, "W",   "User defined window" );
+    fprintf( stdout, "\n" );
+    
+    fprintf( stdout, "Example: SRE       -> show special register window\n" );
+    fprintf( stdout, "Example: WN PM     -> create a user defined physical memory window\n" );
+    fprintf( stdout, "Example: WN 20, 11 -> scroll window 11 forward by 20 lines\n" );
+    fprintf( stdout, "\n" );
+#endif
     
 };
 

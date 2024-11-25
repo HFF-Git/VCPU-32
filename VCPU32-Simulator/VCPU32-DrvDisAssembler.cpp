@@ -149,7 +149,7 @@ int formatOperandModeField( char *buf, uint32_t instr, int rdx = 10 ) {
             
         case OP_MODE_IMM: {
             
-            return( printImmVal( buf, immGenPosLenLowSign( instr, 31, 18 ), TOK_DEC ));
+            return( printImmVal( buf, immGenPosLenLowSign( instr, 31, 18 ), 10 ));
             
         } break;
           
@@ -167,7 +167,7 @@ int formatOperandModeField( char *buf, uint32_t instr, int rdx = 10 ) {
             
         case OP_MODE_INDX: {
             
-            int len = printImmVal( buf, immGenPosLenLowSign( instr, 27, 12 ), TOK_DEC );
+            int len = printImmVal( buf, immGenPosLenLowSign( instr, 27, 12 ), 10 );
             return ( snprintf( buf + len , 16, "(r%d)", getBitField( instr, 31, 4 )));
             
         } break;
@@ -182,7 +182,7 @@ int formatOperandModeField( char *buf, uint32_t instr, int rdx = 10 ) {
 // instruction word to come up with the mnemonic. Currently we append to the opCode that allow for a word
 // length to append a character to indicate byte, half-word or word access.
 //
-// There are also instructions have the same opCode but result in a different mnemonic. For example the MR
+// There are also instructions have the same opCode but result in a different mnemonic. For example the LD
 // instruction will decode to four different mnemonics. The function returns the characters written.
 //
 //------------------------------------------------------------------------------------------------------------

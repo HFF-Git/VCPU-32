@@ -1480,7 +1480,7 @@ void DrvWinAbsMem::drawLine( uint32_t itemAdr ) {
 // Object constructor.
 //
 //
-// ??? need to rework for viertual addresses ? We need to work with segment and offset !!!!
+// ??? need to rework for virtual addresses ? We need to work with segment and offset !!!!
 //------------------------------------------------------------------------------------------------------------
 DrvWinCode::DrvWinCode( VCPU32Globals *glb ) : DrvWinScrollable( glb ) { }
 

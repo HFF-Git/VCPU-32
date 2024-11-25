@@ -34,7 +34,7 @@
 namespace {
 
 //------------------------------------------------------------------------------------------------------------
-// A little helper function to upshift a string in place.
+// A little helper functions.
 //
 //------------------------------------------------------------------------------------------------------------
 void upshiftStr( char *str ) {
@@ -47,17 +47,35 @@ void upshiftStr( char *str ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
-// "setRadix" ensures that we passed in a valid radix value. The default is a decimal number.
-//
-//------------------------------------------------------------------------------------------------------------
+void printNum( uint32_t num, int rdx ) {
+    
+    if      ( rdx == 10 )  fprintf( stdout, "%d", num );
+    else if ( rdx == 8  )  fprintf( stdout, "%#012o", num );
+    else if ( rdx == 16 )  {
+        
+        if ( num == 0 ) fprintf( stdout, "0x0" );
+        else fprintf( stdout, "%#010x", num );
+    }
+    else fprintf( stdout, "**num**" );
+}
+
 int setRadix( int rdx ) {
     
     return((( rdx == 8 ) || ( rdx == 10 ) || ( rdx == 16 )) ? rdx : 10 );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// List the ehlp for widows command.
+// A little helper to print a caret indented by "pos".
+//
+//------------------------------------------------------------------------------------------------------------
+void markError( int pos ) {
+  
+    for ( int i = 0; i < pos; i++ ) fprintf( stdout, " " );
+    fprintf( stdout, "^ \n" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// List the help for windows command.
 //
 //------------------------------------------------------------------------------------------------------------
 void displayWindowHelp( ) {
@@ -194,22 +212,15 @@ void DrvCmds::setupCmdInterpreter( int argc, const char *argv[ ] ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "commandLineError" is a little helper that prints out the error encountered. We will print a caret marker
-// where we found the error, and then return a false. Parsing errors typically result in aborting the parsing
-// process.
+// where we found the error, and then return a false. Note that the position needs to add the prompt part of
+// the command line to where the error was found in the command input.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::cmdLineError( ErrMsgId errNum, char *argStr ) {
     
-    int     i           = 0;
-    int     tokIndex    = promptLen + glb -> tok -> tokCharIndex( );
+    int tokIndex = promptLen + glb -> tok -> tokCharIndex( );
 
-    while ( i < tokIndex ) {
-        
-        fprintf( stdout, " " );
-        i ++;
-    }
-    
-    fprintf( stdout, "^ \n" );
+    markError ( tokIndex );
     
     for ( int i = 0; i < MAX_ERR_MSG_TAB; i++ ) {
         
@@ -297,6 +308,54 @@ void DrvCmds::promptCmdLine( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
+#if 0
+
+// need to switch the simulator input/output to do character based IO. This is key for the console IO
+// functionality. There will be two version, one for Linux/Mac and one for Windows.
+
+// factor in "readCommandLine"
+//think about a global "printf" entry point, just like we have in the winDisplay file.
+
+#include <stdio.h>
+#incude <termios.h>
+#include <unistd.h>
+
+Int readConsoleChar(  ) {
+
+    return( getchar( ));
+}
+
+Void writeConsoleChar( char ch  ) {
+
+    write( STDOUT_FILENO, ch, 1 );
+}
+
+void  saveConsoleMode( struct termios *term  ) {
+
+    tcgetattr( STDIN_FILENO, term );
+}
+
+void  setConsoleModeRaw(   struct termios *originalTerm  ) {
+
+    struct termios term;
+    tcgetattr( STDIN_FILENO, &term );
+    term.c_lflag &= ~ (ICANON | ECHO );
+        tcsetattr( STDIN_FILENO, TCSANOW, &term );
+}
+
+void resetConsoleMode( struct termios *term ) {
+
+    tcsetattr( STDIN_FILE, TCSANOW, term );
+}
+
+#endif
+//------------------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------------------
+
+
+
+//------------------------------------------------------------------------------------------------------------
 // "readCmdLine" reads in the command line. For a valid command line, the trailing carriage return and/or
 // line feeds are removed and the first token is interpreted as a command. The function returns the command
 // found, an invalid command or an empty command line status. We loop inside the routine until we receive
@@ -310,18 +369,15 @@ void DrvCmds::promptCmdLine( ) {
 bool DrvCmds::readInputLine( char *cmdBuf ) {
     
     while ( true ) {
-        
-       //  fflush( stdout );
-        
+   
 #if 1 // current version
         
         if ( fgets( cmdBuf, CMD_LINE_BUF_SIZE, stdin ) != nullptr ) {
             
             cmdBuf[ strcspn( cmdBuf, "\r\n") ] = 0;
-            
+         
             removeComment( cmdBuf );
             
-     
             if ( strlen( cmdBuf ) > 0 ) {
                 
                 glb -> env -> setEnvVar((char *) ENV_CMD_CNT,
@@ -337,15 +393,15 @@ bool DrvCmds::readInputLine( char *cmdBuf ) {
 #else
         
         // we need another version of command input for sharing with a running CPU. The idea is that in
-        // running mode the terminal input is actally handled by a CPU monitor program with console IO
-        // functions. Our job is then to move characters directly to howver the console IO is implemented.
+        // running mode the terminal input is actually handled by a CPU monitor program with console IO
+        // functions. Our job is then to move characters directly to however the console IO is implemented.
         // A "control Y" input is taking us back to the simulator.
         //
         // Unfortunately, windows and macs differ. The standard system calls typically buffer the input
         // up to the carriage return. To avoid this, the terminal needs to be place in "raw" mode. And this
-        // is diffferent for the two platforms.
+        // is different for the two platforms.
         //
-        // ??? need a seprate method for placing in raw mode, resettimg this mode, and reading and writing
+        // ??? need a separate method for placing in raw mode, resetting this mode, and reading and writing
         // a single character.
         //
         char    ch;
@@ -436,7 +492,16 @@ void DrvCmds::execCmdsFromFile( char* fileName ) {
     
     catch ( ErrMsgId errNum ) {
         
-        throw ( errNum );  // for now ...
+        switch ( errNum ) {
+                
+            case ERR_OPEN_EXEC_FILE: {
+                
+                printf( "Error in opening file: \"%s\"", fileName );
+                
+            } break;
+                
+            default: throw ( errNum );
+        }
     }
 }
 
@@ -551,7 +616,7 @@ void DrvCmds::exitCmd( ) {
 // ENV command. The test driver has a few global environment variables for data format, command count and so
 // on. The ENV command list them all, one in particular and also modifies one if a value is specified. If the
 // ENV variable dos not exist, it will be allocated with the type of the value. A value of the token NIL will
-// remove a user defined variuable.
+// remove a user defined variable.
 //
 // ENV [ <envName> [ <val> ]]
 //------------------------------------------------------------------------------------------------------------
@@ -575,41 +640,32 @@ void DrvCmds::envCmd( ) {
                 
                 glb-> env -> displayEnvTableEntry( envName );
             }
-            else ; // throw entry does not exist...
+            else throw ( ERR_ENV_VAR_NOT_FOUND );
         }
         else {
             
-            if ( ! glb -> env -> isValid( envName )) {
-                
-                // ??? allocate a new ENV
-                
-            }
-            
-            uint8_t rStat = NO_ERR;
             DrvExpr rExpr;
-            
             glb -> eval -> parseExpr( &rExpr );
-            if ( rStat != NO_ERR ) throw ( ERR_ENV_VALUE_EXPR );
             
             if ( rExpr.typ == TYP_NUM ) {
-                
-                rStat = glb -> env -> setEnvVar( envName, rExpr.numVal );
+            
+                glb -> env -> setEnvVar( envName, rExpr.numVal );
             }
             else if ( rExpr.typ == TYP_BOOL ) {
                 
-                rStat = glb -> env -> setEnvVar( envName, rExpr.bVal );
+                glb -> env -> setEnvVar( envName, rExpr.bVal );
             }
             else if ( rExpr.typ == TYP_STR ) {
                 
-                rStat = glb -> env -> setEnvVar( envName, rExpr.strVal );
+                glb -> env -> setEnvVar( envName, rExpr.strVal );
             }
             else if ( rExpr.typ == TYP_EXT_ADR ) {
                 
-                rStat = glb -> env -> setEnvVar( envName, rExpr.seg, rExpr.ofs );
+                glb -> env -> setEnvVar( envName, rExpr.seg, rExpr.ofs );
             }
             else if (( rExpr.typ == TYP_SYM ) && ( rExpr.tokId == TOK_NIL )) {
                 
-                rStat = glb -> env -> removeEnvVar( envName );
+                glb -> env -> removeEnvVar( envName );
             }
         }
     }
@@ -634,7 +690,6 @@ void DrvCmds::execFileCmd( ) {
 //
 // LMF <path>
 //
-// ??? when we load a memory image, is tha just a binary block at an address ? Purpose ?
 // ??? this will perhaps be better done via load an image from the assembler.
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::loadPhysMemCmd( ) {
@@ -711,7 +766,7 @@ void DrvCmds::runCmd( ) {
 // Step command. The command will execute one instruction. Default is one instruction. There is an ENV
 // variable that will set the default to be a single clock step.
 //
-// STEP [ <stes> ] [ "," "I" | "C" ]
+// STEP [ <steps> ] [ "," "I" | "C" ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::stepCmd( ) {
     
@@ -741,9 +796,9 @@ void DrvCmds::stepCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Writeline command.
+// Write line command.
 //
-// WL <epr> [ "," <rdx> ]
+// W <expr> [ "," <rdx> ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::writeLineCmd( ) {
     
@@ -777,20 +832,25 @@ void DrvCmds::writeLineCmd( ) {
             
         case TYP_NUM: {
             
-            if      ( rdx == 10 )  fprintf( stdout, "%d", rExpr.numVal );
-            else if ( rdx == 8  )  fprintf( stdout, "%#012o", rExpr.numVal );
-            else if ( rdx == 16 )  {
-                
-                if ( rExpr.numVal == 0 ) fprintf( stdout, "0x0" );
-                else fprintf( stdout, "%#010x", rExpr.numVal );
-            }
-            else fprintf( stdout, "**num**" );
-            
+            printNum( rExpr.numVal, rdx );
             fprintf( stdout, "\n" );
             
         } break;
        
-        case TYP_STR: printf( "\"%s\"\n", rExpr.strVal ); break;
+        case TYP_STR: {
+            
+            printf( "\"%s\"\n", rExpr.strVal );
+            
+        } break;
+            
+        case TYP_EXT_ADR: {
+            
+            printNum( rExpr.seg, rdx );
+            fprintf( stdout, "." );
+            printNum( rExpr.ofs, rdx );
+            fprintf( stdout, "\n" );
+            
+        } break;
        
         default: throw (  ERR_INVALID_EXPR );
     }

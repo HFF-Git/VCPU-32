@@ -216,7 +216,7 @@ struct CpuMemDesc {
 // contains the overall memory model, i.e. whether it is a split or unified model for L1 caches or TLB, and
 // descriptors for each building block.
 //
-// ??? should the core have knowledge of L2 and MEM or just an abstract memory intreface ? COnsider the
+// ??? should the core have knowledge of L2 and MEM or just an abstract memory interface ? Consider the
 // case where we have several cores ...
 //------------------------------------------------------------------------------------------------------------
 struct CpuCoreDesc {

@@ -4,7 +4,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 // The tokenizer will accept an input line and return one token at a time. Upon an error, the tokenizer will
-// raise an execption.
+// raise an exception.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -63,13 +63,13 @@ int lookupToken( char *inputStr, DrvToken *tokTab ) {
     
     if (( strlen( inputStr ) == 0 ) || ( strlen ( inputStr ) > TOK_NAME_SIZE )) return( -1 );
     
-    char tmpStr[ TOK_INPUT_LINE_SIZE ];
-    strcpy( tmpStr, inputStr );
-    upshiftStr( tmpStr );
+    // char tmpStr[ TOK_INPUT_LINE_SIZE ];
+    // strcpy( tmpStr, inputStr );
+    // upshiftStr( tmpStr );
    
     for ( int i = 0; i < MAX_CMD_TOKEN_TAB; i++  ) {
         
-        if ( strcmp( tmpStr, tokTab[ i ].name ) == 0 ) return( i );
+        if ( strcmp( inputStr, tokTab[ i ].name ) == 0 ) return( i );
     }
     
     return( -1 );
@@ -161,8 +161,9 @@ void DrvTokenizer::parseNum( ) {
         nextChar( );
         if ( ! isdigit( currentChar )) throw ( ERR_EXPECTED_EXT_ADR );
            
-        currentToken.seg = currentToken.val;
-        currentToken.typ = TYP_EXT_ADR;
+        currentToken.seg    = currentToken.val;
+        currentToken.typ    = TYP_EXT_ADR;
+        tmpStr[ 0 ]         = '\0';
         
         do {
             
@@ -269,6 +270,8 @@ void DrvTokenizer::parseIdent( ) {
         strcat( identBuf, &currentChar );
         nextChar( );
     }
+    
+    upshiftStr( identBuf );
     
     int index = lookupToken( identBuf, tokTab );
     

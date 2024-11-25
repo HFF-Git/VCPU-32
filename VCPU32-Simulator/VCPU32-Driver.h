@@ -42,7 +42,7 @@
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
-// General maximum sizs for commands, etc.
+// General maximum size for commands, etc.
 //
 //------------------------------------------------------------------------------------------------------------
 const int CMD_LINE_BUF_SIZE     = 256;
@@ -353,23 +353,25 @@ enum ErrMsgId : uint16_t {
     
     ERR_ENV_VAR_NOT_FOUND           = 400,
     ERR_ENV_VALUE_EXPR              = 401,
-    ERR_OPEN_EXEC_FILE              = 402,
+    ERR_ENV_PREDEFINED              = 403,
+    ERR_ENV_TABLE_FULL              = 404,
+    ERR_OPEN_EXEC_FILE              = 405,
     
-    ERR_EXPR_TYPE_MATCH             = 403,
-    ERR_EXPR_FACTOR                 = 404,
+    ERR_EXPR_TYPE_MATCH             = 406,
+    ERR_EXPR_FACTOR                 = 407,
 
-    ERR_OFS_LEN_LIMIT_EXCEEDED      = 405,
-    ERR_INSTR_HAS_NO_OPT            = 406,
-    ERR_IMM_VAL_RANGE               = 407,
-    ERR_INSTR_MODE_OPT_COMBO        = 408,
-    ERR_POS_VAL_RANGE               = 409,
-    ERR_LEN_VAL_RANGE               = 410,
-    ERR_OFFSET_VAL_RANGE            = 411,
+    ERR_OFS_LEN_LIMIT_EXCEEDED      = 408,
+    ERR_INSTR_HAS_NO_OPT            = 409,
+    ERR_IMM_VAL_RANGE               = 410,
+    ERR_INSTR_MODE_OPT_COMBO        = 411,
+    ERR_POS_VAL_RANGE               = 412,
+    ERR_LEN_VAL_RANGE               = 413,
+    ERR_OFFSET_VAL_RANGE            = 414,
     
-    ERR_OUT_OF_WINDOWS              = 412,
-    ERR_WIN_TYPE_NOT_CONFIGURED     = 413,
+    ERR_OUT_OF_WINDOWS              = 415,
+    ERR_WIN_TYPE_NOT_CONFIGURED     = 416,
     
-    ERR_UNDEFINED_PFUNC             = 414,
+    ERR_UNDEFINED_PFUNC             = 417,
 
     ERR_TLB_TYPE                    = 500,
     ERR_TLB_PURGE_OP                = 501,
@@ -479,7 +481,7 @@ struct DrvToken {
 //------------------------------------------------------------------------------------------------------------
 // Tokenizer object. The command line interface as well as the one line assembler parse their buffer line.
 // The tokenizer will return the tokens found in the line. The tokenizer will will work with the global
-// token table found in the tokenizer source file. The tokenizer raises execptions.
+// token table found in the tokenizer source file. The tokenizer raises exceptions.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvTokenizer {
@@ -548,7 +550,7 @@ struct DrvExpr {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The expression evaluator object. The evaluator raises execptions.
+// The expression evaluator object. The evaluator raises exceptions.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvExprEvaluator {
@@ -576,9 +578,8 @@ struct DrvExprEvaluator {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Environment table entry, Each environment variable has a name, a couple of flags and the value, which
-// depends on the value type. Most types record their value directly in the entry. A string value will be
-// dynamically allocated.
+// Environment table entry, Each environment variable has a name, a couple of flags and the value. The
+// value is the DrvExpr structure also used by the expression evaluator.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvEnvTabEntry {
@@ -587,16 +588,18 @@ struct DrvEnvTabEntry {
     bool    valid       = false;
     bool    predefined  = false;
     bool    readOnly    = false;
+   
     TypeId  typ         = TYP_NIL;
     
     union {
+    
+        struct {    bool            bVal;           };
+        struct {    uint32_t        uVal;           };
+        struct {    int             iVal;           };
+        struct {    char            *strVal;        };
+        struct {    uint32_t        adr;            };
         
-        struct {    bool        bVal;   };
-        struct {    uint32_t    uVal;   };
-        struct {    int32_t     iVal;   };
-        struct {    char        *str;   };
-        
-        struct {    uint16_t seg;   uint32_t ofs;   };
+        struct {    uint32_t seg;   uint32_t ofs;   };
     };
 };
 
@@ -611,13 +614,13 @@ struct DrvEnv {
     
     uint8_t         displayEnvTable( );
     uint8_t         displayEnvTableEntry( char *name );
-    uint8_t         setupPredefined( );
+    void            setupPredefined( );
     
-    uint8_t         setEnvVar( char *name, int iVal );
-    uint8_t         setEnvVar( char *name, uint32_t uVal );
-    uint8_t         setEnvVar( char *name, bool bVal );
-    uint8_t         setEnvVar( char *name, uint32_t seg, uint32_t ofs );
-    uint8_t         setEnvVar( char *name, char *str );
+    void            setEnvVar( char *name, int iVal );
+    void            setEnvVar( char *name, uint32_t uVal );
+    void            setEnvVar( char *name, bool bVal );
+    void            setEnvVar( char *name, uint32_t seg, uint32_t ofs );
+    void            setEnvVar( char *name, char *str );
     
     bool            getEnvVarBool( char *name,bool def = false );
     int             getEnvVarInt( char *name, int def = 0 );
@@ -631,18 +634,18 @@ struct DrvEnv {
     bool            isReadOnly( char *name );
     bool            isPredefined( char *name );
     
-    uint8_t         removeEnvVar( char *name );
+    void            removeEnvVar( char *name );
     
     private:
     
     int             lookupEntry( char *name );
     int             findFreeEntry( );
     
-    uint8_t         enterEnvVar( char *name, int32_t iVal, bool predefined = false, bool readOnly = false );
-    uint8_t         enterEnvVar( char *name, uint32_t uVal, bool predefined = false, bool readOnly = false );
-    uint8_t         enterEnvVar( char *name, bool bVal, bool predefined = false, bool readOnly = false );
-    uint8_t         enterEnvVar( char *name, char *str, bool predefined = false, bool readOnly = false );
-    uint8_t         enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined = false, bool readOnly = false );
+    void            enterEnvVar( char *name, int32_t iVal, bool predefined = false, bool rOnly = false );
+    void            enterEnvVar( char *name, uint32_t uVal, bool predefined = false, bool rOnly = false );
+    void            enterEnvVar( char *name, bool bVal, bool predefined = false, bool rOnly = false );
+    void            enterEnvVar( char *name, char *str, bool predefined = false, bool rOnly = false );
+    void            enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined = false, bool rOnly = false );
     
     uint8_t         displayEnvTableEntry( DrvEnvTabEntry *entry );
     
