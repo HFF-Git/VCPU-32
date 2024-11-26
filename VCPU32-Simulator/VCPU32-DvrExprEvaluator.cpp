@@ -73,6 +73,215 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+enum boolOpId : int {
+    
+    AND_OP  = 0,
+    OR_OP   = 1,
+    XOR_OP  = 2
+};
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void addOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+    
+    switch ( rExpr -> typ ) {
+            
+        case TYP_NUM: {
+            
+            switch ( lExpr -> typ ) {
+                    
+                case TYP_NUM: rExpr -> numVal += lExpr -> numVal; break;
+                
+                default: throw ( ERR_EXPR_TYPE_MATCH );
+            }
+            
+        } break;
+            
+        case TYP_EXT_ADR: {
+            
+            switch ( lExpr -> typ ) {
+                    
+                case TYP_NUM: rExpr -> ofs += lExpr -> ofs; break;
+                
+                default: throw ( ERR_EXPR_TYPE_MATCH );
+            }
+            
+        } break;
+            
+        default: throw ( ERR_EXPR_TYPE_MATCH );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void subOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+    
+    switch ( rExpr -> typ ) {
+            
+        case TYP_NUM: {
+            
+            switch ( lExpr -> typ ) {
+                    
+                case TYP_NUM: rExpr -> numVal -= lExpr -> numVal; break;
+                
+                default: throw ( ERR_EXPR_TYPE_MATCH );
+            }
+            
+        } break;
+            
+        case TYP_EXT_ADR: {
+            
+            switch ( lExpr -> typ ) {
+                    
+                case TYP_NUM: rExpr -> ofs -= lExpr -> ofs; break;
+                
+                default: throw ( ERR_EXPR_TYPE_MATCH );
+            }
+            
+        } break;
+            
+        default: throw ( ERR_EXPR_TYPE_MATCH );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void multOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+    
+    switch ( rExpr -> typ ) {
+            
+        case TYP_NUM: {
+            
+            switch ( lExpr -> typ ) {
+                    
+                case TYP_NUM: rExpr -> numVal *= lExpr -> numVal; break;
+                    
+                default: throw ( ERR_EXPR_TYPE_MATCH );
+            }
+            
+        } break;
+            
+        case TYP_EXT_ADR: {
+            
+            switch ( lExpr -> typ ) {
+                    
+                case TYP_NUM: rExpr -> ofs *= lExpr -> ofs; break;
+                
+                default: throw ( ERR_EXPR_TYPE_MATCH );
+            }
+            
+        } break;
+            
+        default: throw ( ERR_EXPR_TYPE_MATCH );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void divOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+    
+    switch ( rExpr -> typ ) {
+            
+        case TYP_NUM: {
+            
+            switch ( lExpr -> typ ) {
+                    
+                case TYP_NUM: rExpr -> numVal /= lExpr -> numVal; break;
+                
+                default: throw ( ERR_EXPR_TYPE_MATCH );
+            }
+            
+        } break;
+            
+        case TYP_EXT_ADR: {
+            
+            switch ( lExpr -> typ ) {
+                    
+                case TYP_NUM: rExpr -> ofs /= lExpr -> ofs; break;
+                
+                default: throw ( ERR_EXPR_TYPE_MATCH );
+            }
+            
+        } break;
+            
+        default: throw ( ERR_EXPR_TYPE_MATCH );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void modOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+    
+    switch ( rExpr -> typ ) {
+            
+        case TYP_NUM: {
+            
+            switch ( lExpr -> typ ) {
+                    
+                case TYP_NUM: rExpr -> numVal %= lExpr -> numVal; break;
+                
+                default: throw ( ERR_EXPR_TYPE_MATCH );
+            }
+            
+        } break;
+            
+        case TYP_EXT_ADR: {
+            
+            switch ( lExpr -> typ ) {
+                    
+                case TYP_NUM: rExpr -> ofs %= lExpr -> ofs; break;
+                
+                default: throw ( ERR_EXPR_TYPE_MATCH );
+            }
+            
+        } break;
+            
+        default: throw ( ERR_EXPR_TYPE_MATCH );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void boolOp( DrvExpr *rExpr, DrvExpr *lExpr, boolOpId op ) {
+    
+    switch ( rExpr -> typ ) {
+            
+        case TYP_NUM: {
+            
+            switch ( lExpr -> typ ) {
+                    
+                case TYP_NUM: {
+                    
+                    switch ( op ) {
+                            
+                        case AND_OP:    rExpr -> numVal &= lExpr -> numVal; break;
+                        case OR_OP:     rExpr -> numVal |= lExpr -> numVal; break;
+                        case XOR_OP:    rExpr -> numVal ^= lExpr -> numVal; break;
+                    }
+                    
+                } break;
+                
+                default: throw ( ERR_EXPR_TYPE_MATCH );
+            }
+            
+        } break;
+            
+        default: throw ( ERR_EXPR_TYPE_MATCH );
+    }
+}
+
 }; // namespace
 
 
@@ -199,6 +408,74 @@ void DrvExprEvaluator::pFuncHash( DrvExpr *rExpr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Virtual address function. The portions <seg> and <expr> can be numeric values or the respective register
+// content. When we only have <expr>, the segment portion is derived from the upper two bits of the offset.
+//
+// ADR "(" <seg> "," <expr> ")"
+// ADR "(" <expr> "," <expr> ")"
+// ADR "(" <ofs> ")"
+//------------------------------------------------------------------------------------------------------------
+void DrvExprEvaluator::pFuncExtAdr( DrvExpr *rExpr ) {
+    
+    DrvExpr     lExpr;
+    uint32_t    seg;
+    uint32_t    ofs;
+    
+    glb -> tok -> nextToken( );
+    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    else throw ( ERR_EXPECTED_LPAREN );
+    
+    if ( glb -> tok -> isTokenTyp( TYP_SREG )) {
+        
+        seg = glb -> cpu -> getReg( RC_SEG_REG_SET, glb -> tok -> tokVal( ));
+        
+        glb -> tok -> nextToken( );
+        if ( ! glb -> tok -> isToken( TOK_COMMA )) throw ( ERR_EXPECTED_COMMA );
+        else glb -> tok -> nextToken( );
+        
+        parseExpr( &lExpr );
+        
+        if ( lExpr.typ == TYP_NUM ) {
+            
+            rExpr -> typ = TYP_EXT_ADR;
+            rExpr -> seg = seg;
+            rExpr -> ofs = lExpr.numVal;
+            
+            if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+            else throw ( ERR_EXPECTED_RPAREN );
+        }
+        else throw ( ERR_EXPECTED_OFS );
+    }
+    else {
+        
+        parseExpr( &lExpr );
+        
+        if ( lExpr.typ == TYP_NUM ) {
+            
+            uint32_t segId = lExpr.numVal >> 30;
+            if ( segId == 0 ) segId += 4;
+            
+            rExpr -> typ = TYP_EXT_ADR;
+            rExpr -> seg = glb -> cpu -> getReg( RC_SEG_REG_SET, segId );
+            rExpr -> ofs = lExpr.numVal;
+            
+            if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+            else throw ( ERR_EXPECTED_RPAREN );
+        }
+        else if ( lExpr.typ == TYP_EXT_ADR ) {
+            
+            rExpr -> typ = TYP_EXT_ADR;
+            rExpr -> seg = lExpr.seg;
+            rExpr -> ofs = lExpr.ofs;
+            
+            if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+            else throw ( ERR_EXPECTED_RPAREN );
+        }
+        else throw( ERR_INVALID_EXPR );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Entry point to the predefined functions. We dispatch based on the predefined function token Id.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -209,6 +486,7 @@ void DrvExprEvaluator::parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr 
         case PF_ASSEMBLE:       pFuncAssemble( rExpr );     break;
         case PF_DIS_ASSEMBLE:   pFuncDisAssemble( rExpr );  break;
         case PF_HASH:           pFuncHash( rExpr );         break;
+        case PF_EXT_ADR:        pFuncExtAdr( rExpr );       break;
             
         default: throw ( ERR_UNDEFINED_PFUNC );
     }
@@ -354,10 +632,10 @@ void DrvExprEvaluator::parseTerm( DrvExpr *rExpr ) {
         
         switch( op ) {
                 
-            case TOK_MULT:   rExpr -> numVal = rExpr -> numVal * lExpr.numVal; break;
-            case TOK_DIV:    rExpr -> numVal = rExpr -> numVal / lExpr.numVal; break;
-            case TOK_MOD:    rExpr -> numVal = rExpr -> numVal % lExpr.numVal; break;
-            case TOK_AND:    rExpr -> numVal = rExpr -> numVal & lExpr.numVal; break;
+            case TOK_MULT:   multOp( rExpr, &lExpr );           break;
+            case TOK_DIV:    divOp( rExpr, &lExpr );            break;
+            case TOK_MOD:    modOp( rExpr, &lExpr );            break;
+            case TOK_AND:    boolOp( rExpr, &lExpr, AND_OP );   break;
         }
     }
 }
@@ -410,10 +688,10 @@ void DrvExprEvaluator::parseExpr( DrvExpr *rExpr ) {
         
         switch ( op ) {
                 
-            case TOK_PLUS:   rExpr -> numVal = rExpr -> numVal + lExpr.numVal; break;
-            case TOK_MINUS:  rExpr -> numVal = rExpr -> numVal - lExpr.numVal; break;
-            case TOK_OR:     rExpr -> numVal = rExpr -> numVal | lExpr.numVal; break;
-            case TOK_XOR:    rExpr -> numVal = rExpr -> numVal ^ lExpr.numVal; break;
+            case TOK_PLUS:   addOp( rExpr, &lExpr );            break;
+            case TOK_MINUS:  subOp( rExpr, &lExpr );            break;
+            case TOK_OR:     boolOp( rExpr, &lExpr, OR_OP );    break;
+            case TOK_XOR:    boolOp( rExpr, &lExpr, XOR_OP );    break;
         }
     }
 }

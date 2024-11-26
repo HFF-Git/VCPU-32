@@ -317,7 +317,8 @@ DrvToken const cmdTokTab[ ] = {
     
     { .name = "ASM",                .typ = TYP_PREDEFINED_FUNC, .tid = PF_ASSEMBLE,         .val = 0        },
     { .name = "DISASM",             .typ = TYP_PREDEFINED_FUNC, .tid = PF_DIS_ASSEMBLE,     .val = 0        },
-    { .name = "HASH",               .typ = TYP_PREDEFINED_FUNC, .tid = PF_HASH,             .val = 0        }
+    { .name = "HASH",               .typ = TYP_PREDEFINED_FUNC, .tid = PF_HASH,             .val = 0        },
+    { .name = "ADR",                .typ = TYP_PREDEFINED_FUNC, .tid = PF_EXT_ADR,          .val = 0        },
     
 };
 

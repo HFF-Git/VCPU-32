@@ -165,6 +165,7 @@ enum TokId : uint16_t {
     PF_SET                  = 3000,
     
     PF_ASSEMBLE             = 3001,     PF_DIS_ASSEMBLE         = 3002,     PF_HASH                 = 3003,
+    PF_EXT_ADR              = 3004,
     
     //--------------------------------------------------------------------------------------------------------
     // General, Segment and Control Registers Tokens.
@@ -572,6 +573,7 @@ struct DrvExprEvaluator {
     void        pFuncAssemble( DrvExpr *rExpr );
     void        pFuncDisAssemble( DrvExpr *rExpr );
     void        pFuncHash( DrvExpr *rExpr );
+    void        pFuncExtAdr( DrvExpr *rExpr );
     
   
     VCPU32Globals   *glb = nullptr;
