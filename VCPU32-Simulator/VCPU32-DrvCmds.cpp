@@ -712,14 +712,18 @@ void DrvCmds::savePhysMemCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Reset command.
 //
-// RESET ( CPU | MEM | STATS | ALL )
+// RESET [ ( CPU | MEM | STATS | ALL ) ]
 //
 // ??? when and what statistics to also reset ?
 // ??? what if thee is a unified cache outside the CPU ?
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::resetCmd( ) {
     
-    if ( glb -> tok -> tokTyp( ) == TYP_SYM ) {
+    if ( glb -> tok -> isToken( TOK_EOS )) {
+        
+        glb -> cpu -> reset( );
+    }
+    else if ( glb -> tok -> tokTyp( ) == TYP_SYM ) {
         
         switch( glb -> tok -> tokId( )) {
                 
@@ -829,6 +833,13 @@ void DrvCmds::writeLineCmd( ) {
     checkEOS( );
     
     switch ( rExpr.typ ) {
+            
+        case TYP_BOOL: {
+            
+            if ( rExpr.bVal == true )   fprintf( stdout, "TRUE\n" );
+            else                        fprintf( stdout, "FALSE\n" );
+            
+        } break;
             
         case TYP_NUM: {
             
@@ -1066,21 +1077,19 @@ void DrvCmds::displayTLBCmd( ) {
     uint32_t    index       = 0;
     uint32_t    len         = 0;
     uint32_t    tlbSize     = 0;
-    TokId       tlbTypeId   = TOK_I;
+    CpuTlb      *tPtr       = nullptr;
     int         rdx         = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-    
-    glb -> tok -> nextToken( );
     
     if ( glb -> tok -> tokId( ) == TOK_I ) {
         
-        tlbSize     = glb -> cpu -> iTlb -> getTlbSize( );
-        tlbTypeId   = TOK_I;
+        tlbSize = glb -> cpu -> iTlb -> getTlbSize( );
+        tPtr    = glb -> cpu -> iTlb;
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> tokId( ) == TOK_D ) {
         
-        tlbSize     = glb -> cpu -> dTlb -> getTlbSize( );
-        tlbTypeId   = TOK_D;
+        tlbSize = glb -> cpu -> dTlb -> getTlbSize( );
+        tPtr    = glb -> cpu -> dTlb;
         glb -> tok -> nextToken( );
     }
     else throw ( ERR_TLB_TYPE );
@@ -1137,43 +1146,38 @@ void DrvCmds::displayTLBCmd( ) {
     if (( index > tlbSize ) || ( index + len > tlbSize )) throw ( ERR_TLB_SIZE_EXCEEDED );
     if (( index == 0 ) && ( len == 0 )) len = tlbSize;
     
-    if      ( tlbTypeId == TOK_I ) glb -> lineDisplay -> displayTlbEntries( glb -> cpu -> iTlb, index, len, rdx );
-    else if ( tlbTypeId == TOK_D ) glb -> lineDisplay -> displayTlbEntries( glb -> cpu -> dTlb, index, len, rdx );
-    
+    glb -> lineDisplay -> displayTlbEntries( tPtr, index, len, rdx );
     fprintf( stdout, "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Purge from TLB command.
 //
-// P-TLB <I|D|U> <extAdr>
+// P-TLB <I|D|U> "," <extAdr>
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::purgeTLBCmd( ) {
     
     DrvExpr     rExpr;
-    uint32_t    tlbSize     = 0;
-    TokId       tlbTypeId   = TOK_I;
-    
+    CpuTlb      *tPtr = nullptr;
+  
     if ( glb -> tok -> tokId( ) == TOK_I ) {
         
-        tlbSize     = glb -> cpu -> iTlb -> getTlbSize( );
-        tlbTypeId   = TOK_I;
+        tPtr = glb -> cpu -> iTlb;
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> tokId( ) == TOK_D ) {
         
-        tlbSize     = glb -> cpu -> dTlb -> getTlbSize( );
-        tlbTypeId   = TOK_D;
+        tPtr = glb -> cpu -> dTlb;
         glb -> tok -> nextToken( );
     }
     else throw ( ERR_TLB_TYPE );
     
+    acceptComma( );
     glb -> eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_EXT_ADR ) {
         
-        CpuTlb *tlbPtr = ( tlbTypeId == TOK_I ) ? glb -> cpu -> iTlb : glb -> cpu -> dTlb;
-        if ( ! tlbPtr -> purgeTlbEntryData( rExpr.seg, rExpr.ofs )) throw ( ERR_TLB_PURGE_OP );
+        if ( ! tPtr -> purgeTlbEntryData( rExpr.seg, rExpr.ofs )) throw ( ERR_TLB_PURGE_OP );
     }
     else throw ( ERR_EXPECTED_EXT_ADR );
 }
@@ -1181,13 +1185,13 @@ void DrvCmds::purgeTLBCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Insert into TLB command.
 //
-// I-TLB <D|I|U> <extAdr> <arg-acc> <arg-adr>
+// I-TLB <D|I|U> "," <extAdr> "," <arg-acc> "," <arg-adr>
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::insertTLBCmd( ) {
     
     DrvExpr     rExpr;
     uint32_t    tlbSize         = 0;
-    TokId       tlbTypeId       = TOK_I;
+    CpuTlb      *tPtr           = nullptr;
     uint32_t    seg             = 0;
     uint32_t    ofs             = 0;
     uint32_t    argAcc          = 0;
@@ -1195,18 +1199,19 @@ void DrvCmds::insertTLBCmd( ) {
     
     if ( glb -> tok -> tokId( ) == TOK_I ) {
         
-        tlbSize     = glb -> cpu -> iTlb -> getTlbSize( );
-        tlbTypeId   = TOK_I;
+        tlbSize = glb -> cpu -> iTlb -> getTlbSize( );
+        tPtr    = glb -> cpu -> iTlb;
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> tokId( ) == TOK_D ) {
         
-        tlbSize     = glb -> cpu -> dTlb -> getTlbSize( );
-        tlbTypeId   = TOK_D;
+        tlbSize = glb -> cpu -> dTlb -> getTlbSize( );
+        tPtr    = glb -> cpu -> dTlb;
         glb -> tok -> nextToken( );
     }
     else throw ( ERR_TLB_TYPE );
     
+    acceptComma( );
     glb -> eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_EXT_ADR ) {
@@ -1216,18 +1221,19 @@ void DrvCmds::insertTLBCmd( ) {
     }
     else throw ( ERR_EXPECTED_EXT_ADR );
     
+    acceptComma( );
     glb -> eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) argAcc = rExpr.numVal;
     else throw ( ERR_TLB_ACC_DATA );
     
+    acceptComma( );
     glb -> eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) argAcc = rExpr.numVal;
     else throw ( ERR_TLB_ADR_DATA );
     
-    CpuTlb *tlbPtr = ( tlbTypeId == TOK_I ) ? glb -> cpu -> iTlb : glb -> cpu -> dTlb;
-    if ( ! tlbPtr -> insertTlbEntryData( seg, ofs, argAcc, argAdr )) throw ( ERR_TLB_INSERT_OP );
+    if ( ! tPtr -> insertTlbEntryData( seg, ofs, argAcc, argAdr )) throw ( ERR_TLB_INSERT_OP );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1236,8 +1242,7 @@ void DrvCmds::insertTLBCmd( ) {
 // D-CACHE ( I|D|U ) "," [ <index> ] [ "," <len> ] [ ", " <fmt> ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::displayCacheCmd( ) {
-    
-    TokId       cacheTypeId     = TOK_I;
+
     uint32_t    cacheSize       = 0;
     CpuMem      *cPtr           = nullptr;
     uint32_t    index           = 0;
@@ -1246,14 +1251,14 @@ void DrvCmds::displayCacheCmd( ) {
     
     if ( glb -> tok -> tokId( ) == TOK_I ) {
         
-        cacheSize     = glb -> cpu -> iTlb -> getTlbSize( );
-        cacheTypeId   = TOK_I;
+        cacheSize   = glb -> cpu -> iTlb -> getTlbSize( );
+        cPtr        = glb -> cpu -> iCacheL1;
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> tokId( ) == TOK_D ) {
         
         cacheSize     = glb -> cpu -> iCacheL1 -> getMemSize( );
-        cacheTypeId   = TOK_D;
+        cPtr        = glb -> cpu -> dCacheL1;
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> tokId( ) == TOK_U ) {
@@ -1261,7 +1266,7 @@ void DrvCmds::displayCacheCmd( ) {
         if ( glb -> cpu -> uCacheL2 != nullptr ) {
             
             cacheSize     = glb -> cpu -> uCacheL2 -> getMemSize( );
-            cacheTypeId   = TOK_U;
+            cPtr        = glb -> cpu -> uCacheL2;
             glb -> tok -> nextToken( );
         }
         else throw ( ERR_CACHE_NOT_CONFIGURED );
@@ -1348,11 +1353,10 @@ void DrvCmds::displayCacheCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Purges a cache line from the cache.
 //
-// P-CACHE <I|D|U> <index> <set> [<flush>]
+// P-CACHE <I|D|U> "," [ <index> ] "," [ <set> ] "," [<flush>]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::purgeCacheCmd( ) {
     
-    TokId       cacheTypeId     = TOK_I;
     uint32_t    cacheSize       = 0;
     CpuMem      *cPtr           = nullptr;
     uint32_t    index           = 0;
@@ -1360,14 +1364,14 @@ void DrvCmds::purgeCacheCmd( ) {
    
     if ( glb -> tok -> tokId( ) == TOK_I ) {
         
-        cacheSize     = glb -> cpu -> iTlb -> getTlbSize( );
-        cacheTypeId   = TOK_I;
+        cacheSize   = glb -> cpu -> iCacheL1 -> getMemSize( );
+        cPtr        = glb -> cpu -> iCacheL1;
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> tokId( ) == TOK_D ) {
         
-        cacheSize     = glb -> cpu -> iCacheL1 -> getMemSize( );
-        cacheTypeId   = TOK_D;
+        cacheSize   = glb -> cpu -> dCacheL1 -> getMemSize( );
+        cPtr        = glb -> cpu -> dCacheL1;
         glb -> tok -> nextToken( );
     }
     else if ( glb -> tok -> tokId( ) == TOK_U ) {
@@ -1375,7 +1379,7 @@ void DrvCmds::purgeCacheCmd( ) {
         if ( glb -> cpu -> uCacheL2 != nullptr ) {
             
             cacheSize     = glb -> cpu -> uCacheL2 -> getMemSize( );
-            cacheTypeId   = TOK_U;
+            cPtr        = glb -> cpu -> uCacheL2;
             glb -> tok -> nextToken( );
         }
         else throw ( ERR_CACHE_NOT_CONFIGURED );

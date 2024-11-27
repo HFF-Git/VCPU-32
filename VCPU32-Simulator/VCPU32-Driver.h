@@ -393,6 +393,9 @@ enum ErrMsgId : uint16_t {
 // Predefined environment variable names. When you create another one, put its name here.
 //
 //------------------------------------------------------------------------------------------------------------
+const char ENV_TRUE[ ]                  = "TRUE";
+const char ENV_FALSE[ ]                 = "FALSE";
+
 const char ENV_GIT_BRANCH[ ]            = "GIT_BRANCH";
 const char ENV_PROG_VERSION [ ]         = "PROG_VERSION";
 const char ENV_PROG_PATCH_LEVEL[ ]      = "PROG_PATCH_LEVEL";
@@ -427,7 +430,6 @@ const char ENV_MEM_BANK_SIZE[ ]         = "MEM_BANK_SIZE";
 
 const char ENV_WIN_MIN_ROWS[ ]          = "WIN_MIN_ROWS";
 const char ENV_WIN_TEXT_LINE_WIDTH[ ]   = "WIN_TEXT_WIDTH";
-
 
 //------------------------------------------------------------------------------------------------------------
 // Forward declaration of the globals structure. Every object will have access to the globals structure, so

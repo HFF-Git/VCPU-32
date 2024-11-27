@@ -38,10 +38,6 @@ DrvToken const cmdTokTab[ ] = {
     //--------------------------------------------------------------------------------------------------------
     { .name = "NIL",                .typ = TYP_SYM,                 .tid = TOK_NIL,         .val = 0        },
     
-    // ??? should true and false rather be a predefine vs. a reserved token ? YES
-    { .name = "TRUE",               .typ = TYP_BOOL,                .tid = TOK_IDENT,       .val = 1        },
-    { .name = "FALSE",              .typ = TYP_BOOL,                .tid = TOK_IDENT,       .val = 0        },
-    
     { .name = "ALL",                .typ = TYP_SYM,                 .tid = TOK_ALL                          },
     { .name = "CPU",                .typ = TYP_SYM,                 .tid = TOK_CPU                          },
     { .name = "MEM",                .typ = TYP_SYM,                 .tid = TOK_MEM                          },

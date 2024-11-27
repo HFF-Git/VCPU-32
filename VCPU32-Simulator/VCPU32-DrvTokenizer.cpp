@@ -344,6 +344,12 @@ void DrvTokenizer::nextToken( ) {
         currentToken.tid    = TOK_MOD;
         nextChar( );
     }
+    else if ( currentChar == '&' ) {
+        
+        currentToken.typ    = TYP_SYM;
+        currentToken.tid    = TOK_AND;
+        nextChar( );
+    }
     else if ( currentChar == '|' ) {
         
         currentToken.typ    = TYP_SYM;

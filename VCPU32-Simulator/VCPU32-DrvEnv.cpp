@@ -383,7 +383,7 @@ bool DrvEnv::isPredefined( char *name ) {
     else return( false );
 }
 
-DrvEnvTabEntry  *DrvEnv::getEnvVarEntry( char *name ) {
+DrvEnvTabEntry *DrvEnv::getEnvVarEntry( char *name ) {
     
     int index = lookupEntry( name );
     if ( index >= 0 ) return( &table[ index ] );
@@ -503,6 +503,9 @@ void DrvEnv::setupPredefined( ) {
     
     uint8_t rStat = NO_ERR;
     
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_TRUE, (bool) true, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_FALSE, (bool) false, true, false );
+    
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_PROG_VERSION, (char *) VERSION, true, false );
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_GIT_BRANCH, (char *) GIT_BRANCH, true, false );
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_PROG_PATCH_LEVEL, (int) PATCH_LEVEL, true, false );
@@ -536,7 +539,4 @@ void DrvEnv::setupPredefined( ) {
     
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_WIN_MIN_ROWS, (int) 24, true, false );
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_WIN_TEXT_LINE_WIDTH, (int) 90, true, false );
-    
-    // ??? should TRUE and FALSE rather be a predefine ?
-    // ??? this would only make sense when the expression evaluator looks for identifiers here too ....
 }
