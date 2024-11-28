@@ -503,8 +503,8 @@ void DrvEnv::setupPredefined( ) {
     
     uint8_t rStat = NO_ERR;
     
-    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_TRUE, (bool) true, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_FALSE, (bool) false, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_TRUE, (bool) true, true, true );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_FALSE, (bool) false, true, true );
     
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_PROG_VERSION, (char *) VERSION, true, false );
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_GIT_BRANCH, (char *) GIT_BRANCH, true, false );

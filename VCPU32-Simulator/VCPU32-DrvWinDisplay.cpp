@@ -1998,7 +1998,8 @@ void DrvWinMemController::drawBody( ) {
 //------------------------------------------------------------------------------------------------------------
 DrvWinText::DrvWinText( VCPU32Globals *glb, char *fName ) : DrvWinScrollable( glb ) {
     
-    strcpy( fileName, fName );
+    if ( fName != nullptr ) strcpy( fileName, fName );
+    else throw ( ERR_EXPECTED_FILE_NAME );
 }
 
 DrvWinText:: ~DrvWinText( ) {
@@ -2278,10 +2279,11 @@ bool DrvWinDisplay::validWindowStackNum( int stackNum ) {
 
 bool DrvWinDisplay::validUserWindowType( TokId winType ) {
     
-    return(( winType == TOK_PM )    || ( winType == TOK_PC )    || ( winType == TOK_IT ) ||
-           ( winType == TOK_DT )    || ( winType == TOK_IC )    || ( winType == TOK_DC ) ||
-           ( winType == TOK_UC )    || ( winType == TOK_ICR )   || ( winType == TOK_DCR ) ||
-           ( winType == TOK_UCR )   || ( winType == TOK_MCR )   || ( winType == TOK_TX ));
+    return(( winType == TOK_PM  )   || ( winType == TOK_PC )    || ( winType == TOK_IT )    ||
+           ( winType == TOK_ITR )   || ( winType == TOK_DT )    || ( winType == TOK_DTR )   ||
+           ( winType == TOK_IC )    || ( winType == TOK_ICR )   || ( winType == TOK_DC )    ||
+           ( winType == TOK_DCR )   || ( winType == TOK_UC )    || ( winType == TOK_UCR )   ||
+           ( winType == TOK_MCR )   || ( winType == TOK_TX ));
 }
 
 bool DrvWinDisplay::isCurrentWin( int winNum ) {
@@ -2562,52 +2564,27 @@ void DrvWinDisplay::windowSetStack( int winStack, int winNumStart, int winNumEnd
 // which is used when there are user defined windows for locating the window object.
 //
 //-----------------------------------------------------------------------------------------------------------
-void DrvWinDisplay::windowEnable( TokId winCmd, int winNum ) {
+void DrvWinDisplay::windowEnable( TokId winCmd, int winNum, bool show ) {
     
     switch( winCmd ) {
             
-        case CMD_PSE: windowList[ PS_REG_WIN ] -> setEnable( true );    break;
-        case CMD_SRE: windowList[ CTRL_REG_WIN ] -> setEnable( true );  break;
-        case CMD_PLE: windowList[ PL_REG_WIN ] -> setEnable( true );    break;
-        case CMD_SWE: windowList[ STATS_WIN ] -> setEnable( true );     break;
+        case CMD_PSE:
+        case CMD_PSD: windowList[ PS_REG_WIN ] -> setEnable( show );    break;
+        case CMD_SRE:
+        case CMD_SRD: windowList[ CTRL_REG_WIN ] -> setEnable( show );  break;
+        case CMD_PLE:
+        case CMD_PLD: windowList[ PL_REG_WIN ] -> setEnable( show );    break;
+        case CMD_SWE:
+        case CMD_SWD: windowList[ STATS_WIN ] -> setEnable( show );     break;
        
+        case CMD_WD:
         case CMD_WE: {
             
             if ( winNum == 0 ) winNum = getCurrentUserWindow( );
             
             if ( validUserWindowNum( winNum )) {
                 
-                windowList[ winNum ] -> setEnable( true );
-                setCurrentUserWindow( winNum );
-            }
-            
-        } break;
-            
-        default: ;
-    }
-}
-
-//-----------------------------------------------------------------------------------------------------------
-// A window can be added or removed for the window list shown. We are passed an optional windows number,
-// which is used when there are user defined windows for locating the window object.
-//
-//-----------------------------------------------------------------------------------------------------------
-void DrvWinDisplay::windowDisable( TokId winCmd, int winNum ) {
-    
-    switch( winCmd ) {
-            
-        case CMD_PSD: windowList[ PS_REG_WIN ] -> setEnable( false );   break;
-        case CMD_SRD: windowList[ CTRL_REG_WIN ] -> setEnable( false ); break;
-        case CMD_PLD: windowList[ PL_REG_WIN ] -> setEnable( false );   break;
-        case CMD_SWD: windowList[ STATS_WIN ] -> setEnable( false );    break;
-     
-        case CMD_WD: {
-            
-            if ( winNum == 0 ) winNum = getCurrentUserWindow( );
-            
-            if ( validUserWindowNum( winNum )) {
-                
-                windowList[ winNum ] -> setEnable( false );
+                windowList[ winNum ] -> setEnable( show );
                 setCurrentUserWindow( winNum );
             }
             

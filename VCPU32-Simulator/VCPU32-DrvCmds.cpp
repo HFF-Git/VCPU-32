@@ -80,6 +80,9 @@ void markError( int pos ) {
 //------------------------------------------------------------------------------------------------------------
 void displayWindowHelp( ) {
     
+    
+    
+    
     const char FMT_STR[ ] = "%-32s%s\n";
     
     fprintf( stdout, "Windows help \n\n" );
@@ -506,10 +509,11 @@ void DrvCmds::execCmdsFromFile( char* fileName ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Help command. With no arguments, a short help overview is printed. There are commands and predefined
-// functions.
+// Help command. With no arguments, a short help overview is printed. There are commands, widow commands and
+// predefined functions.
 //
-// HELP [ <cmdId> | <pFuncId> ]
+// HELP [ <cmdId> | <wCmdId | <pFuncId> ]
+// HELP [ commands | wcommands | predefined ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::helpCmd( ) {
     
@@ -526,7 +530,9 @@ void DrvCmds::helpCmd( ) {
         
         fprintf( stdout, "\n" );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_CMD )) {
+    else if (( glb -> tok -> isTokenTyp( TYP_CMD )) ||
+             ( glb -> tok -> isTokenTyp( TYP_WCMD )) ||
+             ( glb -> tok -> isTokenTyp( TYP_PREDEFINED_FUNC ))) {
         
         if ( glb -> tok -> isToken( CMD_SET )) {
             
@@ -538,20 +544,17 @@ void DrvCmds::helpCmd( ) {
             
             fprintf( stdout, "\n" );
         }
-        else {
+        else if ( glb -> tok -> isToken( WCMD_SET )) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
-                if ( cmdHelpTab[ i ].helpTokId == glb -> tok -> tokId( )) {
-                    
-                    fprintf( stdout, FMT_STR_DETAILS, cmdHelpTab[ i ].cmdSyntaxStr, cmdHelpTab[ i ].helpStr );
-                }
+                if ( cmdHelpTab[ i ].helpTypeId == TYP_WCMD )
+                    fprintf( stdout, FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
             }
+            
+            fprintf( stdout, "\n" );
         }
-    }
-    else if ( glb -> tok -> isTokenTyp( TYP_PREDEFINED_FUNC )) {
-        
-        if ( glb -> tok -> isToken( PF_SET )) {
+        else if ( glb -> tok -> isToken( PF_SET )) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
@@ -573,15 +576,6 @@ void DrvCmds::helpCmd( ) {
         }
     }
     else throw ( ERR_INVALID_ARG );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Display the window specific help.
-//
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::winHelpCmd( ) {
-    
-    displayWindowHelp( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1635,7 +1629,7 @@ void DrvCmds::winEnableCmd( TokId winCmd ) {
     
     if ( glb -> winDisplay -> validWindowNum( winNum )) {
         
-        glb -> winDisplay -> windowEnable( winCmd, winNum );
+        glb -> winDisplay -> windowEnable( winCmd, winNum, true );
         glb -> winDisplay -> reDraw( true );
     }
     else throw ( ERR_INVALID_WIN_ID );
@@ -1658,7 +1652,7 @@ void DrvCmds::winDisableCmd( TokId winCmd ) {
     
     if ( glb -> winDisplay -> validWindowNum( winNum )) {
         
-        glb -> winDisplay -> windowDisable( winCmd, winNum );
+        glb -> winDisplay -> windowEnable( winCmd, winNum, false );
         glb -> winDisplay -> reDraw( true );
     }
     else throw ( ERR_INVALID_WIN_ID );
@@ -1686,9 +1680,15 @@ void DrvCmds::winSetRadixCmd( TokId winCmd ) {
     }
     else {
         
-        glb -> eval -> parseExpr( &rExpr );
-        if ( rExpr.typ == TYP_NUM ) rdx = setRadix( rExpr.numVal );
-        else throw ( ERR_INVALID_RADIX );
+        if ( glb -> tok -> isToken( TOK_OCT ))      rdx = 8;
+        else if ( glb -> tok -> isToken( TOK_DEC )) rdx = 10;
+        else if ( glb -> tok -> isToken( TOK_HEX )) rdx = 16;
+        else {
+            
+            glb -> eval -> parseExpr( &rExpr );
+            if ( rExpr.typ == TYP_NUM ) rdx = setRadix( rExpr.numVal );
+            else throw ( ERR_INVALID_RADIX );
+        }
     }
     
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
@@ -1732,24 +1732,26 @@ void DrvCmds::winForwardCmd( TokId winCmd ) {
         
         glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
     }
-    
-    glb -> eval -> parseExpr( &rExpr );
-    
-    if ( rExpr.typ == TYP_NUM ) winItems = rExpr.numVal;
-    else throw ( ERR_INVALID_NUM );
-    
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    else {
         
-        glb ->  tok -> nextToken( );
+        glb -> eval -> parseExpr( &rExpr );
         
-        if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
-        else throw ( ERR_INVALID_WIN_ID );
+        if ( rExpr.typ == TYP_NUM ) winItems = rExpr.numVal;
+        else throw ( ERR_INVALID_NUM );
         
-        if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
+        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+            
+            glb ->  tok -> nextToken( );
+            
+            if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
+            else throw ( ERR_INVALID_WIN_ID );
+            
+            if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
+        }
+        else winNum = 0;
+        
+        glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
     }
-    else winNum = 0;
-    
-    glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
 }
 
 void DrvCmds::winBackwardCmd( TokId winCmd ) {
@@ -1918,13 +1920,19 @@ void DrvCmds::winNewWinCmd( ) {
         
         winType = glb -> tok -> tokId( );
         
-        if ((( winType == TOK_PM ) && ( glb -> cpu -> physMem == nullptr ))     ||
-            (( winType == TOK_PC ) && ( glb -> cpu -> physMem == nullptr ))     ||
-            (( winType == TOK_IT ) && ( glb -> cpu -> iTlb == nullptr ))        ||
-            (( winType == TOK_DT ) && ( glb -> cpu -> dTlb == nullptr ))        ||
-            (( winType == TOK_IC ) && ( glb -> cpu -> iCacheL1 == nullptr ))    ||
-            (( winType == TOK_DC ) && ( glb -> cpu -> dCacheL1 == nullptr ))    ||
-            (( winType == TOK_UC ) && ( glb -> cpu -> uCacheL2 == nullptr ))) {
+        if ((( winType == TOK_PM  ) && ( glb -> cpu -> physMem   == nullptr ))     ||
+            (( winType == TOK_PC  ) && ( glb -> cpu -> physMem   == nullptr ))     ||
+            (( winType == TOK_MCR ) && ( glb -> cpu -> physMem   == nullptr ))     ||
+            (( winType == TOK_IT  ) && ( glb -> cpu -> iTlb      == nullptr ))     ||
+            (( winType == TOK_ITR ) && ( glb -> cpu -> iTlb      == nullptr ))     ||
+            (( winType == TOK_DT  ) && ( glb -> cpu -> dTlb      == nullptr ))     ||
+            (( winType == TOK_DTR ) && ( glb -> cpu -> dTlb      == nullptr ))     ||
+            (( winType == TOK_IC  ) && ( glb -> cpu -> iCacheL1  == nullptr ))     ||
+            (( winType == TOK_ICR ) && ( glb -> cpu -> iCacheL1  == nullptr ))     ||
+            (( winType == TOK_DC  ) && ( glb -> cpu -> dCacheL1  == nullptr ))     ||
+            (( winType == TOK_DCR ) && ( glb -> cpu -> dCacheL1  == nullptr ))     ||
+            (( winType == TOK_UC  ) && ( glb -> cpu -> uCacheL2  == nullptr ))     ||
+            (( winType == TOK_UCR ) && ( glb -> cpu -> uCacheL2  == nullptr ))) {
             
             throw ( ERR_WIN_TYPE_NOT_CONFIGURED );
         }
@@ -2044,6 +2052,7 @@ void DrvCmds::winSetStackCmd( ) {
             }
             else winNumEnd = winNumStart;
         }
+        else throw ( ERR_EXPECTED_COMMA );
         
         if ( winNumStart == -1 ) {
                 
@@ -2069,7 +2078,11 @@ void  DrvCmds::winToggleCmd( ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    if ( glb -> tok -> tokTyp( ) == TYP_NUM ) {
+    if ( glb -> tok -> isToken( TOK_EOS )) {
+        
+        glb -> winDisplay -> windowToggle( glb -> winDisplay -> getCurrentUserWindow( ));
+    }
+    else if ( glb -> tok -> tokTyp( ) == TYP_NUM ) {
         
         if ( ! glb -> winDisplay -> validWindowNum( glb -> tok -> tokVal( ))) throw ( ERR_INVALID_WIN_ID );
         glb -> winDisplay -> windowToggle( glb -> tok -> tokVal( ));
@@ -2109,7 +2122,7 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
             glb -> tok -> setupTokenizer( cmdBuf, (DrvToken *) cmdTokTab );
             glb -> tok -> nextToken( );
             
-            if ( glb -> tok -> isTokenTyp( TYP_CMD )) {
+            if (( glb -> tok -> isTokenTyp( TYP_CMD )) || ( glb -> tok -> isTokenTyp( TYP_WCMD ))) {
                 
                 TokId cmdId = glb -> tok -> tokId( );
                 
@@ -2120,7 +2133,6 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
                     case TOK_NIL:                                           break;
                     case CMD_EXIT:          exitCmd( );                     break;
                     case CMD_HELP:          helpCmd( );                     break;
-                    case CMD_WHELP:         winHelpCmd( );                  break;
                     case CMD_ENV:           envCmd( );                      break;
                     case CMD_XF:            execFileCmd( );                 break;
                     case CMD_LMF:           loadPhysMemCmd( );              break;

@@ -790,6 +790,8 @@ public:
     // The CPU core objects. Since the driver needs access to all of them frequently, we could either have
     // a ton of getter functions, or make the public. Let's go for the latter
     //
+    // ??? unified cache, physical memory, PDC and IO should be moved out of the core when we have many
+    // cores...
     //--------------------------------------------------------------------------------------------------------
     CpuTlb        *iTlb       = nullptr;
     CpuTlb        *dTlb       = nullptr;

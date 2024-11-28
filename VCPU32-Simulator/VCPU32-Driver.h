@@ -3,8 +3,8 @@
 //  VCPU32 - A 32-bit CPU - Simulator Driver
 //
 //------------------------------------------------------------------------------------------------------------
-// We need a simple driver for the CPU to do testing and debugging. Well, here it is.
-//
+// We need a simple command line and windows interface for the CPU to do testing and debugging. Well, here it
+// is. All constant, type and object declarations are done in this include file.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -57,21 +57,21 @@ const int MAX_ENV_VARIABLES     = 256;
 //------------------------------------------------------------------------------------------------------------
 enum TypeId : uint16_t {
 
-    TYP_NIL                 = 0,        TYP_CMD                 = 1,        TYP_SYM             = 2,
-    TYP_IDENT               = 3,        TYP_PREDEFINED_FUNC     = 4,
+    TYP_NIL                 = 0,        TYP_CMD                 = 1,        TYP_WCMD                = 2,
+    TYP_SYM                 = 3,        TYP_IDENT               = 4,        TYP_PREDEFINED_FUNC     = 5,
     
-    TYP_NUM                 = 10,       TYP_STR                 = 11,       TYP_BOOL            = 12,
-    TYP_ADR                 = 13,       TYP_EXT_ADR             = 14,       TYP_OP_CODE         = 15,
+    TYP_NUM                 = 10,       TYP_STR                 = 11,       TYP_BOOL                = 12,
+    TYP_ADR                 = 13,       TYP_EXT_ADR             = 14,       TYP_OP_CODE             = 15,
     TYP_OP_CODE_S           = 16,
     
-    TYP_REG                 = 20,       TYP_REG_PAIR        = 21,
+    TYP_REG                 = 20,       TYP_REG_PAIR            = 21,
     
-    TYP_GREG                = 30,       TYP_SREG            = 31,           TYP_CREG            = 32,
-    TYP_PSTATE_PREG         = 33,       TYP_FD_PREG         = 34,           TYP_MA_PREG         = 35,
+    TYP_GREG                = 30,       TYP_SREG                = 31,       TYP_CREG                = 32,
+    TYP_PSTATE_PREG         = 33,       TYP_FD_PREG             = 34,       TYP_MA_PREG             = 35,
     TYP_EX_PREG             = 36,
     
-    TYP_IC_L1_REG           = 40,       TYP_DC_L1_REG       = 41,           TYP_UC_L2_REG       = 42,
-    TYP_MEM_REG             = 43,       TYP_ITLB_REG        = 44,           TYP_DTLB_REG        = 45
+    TYP_IC_L1_REG           = 40,       TYP_DC_L1_REG           = 41,       TYP_UC_L2_REG           = 42,
+    TYP_MEM_REG             = 43,       TYP_ITLB_REG            = 44,       TYP_DTLB_REG            = 45
     
 };
 
@@ -144,8 +144,10 @@ enum TokId : uint16_t {
     // Window Commands Tokens.
     //
     //--------------------------------------------------------------------------------------------------------
-    CMD_WON                 = 2000,     CMD_WOFF                = 2001,     CMD_WDEF                = 2002,
-    CMD_CWL                 = 2003,     CMD_WSE                 = 2004,     CMD_WSD                 = 2005,
+    WCMD_SET                = 2000,     CMD_WTYPES              = 2001,
+    
+    CMD_WON                 = 2002,     CMD_WOFF                = 2003,     CMD_WDEF                = 2004,
+    CMD_CWL                 = 2005,     CMD_WSE                 = 2006,     CMD_WSD                 = 2007,
     
     CMD_PSE                 = 2010,     CMD_PSD                 = 2011,     CMD_PSR                 = 2012,
     CMD_SRE                 = 2015,     CMD_SRD                 = 2016,     CMD_SRR                 = 2017,
@@ -295,7 +297,7 @@ enum TokId : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 // Our error messages IDs. There is a routine that maps the ID to a text string.
 //
-// ??? need to put all error messages here.... do a little when there is time...
+// ??? sort a little ...
 //------------------------------------------------------------------------------------------------------------
 enum ErrMsgId : uint16_t {
     
@@ -439,7 +441,7 @@ const char ENV_WIN_TEXT_LINE_WIDTH[ ]   = "WIN_TEXT_WIDTH";
 struct VCPU32Globals;
 
 //------------------------------------------------------------------------------------------------------------
-//
+// An error is described in the error message table, found in the DrvTables.h file.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvErrMsgTabEntry {
@@ -449,7 +451,7 @@ struct DrvErrMsgTabEntry {
 };
 
 //------------------------------------------------------------------------------------------------------------
-//
+// An help message is described in the help message table, found in the DrvTables.h file.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvHelpMsgEntry {
@@ -482,8 +484,8 @@ struct DrvToken {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Tokenizer object. The command line interface as well as the one line assembler parse their buffer line.
-// The tokenizer will return the tokens found in the line. The tokenizer will will work with the global
+// Tokenizer object. The command line interface as well as the one line assembler parse their input buffer
+// line. The tokenizer will return the tokens found in the line. The tokenizer will will work with the global
 // token table found in the tokenizer source file. The tokenizer raises exceptions.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -553,7 +555,8 @@ struct DrvExpr {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// The expression evaluator object. The evaluator raises exceptions.
+// The expression evaluator object. We use the "parseExpr" routine whereever we expect an expression in the
+// command line. The evaluator raises exceptions.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvExprEvaluator {
@@ -565,7 +568,6 @@ struct DrvExprEvaluator {
     void        setTokenizer( DrvTokenizer *tok );
     void        parseExpr( DrvExpr *rExpr );
     
-   
     private:
     
     void        parseTerm( DrvExpr *rExpr );
@@ -582,8 +584,8 @@ struct DrvExprEvaluator {
 };
 
 //------------------------------------------------------------------------------------------------------------
-// Environment table entry, Each environment variable has a name, a couple of flags and the value. The
-// value is the DrvExpr structure also used by the expression evaluator.
+// Environment table entry, Each environment variable has a name, a couple of flags and the value. There are
+// predefined variabls and user defeind variables.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvEnvTabEntry {
@@ -661,7 +663,7 @@ struct DrvEnv {
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// The "CPU24DrvBaseWin" class. The Terminal Screen will be in screen mode a set of stacks each with a list
+// The "CPU24DrvBaseWin" class. The simulator will in screen mode feature a set of stacks each with a list
 // of screen sub windows. The default is one stack, the general register set window and the command line
 // window, which also spans all stacks. Each sub window is an instance of a specific window class with this
 // class as the base class. There are routines common to all windows to enable/ disable, set the lines
@@ -769,11 +771,12 @@ private:
 //-----------------------------------------------------------------------------------------------------------
 // "WinScrollable" is an extension to the basic window. It implements a scrollable window of a number of
 // lines. There is a high level concept of a starting index of zero and a limit. The meaning i.e. whether
-// the address is a memory address or an index into a TLB or Cache array is determined by the inheriting
+// the index is a memory address or an index into a TLB or Cache array is determined by the inheriting
 // class. The scrollable window will show a number of lines, the "drawLine" method needs to be implemented
 // by the inheriting class. The routine is passed the item address for the line and is responsible for the
 // correct interpretation of this address. The "lineIncrement" is the increment value for the item address
 // passed. Item addresses are unsigned 32-bit quantities.
+//
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinScrollable : DrvWin {
     
@@ -1056,8 +1059,7 @@ public:
     void            windowsOff( );
     void            windowDefaults( );
     void            windowCurrent( int winNum = 0 );
-    void            windowEnable( TokId winCmd, int winNum = 0 );
-    void            windowDisable( TokId winCmd, int winNum = 0  );
+    void            windowEnable( TokId winCmd, int winNum = 0, bool show = true );
     void            winStacksEnable( bool arg );
     void            windowRadix( TokId winCmd, int rdx, int winNum = 0 );
     void            windowSetRows( TokId winCmd, int rows, int winNum = 0 );
@@ -1220,7 +1222,6 @@ struct DrvCmds {
     
     void            exitCmd( );
     void            helpCmd( );
-    void            winHelpCmd( );
     void            envCmd( );
     void            execFileCmd( );
     void            loadPhysMemCmd( );
@@ -1284,7 +1285,7 @@ struct VCPU32Globals {
     
     DrvTokenizer        *tok            = nullptr;
     DrvExprEvaluator    *eval           = nullptr;
-    DrvDisAssembler           *disAsm         = nullptr;
+    DrvDisAssembler     *disAsm         = nullptr;
     DrvOneLineAsm       *oneLineAsm     = nullptr;
     DrvLineDisplay      *lineDisplay    = nullptr;
     DrvWinDisplay       *winDisplay     = nullptr;
