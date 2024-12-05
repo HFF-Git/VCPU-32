@@ -38,13 +38,13 @@ int main( int argc, const char* argv[ ] ) {
     
     VCPU32Globals     glbDesc;
     CpuCoreDesc       cpuDesc;
-
+    
     cpuDesc.flags                       = 0;
     
     cpuDesc.tlbOptions                  = VMEM_T_SPLIT_TLB;
     cpuDesc.cacheL1Options              = VMEM_T_L1_SPLIT_CACHE;
     cpuDesc.cacheL2Options              = VMEM_T_NIL;
-        
+    
     cpuDesc.iTlbDesc.type               = TLB_T_L1_INSTR;
     cpuDesc.iTlbDesc.entries            = 1024;
     cpuDesc.iTlbDesc.accessType         = TLB_AT_DIRECT_MAPPED;
@@ -68,7 +68,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.dCacheDescL1.blockSets      = 4;
     cpuDesc.dCacheDescL1.latency        = 0;
     cpuDesc.dCacheDescL1.priority       = 2;
-        
+    
     cpuDesc.uCacheDescL2.type           = MEM_T_L2_UNIFIED;
     cpuDesc.uCacheDescL2.accessType     = MEM_AT_DIRECT_MAPPED;
     cpuDesc.uCacheDescL2.blockEntries   = 2048;
@@ -76,7 +76,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.uCacheDescL2.blockSets      = 2;
     cpuDesc.uCacheDescL2.latency        = 2;
     cpuDesc.uCacheDescL2.priority       = 3;
-   
+    
     cpuDesc.memDesc.type                = MEM_T_PHYS_MEM;
     cpuDesc.memDesc.accessType          = MEM_AT_DIRECT_INDEXED;
     cpuDesc.memDesc.blockEntries        = 1024 * 1024;  // for just a million blocks.
@@ -103,8 +103,11 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.ioDesc.startAdr             = 0xFFFF0000;
     cpuDesc.ioDesc.latency              = 2;
     cpuDesc.ioDesc.priority             = 3;
- 
+    
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
+    glbDesc.console                     = new DrvConsoleIo( );
+    
+    glbDesc.console -> setConsoleModeRaw( );
     
     glbDesc.env                         = new DrvEnv( &glbDesc, MAX_ENV_VARIABLES );
     glbDesc.cmds                        = new DrvCmds( &glbDesc );
@@ -118,5 +121,18 @@ int main( int argc, const char* argv[ ] ) {
     glbDesc.env         -> setupPredefined( );
     glbDesc.cmds        -> setupCmdInterpreter( argc, argv );
     glbDesc.cpu         -> reset( );
+    
+    
+#if 0
+    while ( true )  {
+        
+        char buf[ 100 ];
+        
+        int ret = console -> readInputLine( buf );
+        fprintf( stdout, "%s\n", buf );
+    }
+#else
     glbDesc.cmds        -> cmdInterpreterLoop( );
+#endif
+    
 }

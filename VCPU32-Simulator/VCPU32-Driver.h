@@ -24,6 +24,7 @@
 #ifndef VCPU32Driver_h
 #define VCPU32Driver_h
 
+#if 0
 //------------------------------------------------------------------------------------------------------------
 // Mac and Windows know different include files and procedure names for some POSIX routines.
 //
@@ -37,7 +38,9 @@
 #define fileno _fileno
 #define write  _write
 #endif
+#endif
 
+#include "VCPU32-ConsoleIo.h"
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
 
@@ -1283,6 +1286,7 @@ struct DrvCmds {
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals {
     
+    DrvConsoleIo        *console        = nullptr;
     DrvTokenizer        *tok            = nullptr;
     DrvExprEvaluator    *eval           = nullptr;
     DrvDisAssembler     *disAsm         = nullptr;

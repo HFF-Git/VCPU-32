@@ -30,8 +30,8 @@
             filePath = "VCPU32-Simulator/VCPU32-DrvCmds.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "518"
-            endingLineNumber = "518"
+            startingLineNumber = "482"
+            endingLineNumber = "482"
             landmarkName = "DrvCmds::helpCmd()"
             landmarkType = "7">
          </BreakpointContent>
@@ -46,8 +46,8 @@
             filePath = "VCPU32-Simulator/VCPU32-DrvCmds.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "1638"
-            endingLineNumber = "1638"
+            startingLineNumber = "1604"
+            endingLineNumber = "1604"
             landmarkName = "DrvCmds::winDisableCmd(winCmd)"
             landmarkType = "7">
          </BreakpointContent>

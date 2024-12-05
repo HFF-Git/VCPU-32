@@ -71,6 +71,8 @@ void DrvLineDisplay::lineDefaults( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvLineDisplay::displayWord( uint32_t val, int rdx ) {
     
+#if 0  // test .....
+    
     if      ( rdx == 10 )  fprintf( stdout, "%10d", val );
     else if ( rdx == 8  )  fprintf( stdout, "%#012o", val );
     else if ( rdx == 16 )  {
@@ -79,6 +81,18 @@ void DrvLineDisplay::displayWord( uint32_t val, int rdx ) {
         else fprintf( stdout, "%#010x", val );
     }
     else fprintf( stdout, "**num**" );
+#else
+    
+    if      ( rdx == 10 )  glb -> console -> printfConsole( "%10d", val );
+    else if ( rdx == 8  )  glb -> console -> printfConsole( "%#012o", val );
+    else if ( rdx == 16 )  {
+        
+        if ( val == 0 ) glb -> console -> printfConsole( "0x00000000" );
+        else glb -> console -> printfConsole( "%#010x", val );
+    }
+    else glb -> console -> printfConsole( "**num**" );
+    
+#endif
 }
 
 //------------------------------------------------------------------------------------------------------------

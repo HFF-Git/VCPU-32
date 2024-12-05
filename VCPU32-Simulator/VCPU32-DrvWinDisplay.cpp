@@ -247,7 +247,7 @@ template<typename... Args>  int winPrintf( FILE* stream, const char* fmt, Args&&
     
     return( static_cast<int>(len));
 }
-
+    
 //------------------------------------------------------------------------------------------------------------
 // Building a screen will imply a ton of escape sequence to send to the terminal screen. The following batch
 // of routines will put out the escape sequence for clearing data, position a cursor and so on. There is

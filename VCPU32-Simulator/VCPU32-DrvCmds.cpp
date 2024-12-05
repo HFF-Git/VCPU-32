@@ -372,13 +372,34 @@ void resetConsoleMode( struct termios *term ) {
 bool DrvCmds::readInputLine( char *cmdBuf ) {
     
     while ( true ) {
-   
-#if 1 // current version
+  
+#if 1
         
+        // ??? what type of return code would we need ?
+        
+        glb -> console -> readInputLine( cmdBuf );
+        
+        cmdBuf[ strcspn( cmdBuf, "\r\n") ] = 0;
+        
+        removeComment( cmdBuf );
+        
+        if ( strlen( cmdBuf ) > 0 ) {
+            
+            glb -> env -> setEnvVar((char *) ENV_CMD_CNT,
+                                    glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ) + 1 );
+            return( true );
+        }
+        else return( false );
+    }
+    
+    // else if ( feof( stdin )) exit( glb -> env -> getEnvVarInt((char *) ENV_EXIT_CODE ));
+    
+#else
         if ( fgets( cmdBuf, CMD_LINE_BUF_SIZE, stdin ) != nullptr ) {
             
+            
             cmdBuf[ strcspn( cmdBuf, "\r\n") ] = 0;
-         
+            
             removeComment( cmdBuf );
             
             if ( strlen( cmdBuf ) > 0 ) {
@@ -392,67 +413,10 @@ bool DrvCmds::readInputLine( char *cmdBuf ) {
         else if ( feof( stdin )) exit( glb -> env -> getEnvVarInt((char *) ENV_EXIT_CODE ));
         
         return( false );
-        
-#else
-        
-        // we need another version of command input for sharing with a running CPU. The idea is that in
-        // running mode the terminal input is actually handled by a CPU monitor program with console IO
-        // functions. Our job is then to move characters directly to however the console IO is implemented.
-        // A "control Y" input is taking us back to the simulator.
-        //
-        // Unfortunately, windows and macs differ. The standard system calls typically buffer the input
-        // up to the carriage return. To avoid this, the terminal needs to be place in "raw" mode. And this
-        // is different for the two platforms.
-        //
-        // ??? need a separate method for placing in raw mode, resetting this mode, and reading and writing
-        // a single character.
-        //
-        char    ch;
-        int     index = 0;
-        
-        while ( true ) {
-            
-            ch = getchar( );
-            
-            if ( ch == 0x19 ) {
-                
-                // handle control Y
-            }
-            else if (( ch == '\n' ) || ( ch == '\r' )) {
-                
-                cmdBuf[ index ] = '\0';
-                putchar( ch );
-                return ( true );
-            }
-            else if ( ch == '\b' ) {
-               
-                if ( index > 0 ) {
-                    
-                    index --;
-                    
-                    putchar( '\b' );
-                    putchar( ' ' );
-                    putchar( '\b' );
-                    continue;
-                }
-            }
-            
-            if ( index < CMD_LINE_BUF_SIZE - 1 ) {
-                
-                cmdBuf[ index ] = ch;
-                index ++;
-                putchar( ch );
-            }
-            else {
-            
-                cmdBuf[ index ] = '\0';
-                return( false );
-            }
-        }
-        
-#endif
-        
     }
+    
+#endif
+    
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -688,7 +652,7 @@ void DrvCmds::execFileCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::loadPhysMemCmd( ) {
     
-    fprintf( stdout, "The Load Physical Memory command... under construction\n" );
+    glb -> console -> printfConsole((char *) "The Load Physical Memory command... under construction\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -700,7 +664,7 @@ void DrvCmds::loadPhysMemCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::savePhysMemCmd( ) {
     
-    fprintf( stdout, "The Save Physical Memory command... under construction\n" );
+    glb -> console -> printfConsole((char *) "The Load Physical Memory command... under construction\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -757,7 +721,9 @@ void DrvCmds::resetCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::runCmd( ) {
     
-    fprintf( stdout, "RUN command to come ... \n" );
+    glb -> console -> printfConsole("RUN command to come ... \n");
+    
+   // fprintf( stdout, "RUN command to come ... \n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
