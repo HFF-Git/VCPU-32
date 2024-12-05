@@ -116,6 +116,8 @@ int DrvConsoleIO::readChar(  ) {
     
 #else
     
+    return(_getch());
+    
 #endif
     
 }
@@ -131,7 +133,9 @@ void DrvConsoleIO::writeChar( char ch  ) {
     write( fileno( stdout), &ch, 1 );
     
 #else
-    
+
+    _putch( int(ch) );
+
 #endif
     
 }

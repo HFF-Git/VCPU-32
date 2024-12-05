@@ -48,6 +48,16 @@
 #include <stdarg.h>
 #include <iostream>
 #else
+//#include <unistd.h>
+#include <conio.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+#include <ctype.h>
+#include <stdarg.h>
+#include <iostream>
 #include <io.h>
 #define isatty _isatty
 #define fileno _fileno
