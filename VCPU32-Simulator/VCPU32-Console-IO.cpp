@@ -28,7 +28,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Types.h"
-#include "VCPU32-ConsoleIo.h"
+#include "VCPU32-ConsoleIO.h"
 #include "VCPU32-Driver.h"
 
 
@@ -39,16 +39,22 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+#if __APPLE__
+
+    struct termios saveTermSetting;
+
+#else
+
+
+#endif
 
 };
-
 
 //------------------------------------------------------------------------------------------------------------
 // Object constructur. We will save the current terminal settings, just in case.
 //
-//
 //------------------------------------------------------------------------------------------------------------
-DrvConsoleIo::DrvConsoleIo( ) {
+DrvConsoleIO::DrvConsoleIO( ) {
     
     saveConsoleMode( );
 }
@@ -58,7 +64,7 @@ DrvConsoleIo::DrvConsoleIo( ) {
 // current settings, set the raw mode attributes, and restore the saved settings.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvConsoleIo::saveConsoleMode( ) {
+void DrvConsoleIO::saveConsoleMode( ) {
     
 #if __APPLE__
     
@@ -70,7 +76,7 @@ void DrvConsoleIo::saveConsoleMode( ) {
     
 }
 
-void DrvConsoleIo::setConsoleModeRaw( ) {
+void DrvConsoleIO::setConsoleModeRaw( ) {
     
 #if __APPLE__
 
@@ -86,7 +92,7 @@ void DrvConsoleIo::setConsoleModeRaw( ) {
     
 }
 
-void DrvConsoleIo::resetConsoleMode( ) {
+void DrvConsoleIO::resetConsoleMode( ) {
     
 #if __APPLE__
     
@@ -102,7 +108,7 @@ void DrvConsoleIo::resetConsoleMode( ) {
 // "readConsoleChar" is the single entry point to get a character from the terminal.
 //
 //------------------------------------------------------------------------------------------------------------
-int DrvConsoleIo::readConsoleChar(  ) {
+int DrvConsoleIO::readChar(  ) {
     
 #if __APPLE__
 
@@ -117,9 +123,8 @@ int DrvConsoleIo::readConsoleChar(  ) {
 //------------------------------------------------------------------------------------------------------------
 // "writeConsoleChar" is the single entry point to write to the terminal.
 //
-//
 //------------------------------------------------------------------------------------------------------------
-void DrvConsoleIo::writeConsoleChar( char ch  ) {
+void DrvConsoleIO::writeChar( char ch  ) {
     
 #if __APPLE__
 
@@ -136,39 +141,38 @@ void DrvConsoleIo::writeConsoleChar( char ch  ) {
 // basic handling of backspace, carriage return, etc. needs to be handled directly.
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvConsoleIo::readInputLine( char *cmdBuf ) {
+bool DrvConsoleIO::readLine( char *cmdBuf ) {
     
     int ch;
     int index = 0;
     
     while ( true ) {
         
-        ch = readConsoleChar( );
+        ch = readChar( );
         
         if ( ch == -1 ) {
             
             return( false );
         }
-        else if ( ch == 0x19 ) {
+        else if ( ch == 25 ) {
             
             // handle control Y, does not work yet ????
         }
         else if (( ch == '\n' ) || ( ch == '\r' )) {
             
             cmdBuf[ index ] = '\0';
-            writeConsoleChar( ch );
+            writeChar( ch );
             return ( true );
         }
-        // else if ( ch == '\b' ) {
         else if (( ch == 8 ) || ( ch == 127 )) {
            
             if ( index > 0 ) {
                 
                 index --;
                 
-                writeConsoleChar( '\b' );
-                writeConsoleChar( ' ' );
-                writeConsoleChar( '\b' );
+                writeChar( '\b' );
+                writeChar( ' ' );
+                writeChar( '\b' );
                 continue;
             }
         }
@@ -178,7 +182,7 @@ bool DrvConsoleIo::readInputLine( char *cmdBuf ) {
                 
                 cmdBuf[ index ] = (char) ch;
                 index ++;
-                writeConsoleChar((char) ch );
+                writeChar((char) ch );
             }
             else {
                 

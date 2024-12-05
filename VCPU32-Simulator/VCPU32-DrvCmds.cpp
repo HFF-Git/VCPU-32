@@ -373,11 +373,9 @@ bool DrvCmds::readInputLine( char *cmdBuf ) {
     
     while ( true ) {
   
-#if 1
-        
         // ??? what type of return code would we need ?
         
-        glb -> console -> readInputLine( cmdBuf );
+        glb -> console -> readLine( cmdBuf );
         
         cmdBuf[ strcspn( cmdBuf, "\r\n") ] = 0;
         
@@ -393,30 +391,6 @@ bool DrvCmds::readInputLine( char *cmdBuf ) {
     }
     
     // else if ( feof( stdin )) exit( glb -> env -> getEnvVarInt((char *) ENV_EXIT_CODE ));
-    
-#else
-        if ( fgets( cmdBuf, CMD_LINE_BUF_SIZE, stdin ) != nullptr ) {
-            
-            
-            cmdBuf[ strcspn( cmdBuf, "\r\n") ] = 0;
-            
-            removeComment( cmdBuf );
-            
-            if ( strlen( cmdBuf ) > 0 ) {
-                
-                glb -> env -> setEnvVar((char *) ENV_CMD_CNT,
-                                        glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ) + 1 );
-                return( true );
-            }
-            else return( false );
-        }
-        else if ( feof( stdin )) exit( glb -> env -> getEnvVarInt((char *) ENV_EXIT_CODE ));
-        
-        return( false );
-    }
-    
-#endif
-    
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -652,7 +626,7 @@ void DrvCmds::execFileCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::loadPhysMemCmd( ) {
     
-    glb -> console -> printfConsole((char *) "The Load Physical Memory command... under construction\n" );
+    glb -> console -> printChars((char *) "The Load Physical Memory command... under construction\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -664,7 +638,7 @@ void DrvCmds::loadPhysMemCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::savePhysMemCmd( ) {
     
-    glb -> console -> printfConsole((char *) "The Load Physical Memory command... under construction\n" );
+    glb -> console -> printChars((char *) "The Load Physical Memory command... under construction\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -721,7 +695,7 @@ void DrvCmds::resetCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::runCmd( ) {
     
-    glb -> console -> printfConsole("RUN command to come ... \n");
+    glb -> console -> printChars( "RUN command to come ... \n");
     
    // fprintf( stdout, "RUN command to come ... \n" );
 }

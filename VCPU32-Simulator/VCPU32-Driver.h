@@ -534,7 +534,6 @@ struct DrvTokenizer {
     VCPU32Globals   *glb                    = nullptr;
 };
 
-
 //------------------------------------------------------------------------------------------------------------
 // Expression value. The analysis of an expression results in a value. Depending on the expression type, the
 // values are simple scalar values or a structured value, such as a register pair or virtual address.
@@ -748,6 +747,12 @@ public:
 protected:
     
     VCPU32Globals   *glb;
+    
+    void            setAbsCursor( int row, int col );
+    void            setFieldAtributes( uint32_t fmtDesc );
+    int             printWord( uint32_t val, int rdx = 16, uint32_t fmtDesc = 0 );
+    int             printText( char *text, int len );
+    void            padField( int dLen, int fLen );
     
 private:
     
@@ -1088,6 +1093,12 @@ public:
     bool            isCurrentWin( int winNum );
     bool            isWinEnabled( int winNum );
     
+    void            clearScreen( );
+    void            setAbsCursor( int row, int col );
+    void            setWindowSize( int row, int col );
+    void            setScrollArea( int start, int end );
+    void            clearScrollArea( );
+    
 private:
     
     int             computeColumnsNeeded( int winStack );
@@ -1115,6 +1126,7 @@ public:
     DrvLineDisplay( VCPU32Globals *glb );
     
     void        lineDefaults( );
+    void        displayInvalidWord( int rdx );
     void        displayWord( uint32_t val, int rdx = 16 );
     void        displayHalfWord( uint32_t val, int rdx = 16 );
     void        displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx = 16 );
@@ -1286,7 +1298,7 @@ struct DrvCmds {
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals {
     
-    DrvConsoleIo        *console        = nullptr;
+    DrvConsoleIO        *console        = nullptr;
     DrvTokenizer        *tok            = nullptr;
     DrvExprEvaluator    *eval           = nullptr;
     DrvDisAssembler     *disAsm         = nullptr;

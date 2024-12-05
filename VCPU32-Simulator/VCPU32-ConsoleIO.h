@@ -15,7 +15,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Main
+// VCPU32 - A 32-bit CPU - Console IO
 // Copyright (C) 2022 - 2024 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
@@ -39,13 +39,6 @@
 #if __APPLE__
 #include <unistd.h>
 #include <termios.h>
-#else
-#include <io.h>
-#define isatty _isatty
-#define fileno _fileno
-#define write  _write
-#endif
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -54,6 +47,12 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <iostream>
+#else
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
+#define write  _write
+#endif
 
 #include "VCPU32-Types.h"
 #include "VCPU32-ConsoleIo.h"
@@ -65,27 +64,27 @@
 // will write and read a character at a time. The typical terminal IO functionality such as buffered data
 // inout and output needs to be disabled. We run a bare bone console so to speak.
 //
-// The "printf" style writing is using a template for defineing teh function. The implementing code needs to
+// The "printf" style writing is using a template for defineing the function. The implementing code needs to
 // be declared in the include file, so that the compiler can use the template where needed. It looks a bit
 // ugly, but seems to be the only working way. Since we had a couple of issues with the window drawing
 // functions of the simulator, there is additional code to catch the issue. So far, it did not occur again.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvConsoleIo {
+struct DrvConsoleIO {
     
     public:
     
-    DrvConsoleIo( );
+    DrvConsoleIO( );
     
-    int     readConsoleChar( );
-    void    writeConsoleChar( char ch  );
+    int     readChar( );
+    void    writeChar( char ch  );
     void    saveConsoleMode( );
     void    setConsoleModeRaw( );
     void    resetConsoleMode( );
-    bool    readInputLine( char *cmdBuf );
+    bool    readLine( char *cmdBuf );
     
     template<typename... Args>
-    int printfConsole( const char* fmt, Args&&... args ) {
+    int printChars( const char* fmt, Args&&... args ) {
         
         static char buf[ 512 ];
         size_t      len = 0;
@@ -103,26 +102,13 @@ struct DrvConsoleIo {
             
         } while ( len < 0 );
         
-        do {
-        
-            len = write( fileno( stdout ), buf, len );
-            fflush( stdout );
-           
-            if (( len < 0 ) && ( errno != EINTR )) {
-                
-                fprintf( stderr, "myPrintf (write) error, errno: %lu, %s\n", len, strerror( errno ));
-                fflush( stdout );
-                exit( errno );
-            }
+        if ( len > 0 ) {
             
-        } while ( len < 0 );
+            for ( int i = 0; i < len; i++  ) writeChar( buf[ i ] );
+        }
         
         return( static_cast<int>(len));
     }
-
-    private:
-    
-    struct termios saveTermSetting;
 };
 
 #endif /* VCPU32_ConsoleIo_h */

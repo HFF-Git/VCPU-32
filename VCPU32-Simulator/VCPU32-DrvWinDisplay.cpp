@@ -181,7 +181,7 @@ DrvWin         *windowList[ MAX_WINDOWS ];
 DrvWinCommands *cmdWin;
 
 //-----------------------------------------------------------------------------------------------------------
-// Little helpers.
+// Little bit field helpers.
 //
 //-----------------------------------------------------------------------------------------------------------
 bool getBit( uint32_t arg, int pos ) {
@@ -199,223 +199,6 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     
     if ( sign ) return( tmpA | ( ~ tmpM ));
     else        return( tmpA & tmpM );
-}
-
-//-----------------------------------------------------------------------------------------------------------
-// All print calls are routed through this routine. I want to see if any of the fprintf function calls
-// returns an error, which may be the clue to why sometimes the screen hangs. We use snprintf to produce
-// the string. This can be done many times without loosing or doubling any data. If the print operation is
-// successful, we have the buffer for writing. Then we issue the write operation. It is the same idea, if
-// the write aborts, it can be restarted without the fear that any data was written before the operation
-// was interrupted. Note that the compiler will issue a waring, for passing a variable "fmt" to the print
-// function, which it cannot identify as a string literal. After all, "fmt" could be anything. Since we
-// only use the "winPrintf" function in this file, no one else could do stupid things with it, except me.
-//
-// So far, the error not returned..... still not returned .... :-)
-//-----------------------------------------------------------------------------------------------------------
-template<typename... Args>  int winPrintf( FILE* stream, const char* fmt, Args&&... args ) {
-    
-    static char buf[ 512 ];
-    size_t      len = 0;
-    
-    do {
-        
-        len = snprintf( buf, sizeof( buf ), fmt, args... );
-       
-        if (( len < 0 ) && ( errno != EINTR )) {
-            
-            fprintf( stderr, "winPrintf (snprintf) error, errno: %d, %s\n", errno, strerror(errno));
-            fflush( stdout );
-            exit( errno );
-        }
-        
-    } while ( len < 0 );
-    
-    do {
-    
-        len = write( fileno( stdout ), buf, len );
-        fflush( stdout );
-       
-        if (( len < 0 ) && ( errno != EINTR )) {
-            
-            fprintf( stderr, "myPrintf (write) error, errno: %lu, %s\n", len, strerror( errno ));
-            fflush( stdout );
-            exit( errno );
-        }
-        
-    } while ( len < 0 );
-    
-    return( static_cast<int>(len));
-}
-    
-//------------------------------------------------------------------------------------------------------------
-// Building a screen will imply a ton of escape sequence to send to the terminal screen. The following batch
-// of routines will put out the escape sequence for clearing data, position a cursor and so on. There is
-// a lot of printf that will take place. A future version could come up with a string concatenation scheme,
-// and use fewer writes.
-//
-//------------------------------------------------------------------------------------------------------------
-void clearScreen( ) {
-    
-    winPrintf( stdout, (char *) "\x1b[2J" );
-    winPrintf( stdout, (char *) "\x1b[3J" );
-}
-
-void setAbsCursor( int row, int col ) {
-    
-    winPrintf( stdout, (char *) "\x1b[%d;%dH", row, col );
-}
-
-void setWindowSize( int row, int col ) {
-    
-    winPrintf( stdout, (char *) "\x1b[8;%d;%dt", row, col );
-}
-
-void setScrollArea( int start, int end ) {
-    
-    winPrintf( stdout, (char *) "\x1b[%d;%dr", start, end );
-}
-
-void clearScrollArea( ) {
-    
-    winPrintf( stdout, (char *) "\x1b[r" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// A window will consist of lines with lines having fields on them. A field has a set of attributes such as
-// foreground and background colors, bold characters and so on. This routine sets the attributes based on the
-// format descriptor. If the descriptor is zero, we will just stay where are with their attributes.
-//
-//------------------------------------------------------------------------------------------------------------
-void setFieldAtributes( uint32_t fmtDesc ) {
-    
-    if ( fmtDesc != 0 ) {
-        
-        winPrintf( stdout, (char *) "\x1b[0m" );
-        if ( fmtDesc & FMT_INVERSE )    winPrintf( stdout, (char *) "\x1b[7m" );
-        if ( fmtDesc & FMT_BLINK )      winPrintf( stdout, (char *) "\x1b[5m" );
-        if ( fmtDesc & FMT_BOLD )       winPrintf( stdout, (char *) "\x1b[1m" );
-        
-        switch ( fmtDesc & 0xF ) {
-                
-            case 1:     winPrintf( stdout, (char *) "\x1b[41m"); break;
-            case 2:     winPrintf( stdout, (char *) "\x1b[42m"); break;
-            case 3:     winPrintf( stdout, (char *) "\x1b[43m"); break;
-            default:    winPrintf( stdout, (char *) "\x1b[49m");
-        }
-        
-        switch (( fmtDesc >> 4 ) & 0xF ) {
-                
-            case 1:     winPrintf( stdout, (char *) "\x1b[31m"); break;
-            case 2:     winPrintf( stdout, (char *) "\x1b[32m"); break;
-            case 3:     winPrintf( stdout, (char *) "\x1b[33m"); break;
-            default:    winPrintf( stdout, (char *) "\x1b[39m");
-        }
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Routine to figure out what size we need for a numeric word in a given radix. Decimals needs 10 digits,
-// octals need 12 digits and hexadecimals need 10 digits. For a 16-bit word, the numbers are reduced to 5, 7
-// and 6.
-//
-//------------------------------------------------------------------------------------------------------------
-int strlenForNum( int rdx, bool halfWord ) {
-    
-    if      ( rdx == 10 ) return(( halfWord ) ? 5 : 10 );
-    else if ( rdx == 8  ) return(( halfWord ) ? 7 : 12 );
-    else if ( rdx == 16 ) return(( halfWord ) ? 6 : 10 );
-    else return( 10 );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Routine for putting out a 32-bit or 16-bit machine word at the current cursor position. We will just print
-// out the data using the radix passed. ( HEX: 0xdddddddd, OCT: 0ddddddddddd, DEC: dddddddddd );
-//
-//------------------------------------------------------------------------------------------------------------
-int printWord( uint32_t val, int rdx = 16, uint32_t fmtDesc = FMT_DEF_ATTR ) {
-    
-    int len;
-    
-    bool half   = fmtDesc & FMT_HALF_WORD;
-    bool noNum  = fmtDesc & FMT_INVALID_NUM;
-    
-        if ( rdx == 10 ) {
-            
-            if ( noNum ) {
-                
-                if ( half ) len = winPrintf( stdout, (char *) "*****" );
-                else        len = winPrintf( stdout, (char *) "**********" );
-            }
-            else {
-                
-                if ( half ) len = winPrintf( stdout, (char *) "%5d", val );
-                else        len = winPrintf( stdout, (char *) "%10d", val );
-            }
-        }
-        else if ( rdx == 8 ) {
-            
-            if ( noNum ) {
-                
-                if ( half ) len = winPrintf( stdout, (char *) "*******" );
-                else        len = winPrintf( stdout, (char *) "************" );
-            }
-            else {
-                
-                if ( half ) len = winPrintf( stdout, (char *) "%07o", val );
-                else        len = winPrintf( stdout, (char *) "%#012o", val );
-            }
-        }
-        else if ( rdx == 16 ) {
-            
-            if ( noNum ) {
-                
-                if ( half ) len = winPrintf( stdout, (char *) "******" );
-                else        len = winPrintf( stdout, (char *) "**********" );
-            }
-            else {
-                
-                if ( val == 0 ) {
-                    
-                    if ( half ) len = winPrintf( stdout, (char *) "0x0000" );
-                    else        len = winPrintf( stdout, (char *) "0x00000000" );
-                    
-                } else {
-                    
-                    if ( half ) len = winPrintf( stdout, (char *) "%#06x", val );
-                    else        len = winPrintf( stdout, (char *) "%#010x", val );
-                }
-            }
-        }
-        else len = winPrintf( stdout, (char *) "***num***" );
-    
-    
-    return( len );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Routine for putting out simple text. We make sure that the string length is in the range of what the text
-// size could be.
-//
-//------------------------------------------------------------------------------------------------------------
-int printText( char *text, int len ) {
-    
-    if ( strlen( text ) < MAX_TEXT_FIELD_LEN ) return( winPrintf( stdout, (char *) "%s", text ));
-    else return( winPrintf( stdout,(char *)  "***Text***" ));
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Fields that have a larger size than the actual argument length in the field need to be padded left or
-// right. This routine is just a simple loop emitting blanks in the current format set.
-//
-//------------------------------------------------------------------------------------------------------------
-void padField( int dLen, int fLen ) {
-    
-    while ( fLen > dLen ) {
-        
-        winPrintf( stdout, (char *) " " );
-        fLen --;
-    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -441,6 +224,20 @@ void buildAccessRightsStr( char *bufStr, int bufLen, uint8_t type, uint8_t privL
 int setRadix( int rdx ) {
     
     return((( rdx == 8 ) || ( rdx == 10 ) || ( rdx == 16 )) ? rdx : 10 );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Routine to figure out what size we need for a numeric word in a given radix. Decimals needs 10 digits,
+// octals need 12 digits and hexadecimals need 10 digits. For a 16-bit word, the numbers are reduced to 5, 7
+// and 6.
+//
+//------------------------------------------------------------------------------------------------------------
+int strlenForNum( int rdx, bool halfWord ) {
+    
+    if      ( rdx == 10 ) return(( halfWord ) ? 5 : 10 );
+    else if ( rdx == 8  ) return(( halfWord ) ? 7 : 12 );
+    else if ( rdx == 16 ) return(( halfWord ) ? 6 : 10 );
+    else return( 10 );
 }
 
 }; // namespace
@@ -544,6 +341,171 @@ void DrvWin::setWinCursor( int row, int col ) {
 
 int DrvWin::getWinCursorRow( ) { return( lastRowPos ); }
 int DrvWin::getWinCursorCol( ) { return( lastColPos ); }
+
+
+//------------------------------------------------------------------------------------------------------------
+// Building a screen will imply a ton of escape sequence to send to the terminal screen. The following batch
+// of routines will put out the escape sequence for clearing data, position a cursor and so on. There is
+// a lot of printf that will take place. A future version could come up with a string concatenation scheme,
+// and use fewer writes.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWinDisplay::clearScreen( ) {
+    
+    glb -> console -> printChars((char *) "\x1b[2J" );
+    glb -> console -> printChars((char *) "\x1b[3J" );
+}
+
+void DrvWinDisplay::setAbsCursor( int row, int col ) {
+    
+    glb -> console -> printChars((char *) "\x1b[%d;%dH", row, col );
+}
+
+void DrvWinDisplay::setWindowSize( int row, int col ) {
+    
+    glb -> console -> printChars((char *) "\x1b[8;%d;%dt", row, col );
+}
+
+void DrvWinDisplay::setScrollArea( int start, int end ) {
+    
+    glb -> console -> printChars((char *) "\x1b[%d;%dr", start, end );
+}
+
+void DrvWinDisplay::clearScrollArea( ) {
+    
+    glb -> console -> printChars((char *) "\x1b[r" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// A window will consist of lines with lines having fields on them. A field has a set of attributes such as
+// foreground and background colors, bold characters and so on. This routine sets the attributes based on the
+// format descriptor. If the descriptor is zero, we will just stay where are with their attributes.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWin::setFieldAtributes( uint32_t fmtDesc ) {
+    
+    if ( fmtDesc != 0 ) {
+        
+        glb -> console -> printChars((char *) "\x1b[0m" );
+        if ( fmtDesc & FMT_INVERSE )    glb -> console -> printChars((char *) "\x1b[7m" );
+        if ( fmtDesc & FMT_BLINK )      glb -> console -> printChars((char *) "\x1b[5m" );
+        if ( fmtDesc & FMT_BOLD )       glb -> console -> printChars((char *) "\x1b[1m" );
+        
+        switch ( fmtDesc & 0xF ) {
+                
+            case 1:     glb -> console -> printChars((char *) "\x1b[41m"); break;
+            case 2:     glb -> console -> printChars((char *) "\x1b[42m"); break;
+            case 3:     glb -> console -> printChars((char *) "\x1b[43m"); break;
+            default:    glb -> console -> printChars((char *) "\x1b[49m");
+        }
+        
+        switch (( fmtDesc >> 4 ) & 0xF ) {
+                
+            case 1:     glb -> console -> printChars((char *) "\x1b[31m"); break;
+            case 2:     glb -> console -> printChars((char *) "\x1b[32m"); break;
+            case 3:     glb -> console -> printChars((char *) "\x1b[33m"); break;
+            default:    glb -> console -> printChars((char *) "\x1b[39m");
+        }
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWin::setAbsCursor( int row, int col ) {
+    
+    glb -> console -> printChars((char *) "\x1b[%d;%dH", row, col );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Routine for putting out a 32-bit or 16-bit machine word at the current cursor position. We will just print
+// out the data using the radix passed. ( HEX: 0xdddddddd, OCT: 0ddddddddddd, DEC: dddddddddd );
+//
+//------------------------------------------------------------------------------------------------------------
+int DrvWin::printWord( uint32_t val, int rdx, uint32_t fmtDesc ) {
+    
+    int len;
+    
+    bool half   = fmtDesc & FMT_HALF_WORD;
+    bool noNum  = fmtDesc & FMT_INVALID_NUM;
+    
+        if ( rdx == 10 ) {
+            
+            if ( noNum ) {
+                
+                if ( half ) len = glb -> console -> printChars((char *) "*****" );
+                else        len = glb -> console -> printChars((char *) "**********" );
+            }
+            else {
+                
+                if ( half ) len = glb -> console -> printChars((char *) "%5d", val );
+                else        len = glb -> console -> printChars((char *) "%10d", val );
+            }
+        }
+        else if ( rdx == 8 ) {
+            
+            if ( noNum ) {
+                
+                if ( half ) len = glb -> console -> printChars((char *) "*******" );
+                else        len = glb -> console -> printChars((char *) "************" );
+            }
+            else {
+                
+                if ( half ) len = glb -> console -> printChars((char *) "%07o", val );
+                else        len = glb -> console -> printChars((char *) "%#012o", val );
+            }
+        }
+        else if ( rdx == 16 ) {
+            
+            if ( noNum ) {
+                
+                if ( half ) len = glb -> console -> printChars((char *) "******" );
+                else        len = glb -> console -> printChars((char *) "**********" );
+            }
+            else {
+                
+                if ( val == 0 ) {
+                    
+                    if ( half ) len = glb -> console -> printChars((char *) "0x0000" );
+                    else        len = glb -> console -> printChars((char *) "0x00000000" );
+                    
+                } else {
+                    
+                    if ( half ) len = glb -> console -> printChars((char *) "%#06x", val );
+                    else        len = glb -> console -> printChars((char *) "%#010x", val );
+                }
+            }
+        }
+        else len = glb -> console -> printChars((char *) "***num***" );
+    
+    return( len );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Routine for putting out simple text. We make sure that the string length is in the range of what the text
+// size could be.
+//
+//------------------------------------------------------------------------------------------------------------
+int DrvWin::printText( char *text, int len ) {
+    
+    if ( strlen( text ) < MAX_TEXT_FIELD_LEN ) return(glb -> console -> printChars((char *) "%s", text ));
+    else return( glb -> console -> printChars((char *) "***Text***" ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Fields that have a larger size than the actual argument length in the field need to be padded left or
+// right. This routine is just a simple loop emitting blanks in the current format set.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWin::padField( int dLen, int fLen ) {
+    
+    while ( fLen > dLen ) {
+        
+        glb -> console -> printChars((char *) " " );
+        fLen --;
+    }
+}
 
 //------------------------------------------------------------------------------------------------------------
 // Print out a numeric field. Each call will set the format options passed via the format descriptor. If the
@@ -655,7 +617,7 @@ void DrvWin::printRadixField( uint32_t fmtDesc, int fLen, int row, int col ) {
     
     switch ( winRadix ) {
             
-        case 8: printTextField((char *) "oct", fmtDesc, 3, row, col); break;
+        case 8:  printTextField((char *) "oct", fmtDesc, 3, row, col); break;
         case 10: printTextField((char *) "dec", fmtDesc, 3, row, col); break;
         case 16: printTextField((char *) "hex", fmtDesc, 3, row, col); break;
         default: ;
@@ -673,11 +635,11 @@ void DrvWin::printWindowIdField( int stack, int index, bool current, uint32_t fm
     
     setFieldAtributes( fmtDesc );
     
-    if      (( index >= 0   ) && ( index <= 10 ))   winPrintf( stdout, (char *) "(%1d:%1d)  ", stack, index );
-    else if (( index >= 10  ) && ( index <= 99 ))   winPrintf( stdout, (char *) "(%1d:%2d) ", stack, index );
-    else                                            winPrintf( stdout, (char *) "-***-" );
+    if      (( index >= 0   ) && ( index <= 10 ))   glb -> console -> printChars((char *) "(%1d:%1d)  ", stack, index );
+    else if (( index >= 10  ) && ( index <= 99 ))   glb -> console -> printChars((char *) "(%1d:%2d) ", stack, index );
+    else                                            glb -> console -> printChars((char *) "-***-" );
     
-    winPrintf( stdout, (( current ) ? (char *) "* " : (char *) "  " ));
+    glb -> console -> printChars((( current ) ? (char *) "* " : (char *) "  " ));
     
     lastRowPos  = row;
     lastColPos  = col + 9;
@@ -2470,7 +2432,7 @@ void DrvWinDisplay::reDraw( bool mustRedraw ) {
         setAbsCursor( 1, 1 );
         clearScrollArea( );
         clearScreen( );
-        
+
         setScrollArea( actualRowSize - cmdWin -> getRows( ) + 2, actualRowSize );
     }
     

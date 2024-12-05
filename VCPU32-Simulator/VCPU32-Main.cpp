@@ -105,7 +105,7 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.ioDesc.priority             = 3;
     
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
-    glbDesc.console                     = new DrvConsoleIo( );
+    glbDesc.console                     = new DrvConsoleIO( );
     
     glbDesc.console -> setConsoleModeRaw( );
     

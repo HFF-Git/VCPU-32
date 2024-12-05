@@ -31,18 +31,7 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
-//------------------------------------------------------------------------------------------------------------
-// "displayInvalidWord" shows a set of "*" when we cannot get a value for word. We make the length of the
-// "*" string according to the current radix.
-//
-//------------------------------------------------------------------------------------------------------------
-void displayInvalidWord( int rdx ) {
-    
-    if      ( rdx == 10 )  fprintf( stdout, "**********" );
-    else if ( rdx == 8  )  fprintf( stdout, "************" );
-    else if ( rdx == 16 )  fprintf( stdout, "**********" );
-    else fprintf( stdout, "**num**" );
-}
+
 
 }; // namespace
 
@@ -65,34 +54,33 @@ void DrvLineDisplay::lineDefaults( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "displayInvalidWord" shows a set of "*" when we cannot get a value for word. We make the length of the
+// "*" string according to the current radix.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvLineDisplay::displayInvalidWord( int rdx ) {
+    
+    if      ( rdx == 10 )  fprintf( stdout, "**********" );
+    else if ( rdx == 8  )  fprintf( stdout, "************" );
+    else if ( rdx == 16 )  fprintf( stdout, "**********" );
+    else fprintf( stdout, "**num**" );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // "displayWord" lists out a 32-bit machine word in the specified number base. If the format parameter is
 // omitted or set to "default", the environment variable for the base number is used.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvLineDisplay::displayWord( uint32_t val, int rdx ) {
     
-#if 0  // test .....
-    
-    if      ( rdx == 10 )  fprintf( stdout, "%10d", val );
-    else if ( rdx == 8  )  fprintf( stdout, "%#012o", val );
+    if      ( rdx == 10 )  glb -> console -> printChars( "%10d", val );
+    else if ( rdx == 8  )  glb -> console -> printChars( "%#012o", val );
     else if ( rdx == 16 )  {
         
-        if ( val == 0 ) fprintf( stdout, "0x00000000" );
-        else fprintf( stdout, "%#010x", val );
+        if ( val == 0 ) glb -> console -> printChars( "0x00000000" );
+        else glb -> console -> printChars( "%#010x", val );
     }
-    else fprintf( stdout, "**num**" );
-#else
-    
-    if      ( rdx == 10 )  glb -> console -> printfConsole( "%10d", val );
-    else if ( rdx == 8  )  glb -> console -> printfConsole( "%#012o", val );
-    else if ( rdx == 16 )  {
-        
-        if ( val == 0 ) glb -> console -> printfConsole( "0x00000000" );
-        else glb -> console -> printfConsole( "%#010x", val );
-    }
-    else glb -> console -> printfConsole( "**num**" );
-    
-#endif
+    else glb -> console -> printChars( "**num**" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -102,14 +90,14 @@ void DrvLineDisplay::displayWord( uint32_t val, int rdx ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvLineDisplay::displayHalfWord( uint32_t val, int rdx ) {
     
-    if      ( rdx == 10 )  fprintf( stdout, "%5d", val );
-    else if ( rdx == 8  ) fprintf( stdout, "%06o", val );
+    if      ( rdx == 10 )  glb -> console -> printChars( "%5d", val );
+    else if ( rdx == 8  )  glb -> console -> printChars( "%06o", val );
     else if ( rdx == 16 )  {
         
-        if ( val == 0 ) fprintf( stdout, "0x0000" );
-        else fprintf( stdout, "%#05x", val );
+        if ( val == 0 ) glb -> console -> printChars( "0x0000" );
+        else glb -> console -> printChars( "%#05x", val );
     }
-    else fprintf( stdout, "**num**" );
+    else glb -> console -> printChars( "**num**" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -124,12 +112,12 @@ void DrvLineDisplay::displayRegsAndLabel(   RegClass  regSetId,
                                             char      *lineLabel,
                                             int       rdx ) {
     
-    if ( strlen( lineLabel ) > 0 ) fprintf( stdout, "%s", lineLabel );
+    if ( strlen( lineLabel ) > 0 ) glb -> console -> printChars( "%s", lineLabel );
     
     for ( int i = regStart; i < regStart + numOfRegs; i++ ) {
         
         displayWord( glb -> cpu -> getReg( regSetId, i ), rdx );
-        if ( i < regStart + numOfRegs ) fprintf( stdout, " " );
+        if ( i < regStart + numOfRegs ) glb -> console -> printChars( " " );
     }
 }
 
@@ -142,94 +130,94 @@ void DrvLineDisplay::displayRegsAndLabel(   RegClass  regSetId,
 void DrvLineDisplay::displayGeneralRegSet( int rdx ) {
     
     displayRegsAndLabel( RC_GEN_REG_SET, 0, 8, ((char *) "R0=   " ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
     displayRegsAndLabel( RC_GEN_REG_SET, 8, 8, ((char *) "R8=   " ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 void DrvLineDisplay::displaySegmentRegSet( int rdx ) {
     
     displayRegsAndLabel( RC_SEG_REG_SET, 0, 8, ((char *) "S0=   " ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 void DrvLineDisplay::displayControlRegSet( int rdx ) {
     
     displayRegsAndLabel( RC_CTRL_REG_SET, 0, 8, ((char *) "CR0=  " ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
     
     displayRegsAndLabel( RC_CTRL_REG_SET, 8, 8, ((char *) "CR8=  " ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
     
     displayRegsAndLabel( RC_CTRL_REG_SET, 16, 8, ((char *) "CR16= " ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
     
     displayRegsAndLabel( RC_CTRL_REG_SET, 24, 8, ((char *) "CR24= " ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 void DrvLineDisplay::displayPStateRegSet( int rdx ) {
     
-    fprintf( stdout, "PSW0=   " );
+    glb -> console -> printChars( "PSW0=   " );
     displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0 ), rdx );
-    fprintf( stdout, ", PSW1=   " );
+    glb -> console -> printChars( ", PSW1=   " );
     displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 void DrvLineDisplay::displayPlIFetchDecodeRegSet( int rdx ) {
     
     if ( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
-        fprintf( stdout, "FD(S): PSW=" );
+        glb -> console -> printChars( "FD(S): PSW=" );
     else
-        fprintf( stdout, "FD:    PSW=" );
+        glb -> console -> printChars( "FD:    PSW=" );
     
     displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0), rdx );
-    fprintf( stdout, "." );
+    glb -> console -> printChars( "." );
     displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 void DrvLineDisplay::displayPlMemoryAccessRegSet( int rdx ) {
     
     if ( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
-        fprintf( stdout, "MA(S): PSW=" );
+        glb -> console -> printChars( "MA(S): PSW=" );
     else
-        fprintf( stdout, "MA:    PSW=" );
+        glb -> console -> printChars( "MA:    PSW=" );
     
     displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_0 ), rdx );
-    fprintf( stdout, "." );
+    glb -> console -> printChars( "." );
     displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_1 ), rdx );
-    fprintf( stdout, " I=" );
+    glb -> console -> printChars( " I=" );
     displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_INSTR ), rdx );
-    fprintf( stdout, " A=" );
+    glb -> console -> printChars( " A=" );
     displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_A ), rdx );
-    fprintf( stdout, " B=" );
+    glb -> console -> printChars( " B=" );
     displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_B ), rdx );
-    fprintf( stdout, " X=" );
+    glb -> console -> printChars( " X=" );
     displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_VAL_X ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 void DrvLineDisplay::displayPlExecuteRegSet( int rdx ) {
     
     if ( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_STALLED ) == 1 )
-        fprintf( stdout, "EX(S): PSW=" );
+        glb -> console -> printChars( "EX(S): PSW=" );
     else
-        fprintf( stdout, "EX:    PSW=" );
+        glb -> console -> printChars( "EX:    PSW=" );
     
     displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_0 ), rdx );
-    fprintf( stdout, "." );
+    glb -> console -> printChars( "." );
     displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_1 ), rdx );
-    fprintf( stdout, " I=" );
+    glb -> console -> printChars( " I=" );
     displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_INSTR ), rdx );
-    fprintf( stdout, " A=" );
+    glb -> console -> printChars( " A=" );
     displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_A ), rdx );
-    fprintf( stdout, " B=" );
+    glb -> console -> printChars( " B=" );
     displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_B ), rdx );
-    fprintf( stdout, " X=" );
+    glb -> console -> printChars( " X=" );
     displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_VAL_X ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 void DrvLineDisplay::displayPlRegSets( int rdx ) {
@@ -241,44 +229,44 @@ void DrvLineDisplay::displayPlRegSets( int rdx ) {
 
 void DrvLineDisplay::displayMemObjRegSet( CpuMem *mem, int rdx ) {
     
-    fprintf( stdout, "State:   %s\n", mem -> getMemOpStr( mem -> getMemCtrlReg( MC_REG_STATE )));
+    glb -> console -> printChars( "State:   %s\n", mem -> getMemOpStr( mem -> getMemCtrlReg( MC_REG_STATE )));
   
-    fprintf( stdout, "Seg:ofs: " );
+    glb -> console -> printChars( "Seg:ofs: " );
     displayWord( mem -> getMemCtrlReg( MC_REG_REQ_SEG ), rdx );
-    fprintf( stdout, ":" );
+    glb -> console -> printChars( ":" );
     displayWord( mem -> getMemCtrlReg( MC_REG_REQ_OFS ), rdx );
-    fprintf( stdout, ", Tag: " );
+    glb -> console -> printChars( ", Tag: " );
     displayWord( mem -> getMemCtrlReg( MC_REG_REQ_TAG ), rdx );
-    fprintf( stdout, ", Len: " );
+    glb -> console -> printChars( ", Len: " );
     displayWord( mem -> getMemCtrlReg( MC_REG_REQ_LEN ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
     
-    fprintf( stdout, "Block Entries: " );
+    glb -> console -> printChars( "Block Entries: " );
     displayWord( mem -> getMemCtrlReg( MC_REG_BLOCK_ENTRIES ), rdx );
-    fprintf( stdout, ", Block Size: " );
+    glb -> console -> printChars( ", Block Size: " );
     displayWord( mem -> getMemCtrlReg( MC_REG_BLOCK_SIZE ), rdx );
-    fprintf( stdout, ", Sets: " );
+    glb -> console -> printChars( ", Sets: " );
     displayWord( mem -> getMemCtrlReg( MC_REG_SETS ), rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 void DrvLineDisplay::displayTlbObjRegSet( CpuTlb *tlb, int rdx ) {
     
-    fprintf( stdout, "Display TLB reg set ... to do ... \n" );
+    glb -> console -> printChars( "Display TLB reg set ... to do ... \n" );
 }
     
 void DrvLineDisplay::displayAllRegSets( int rdx ) {
     
     displayGeneralRegSet( rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
     displaySegmentRegSet( rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
     displayControlRegSet( rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
     displayPStateRegSet( rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
     displayPlRegSets( rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -287,25 +275,29 @@ void DrvLineDisplay::displayAllRegSets( int rdx ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvLineDisplay::displayTlbEntry( TlbEntry *entry, int rdx ) {
     
-    fprintf( stdout, "[" );
-    if ( entry -> tValid( ))            fprintf( stdout, "V" ); else fprintf( stdout, "v" );
-    if ( entry -> tDirty( ))            fprintf( stdout, "D" ); else fprintf( stdout, "d" );
-    if ( entry -> tTrapPage( ))         fprintf( stdout, "P" ); else fprintf( stdout, "p" );
-    if ( entry -> tTrapDataPage( ))     fprintf( stdout, "D" ); else fprintf( stdout, "d" );
-    fprintf( stdout, "]" );
+    glb -> console -> printChars( "[" );
+    if ( entry -> tValid( ))            glb -> console -> printChars( "V" );
+    else glb -> console -> printChars( "v" );
+    if ( entry -> tDirty( ))            glb -> console -> printChars( "D" );
+    else glb -> console -> printChars( "d" );
+    if ( entry -> tTrapPage( ))         glb -> console -> printChars( "P" );
+    else glb -> console -> printChars( "p" );
+    if ( entry -> tTrapDataPage( ))     glb -> console -> printChars( "D" );
+    else glb -> console -> printChars( "d" );
+    glb -> console -> printChars( "]" );
     
-    fprintf( stdout, " Acc: (%d,%d,%d)", entry -> tPageType( ), entry -> tPrivL1( ), entry -> tPrivL2( ));
+    glb -> console -> printChars( " Acc: (%d,%d,%d)", entry -> tPageType( ), entry -> tPrivL1( ), entry -> tPrivL2( ));
     
-    fprintf( stdout, " Pid: " );
+    glb -> console -> printChars( " Pid: " );
     displayHalfWord( entry -> tSegId( ), rdx );
     
-    fprintf( stdout, " Vpn-H: " );
+    glb -> console -> printChars( " Vpn-H: " );
     displayWord( entry -> vpnHigh, rdx );
     
-    fprintf( stdout, " Vpn-L: " );
+    glb -> console -> printChars( " Vpn-L: " );
     displayWord( entry -> vpnLow, rdx );
     
-    fprintf( stdout, " PPN: " );
+    glb -> console -> printChars( " PPN: " );
     displayHalfWord( entry -> tPhysPage( ), rdx  );
 }
 
@@ -320,15 +312,15 @@ void DrvLineDisplay::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t le
         for ( uint32_t i = index; i < index + len; i++  ) {
             
             displayWord( i, rdx  );
-            fprintf( stdout, ": " );
+            glb -> console -> printChars( ": " );
             
             TlbEntry *ptr = tlb -> getTlbEntry( i );
             if ( ptr != nullptr ) displayTlbEntry( ptr, rdx );
             
-            fprintf( stdout, "\n" );
+            glb -> console -> printChars( "\n" );
         }
         
-    } else fprintf( stdout, "index + len out of range\n" );
+    } else glb -> console -> printChars( "index + len out of range\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -345,38 +337,38 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
    
     if ( index + len >=  cPtr -> getBlockEntries( )) {
         
-        fprintf( stdout, " cache index + len out of range\n" );
+        glb -> console -> printChars( " cache index + len out of range\n" );
         return;
     }
     
     for ( uint32_t lineIndex = index; lineIndex < index + len; lineIndex++  ) {
         
         displayWord( lineIndex, rdx  );
-        fprintf( stdout, ": " );
+        glb -> console -> printChars( ": " );
         
         if ( blockSets >= 1 ) {
             
             MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( lineIndex, 0 );
             uint32_t    *dataPtr    = (uint32_t *) cPtr -> getMemBlockEntry( lineIndex, 0 );
             
-            fprintf( stdout, "(0)[" );
-            if ( tagPtr -> valid )  fprintf( stdout, "V" ); else fprintf( stdout, "v" );
-            if ( tagPtr -> dirty )  fprintf( stdout, "D" ); else fprintf( stdout, "d" );
-            fprintf( stdout, "] (" );
+            glb -> console -> printChars( "(0)[" );
+            if ( tagPtr -> valid )  glb -> console -> printChars( "V" ); else glb -> console -> printChars( "v" );
+            if ( tagPtr -> dirty )  glb -> console -> printChars( "D" ); else glb -> console -> printChars( "d" );
+            glb -> console -> printChars( "] (" );
             displayWord( tagPtr -> tag, rdx );
-            fprintf( stdout, ") \n" );
+            glb -> console -> printChars( ") \n" );
             
             for ( int i = 0; i < linesPerBlock; i++  ) {
                 
-                fprintf( stdout, "            (" );
+                glb -> console -> printChars( "            (" );
                 
                 for ( int j = 0; j < wordsPerLine; j++ ) {
                     
                     displayWord( dataPtr[ ( i * wordsPerLine ) + j ], rdx );
-                    if ( i < 3 ) fprintf( stdout, " " );
+                    if ( i < 3 ) glb -> console -> printChars( " " );
                 }
                 
-                fprintf( stdout, ") \n" );
+                glb -> console -> printChars( ") \n" );
             }
         }
         
@@ -385,24 +377,24 @@ void DrvLineDisplay::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
             MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( lineIndex, 0 );
             uint32_t    *dataPtr    = (uint32_t *) cPtr -> getMemBlockEntry( lineIndex, 1 );
             
-            fprintf( stdout, "            (1)[" );
-            if ( tagPtr -> valid )  fprintf( stdout, "V" ); else fprintf( stdout, "v" );
-            if ( tagPtr -> dirty )  fprintf( stdout, "D" ); else fprintf( stdout, "d" );
-            fprintf( stdout, "] (" );
+            glb -> console -> printChars( "            (1)[" );
+            if ( tagPtr -> valid )  glb -> console -> printChars( "V" ); else glb -> console -> printChars( "v" );
+            if ( tagPtr -> dirty )  glb -> console -> printChars( "D" ); else glb -> console -> printChars( "d" );
+            glb -> console -> printChars( "] (" );
             displayWord( tagPtr -> tag, rdx );
-            fprintf( stdout, ")\n" );
+            glb -> console -> printChars( ")\n" );
             
             for ( int i = 0; i < linesPerBlock; i++  ) {
                 
-                fprintf( stdout, "            (" );
+                glb -> console -> printChars( "            (" );
                 
                 for ( int j = 0; j < wordsPerLine; j++ ) {
                     
                     displayWord( dataPtr[ ( i * wordsPerLine ) + j ], rdx );
-                    if ( i < 3 ) fprintf( stdout, " " );
+                    if ( i < 3 ) glb -> console -> printChars( " " );
                 }
                 
-                fprintf( stdout, ") \n" );
+                glb -> console -> printChars( ") \n" );
             }
         }
     }
@@ -428,7 +420,7 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx 
     while ( index < limit ) {
         
         glb -> lineDisplay -> displayWord( index, rdx );
-        fprintf( stdout, ": " );
+        glb -> console -> printChars( ": " );
         
         for ( uint32_t i = 0; i < wordsPerLine; i++ ) {
             
@@ -449,15 +441,15 @@ void  DrvLineDisplay::displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx 
                 else displayInvalidWord( rdx );
             }
                 
-            fprintf( stdout, " " );
+            glb -> console -> printChars( " " );
             
             index += 4;
         }
         
-        fprintf( stdout, "\n" );
+        glb -> console -> printChars( "\n" );
     }
     
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -475,7 +467,7 @@ void  DrvLineDisplay::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, in
     while ( index < limit ) {
         
         glb -> lineDisplay -> displayWord( index, rdx );
-        fprintf( stdout, ": " );
+        glb -> console -> printChars( ": " );
         
         if (( physMem != nullptr ) && ( physMem -> validAdr( index ))) {
             
@@ -491,12 +483,12 @@ void  DrvLineDisplay::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, in
         }
         else displayInvalidWord( rdx );
         
-        fprintf( stdout, "\n" );
+        glb -> console -> printChars( "\n" );
             
         index += 1;
     }
        
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 
