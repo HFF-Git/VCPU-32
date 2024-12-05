@@ -346,7 +346,7 @@ void parseExpr( DrvExpr *rExpr ) {
         tok -> nextToken( );
         parseTerm( rExpr );
         
-        if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal = - rExpr -> numVal;
+        if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal = - (int32_t) rExpr -> numVal;
         else throw( ERR_EXPECTED_NUMERIC );
     }
     else parseTerm( rExpr );
