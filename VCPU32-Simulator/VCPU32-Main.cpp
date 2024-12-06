@@ -106,9 +106,6 @@ int main( int argc, const char* argv[ ] ) {
     
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
     glbDesc.console                     = new DrvConsoleIO( );
-    
-    glbDesc.console -> setConsoleModeRaw( );
-    
     glbDesc.env                         = new DrvEnv( &glbDesc, MAX_ENV_VARIABLES );
     glbDesc.cmds                        = new DrvCmds( &glbDesc );
     glbDesc.tok                         = new DrvTokenizer( &glbDesc );
@@ -118,21 +115,10 @@ int main( int argc, const char* argv[ ] ) {
     glbDesc.disAsm                      = new DrvDisAssembler( &glbDesc );
     glbDesc.oneLineAsm                  = new DrvOneLineAsm( &glbDesc );
     
-    glbDesc.env         -> setupPredefined( );
-    glbDesc.cmds        -> setupCmdInterpreter( argc, argv );
-    glbDesc.cpu         -> reset( );
+    glbDesc.console  -> setConsoleModeRaw( );
+    glbDesc.env      -> setupPredefined( );
+    glbDesc.cmds     -> setupCmdInterpreter( argc, argv );
+    glbDesc.cpu      -> reset( );
     
-    
-#if 0
-    while ( true )  {
-        
-        char buf[ 100 ];
-        
-        int ret = console -> readInputLine( buf );
-        fprintf( stdout, "%s\n", buf );
-    }
-#else
-    glbDesc.cmds        -> cmdInterpreterLoop( );
-#endif
-    
+    glbDesc.cmds     -> cmdInterpreterLoop( );
 }

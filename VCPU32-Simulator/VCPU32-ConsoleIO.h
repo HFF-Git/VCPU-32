@@ -65,19 +65,20 @@
 #endif
 
 #include "VCPU32-Types.h"
-#include "VCPU32-ConsoleIo.h"
+#include "VCPU32-ConsoleIO.h"
 
 //------------------------------------------------------------------------------------------------------------
-// Console IO object. The simulator is a character based interface. There are two modes. In the first mode,
-// the simulator runs and all IO is for command lines, windwos and so on. When control is given to the CPU
-// code, the console IO is mapped to a virtual console confugured in the IO address space. This interface
-// will write and read a character at a time. The typical terminal IO functionality such as buffered data
-// inout and output needs to be disabled. We run a bare bone console so to speak.
+// Console IO object. The simulator is a character based interface. The typical terminal IO functionality
+// such as buffered data input and output needs to be disabled. We run a bare bone console so to speak.There
+// are two modes. In the first mode, the simulator runs and all IO is for command lines, windows and so on.
+// When control is given to the CPU code, the console IO is mapped to a virtual console configured in the IO
+// address space. This interface will also write and read a character at a time.
 //
-// The "printf" style writing is using a template for defineing the function. The implementing code needs to
-// be declared in the include file, so that the compiler can use the template where needed. It looks a bit
-// ugly, but seems to be the only working way. Since we had a couple of issues with the window drawing
-// functions of the simulator, there is additional code to catch the issue. So far, it did not occur again.
+// The "printf" style writing is using a function template for defining the function. The implementing code
+// needs to be declared in the include file, so that the compiler can use the template where needed. It looks
+// a bit ugly to have code inside an include file, but seems to be the only working way. Since we had a couple
+// of issues with the window drawing functions of the simulator, there is additional code to catch the issue.
+// So far, it did not occur again.
 //
 //------------------------------------------------------------------------------------------------------------
 struct DrvConsoleIO {
@@ -86,27 +87,27 @@ struct DrvConsoleIO {
     
     DrvConsoleIO( );
     
+    bool    isConsole( );
     int     readChar( );
     void    writeChar( char ch  );
     void    saveConsoleMode( );
     void    setConsoleModeRaw( );
     void    resetConsoleMode( );
-    bool    readLine( char *cmdBuf );
+    int     readLine( char *cmdBuf );
+    int     printNum( uint32_t num, int rdx );
     
-    template<typename... Args>
-    int printChars( const char* fmt, Args&&... args ) {
+    template<typename... Args> int printChars( const char* fmt, Args&&... args ) {
         
-        static char buf[ 512 ];
-        size_t      len = 0;
+        size_t len = 0;
         
         do {
             
-            len = snprintf( buf, sizeof( buf ), fmt, args... );
+            len = snprintf( printBuf, sizeof( printBuf ), fmt, args... );
            
             if (( len < 0 ) && ( errno != EINTR )) {
                 
-                fprintf( stderr, "winPrintf (snprintf) error, errno: %d, %s\n", errno, strerror(errno));
-                fflush( stdout );
+                fprintf( stderr, "winPrintf (snprintf) error, errno: %d, %s\n", errno, strerror( errno ));
+                fflush( stderr );
                 exit( errno );
             }
             
@@ -114,11 +115,15 @@ struct DrvConsoleIO {
         
         if ( len > 0 ) {
             
-            for ( int i = 0; i < len; i++  ) writeChar( buf[ i ] );
+            for ( int i = 0; i < len; i++  ) writeChar( printBuf[ i ] );
         }
         
         return( static_cast<int>(len));
     }
+    
+    private:
+    
+    char printBuf[ 1024 ];
 };
 
 #endif /* VCPU32_ConsoleIo_h */

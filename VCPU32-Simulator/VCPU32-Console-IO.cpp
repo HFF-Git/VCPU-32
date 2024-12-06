@@ -3,14 +3,13 @@
 // VCPU32 - A 32-bit CPU - Console IO
 //
 //------------------------------------------------------------------------------------------------------------
-// Console IO is the piece of code that provide a single character interface for the terminal screen. For the
-// siumlator running in CPU mode, the charactaers are taken from and place into the virtual console declared
-// on the IO space. For the simulator, it is just plain character IO to the terminal screen.
+// Console IO is the piece of code that provides a single character interface for the terminal screen.  For
+// the simulator, it is just plain character IO to the terminal screen.For the simulator running in CPU mode,
+// the charactaers are taken from and place into the virtual console declared on the IO space.
 //
-// Unfortunately, windows and macs differ. The standard system calls typically buffer the input
-// up to the carriage return. To avoid this, the terminal needs to be place in "raw" mode. And this
-// is different for the two platforms.
-//
+// Unfortunately, PCs and Macs differ. The standard system calls typically buffer the input up to the carriage
+// return. To avoid this, the terminal needs to be place in "raw" mode. And this is different for the two
+// platforms.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -31,17 +30,15 @@
 #include "VCPU32-ConsoleIO.h"
 #include "VCPU32-Driver.h"
 
-
 //------------------------------------------------------------------------------------------------------------
-//
-//
+// Local name space.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
 #if __APPLE__
 
-    struct termios saveTermSetting;
+struct termios saveTermSetting;
 
 #else
 
@@ -60,18 +57,25 @@ DrvConsoleIO::DrvConsoleIO( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "isConsole" is used by teh command interpreter to figure whether we have a true terminal or just read from
+// a file.
+//
+//------------------------------------------------------------------------------------------------------------
+bool  DrvConsoleIO::isConsole( ) {
+    
+    return( isatty( fileno( stdin )));
+}
+
+//------------------------------------------------------------------------------------------------------------
 // On Mac/Linux the terminal needs to be set into raw chacater mode. The following routines will save the
-// current settings, set the raw mode attributes, and restore the saved settings.
+// current settings, set the raw mode attributes, and restore the saved settings. For a windows system, these
+// methods are a no operation.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvConsoleIO::saveConsoleMode( ) {
     
 #if __APPLE__
-    
     tcgetattr( fileno( stdin ), &saveTermSetting );
-    
-#else
-    
 #endif
     
 }
@@ -79,15 +83,11 @@ void DrvConsoleIO::saveConsoleMode( ) {
 void DrvConsoleIO::setConsoleModeRaw( ) {
     
 #if __APPLE__
-
     struct termios term;
     tcgetattr( fileno( stdin ), &term );
     term.c_lflag &= ~ (ICANON | ECHO );
     term.c_iflag &= ~IGNBRK;
     tcsetattr( fileno( stdin ), TCSANOW, &term );
-    
-#else
-    
 #endif
     
 }
@@ -95,57 +95,50 @@ void DrvConsoleIO::setConsoleModeRaw( ) {
 void DrvConsoleIO::resetConsoleMode( ) {
     
 #if __APPLE__
-    
     tcsetattr( fileno( stdin ), TCSANOW, &saveTermSetting );
-    
-#else
-    
 #endif
     
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "readConsoleChar" is the single entry point to get a character from the terminal.
+// "readConsoleChar" is the single entry point to get a character from the terminal. On a Mac/Linux, this is
+// the "getchar" system call. On windows there is a similar call, which does just return one character at a
+// time.
 //
 //------------------------------------------------------------------------------------------------------------
 int DrvConsoleIO::readChar(  ) {
     
 #if __APPLE__
-
     return( getchar( ));
-    
 #else
-    
     return(_getch());
-    
 #endif
     
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "writeConsoleChar" is the single entry point to write to the terminal.
+// "writeConsoleChar" is the single entry point to write to the terminal. On a Mac/Linux, this is the
+// "putchar" system call. On windows there is a similar call, which does just prints one character at a
+// time.
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvConsoleIO::writeChar( char ch  ) {
     
 #if __APPLE__
-
-    write( fileno( stdout), &ch, 1 );
-    
+    putchar( ch );
 #else
-
     _putch( int(ch) );
-
 #endif
     
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "readInputLine" is used by the command line interpreter to get the command. Since we run in raw mode, the
-// basic handling of backspace, carriage return, etc. needs to be handled directly.
+// basic handling of backspace, carriage return, etc. needs to be handled directly. Characters other than the
+// special chracters are piled up in a local buffer until we read in a carriage return. 
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvConsoleIO::readLine( char *cmdBuf ) {
+int DrvConsoleIO::readLine( char *cmdBuf ) {
     
     int ch;
     int index = 0;
@@ -156,24 +149,24 @@ bool DrvConsoleIO::readLine( char *cmdBuf ) {
         
         if ( ch == -1 ) {
             
-            return( false );
+            return( -1 );
         }
         else if ( ch == 25 ) {
             
             // handle control Y, does not work yet ????
+            return( -1 );
         }
         else if (( ch == '\n' ) || ( ch == '\r' )) {
             
             cmdBuf[ index ] = '\0';
             writeChar( ch );
-            return ( true );
+            return ( index );
         }
         else if (( ch == 8 ) || ( ch == 127 )) {
-           
+            
             if ( index > 0 ) {
                 
                 index --;
-                
                 writeChar( '\b' );
                 writeChar( ' ' );
                 writeChar( '\b' );
@@ -184,15 +177,36 @@ bool DrvConsoleIO::readLine( char *cmdBuf ) {
             
             if ( index < CMD_LINE_BUF_SIZE - 1 ) {
                 
-                cmdBuf[ index ] = (char) ch;
-                index ++;
-                writeChar((char) ch );
+                if ( isprint( ch )) {
+                    
+                    cmdBuf[ index ] = (char) ch;
+                    index ++;
+                    writeChar((char) ch );
+                }
             }
             else {
                 
                 cmdBuf[ index ] = '\0';
-                return( false );
+                return( -1 );
             }
         }
     }
 }
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+int DrvConsoleIO::printNum( uint32_t num, int rdx ) {
+    
+    if      ( rdx == 10 )  return( printChars( "%d", num ));
+    else if ( rdx == 8  )  return( printChars( "%#012o", num ));
+    else if ( rdx == 16 )  {
+        
+        if ( num == 0 ) return( printChars( "0x0" ));
+        else return( printChars( "%#010x", num ));
+    }
+    else return( printChars( "**num**" ));
+}
+
+// ??? any other little helpers for printing ?

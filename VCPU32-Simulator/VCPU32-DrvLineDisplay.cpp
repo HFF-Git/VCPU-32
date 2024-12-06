@@ -60,10 +60,10 @@ void DrvLineDisplay::lineDefaults( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvLineDisplay::displayInvalidWord( int rdx ) {
     
-    if      ( rdx == 10 )  fprintf( stdout, "**********" );
-    else if ( rdx == 8  )  fprintf( stdout, "************" );
-    else if ( rdx == 16 )  fprintf( stdout, "**********" );
-    else fprintf( stdout, "**num**" );
+    if      ( rdx == 10 )   glb -> console -> printChars( "**********" );
+    else if ( rdx == 8  )   glb -> console -> printChars( "************" );
+    else if ( rdx == 16 )   glb -> console -> printChars( "**********" );
+    else                    glb -> console -> printChars( "**num**" );
 }
 
 //------------------------------------------------------------------------------------------------------------

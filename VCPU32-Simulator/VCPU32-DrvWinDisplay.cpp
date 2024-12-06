@@ -346,7 +346,7 @@ int DrvWin::getWinCursorCol( ) { return( lastColPos ); }
 //------------------------------------------------------------------------------------------------------------
 // Building a screen will imply a ton of escape sequence to send to the terminal screen. The following batch
 // of routines will put out the escape sequence for clearing data, position a cursor and so on. There is
-// a lot of printf that will take place. A future version could come up with a string concatenation scheme,
+// a lot of writing that will take place. A future version could come up with a string concatenation scheme,
 // and use fewer writes.
 //
 //------------------------------------------------------------------------------------------------------------

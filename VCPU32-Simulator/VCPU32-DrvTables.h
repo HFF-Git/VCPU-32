@@ -150,7 +150,7 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "TX",                 .typ = TYP_SYM,                 .tid = TOK_TX                           },
     
     { .name = "WCOMMANDS",          .typ = TYP_WCMD,                .tid = WCMD_SET                         },
-    { .name = "WTYPES",             .typ = TYP_WCMD,                .tid = CMD_WTYPES                       },
+    { .name = "WTYPES",             .typ = TYP_WTYP,                .tid = WTYPE_SET                        },
     
     //--------------------------------------------------------------------------------------------------------
     // General registers.
@@ -449,7 +449,7 @@ const int MAX_ERR_MSG_TAB = sizeof( errMsgTab ) / sizeof( DrvErrMsgTabEntry );
 DrvHelpMsgEntry const cmdHelpTab[ ] = {
     
     //--------------------------------------------------------------------------------------------------------
-    //
+    // Commands.
     //
     //--------------------------------------------------------------------------------------------------------
     {
@@ -614,7 +614,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     },
     
     //--------------------------------------------------------------------------------------------------------
-    //
+    // Window commands and types.
     //
     //--------------------------------------------------------------------------------------------------------
     {
@@ -806,36 +806,38 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
         .helpStr        = (char *)  "moves a range of user windows into stack <stackNum>"
     },
     
+    // ??? need to put them in separate entries, somehow the print fails....
     {
-        .helpTypeId     = TYP_WCMD, .helpTokId  = CMD_WTYPES,
+        .helpTypeId     = TYP_WTYP, .helpTokId  = WTYPE_SET,
         .cmdNameStr     = (char *)  "window types",
-        .cmdSyntaxStr   = (char *)  "window types",
+        .cmdSyntaxStr   = (char *)  "",
         .helpStr        = (char *)  "\n" "\n"
-                                    "PS " " - " "program state window" "\n"
-                                    "SR " " - " "special register window" "\n"
-                                    "PL " " - " "pipeline register window" "\n"
-                                    "ST " " - " "statistics window" "\n"
-                                    "IT " " - " "instruction tlb window" "\n"
-                                    "DT " " - " "data tlb window" "\n"
-                                    "IC " " - " "instruction cache window" "\n"
-                                    "DC " " - " "data cache window" "\n"
-                                    "UC " " - " "unified cache window" "\n"
-                                    "PM " " - " "physical memory window" "\n"
-                                    "PC " " - " "program code memory window" "\n"
-                                    "TX " " - " "text window" "\n"
-                                    "CW " " - " "command line window" "\n"
-                                    "ICR" " - " "instruction cache controller register window" "\n"
-                                    "DCR" " - " "data cache controller register window" "\n"
-                                    "UCR" " - " "unified cache controller register window" "\n"
-                                    "MCR" " - " "physical memory controller register window" "\n"
-                                    "ITR" " - " "instruction tlb controller register window" "\n"
-                                    "DTR" " - " "data tlb controller register window" "\n"
-                                    "PCR" " - " "PDC memory controller register window" "\n"
-                                    "IOR" " - " "IO memory controller register window" "\n"
+                                    "PS   - " "program state window" "\n"
+                                    "SR   - " "special register window" "\n"
+                                    "PL   - " "pipeline register window" "\n"
+                                    "ST   - " "statistics window" "\n"
+                                    "IT   - " "instruction tlb window" "\n"
+                                    "DT   - " "data tlb window" "\n"
+                                    "IC   - " "instruction cache window" "\n"
+                                    "DC   - " "data cache window" "\n"
+                                    "UC   - " "unified cache window" "\n"
+                                    "PM   - " "physical memory window" "\n"
+                                    "PC   - " "program code memory window" "\n"
+                                    "TX   - " "text window" "\n"
+                                    "CW   - " "command line window" "\n"
+        
+                                    "ICR  - " "instruction cache controller register window" "\n"
+                                    "DCR  - " "data cache controller register window" "\n"
+                                    "UCR  - " "unified cache controller register window" "\n"
+                                    "MCR  - " "physical memory controller register window" "\n"
+                                    "ITR  - " "instruction tlb controller register window" "\n"
+                                    "DTR  - " "data tlb controller register window" "\n"
+                                    "PCR  - " "PDC memory controller register window" "\n"
+                                    "IOR  - " "IO memory controller register window" "\n"
     },
     
     //--------------------------------------------------------------------------------------------------------
-    //
+    // Predefined Functions.
     //
     //--------------------------------------------------------------------------------------------------------
     {

@@ -40,7 +40,7 @@
 #endif
 #endif
 
-#include "VCPU32-ConsoleIo.h"
+#include "VCPU32-ConsoleIO.h"
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
 
@@ -61,7 +61,8 @@ const int MAX_ENV_VARIABLES     = 256;
 enum TypeId : uint16_t {
 
     TYP_NIL                 = 0,        TYP_CMD                 = 1,        TYP_WCMD                = 2,
-    TYP_SYM                 = 3,        TYP_IDENT               = 4,        TYP_PREDEFINED_FUNC     = 5,
+    TYP_WTYP                = 3,        TYP_SYM                 = 4,        TYP_IDENT               = 5,
+    TYP_PREDEFINED_FUNC     = 6,
     
     TYP_NUM                 = 10,       TYP_STR                 = 11,       TYP_BOOL                = 12,
     TYP_ADR                 = 13,       TYP_EXT_ADR             = 14,       TYP_OP_CODE             = 15,
@@ -147,7 +148,7 @@ enum TokId : uint16_t {
     // Window Commands Tokens.
     //
     //--------------------------------------------------------------------------------------------------------
-    WCMD_SET                = 2000,     CMD_WTYPES              = 2001,
+    WCMD_SET                = 2000,     WTYPE_SET               = 2001,
     
     CMD_WON                 = 2002,     CMD_WOFF                = 2003,     CMD_WDEF                = 2004,
     CMD_CWL                 = 2005,     CMD_WSE                 = 2006,     CMD_WSD                 = 2007,
@@ -221,7 +222,7 @@ enum TokId : uint16_t {
     DC_L1_SETS              = 4729,     DC_L1_SET               = 4730,
     
     UC_L2_STATE             = 4740,     UC_L2_REQ               = 4741,     UC_L2_REQ_SEG           = 4742,
-    UC_L2_REQ_OFS           = 47243,     UC_L2_REQ_TAG          = 4744,     UC_L2_REQ_LEN           = 4745,
+    UC_L2_REQ_OFS           = 47243,    UC_L2_REQ_TAG           = 4744,     UC_L2_REQ_LEN           = 4745,
     UC_L2_LATENCY           = 4746,     UC_L2_BLOCK_ENTRIES     = 4747,     UC_L2_BLOCK_SIZE        = 4748,
     UC_L2_SETS              = 4749,     UC_L2_SET               = 4750,
     
@@ -549,7 +550,6 @@ struct DrvExpr {
         struct {    bool        bVal;                       };
         struct {    uint32_t    numVal;                     };
         struct {    char        strVal[ TOK_STR_SIZE ];     };
-        
         struct {    uint32_t adr;                           };
         struct {    uint8_t  sReg;  uint8_t gReg;           };
         struct {    uint32_t seg;   uint32_t ofs;           };
@@ -1231,7 +1231,7 @@ struct DrvCmds {
     void            acceptRparen( );
     
     void            promptCmdLine( );
-    bool            readInputLine( char *cmdBuf );
+    int             readInputLine( char *cmdBuf );
     void            evalInputLine( char *cmdBuf );
     void            execCmdsFromFile( char* fileName );
     

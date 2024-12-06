@@ -47,92 +47,9 @@ void upshiftStr( char *str ) {
     }
 }
 
-void printNum( uint32_t num, int rdx ) {
-    
-    if      ( rdx == 10 )  fprintf( stdout, "%d", num );
-    else if ( rdx == 8  )  fprintf( stdout, "%#012o", num );
-    else if ( rdx == 16 )  {
-        
-        if ( num == 0 ) fprintf( stdout, "0x0" );
-        else fprintf( stdout, "%#010x", num );
-    }
-    else fprintf( stdout, "**num**" );
-}
-
 int setRadix( int rdx ) {
     
     return((( rdx == 8 ) || ( rdx == 10 ) || ( rdx == 16 )) ? rdx : 10 );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// A little helper to print a caret indented by "pos".
-//
-//------------------------------------------------------------------------------------------------------------
-void markError( int pos ) {
-  
-    for ( int i = 0; i < pos; i++ ) fprintf( stdout, " " );
-    fprintf( stdout, "^ \n" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// List the help for windows command.
-//
-//------------------------------------------------------------------------------------------------------------
-void displayWindowHelp( ) {
-    
-    
-    
-    
-    const char FMT_STR[ ] = "%-32s%s\n";
-    
-    fprintf( stdout, "Windows help \n\n" );
-    fprintf( stdout, "General Syntax for Win Commands: <win><cmd> [ args ]\n\n" );
-    fprintf( stdout, "Windows:\n" );
-    fprintf( stdout, FMT_STR, "PS",  "Program state window" );
-    fprintf( stdout, FMT_STR, "SR",  "Special Register window" );
-    fprintf( stdout, FMT_STR, "PL",  "CPU Pipeline Registers window" );
-    fprintf( stdout, FMT_STR, "ST",  "Statistics window" );
-    fprintf( stdout, FMT_STR, "IT",  "CPU Instruction TLB window" );
-    fprintf( stdout, FMT_STR, "DT",  "CPU Data TLB window" );
-    fprintf( stdout, FMT_STR, "IC",  "CPU Instruction Cache (L1) window" );
-    fprintf( stdout, FMT_STR, "DC",  "CPU Data Cache (L1) window" );
-    fprintf( stdout, FMT_STR, "UC",  "CPU Unified Cache (L2) window" );
-    fprintf( stdout, FMT_STR, "PM",  "Physical Memory window" );
-    fprintf( stdout, FMT_STR, "PC",  "Program Code Window" );
-    fprintf( stdout, FMT_STR, "ICR", "CPU Instruction Cache (L1) controller registers" );
-    fprintf( stdout, FMT_STR, "DCR", "CPU Data Cache (L1) controller registers" );
-    fprintf( stdout, FMT_STR, "UCR", "CPU Unified Cache (L2) controller registers" );
-    fprintf( stdout, FMT_STR, "MCR", "Physical Memory controller registers" );
-    fprintf( stdout, FMT_STR, "ITR", "CPU Instruction TLB controller registers" );
-    fprintf( stdout, FMT_STR, "DTR", "CPU Data TLB controller registers" );
-    fprintf( stdout, FMT_STR, "PCR", "PDC Memory controller registers" );
-    fprintf( stdout, FMT_STR, "IOR", "IO Memory controller registers" );
-    fprintf( stdout, FMT_STR, "TX",  "Text Window" );
-    fprintf( stdout, FMT_STR, "CW",  "Command Line window" );
-    fprintf( stdout, FMT_STR, "W",   "User defined window" );
-    fprintf( stdout, "\n" );
-    
-    fprintf( stdout, "Commands:\n" );
-    fprintf( stdout, FMT_STR, "E [ <wNum> ]", "Enable window display" );
-    fprintf( stdout, FMT_STR, "D [ <wNum> ]", "Disable window display" );
-    fprintf( stdout, FMT_STR, "B <amt> [ , <wNum> ]", "Move backward by n items" );
-    fprintf( stdout, FMT_STR, "F <amt> [ , <wNum> ]", "Move forward by n items" );
-    fprintf( stdout, FMT_STR, "H <pos> [ , <wNum> ]", "Set window home position or set new home position" );
-    fprintf( stdout, FMT_STR, "J <pos> [ , <wNum> ]", "Set window start to new position");
-    fprintf( stdout, FMT_STR, "L <lines> [ , <wNum> ]", "Set window lines including banner line" );
-    fprintf( stdout, FMT_STR, "R <radix> [ , <wNum> ]", "Set window radix ( OCT, DEC, HEX )" );
-    fprintf( stdout, FMT_STR, "C <wNum>", "set the window <wNum> as current window" );
-    fprintf( stdout, FMT_STR, "T <wNum>", "toggle through alternate window content" );
-    fprintf( stdout, FMT_STR, "X <wNum>", "exchange current window with this window");
-    fprintf( stdout, FMT_STR, "N <type> [ , <arg> ]", "New user defined window ( PM, PC, IT, DT, IC, ICR, DCR, MCR, TX )" );
-    fprintf( stdout, FMT_STR, "K <wNumStart> [ , <wNumEnd> ]", "Removes a range of user defined window" );
-    fprintf( stdout, FMT_STR, "S <stackNum> [ , <wNumStart> ] [ , <wNumEnd>]", "moves a range of user windows into stack <stackNum>" );
-    fprintf( stdout, "\n" );
-    
-    fprintf( stdout, "Example: SRE       -> show special register window\n" );
-    fprintf( stdout, "Example: WN PM     -> create a user defined physical memory window\n" );
-    fprintf( stdout, "Example: WN 20, 11 -> scroll window 11 forward by 20 lines\n" );
-    fprintf( stdout, "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -170,6 +87,17 @@ void removeComment( char *cmdBuf ) {
     }
 }
 
+//------------------------------------------------------------------------------------------------------------
+// A little helper to print a caret indented by "pos".
+//
+//------------------------------------------------------------------------------------------------------------
+void markError( int pos ) {
+    
+    for ( int i = 0; i < pos; i++ ) fprintf( stdout, " " );
+    fprintf( stdout, "^ \n" );
+}
+
+
 }; // namespace
 
 
@@ -203,7 +131,7 @@ DrvCmds::DrvCmds( VCPU32Globals *glb ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::setupCmdInterpreter( int argc, const char *argv[ ] ) {
     
-
+    
     while ( argc > 0 ) {
         
         argc --;
@@ -222,7 +150,7 @@ void DrvCmds::setupCmdInterpreter( int argc, const char *argv[ ] ) {
 void DrvCmds::cmdLineError( ErrMsgId errNum, char *argStr ) {
     
     int tokIndex = promptLen + glb -> tok -> tokCharIndex( );
-
+    
     markError ( tokIndex );
     
     for ( int i = 0; i < MAX_ERR_MSG_TAB; i++ ) {
@@ -233,7 +161,7 @@ void DrvCmds::cmdLineError( ErrMsgId errNum, char *argStr ) {
             return;
         }
     }
-        
+    
     fprintf( stdout, "Error: %d", errNum );
     if ( argStr != nullptr ) fprintf( stdout, "%32s", argStr );
     fprintf( stdout, "/n" );
@@ -285,10 +213,12 @@ void DrvCmds::printWelcome( ) {
     
     glb -> env -> setEnvVar((char *) ENV_EXIT_CODE, 0 );
     
-    if ( isatty( fileno( stdin ))) {
-       
-        fprintf( stdout, "VCPU-32 Simulator, Version: %s\n", glb -> env -> getEnvVarStr((char *) ENV_PROG_VERSION ));
-        fprintf( stdout, "Git Branch: %s\n", glb -> env -> getEnvVarStr((char *) ENV_GIT_BRANCH ));
+    if ( glb -> console -> isConsole( )) {
+        
+        glb -> console -> printChars( "VCPU-32 Simulator, Version: %s\n",
+                                     glb -> env -> getEnvVarStr((char *) ENV_PROG_VERSION ));
+        
+        glb -> console -> printChars( "Git Branch: %s\n", glb -> env -> getEnvVarStr((char *) ENV_GIT_BRANCH ));
     }
 }
 
@@ -300,63 +230,16 @@ void DrvCmds::printWelcome( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::promptCmdLine( ) {
     
-    if ( isatty( fileno( stdin ))) {
+    if ( glb -> console -> isConsole( )) {
         
-        if ( glb -> env -> getEnvVarBool((char *) ENV_SHOW_CMD_CNT ))
-            promptLen = fprintf( stdout, "(%i) ", glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ));
+        if ( glb -> env -> getEnvVarBool((char *) ENV_SHOW_CMD_CNT )) {
+            
+            promptLen = glb -> console -> printChars( "(%i) ", glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ));
+        }
         
-        promptLen += fprintf( stdout, "->" );
-        fflush( stdout );
+        promptLen += glb -> console -> printChars( "->" );
     }
 }
-
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
-#if 0
-
-// need to switch the simulator input/output to do character based IO. This is key for the console IO
-// functionality. There will be two version, one for Linux/Mac and one for Windows.
-
-// factor in "readCommandLine"
-//think about a global "printf" entry point, just like we have in the winDisplay file.
-
-#include <stdio.h>
-#incude <termios.h>
-#include <unistd.h>
-
-Int readConsoleChar(  ) {
-
-    return( getchar( ));
-}
-
-Void writeConsoleChar( char ch  ) {
-
-    write( STDOUT_FILENO, ch, 1 );
-}
-
-void  saveConsoleMode( struct termios *term  ) {
-
-    tcgetattr( STDIN_FILENO, term );
-}
-
-void  setConsoleModeRaw(   struct termios *originalTerm  ) {
-
-    struct termios term;
-    tcgetattr( STDIN_FILENO, &term );
-    term.c_lflag &= ~ (ICANON | ECHO );
-        tcsetattr( STDIN_FILENO, TCSANOW, &term );
-}
-
-void resetConsoleMode( struct termios *term ) {
-
-    tcsetattr( STDIN_FILE, TCSANOW, term );
-}
-
-#endif
-//------------------------------------------------------------------------------------------------------------
-//------------------------------------------------------------------------------------------------------------
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // "readCmdLine" reads in the command line. For a valid command line, the trailing carriage return and/or
@@ -364,30 +247,22 @@ void resetConsoleMode( struct termios *term ) {
 // found, an invalid command or an empty command line status. We loop inside the routine until we receive
 // a valid command line or an EOF.
 //
-// Warning: on a Mac, "fgets" does read in a string. On the terminal program configuration, the erase
-// character needs to be set to NOT send a control-H to the input. The cursor keys are just echoed to the
-// input line and I do not know a way to make them actually move around in the input line.
-//
 //------------------------------------------------------------------------------------------------------------
-bool DrvCmds::readInputLine( char *cmdBuf ) {
+int DrvCmds::readInputLine( char *cmdBuf ) {
     
     while ( true ) {
-  
-        // ??? what type of return code would we need ?
         
-        glb -> console -> readLine( cmdBuf );
+        int len = glb -> console -> readLine( cmdBuf );
         
-        cmdBuf[ strcspn( cmdBuf, "\r\n") ] = 0;
-        
-        removeComment( cmdBuf );
-        
-        if ( strlen( cmdBuf ) > 0 ) {
+        if ( len > 0 ) {
+            
+            removeComment( cmdBuf );
             
             glb -> env -> setEnvVar((char *) ENV_CMD_CNT,
                                     glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ) + 1 );
-            return( true );
+            return( len );
         }
-        else return( false );
+        else return( -1 );
     }
     
     // else if ( feof( stdin )) exit( glb -> env -> getEnvVarInt((char *) ENV_EXIT_CODE ));
@@ -419,7 +294,7 @@ void DrvCmds::execCmdsFromFile( char* fileName ) {
                     
                     if ( glb -> env -> getEnvVarBool((char *) ENV_ECHO_CMD_INPUT )) {
                         
-                        fprintf( stdout, "%s\n", cmdLineBuf );
+                        glb -> console -> printChars( "%s\n", cmdLineBuf );
                     }
                     
                     removeComment( cmdLineBuf );
@@ -437,7 +312,7 @@ void DrvCmds::execCmdsFromFile( char* fileName ) {
                 
             case ERR_OPEN_EXEC_FILE: {
                 
-                printf( "Error in opening file: \"%s\"", fileName );
+                glb -> console -> printChars( "Error in opening file: \"%s\"", fileName );
                 
             } break;
                 
@@ -451,7 +326,7 @@ void DrvCmds::execCmdsFromFile( char* fileName ) {
 // predefined functions.
 //
 // HELP [ <cmdId> | <wCmdId | <pFuncId> ]
-// HELP [ commands | wcommands | predefined ]
+// HELP [ commands | wcommands | wtypes | predefined ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::helpCmd( ) {
     
@@ -463,13 +338,14 @@ void DrvCmds::helpCmd( ) {
         for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
             
             if ( cmdHelpTab[ i ].helpTypeId == TYP_CMD )
-                fprintf( stdout, FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+                glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
         }
         
-        fprintf( stdout, "\n" );
+        glb -> console -> printChars( "\n" );
     }
     else if (( glb -> tok -> isTokenTyp( TYP_CMD )) ||
              ( glb -> tok -> isTokenTyp( TYP_WCMD )) ||
+             ( glb -> tok -> isTokenTyp( TYP_WTYP )) ||
              ( glb -> tok -> isTokenTyp( TYP_PREDEFINED_FUNC ))) {
         
         if ( glb -> tok -> isToken( CMD_SET )) {
@@ -477,30 +353,41 @@ void DrvCmds::helpCmd( ) {
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
                 if ( cmdHelpTab[ i ].helpTypeId == TYP_CMD )
-                    fprintf( stdout, FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+                    glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
             }
             
-            fprintf( stdout, "\n" );
+            glb -> console -> printChars( "\n" );
         }
         else if ( glb -> tok -> isToken( WCMD_SET )) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
                 if ( cmdHelpTab[ i ].helpTypeId == TYP_WCMD )
-                    fprintf( stdout, FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+                    glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
             }
             
-            fprintf( stdout, "\n" );
+            glb -> console -> printChars( "\n" );
+        }
+        else if ( glb -> tok -> isToken( WTYPE_SET )) {
+            
+            for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
+                
+                if ( cmdHelpTab[ i ].helpTypeId == TYP_WTYP )
+                    
+                    glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+            }
+            
+            glb -> console -> printChars( "\n" );
         }
         else if ( glb -> tok -> isToken( PF_SET )) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
                 if ( cmdHelpTab[ i ].helpTypeId == TYP_PREDEFINED_FUNC )
-                    fprintf( stdout, FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+                    glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
             }
             
-            fprintf( stdout, "\n" );
+            glb -> console -> printChars( "\n" );
         }
         else {
             
@@ -508,7 +395,7 @@ void DrvCmds::helpCmd( ) {
                 
                 if ( cmdHelpTab[ i ].helpTokId == glb -> tok -> tokId( )) {
                     
-                    fprintf( stdout, FMT_STR_DETAILS, cmdHelpTab[ i ].cmdSyntaxStr, cmdHelpTab[ i ].helpStr );
+                    glb -> console -> printChars( FMT_STR_DETAILS, cmdHelpTab[ i ].cmdSyntaxStr, cmdHelpTab[ i ].helpStr );
                 }
             }
         }
@@ -580,7 +467,7 @@ void DrvCmds::envCmd( ) {
             glb -> eval -> parseExpr( &rExpr );
             
             if ( rExpr.typ == TYP_NUM ) {
-            
+                
                 glb -> env -> setEnvVar( envName, rExpr.numVal );
             }
             else if ( rExpr.typ == TYP_BOOL ) {
@@ -672,14 +559,14 @@ void DrvCmds::resetCmd( ) {
             } break;
                 
             case TOK_STATS: {
-              
+                
             } break;
                 
             case TOK_ALL: {
                 
                 glb -> cpu -> reset( );
                 glb -> cpu -> physMem -> reset( );
-              
+                
             } break;
                 
             default: throw ( ERR_INVALID_ARG );
@@ -696,8 +583,6 @@ void DrvCmds::resetCmd( ) {
 void DrvCmds::runCmd( ) {
     
     glb -> console -> printChars( "RUN command to come ... \n");
-    
-   // fprintf( stdout, "RUN command to come ... \n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -770,33 +655,33 @@ void DrvCmds::writeLineCmd( ) {
             
         case TYP_BOOL: {
             
-            if ( rExpr.bVal == true )   fprintf( stdout, "TRUE\n" );
-            else                        fprintf( stdout, "FALSE\n" );
+            if ( rExpr.bVal == true )   glb -> console -> printChars(  "TRUE\n" );
+            else                        glb -> console -> printChars( "FALSE\n" );
             
         } break;
             
         case TYP_NUM: {
             
-            printNum( rExpr.numVal, rdx );
-            fprintf( stdout, "\n" );
+            glb -> console -> printNum( rExpr.numVal, rdx );
+            glb -> console -> printChars( "\n" );
             
         } break;
-       
+            
         case TYP_STR: {
             
-            printf( "\"%s\"\n", rExpr.strVal );
+            glb -> console -> printChars( "\"%s\"\n", rExpr.strVal );
             
         } break;
             
         case TYP_EXT_ADR: {
             
-            printNum( rExpr.seg, rdx );
-            fprintf( stdout, "." );
-            printNum( rExpr.ofs, rdx );
-            fprintf( stdout, "\n" );
+            glb -> console -> printNum( rExpr.seg, rdx );
+            glb -> console -> printChars( "." );
+            glb -> console -> printNum( rExpr.ofs, rdx );
+            glb -> console -> printChars( "\n" );
             
         } break;
-       
+            
         default: throw (  ERR_INVALID_EXPR );
     }
 }
@@ -815,7 +700,7 @@ void DrvCmds::displayRegCmd( ) {
     TypeId  regSetId    = TYP_GREG;
     TokId   regId       = GR_SET;
     int     regNum      = 0;
-  
+    
     if ( glb -> tok -> tokId( ) != TOK_EOS ) {
         
         if (( glb -> tok -> tokTyp( ) == TYP_GREG )        ||
@@ -861,7 +746,7 @@ void DrvCmds::displayRegCmd( ) {
             
             if ( regId == GR_SET ) glb -> lineDisplay -> displayGeneralRegSet( rdx );
             else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_GEN_REG_SET, regNum ), rdx );
-        
+            
         } break;
             
         case TYP_SREG: {
@@ -940,8 +825,8 @@ void DrvCmds::displayRegCmd( ) {
             
         default: ;
     }
-
-    fprintf( stdout, "\n" );
+    
+    glb -> console -> printChars( "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1007,7 +892,7 @@ void DrvCmds::modifyRegCmd( ) {
 // DTLB (D|I|U) [ <index> ] [ "," <len> ] [ "," <fmt> ] - if no index, list all entries ? practical ?
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::displayTLBCmd( ) {
- 
+    
     uint32_t    index       = 0;
     uint32_t    len         = 0;
     uint32_t    tlbSize     = 0;
@@ -1041,7 +926,7 @@ void DrvCmds::displayTLBCmd( ) {
         
         glb -> eval -> parseExpr( &rExpr );
         index = rExpr.numVal;
-            
+        
         if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
     }
     
@@ -1081,7 +966,7 @@ void DrvCmds::displayTLBCmd( ) {
     if (( index == 0 ) && ( len == 0 )) len = tlbSize;
     
     glb -> lineDisplay -> displayTlbEntries( tPtr, index, len, rdx );
-    fprintf( stdout, "\n" );
+    glb -> console -> printChars( "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1093,7 +978,7 @@ void DrvCmds::purgeTLBCmd( ) {
     
     DrvExpr     rExpr;
     CpuTlb      *tPtr = nullptr;
-  
+    
     if ( glb -> tok -> tokId( ) == TOK_I ) {
         
         tPtr = glb -> cpu -> iTlb;
@@ -1176,7 +1061,7 @@ void DrvCmds::insertTLBCmd( ) {
 // D-CACHE ( I|D|U ) "," [ <index> ] [ "," <len> ] [ ", " <fmt> ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::displayCacheCmd( ) {
-
+    
     uint32_t    cacheSize       = 0;
     CpuMem      *cPtr           = nullptr;
     uint32_t    index           = 0;
@@ -1264,9 +1149,9 @@ void DrvCmds::displayCacheCmd( ) {
     }
     
     if (( index > cacheSize ) || ( index + len > cacheSize )) throw( ERR_CACHE_SIZE_EXCEEDED );
-   
+    
     if (( index == 0 ) && ( len == 0 )) len = cacheSize;
-  
+    
     if ( cPtr != nullptr ) {
         
         uint32_t blockEntries = cPtr -> getBlockEntries( );
@@ -1280,7 +1165,7 @@ void DrvCmds::displayCacheCmd( ) {
         
         glb -> lineDisplay -> displayCacheEntries( cPtr, index, len, rdx );
         
-        fprintf( stdout, "\n" );
+        glb -> console -> printChars( "\n" );
     }
 }
 
@@ -1295,7 +1180,7 @@ void DrvCmds::purgeCacheCmd( ) {
     CpuMem      *cPtr           = nullptr;
     uint32_t    index           = 0;
     uint32_t    set             = 0;
-   
+    
     if ( glb -> tok -> tokId( ) == TOK_I ) {
         
         cacheSize   = glb -> cpu -> iCacheL1 -> getMemSize( );
@@ -1376,7 +1261,7 @@ void DrvCmds::displayAbsMemCmd( ) {
     
     if ( rExpr.typ == TYP_NUM ) ofs = rExpr.numVal;
     else throw ( ERR_EXPECTED_START_OFS );
-   
+    
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         glb -> tok -> nextToken( );
@@ -1393,7 +1278,7 @@ void DrvCmds::displayAbsMemCmd( ) {
             else throw ( ERR_EXPECTED_LEN );
         }
     }
-   
+    
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         glb -> tok -> nextToken( );
@@ -1418,13 +1303,13 @@ void DrvCmds::displayAbsMemCmd( ) {
     }
     
     checkEOS( );
-        
+    
     if (((uint64_t) ofs + len ) <= UINT32_MAX ) {
         
         if ( asCode ) {
             
             glb -> lineDisplay -> displayAbsMemContentAsCode( ofs, len,
-                                                glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+                                                             glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
         }
         else glb -> lineDisplay -> displayAbsMemContent( ofs, len, rdx );
     }
@@ -1459,7 +1344,7 @@ void DrvCmds::modifyAbsMemCmd( ) {
     else throw ( ERR_INVALID_NUM );
     
     checkEOS( );
-        
+    
     if      (( physMem != nullptr ) && ( physMem -> validAdr( ofs ))) mem = physMem;
     else if (( pdcMem  != nullptr ) && ( pdcMem  -> validAdr( ofs ))) mem = pdcMem;
     else if (( ioMem   != nullptr ) && ( ioMem   -> validAdr( ofs ))) mem = ioMem;
@@ -1530,7 +1415,7 @@ void DrvCmds::winStacksDisable( ) {
 void DrvCmds::winCurrentCmd( ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
-       
+    
     DrvExpr rExpr;
     glb -> eval -> parseExpr( &rExpr );
     
@@ -1576,7 +1461,7 @@ void DrvCmds::winEnableCmd( TokId winCmd ) {
 }
 
 void DrvCmds::winDisableCmd( TokId winCmd ) {
-        
+    
     int winNum = 0;
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
@@ -1606,13 +1491,13 @@ void DrvCmds::winDisableCmd( TokId winCmd ) {
 // <win>R [ <radix> [ "," <winNum>]]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winSetRadixCmd( TokId winCmd ) {
-        
+    
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
-                                  
+    
     DrvExpr rExpr;
     int     winNum  = 0;
     int     rdx     = 16;
-        
+    
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
@@ -1966,7 +1851,7 @@ void DrvCmds::winSetStackCmd( ) {
     
     if ( ! glb -> winDisplay -> validWindowStackNum( stackNum ))
         throw ( ERR_INVALID_WIN_STACK_ID );
-        
+    
     if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
@@ -1995,7 +1880,7 @@ void DrvCmds::winSetStackCmd( ) {
         else throw ( ERR_EXPECTED_COMMA );
         
         if ( winNumStart == -1 ) {
-                
+            
             winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
             winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
         }
@@ -2077,7 +1962,7 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
                     case CMD_XF:            execFileCmd( );                 break;
                     case CMD_LMF:           loadPhysMemCmd( );              break;
                     case CMD_SMF:           savePhysMemCmd( );              break;
-                  
+                        
                     case CMD_WRITE_LINE:    writeLineCmd( );                break;
                         
                     case CMD_RESET:         resetCmd( );                    break;
@@ -2088,13 +1973,13 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
                     case CMD_MR:            modifyRegCmd( );                break;
                     case CMD_DA:            displayAbsMemCmd( );            break;
                     case CMD_MA:            modifyAbsMemCmd( );             break;
-    
+                        
                     case CMD_D_TLB:         displayTLBCmd( );               break;
                     case CMD_I_TLB:         insertTLBCmd( );                break;
                     case CMD_P_TLB:         purgeTLBCmd( );                 break;
                     case CMD_D_CACHE:       displayCacheCmd( );             break;
                     case CMD_P_CACHE:       purgeCacheCmd( );               break;
-                   
+                        
                     case CMD_WON:           winOnCmd( );                    break;
                     case CMD_WOFF:          winOffCmd( );                   break;
                     case CMD_WDEF:          winDefCmd( );                   break;
@@ -2142,7 +2027,7 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
     }
     
     catch ( ErrMsgId errNum ) {
-    
+        
         glb -> env -> setEnvVar((char *) ENV_EXIT_CODE, -1 );
         cmdLineError( errNum );
     }
