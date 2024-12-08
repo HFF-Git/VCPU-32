@@ -71,6 +71,9 @@ bool  DrvConsoleIO::isConsole( ) {
 // current settings, set the raw mode attributes, and restore the saved settings. For a windows system, these
 // methods are a no operation.
 //
+// ??? we need to add the idea of a non-blocking mode, so that we can test whether a character was pressed.
+// This also implies that the console IO needs to become part of the periodic processing when the CPU runs.
+// To be developed...
 //------------------------------------------------------------------------------------------------------------
 void DrvConsoleIO::saveConsoleMode( ) {
     
@@ -88,8 +91,13 @@ void DrvConsoleIO::setConsoleModeRaw( ) {
     term.c_lflag &= ~ (ICANON | ECHO );
     term.c_iflag &= ~IGNBRK;
     tcsetattr( fileno( stdin ), TCSANOW, &term );
+    
+    // ??? enable non-blocking IO
+    // int flags = fcntl( STDIN_FILENO, F_GETFL, 0 );
+    // fcntl( STDIN_FILENO, F_SETFL, flags | O_NONBLOCK );
 #endif
     
+    rawModeEnabled = true;
 }
 
 void DrvConsoleIO::resetConsoleMode( ) {
@@ -98,6 +106,7 @@ void DrvConsoleIO::resetConsoleMode( ) {
     tcsetattr( fileno( stdin ), TCSANOW, &saveTermSetting );
 #endif
     
+    rawModeEnabled = false;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -105,13 +114,44 @@ void DrvConsoleIO::resetConsoleMode( ) {
 // the "getchar" system call. On windows there is a similar call, which does just return one character at a
 // time.
 //
+// ??? how is a non-blocking IO handled ? We need a way to return the fact that there is no IO.
 //------------------------------------------------------------------------------------------------------------
 int DrvConsoleIO::readChar(  ) {
     
 #if __APPLE__
+    
     return( getchar( ));
+    
+    // ??? sketch of a non-blocking IO input.
+    // char ch;
+    // if ( read ( STDIN_FILENO, &ch, 1 ) > 0 ) {
+    //
+    //      if ( ch == ... ) -> assigned special char was pressed...
+    //      else return ( ch );
+    // }
+    // else {
+    //
+    //      // nothing pressed ...
+    //
+    // }
+    
 #else
+    
     return(_getch());
+    
+    // ??? sketch of a non-blocking IO input.
+    // if ( _kbhit( )) {
+    //
+    //      char ch = _getch( );
+    //      if ( ch == ... ) -> assigned special char was pressed...
+    //      else return ( ch );
+    // }
+    // else {
+    //
+    //      // nothing pressed ...
+    //
+    // }
+    
 #endif
     
 }
@@ -159,7 +199,7 @@ int DrvConsoleIO::readLine( char *cmdBuf ) {
         else if (( ch == '\n' ) || ( ch == '\r' )) {
             
             cmdBuf[ index ] = '\0';
-            writeChar( ch );
+            if ( rawModeEnabled ) writeChar( ch );
             return ( index );
         }
         else if (( ch == 8 ) || ( ch == 127 )) {
@@ -167,9 +207,13 @@ int DrvConsoleIO::readLine( char *cmdBuf ) {
             if ( index > 0 ) {
                 
                 index --;
-                writeChar( '\b' );
-                writeChar( ' ' );
-                writeChar( '\b' );
+                
+                if ( rawModeEnabled ) {
+                    
+                    writeChar( '\b' );
+                    writeChar( ' ' );
+                    writeChar( '\b' );
+                }
                 continue;
             }
         }
@@ -181,7 +225,7 @@ int DrvConsoleIO::readLine( char *cmdBuf ) {
                     
                     cmdBuf[ index ] = (char) ch;
                     index ++;
-                    writeChar((char) ch );
+                    if ( rawModeEnabled ) writeChar((char) ch );
                 }
             }
             else {

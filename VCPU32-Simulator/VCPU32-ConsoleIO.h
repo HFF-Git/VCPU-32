@@ -47,6 +47,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <iostream>
+#include <fcntl.h>
 #else
 //#include <unistd.h>
 #include <conio.h>
@@ -124,6 +125,7 @@ struct DrvConsoleIO {
     private:
     
     char printBuf[ 1024 ];
+    bool rawModeEnabled = false;
 };
 
 #endif /* VCPU32_ConsoleIo_h */

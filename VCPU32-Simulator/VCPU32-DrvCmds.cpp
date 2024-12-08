@@ -157,14 +157,14 @@ void DrvCmds::cmdLineError( ErrMsgId errNum, char *argStr ) {
         
         if ( errMsgTab[ i ].errNum == errNum ) {
             
-            fprintf( stdout, "%s\n", errMsgTab[ i ].errStr );
+            glb -> console -> printChars( "%s\n", errMsgTab[ i ].errStr );
             return;
         }
     }
     
-    fprintf( stdout, "Error: %d", errNum );
-    if ( argStr != nullptr ) fprintf( stdout, "%32s", argStr );
-    fprintf( stdout, "/n" );
+    glb -> console -> printChars( "Error: %d", errNum );
+    if ( argStr != nullptr )  glb -> console -> printChars( "%32s", argStr );
+    glb -> console -> printChars( "/n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
