@@ -24,22 +24,6 @@
 #ifndef VCPU32Driver_h
 #define VCPU32Driver_h
 
-#if 0
-//------------------------------------------------------------------------------------------------------------
-// Mac and Windows know different include files and procedure names for some POSIX routines.
-//
-//------------------------------------------------------------------------------------------------------------
-#if __APPLE__
-#include <unistd.h>
-#include <termios.h>
-#else
-#include <io.h>
-#define isatty _isatty
-#define fileno _fileno
-#define write  _write
-#endif
-#endif
-
 #include "VCPU32-ConsoleIO.h"
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
@@ -301,7 +285,6 @@ enum TokId : uint16_t {
 //------------------------------------------------------------------------------------------------------------
 // Our error messages IDs. There is a routine that maps the ID to a text string.
 //
-// ??? sort a little ...
 //------------------------------------------------------------------------------------------------------------
 enum ErrMsgId : uint16_t {
     

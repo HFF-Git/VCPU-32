@@ -3670,19 +3670,19 @@ To the programmer general registers and segment registers are the primary regist
          :-----------------------------:                :---------------------------------:
       0  :  Zero                       :             0  : Return segment Link             :
          :-----------------------------:                :---------------------------------:
-      1  :  Scratch                    :             1  : Caller save, general purpose    :
+      1  :  Scratch, T0                :             1  : Callee save, general purpose    :
          :-----------------------------:                :---------------------------------:
-      2  :  Callee Save                :             2  : Caller save, general purpose    :
+      2  :  Callee Save, T1            :             2  : Callee save, general purpose    :
          :-----------------------------:                :---------------------------------:
-      3  :  Callee Save                :             3  : Callee Save, general purpose    :
+      3  :  Callee Save. T2            :             3  : Callee Save, general purpose    :
          :-----------------------------:                :---------------------------------:
-      4  :  Callee Save                :             4  : Caller Save, general purpose    :
+      4  :  Callee Save, T3            :             4  : Caller Save, general purpose    :
          :-----------------------------:                :---------------------------------:
-      5  :  Callee Save                :             5  : Task segment ( stack )          :
+      5  :  Callee Save, T4            :             5  : Task segment ( stack )          :
          :-----------------------------:                :---------------------------------:
-      6  :  Callee Save                :             6  : Job segment                     :
+      6  :  Callee Save, T5            :             6  : Job segment                     :
          :-----------------------------:                :---------------------------------:
-      7  :  Callee Save                :             7  : System segment                  :
+      7  :  Callee Save, T6            :             7  : System segment                  :
          :-----------------------------:                :---------------------------------:
       8  :  Caller Save, ARG3, RET3    :                
          :-----------------------------:           
@@ -3692,7 +3692,7 @@ To the programmer general registers and segment registers are the primary regist
          :-----------------------------:               
       11 :  Caller Save, ARG0, RET0    :            
          :-----------------------------:              
-      12 :  Caller save                :             
+      12 :  Callee save, (  )          :             
          :-----------------------------:              
       13 :  Caller save, ( DP )        :             
          :-----------------------------:              
@@ -3702,7 +3702,7 @@ To the programmer general registers and segment registers are the primary regist
          :-----------------------------:               
 ```
 
-Some VCPU-32 instructions have registers as an implicit target. For example, the ADDIL instruction uses GR1 as implicit target. The BE instruction saves the return link segment implicitly in SR0. 
+Some VCPU-32 instructions have registers as an implicit target. For example, the ADDIL instruction uses GR1 as implicit target. The BE instruction saves the return link segment implicitly in SR0. Based on the runtime convention, general registers have a mnemonic name.
 
 The caller can rely on that certain register are preserved across the call. In addition to the callee save registers Gr2 to GR7, the SP value, the RL and the DP value as well as SR4 to SR 7 are expected to be preserved across a call. In addition to the caller save segment registers, the processor state register as well as any registers set by privileged code are NOT preserved across a procedure call.
 
