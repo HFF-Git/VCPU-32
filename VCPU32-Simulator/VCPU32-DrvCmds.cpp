@@ -270,8 +270,10 @@ int DrvCmds::readInputLine( char *cmdBuf ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "execCmdsFromFile" will open a text file and interpret each line as a command. This routine is used by the
-// "EXEC-F" command and also as the handler for the program argument option to execute a file before entering
+// "XF" command and also as the handler for the program argument option to execute a file before entering
 // the command loop.
+//
+// XF "<filepath>"
 //
 // ??? which error would we like to report here vs. pass on to outer command loop ?
 //------------------------------------------------------------------------------------------------------------
@@ -325,8 +327,7 @@ void DrvCmds::execCmdsFromFile( char* fileName ) {
 // Help command. With no arguments, a short help overview is printed. There are commands, widow commands and
 // predefined functions.
 //
-// HELP [ <cmdId> | <wCmdId | <pFuncId> ]
-// HELP [ commands | wcommands | wtypes | predefined ]
+// HELP [ <cmdId> | commands | wcommands | wtypes | predefined ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::helpCmd( ) {
     
@@ -493,7 +494,7 @@ void DrvCmds::envCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Execute commands from a file command. The actual work is done in the "execCmdsFromFile" routine.
 //
-// EXEC "<filename>"
+// XF "<filename>"
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::execFileCmd( ) {
     
@@ -507,7 +508,7 @@ void DrvCmds::execFileCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Load physical memory command.
 //
-// LMF <path>
+// LMF <path> [ , <opt ]
 //
 // ??? this will perhaps be better done via load an image from the assembler.
 //------------------------------------------------------------------------------------------------------------
@@ -519,7 +520,7 @@ void DrvCmds::loadPhysMemCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Save physical memory command.
 //
-// SMF <path>
+// SMF <path> <ofs> [ , <len> ]
 //
 // ??? when we save a memory image, how to load it back ? Purpose ?
 //------------------------------------------------------------------------------------------------------------
@@ -589,7 +590,7 @@ void DrvCmds::runCmd( ) {
 // Step command. The command will execute one instruction. Default is one instruction. There is an ENV
 // variable that will set the default to be a single clock step.
 //
-// STEP [ <steps> ] [ "," "I" | "C" ]
+// S [ <steps> ] [ "," "I" | "C" ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::stepCmd( ) {
     
@@ -972,7 +973,7 @@ void DrvCmds::displayTLBCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Purge from TLB command.
 //
-// P-TLB <I|D|U> "," <extAdr>
+// PTLB <I|D|U> <extAdr>
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::purgeTLBCmd( ) {
     
@@ -991,7 +992,6 @@ void DrvCmds::purgeTLBCmd( ) {
     }
     else throw ( ERR_TLB_TYPE );
     
-    acceptComma( );
     glb -> eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_EXT_ADR ) {
@@ -1004,7 +1004,7 @@ void DrvCmds::purgeTLBCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Insert into TLB command.
 //
-// I-TLB <D|I|U> "," <extAdr> "," <arg-acc> "," <arg-adr>
+// I-TLB <D|I|U> <extAdr> <arg-acc> <arg-adr>
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::insertTLBCmd( ) {
     
@@ -1030,7 +1030,6 @@ void DrvCmds::insertTLBCmd( ) {
     }
     else throw ( ERR_TLB_TYPE );
     
-    acceptComma( );
     glb -> eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_EXT_ADR ) {
@@ -1040,13 +1039,11 @@ void DrvCmds::insertTLBCmd( ) {
     }
     else throw ( ERR_EXPECTED_EXT_ADR );
     
-    acceptComma( );
     glb -> eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) argAcc = rExpr.numVal;
     else throw ( ERR_TLB_ACC_DATA );
     
-    acceptComma( );
     glb -> eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) argAcc = rExpr.numVal;
@@ -1058,7 +1055,7 @@ void DrvCmds::insertTLBCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Display cache entries command.
 //
-// D-CACHE ( I|D|U ) "," [ <index> ] [ "," <len> ] [ ", " <fmt> ]
+// DCA ( I|D|U ) "," [ <index> ] [ "," <len> [ ", " <fmt> ]]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::displayCacheCmd( ) {
     
@@ -1172,7 +1169,7 @@ void DrvCmds::displayCacheCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Purges a cache line from the cache.
 //
-// P-CACHE <I|D|U> "," [ <index> ] "," [ <set> ] "," [<flush>]
+// PCA <I|D|U> "," [ <index> ] "," [ <set> ] "," [<flush>]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::purgeCacheCmd( ) {
     
@@ -1320,7 +1317,7 @@ void DrvCmds::displayAbsMemCmd( ) {
 // Modify absolute memory command. This command accepts data values for up to eight consecutive locations.
 // We also use this command to populate physical memory from a script file.
 //
-// MA <ofs> "," <val>
+// MA <ofs> <val>
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::modifyAbsMemCmd( ) {
     
@@ -1337,7 +1334,6 @@ void DrvCmds::modifyAbsMemCmd( ) {
     if ( rExpr.typ == TYP_NUM ) ofs = rExpr.numVal;
     else throw ( ERR_EXPECTED_OFS );
     
-    acceptComma( );
     glb -> eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) val = rExpr.numVal;

@@ -495,14 +495,14 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_ENV,
         .cmdNameStr     = (char *) "env",
-        .cmdSyntaxStr   = (char *) "env [ <var> [ , <val> ]]",
+        .cmdSyntaxStr   = (char *) "env [ <var> [ <val> ]]",
         .helpStr        = (char *) "lists the env tab, a variable, sets a variable"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_XF,
         .cmdNameStr     = (char *) "xf",
-        .cmdSyntaxStr   = (char *) "xf <filePath>",
+        .cmdSyntaxStr   = (char *) "xf \"<filePath>\"",
         .helpStr        = (char *) "execute commands from a file"
     },
     
@@ -523,7 +523,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_RESET,
         .cmdNameStr     = (char *) "reset",
-        .cmdSyntaxStr   = (char *) "reset ( CPU|MEM|STATS|ALL )",
+        .cmdSyntaxStr   = (char *) "reset ( 'CPU'|'MEM'|'STATS'|'ALL' )",
         .helpStr        = (char *) "resets the CPU"
     },
     
@@ -542,6 +542,13 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     },
     
     {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_WRITE_LINE,
+        .cmdNameStr     = (char *) "w",
+        .cmdSyntaxStr   = (char *) "w <expr> [ , <rdx> ]",
+        .helpStr        = (char *) "evaluates and prints an expression"
+    },
+    
+    {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_DR,
         .cmdNameStr     = (char *) "dr",
         .cmdSyntaxStr   = (char *) "dr [ <regSet>| <reg> ] [ , <fmt> ]",
@@ -551,7 +558,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_MR,
         .cmdNameStr     = (char *) "mr",
-        .cmdSyntaxStr   = (char *) "mr <reg> , <val>",
+        .cmdSyntaxStr   = (char *) "mr <reg> <val>",
         .helpStr        = (char *) "modify registers"
     },
     
@@ -565,42 +572,42 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_MA,
         .cmdNameStr     = (char *) "ma",
-        .cmdSyntaxStr   = (char *) "ma <ofs> , <val>",
+        .cmdSyntaxStr   = (char *) "ma <ofs> <val>",
         .helpStr        = (char *) "modify absolute memory"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_D_CACHE,
         .cmdNameStr     = (char *) "dca",
-        .cmdSyntaxStr   = (char *) "dca <I|D|U> \",\" [<index> <len>]",
+        .cmdSyntaxStr   = (char *) "dca <I|D|U> , [<index> [ , <len> [ , <fmt> ]] ",
         .helpStr        = (char *) "display cache content"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_P_CACHE,
         .cmdNameStr     = (char *) "pca",
-        .cmdSyntaxStr   = (char *) "pca <I|D|U> \",\" <index> [<F>]",
+        .cmdSyntaxStr   = (char *) "pca <I|D|U> , [ <index> ] , [ <set> ] [, <flush>]",
         .helpStr        = (char *) "flushes and purges cache data"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_D_TLB,
         .cmdNameStr     = (char *) "dtlb",
-        .cmdSyntaxStr   = (char *) "dtlb <I|D> [<index> <len>]",
+        .cmdSyntaxStr   = (char *) "dtlb <I|D> [ , <index> [ , <len>] [ , <rdx> ]",
         .helpStr        = (char *) "display TLB content"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_I_TLB,
         .cmdNameStr     = (char *) "itlb",
-        .cmdSyntaxStr   = (char *) "itlb <I|D> <seg> <ofs> <argAcc> <argAdr>",
+        .cmdSyntaxStr   = (char *) "itlb <I|D> <extAdr> <argAcc> <argAdr>",
         .helpStr        = (char *) "inserts an entry into the TLB"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_P_TLB,
         .cmdNameStr     = (char *) "ptlb",
-        .cmdSyntaxStr   = (char *) "ptlb <I|D> <seg> <ofs>",
+        .cmdSyntaxStr   = (char *) "ptlb <I|D> , <extAdr>",
         .helpStr        = (char *) "purges an entry from the TLB"
     },
     
@@ -717,7 +724,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
         .helpTypeId     = TYP_WCMD, .helpTokId  = CMD_WD,
         .cmdNameStr     = (char *)  "wd",
         .cmdSyntaxStr   = (char *)  "wd [ <wNum> ]",
-        .helpStr        = (char *)  "disable user defined window display"
+        .helpStr        = (char *)  "disable user defined windowf display"
     },
     
     {
