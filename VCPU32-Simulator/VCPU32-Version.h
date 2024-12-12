@@ -24,7 +24,7 @@
 #define VCPU32Version_hpp
 
 const char VERSION[ ]       = "B.00.08";
-const char GIT_BRANCH[ ]    = "Console-IO-Changes";
+const char GIT_BRANCH[ ]    = "Main";
 const int  PATCH_LEVEL      = 1;
 
 #endif
