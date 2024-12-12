@@ -175,7 +175,7 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "GR",                 .typ = TYP_GREG,                .tid = GR_SET,          .val =  0       },
 
     //--------------------------------------------------------------------------------------------------------
-    // Runtime architcture register names for general registers.
+    // Runtime architecture register names for general registers.
     //
     //--------------------------------------------------------------------------------------------------------
     { .name = "T0",                 .typ = TYP_GREG,                .tid = GR_1,            .val =  1       },
@@ -361,7 +361,7 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "DTLBL1",             .typ = TYP_DTLB_REG,        .tid = DTLB_SET,            .val = 4        },
     
     //--------------------------------------------------------------------------------------------------------
-    // Predfined functions.
+    // Predefined functions.
     //
     //--------------------------------------------------------------------------------------------------------
     { .name = "PREDEFINED",         .typ = TYP_PREDEFINED_FUNC, .tid = PF_SET                               },

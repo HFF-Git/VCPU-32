@@ -235,6 +235,7 @@ July, 2024
     - [The case for register indexed mode](#the-case-for-register-indexed-mode)
     - [Instruction bundling](#instruction-bundling)
     - [A larger physical memory space](#a-larger-physical-memory-space)
+    - [System calls](#system-calls)
   - [References](#references)
 
 
@@ -3630,36 +3631,34 @@ The frame marker is a fixed structure of 8 locations which will contains the dat
       :                                    :
       :  :         . . . .              :  :
       :  :                              :  :
-      :  :------------------------------:  :                   |
-      :  : ARG1                         :  : SP - 40           |
-      :  :------------------------------:  :                   |
-      :  : ARG0                         :  : SP - 36           |
-      :--:==============================:--:                  <
-      :  :                              :  : SP - 32           |
-      :  :------------------------------:  :                   |
-      :  :                              :  : SP - 28           |
-      :  :------------------------------:  :                   |
-      :  :                              :  : SP - 24           |
-      :  :------------------------------:  :                   |
-      :  :                              :  : SP - 20           |
-      :  :------------------------------:  :                   |  Frame Marker
-      :  :                              :  : SP - 16           |
-      :  :------------------------------:  :                   |
-      :  :                              :  : SP - 12           |
-      :  :------------------------------:  :                   |
-      :  : Return link                  :  : SP - 8            |
-      :  :------------------------------:  :                   |
-      :  : Previous Stack Pointer       :  : SP - 4            |  
-      :--:==============================:--:                   /
-                                             SP - 0: Stack Pointer    
+      :  :------------------------------:  :  <- SP - 40                    |
+      :  : ARG1                         :  :                                |
+      :  :------------------------------:  :  <- SP - 36                    |
+      :  : ARG0                         :  :                                |
+      :--:==============================:--:  <- SP - 32                   <
+      :  : reserved                     :  :                                |
+      :  :------------------------------:  :  <- SP - 28                    |
+      :  : reserved                     :  :                                |
+      :  :------------------------------:  :  <- SP - 24                    |
+      :  : reserved                     :  :                                |
+      :  :------------------------------:  :  <- SP - 20                    |
+      :  : reserved                     :  :                                |
+      :  :------------------------------:  :  <- SP - 16                    |  Frame Marker
+      :  : reserved                     :  :                                |
+      :  :------------------------------:  :  <- SP - 12                    |
+      :  : reserved                     :  :                                |
+      :  :------------------------------:  :  <- SP - 8                     |
+      :  : Return link                  :  :                                |
+      :  :------------------------------:  :  <- SP - 4                     |
+      :  : Previous Stack Pointer       :  :                                |  
+      :--:==============================:--:  <- SP - 0: Stack Pointer      /
+                                                 
 
 ```
 
-All stack frame locations are addressed relative to the current stack pointer. SP-4 contains the pointer to the previous stack frame. This field is set optional. Since the stack frame size is determined at compile time, the previous stack pointer can be computed by subtracting the frame size from the current stack pointer. SP-8 is the location where the return link can be stored, if necessary. A leaf function may not store the return link in this location.
+All stack frame locations are addressed relative to the current stack pointer. SP-4 contains the pointer to the previous stack frame. This field is set optional. Since the stack frame size is determined at compile time, the previous stack pointer can be computed by subtracting the frame size from the current stack pointer. SP-8 is the location where the return link can be stored, if necessary. A leaf function may not store the return link in this location. Likewise, SP-4 is the location for the address of the previous stack pointer. However, as the frame sizes are fixed at compiler time, the value may not be stored in this location. 
 
-// ??? **note** under construction. How much space do we need for the calling convention ?
-// ??? we would need a space to keep the DP
- value, perhaps a static link for Pascal like languages, and so on. 
+The remainder of the stack frame is currently reserved for the external call mechanism. For intermodule calls, the DP value of the current module needs to be stored. Under construction.
 
 ### Register Partitioning
 
@@ -3694,7 +3693,7 @@ To the programmer general registers and segment registers are the primary regist
          :-----------------------------:              
       12 :  Callee save, (  )          :             
          :-----------------------------:              
-      13 :  Caller save, ( DP )        :             
+      13 :  Data pointer, ( DP )       :             
          :-----------------------------:              
       14 :  Return link ( RL )         :             
          :-----------------------------:              
@@ -4534,9 +4533,9 @@ The description of the TLB fields and the ITLB instruction already allow for a 1
 
 ### System calls
 
-System calls are function calls from a user code segment to services offered by the kernel. Typically, such services are called via a trap mechanism. The user program loads the arguments on the stack and then issues a software trap. VCPU32 can easily implement this scheme via the BRK instruction, rasing a trap. Also, the BRK instruction could be enhanced such that the hardware computes a trap vector and simply continues execution at the trap vector location. Note that this type of trap handling is very simualar to the architural traps defined.
+System calls are function calls from a user code segment to services offered by the kernel. Typically, such services are called via a trap mechanism. The user program loads the arguments on the stack and then issues a software trap. VCPU32 can easily implement this scheme via the BRK instruction, raising a trap. Also, the BRK instruction could be enhanced such that the hardware computes a trap vector and simply continues execution at the trap vector location. Note that this type of trap handling is very similar to the architectural traps defined.
 
-The downside of such a trap mechamismn, although quite clean and straightforward, is that each call to a kernal sevice will have to store the context and return via the RFI instruction restoring this context. The processor pipeline is flushed twice wi th an impact to overall performance. VCPU32 offsers an addtional method based on teh conecpt of a GATE instructution as described in the architectire section. Each task would however need a geteway page which holds teh stubs for the kernal services.
+The downside of such a trap mechanism, although quite clean and straightforward, is that each call to a kernel service will have to store the context and return via the RFI instruction restoring this context. The processor pipeline is flushed twice wi the an impact to overall performance. VCPU32 offers an additional method based on the concept of a GATE instruction as described in the architecture section. Each task would however need a gateway page which holds the stubs for the kernel services.
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->

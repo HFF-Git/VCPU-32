@@ -1596,8 +1596,6 @@ void parseInstrMST( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
-    
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 9, 4, tok -> tokVal( ) );
@@ -1608,7 +1606,7 @@ void parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
-        setBitField( instr, 27, 4, rExpr.numVal );
+        setBitField( instr, 27, 4, tok -> tokVal( ) );
         tok -> nextToken( );
     }
     
@@ -1624,7 +1622,7 @@ void parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrPRB( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr     rExpr;
+    DrvExpr rExpr;
    
     if ( tok -> isTokenTyp( TYP_GREG )) {
         

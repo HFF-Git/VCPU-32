@@ -186,10 +186,13 @@ int DrvConsoleIO::readLine( char *cmdBuf ) {
     while ( true ) {
         
         ch = readChar( );
-        
+
         if ( ch == -1 ) {
             
-            return( -1 );
+            // ??? not clear what we do here ... right now, a window movement will create
+            // a lot of "-1". We should just ignore them...
+            
+            // return( -1 );
         }
         else if ( ch == 25 ) {
             
@@ -214,6 +217,7 @@ int DrvConsoleIO::readLine( char *cmdBuf ) {
                     writeChar( ' ' );
                     writeChar( '\b' );
                 }
+                
                 continue;
             }
         }
