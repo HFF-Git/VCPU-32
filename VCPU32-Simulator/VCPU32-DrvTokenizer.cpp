@@ -54,6 +54,17 @@ void upshiftStr( char *str ) {
     }
 }
 
+void addChar( char *buf, int size, char ch ) {
+    
+    size_t len = strlen( buf );
+    
+    if ( len + 1 < size ) {
+        
+        buf[ len ]     = ch;
+        buf[ len + 1 ] = 0;
+    }
+}
+
 //------------------------------------------------------------------------------------------------------------
 // The lookup function. We just do a linear search for now. Note that we expect the last entry in the token
 // table to be the NIL token, otherwise bad things will happen.
@@ -148,7 +159,7 @@ void DrvTokenizer::parseNum( ) {
     
     do {
         
-        strcat( tmpStr, &currentChar );
+        addChar( tmpStr, sizeof( tmpStr ), currentChar );
         nextChar( );
         
     } while ( isxdigit( currentChar )   || ( currentChar == 'X' ) || ( currentChar == 'O' )
@@ -167,7 +178,7 @@ void DrvTokenizer::parseNum( ) {
         
         do {
             
-            strcat( tmpStr, &currentChar );
+            addChar( tmpStr, sizeof( tmpStr ), currentChar );
             nextChar( );
             
         } while ( isxdigit( currentChar )   || ( currentChar == 'X' ) || ( currentChar == 'O' )
@@ -200,11 +211,11 @@ void DrvTokenizer::parseString( ) {
                 if      ( currentChar == 'n' )  strcat( currentToken.str, (char *) "\n" );
                 else if ( currentChar == 't' )  strcat( currentToken.str, (char *) "\t" );
                 else if ( currentChar == '\\' ) strcat( currentToken.str, (char *) "\\" );
-                else                            strcat( currentToken.str, &currentChar );
+                else addChar( currentToken.str, sizeof( currentToken.str ), currentChar );
             }
             else throw ( ERR_EXPECTED_CLOSING_QUOTE );
         }
-        else strcat( currentToken.str, &currentChar );
+        else addChar( currentToken.str, sizeof( currentToken.str ), currentChar );
         
         nextChar( );
     }
@@ -230,12 +241,12 @@ void DrvTokenizer::parseIdent( ) {
     
     if ( currentChar == 'L' ) {
         
-        strcat( identBuf, &currentChar );
+        addChar( identBuf, sizeof( identBuf ), currentChar );
         nextChar( );
         
         if ( currentChar == '%' ) {
             
-            strcat( identBuf, &currentChar );
+            addChar( identBuf, sizeof( identBuf ), currentChar );
             nextChar( );
             
             if ( isdigit( currentChar )) {
@@ -248,12 +259,12 @@ void DrvTokenizer::parseIdent( ) {
     }
     else if ( currentChar == 'R' ) {
         
-        strcat( identBuf, &currentChar );
+        addChar( identBuf, sizeof( identBuf ), currentChar );
         nextChar( );
         
         if ( currentChar == '%' ) {
             
-            strcat( identBuf, &currentChar );
+            addChar( identBuf, sizeof( identBuf ), currentChar );
             nextChar( );
             
             if ( isdigit( currentChar )) {
@@ -267,7 +278,7 @@ void DrvTokenizer::parseIdent( ) {
     
     while (( isalnum( currentChar )) || ( currentChar == '_' )) {
         
-        strcat( identBuf, &currentChar );
+        addChar( identBuf, sizeof( identBuf ), currentChar );
         nextChar( );
     }
     
