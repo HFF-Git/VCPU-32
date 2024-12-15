@@ -612,7 +612,7 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
         
         rExpr -> typ = TYP_NIL;
     }
-    else throw (ERR_EXPR_FACTOR );
+    else throw ( ERR_EXPR_FACTOR );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -644,7 +644,7 @@ void DrvExprEvaluator::parseTerm( DrvExpr *rExpr ) {
         switch( op ) {
                 
             case TOK_MULT:   multOp( rExpr, &lExpr );               break;
-            case TOK_DIV:    divOp( rExpr, &lExpr );                 break;
+            case TOK_DIV:    divOp( rExpr, &lExpr );                break;
             case TOK_MOD:    modOp( rExpr, &lExpr );                break;
             case TOK_AND:    logicalOp( rExpr, &lExpr, AND_OP );    break;
         }

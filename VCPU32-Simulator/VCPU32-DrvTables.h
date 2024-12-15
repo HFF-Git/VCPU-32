@@ -56,6 +56,20 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "CODE",               .typ = TYP_SYM,                 .tid = TOK_CODE                         },
     
     //--------------------------------------------------------------------------------------------------------
+    //
+    //
+    //--------------------------------------------------------------------------------------------------------
+    { .name = "COMMANDS",           .typ = TYP_CMD,                 .tid = CMD_SET                          },
+    
+    { .name = "WCOMMANDS",          .typ = TYP_WCMD,                .tid = WCMD_SET                         },
+    
+    { .name = "PREDEFINED",         .typ = TYP_PREDEFINED_FUNC, .tid = PF_SET                               },
+    
+    { .name = "REGSET",             .typ = TYP_RSET,                .tid = REG_SET                        },
+    
+    { .name = "WTYPES",             .typ = TYP_WTYP,                .tid = WTYPE_SET                        },
+    
+    //--------------------------------------------------------------------------------------------------------
     // Command Line tokens.
     //
     //--------------------------------------------------------------------------------------------------------
@@ -83,11 +97,6 @@ DrvToken const cmdTokTab[ ] = {
     
     { .name = "DCA",                .typ = TYP_CMD,                 .tid = CMD_D_CACHE                      },
     { .name = "PCA",                .typ = TYP_CMD,                 .tid = CMD_P_CACHE                      },
-    
-    { .name = "LOAD_MEM",           .typ = TYP_CMD,                 .tid = CMD_LMF                          },
-    { .name = "SAVE_MEM",           .typ = TYP_CMD,                 .tid = CMD_SMF                          },
-    
-    { .name = "COMMANDS",           .typ = TYP_CMD,                 .tid = CMD_SET                          },
     
     //--------------------------------------------------------------------------------------------------------
     // Window command tokens.
@@ -148,10 +157,7 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "PCR",                .typ = TYP_SYM,                 .tid = TOK_PCR                          },
     { .name = "IOR",                .typ = TYP_SYM,                 .tid = TOK_IOR                          },
     { .name = "TX",                 .typ = TYP_SYM,                 .tid = TOK_TX                           },
-    
-    { .name = "WCOMMANDS",          .typ = TYP_WCMD,                .tid = WCMD_SET                         },
-    { .name = "WTYPES",             .typ = TYP_WTYP,                .tid = WTYPE_SET                        },
-    
+  
     //--------------------------------------------------------------------------------------------------------
     // General registers.
     //
@@ -258,7 +264,7 @@ DrvToken const cmdTokTab[ ] = {
     //--------------------------------------------------------------------------------------------------------
     { .name = "FD_PSW0",            .typ = TYP_FD_PREG,         .tid = FD_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "FD_PSW1",            .typ = TYP_FD_PREG,         .tid = FD_PSW1,             .val = PSTAGE_REG_ID_PSW_1      },
-    { .name = "FDR",                .typ = TYP_FD_PREG,         .tid = FD_SET,              .val = 0                        },
+    { .name = "PLFD",               .typ = TYP_FD_PREG,         .tid = FD_SET,              .val = 0                        },
     
     { .name = "PSW0",               .typ = TYP_FD_PREG,         .tid = FD_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "PSW1",               .typ = TYP_FD_PREG,         .tid = FD_PSW1,             .val = PSTAGE_REG_ID_PSW_1      },
@@ -271,7 +277,7 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "MA_B",               .typ = TYP_MA_PREG,         .tid = MA_B,                .val = PSTAGE_REG_ID_VAL_B      },
     { .name = "MA_X",               .typ = TYP_MA_PREG,         .tid = MA_X,                .val = PSTAGE_REG_ID_VAL_X      },
     { .name = "MA_S",               .typ = TYP_MA_PREG,         .tid = MA_S,                .val = PSTAGE_REG_ID_VAL_S      },
-    { .name = "MAR",                .typ = TYP_MA_PREG,         .tid = MA_SET,              .val = 0                        },
+    { .name = "PLMA",               .typ = TYP_MA_PREG,         .tid = MA_SET,              .val = 0                        },
     
     { .name = "EX_PSW0",            .typ = TYP_EX_PREG,         .tid = EX_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "EX_PSW1",            .typ = TYP_EX_PREG,         .tid = EX_PSW1,             .val = PSTAGE_REG_ID_PSW_1      },
@@ -280,7 +286,7 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "EX_B",               .typ = TYP_EX_PREG,         .tid = EX_B,                .val = PSTAGE_REG_ID_VAL_B      },
     { .name = "EX_X",               .typ = TYP_EX_PREG,         .tid = EX_X,                .val = PSTAGE_REG_ID_VAL_X      },
     { .name = "EX_S",               .typ = TYP_EX_PREG,         .tid = EX_S,                .val = PSTAGE_REG_ID_VAL_S      },
-    { .name = "EXR",                .typ = TYP_EX_PREG,         .tid = EX_SET,              .val = 0                        },
+    { .name = "PLEX",               .typ = TYP_EX_PREG,         .tid = EX_SET,              .val = 0                        },
     
     //--------------------------------------------------------------------------------------------------------
     // I-Cache register tokens.
@@ -364,8 +370,7 @@ DrvToken const cmdTokTab[ ] = {
     // Predefined functions.
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "PREDEFINED",         .typ = TYP_PREDEFINED_FUNC, .tid = PF_SET                               },
-    
+   
     { .name = "ASM",                .typ = TYP_PREDEFINED_FUNC, .tid = PF_ASSEMBLE,         .val = 0        },
     { .name = "DISASM",             .typ = TYP_PREDEFINED_FUNC, .tid = PF_DIS_ASSEMBLE,     .val = 0        },
     { .name = "HASH",               .typ = TYP_PREDEFINED_FUNC, .tid = PF_HASH,             .val = 0        },
@@ -482,7 +487,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_HELP,
         .cmdNameStr     = (char *) "help",
         .cmdSyntaxStr   = (char *) "help ( cmdId | ‘commands‘ | 'wcommands‘ | ‘wtypes‘ | ‘predefined‘ )",
-        .helpStr        = (char *) "list help information"
+        .helpStr        = (char *) "list help information ( type \"help help\" for details )"
     },
   
     {
@@ -507,20 +512,6 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     },
     
     {
-        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_LMF,
-        .cmdNameStr     = (char *) "lmf",
-        .cmdSyntaxStr   = (char *) "lmf <path> [ , <opt> ]",
-        .helpStr        = (char *) "loads memory from a file"
-    },
-    
-    {
-        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_SMF,
-        .cmdNameStr     = (char *) "smf",
-        .cmdSyntaxStr   = (char *) "smf <path> <ofs> [ , <len> ]",
-        .helpStr        = (char *) "stores memory to a file"
-    },
-    
-    {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_RESET,
         .cmdNameStr     = (char *) "reset",
         .cmdSyntaxStr   = (char *) "reset ( 'CPU'|'MEM'|'STATS'|'ALL' )",
@@ -537,7 +528,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_STEP,
         .cmdNameStr     = (char *) "step",
-        .cmdSyntaxStr   = (char *) "s [ <num> ] [ , I|C ]",
+        .cmdSyntaxStr   = (char *) "s [ <steps> ] [ , 'I' | 'C' ]",
         .helpStr        = (char *) "single step for instruction or clock cycle"
     },
     
@@ -551,7 +542,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_DR,
         .cmdNameStr     = (char *) "dr",
-        .cmdSyntaxStr   = (char *) "dr [ <regSet>| <reg> ] [ , <fmt> ]",
+        .cmdSyntaxStr   = (char *) "dr [ ( <regSet>| <reg> ) ] [ , <fmt> ]",
         .helpStr        = (char *) "display register or register sets"
     },
     
@@ -579,35 +570,35 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_D_CACHE,
         .cmdNameStr     = (char *) "dca",
-        .cmdSyntaxStr   = (char *) "dca <I|D|U> , [<index> [ , <len> [ , <fmt> ]] ",
+        .cmdSyntaxStr   = (char *) "dca ( 'I' | 'D' | 'U' ) <index> [ , <len> [ , <fmt> ]] ",
         .helpStr        = (char *) "display cache content"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_P_CACHE,
         .cmdNameStr     = (char *) "pca",
-        .cmdSyntaxStr   = (char *) "pca <I|D|U> , [ <index> ] , [ <set> ] [, <flush>]",
+        .cmdSyntaxStr   = (char *) "pca ('I' | 'D' | 'U' ) <index> [ , <set> [, 'F' ]]",
         .helpStr        = (char *) "flushes and purges cache data"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_D_TLB,
         .cmdNameStr     = (char *) "dtlb",
-        .cmdSyntaxStr   = (char *) "dtlb <I|D> [ , <index> [ , <len>] [ , <rdx> ]",
+        .cmdSyntaxStr   = (char *) "dtlb ( 'I' | 'D' ) <index> [ , <len> [ , <rdx> ]]",
         .helpStr        = (char *) "display TLB content"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_I_TLB,
         .cmdNameStr     = (char *) "itlb",
-        .cmdSyntaxStr   = (char *) "itlb <I|D> <extAdr> <argAcc> <argAdr>",
+        .cmdSyntaxStr   = (char *) "itlb ( 'I' | 'D' ) <extAdr> <argAcc> <argAdr>",
         .helpStr        = (char *) "inserts an entry into the TLB"
     },
     
     {
         .helpTypeId = TYP_CMD,  .helpTokId  = CMD_P_TLB,
         .cmdNameStr     = (char *) "ptlb",
-        .cmdSyntaxStr   = (char *) "ptlb <I|D> , <extAdr>",
+        .cmdSyntaxStr   = (char *) "ptlb ( 'I' | 'D' ) <extAdr>",
         .helpStr        = (char *) "purges an entry from the TLB"
     },
     
@@ -619,42 +610,55 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     },
     
     {
-        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_WOFF,
-        .cmdNameStr     = (char *) "woff",
-        .cmdSyntaxStr   = (char *) "woff",
-        .helpStr        = (char *) "switches to command line mode"
-    },
-    
-    {
-        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_WDEF,
-        .cmdNameStr     = (char *) "wdef",
-        .cmdSyntaxStr   = (char *) "wdef",
-        .helpStr        = (char *) "reset the windows to their default values"
-    },
-    
-    {
-        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_WSE,
-        .cmdNameStr     = (char *) "wse",
-        .cmdSyntaxStr   = (char *) "wse",
-        .helpStr        = (char *) "enable window stacks"
-    },
-    
-    {
-        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_WSD,
-        .cmdNameStr     = (char *) "wsd",
-        .cmdSyntaxStr   = (char *) "wsd",
-        .helpStr        = (char *) "disable window stacks"
+        .helpTypeId = TYP_RSET,  .helpTokId  = REG_SET,
+        .cmdNameStr     = (char *) "regset",
+        .cmdSyntaxStr   = (char *) "",
+        .helpStr        = (char *) "\n" "\n"
+                                    "GR   - " "general register set" "\n"
+                                    "SR   - " "segment register set" "\n"
+                                    "CR   - " "control register set" "\n"
+                                    "PS   - " "program state" "\n"
+                                    "PLFD - " "Pipeline FD stage input register set" "\n"
+                                    "PLMA - " "Pipeline MA stage input register set" "\n"
+                                    "PLEX - " "Pipeline EX stage input register set" "\n"
+                                    "ICl1 - " "I-Cache control register set" "\n"
+                                    "DCl1 - " "D-Cache control register set" "\n"
+                                    "UCl2 - " "U-Cache control register set" "\n"
+                                    "ITLB - " "I-TLB control register set" "\n"
+                                    "DTLB - " "D-TLB control register set" "\n"
     },
     
     //--------------------------------------------------------------------------------------------------------
     // Window commands and types.
     //
     //--------------------------------------------------------------------------------------------------------
+    
     {
-        .helpTypeId = TYP_WCMD,  .helpTokId  = CMD_WHELP,
-        .cmdNameStr     = (char *) "whelp",
-        .cmdSyntaxStr   = (char *) "whelp",
-        .helpStr        = (char *) "list window help information"
+        .helpTypeId = TYP_WCMD,  .helpTokId  = CMD_WOFF,
+        .cmdNameStr     = (char *) "woff",
+        .cmdSyntaxStr   = (char *) "woff",
+        .helpStr        = (char *) "switches to command line mode"
+    },
+    
+    {
+        .helpTypeId = TYP_WCMD,  .helpTokId  = CMD_WDEF,
+        .cmdNameStr     = (char *) "wdef",
+        .cmdSyntaxStr   = (char *) "wdef",
+        .helpStr        = (char *) "reset the windows to their default values"
+    },
+    
+    {
+        .helpTypeId = TYP_WCMD,  .helpTokId  = CMD_WSE,
+        .cmdNameStr     = (char *) "wse",
+        .cmdSyntaxStr   = (char *) "wse",
+        .helpStr        = (char *) "enable window stacks"
+    },
+    
+    {
+        .helpTypeId = TYP_WCMD,  .helpTokId  = CMD_WSD,
+        .cmdNameStr     = (char *) "wsd",
+        .cmdSyntaxStr   = (char *) "wsd",
+        .helpStr        = (char *) "disable window stacks"
     },
     
     {
@@ -758,7 +762,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     {
         .helpTypeId     = TYP_WCMD, .helpTokId  = CMD_WR,
         .cmdNameStr     = (char *)  "wr",
-        .cmdSyntaxStr   = (char *)  "wr [ <wNum> ]",
+        .cmdSyntaxStr   = (char *)  "wr [ <rdx> [ , <wNum> ]]",
         .helpStr        = (char *)  "set user defined window radix"
     },
     
@@ -824,22 +828,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
         .cmdSyntaxStr   = (char *)  "wn <type> [ , <argStr> ]",
         .helpStr        = (char *)  "create a user defined window ( PM, PC, IT, DT, IC, ICR, DCR, MCR, TX )"
     },
-    
-    {
-        .helpTypeId     = TYP_WCMD, .helpTokId  = CMD_WK,
-        .cmdNameStr     = (char *)  "wk",
-        .cmdSyntaxStr   = (char *)  "wk <wStart> [ , <wEnd> ]",
-        .helpStr        = (char *)  "remove a range of user defined windows"
-    },
-    
-    {
-        .helpTypeId     = TYP_WCMD, .helpTokId  = CMD_WS,
-        .cmdNameStr     = (char *)  "ws",
-        .cmdSyntaxStr   = (char *)  "ws <stackNum> [ , <wStart> ] [ , <wEnd>]",
-        .helpStr        = (char *)  "moves a range of user windows into stack <stackNum>"
-    },
-    
-    // ??? need to put them in separate entries, somehow the print fails....
+        
     {
         .helpTypeId     = TYP_WTYP, .helpTokId  = WTYPE_SET,
         .cmdNameStr     = (char *)  "window types",
@@ -867,6 +856,20 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
                                     "DTR  - " "data tlb controller register window" "\n"
                                     "PCR  - " "PDC memory controller register window" "\n"
                                     "IOR  - " "IO memory controller register window" "\n"
+    },
+    
+    {
+        .helpTypeId     = TYP_WCMD, .helpTokId  = CMD_WK,
+        .cmdNameStr     = (char *)  "wk",
+        .cmdSyntaxStr   = (char *)  "wk <wStart> [ , <wEnd> ]",
+        .helpStr        = (char *)  "remove a range of user defined windows"
+    },
+    
+    {
+        .helpTypeId     = TYP_WCMD, .helpTokId  = CMD_WS,
+        .cmdNameStr     = (char *)  "ws",
+        .cmdSyntaxStr   = (char *)  "ws <stackNum> [ , <wStart> ] [ , <wEnd>]",
+        .helpStr        = (char *)  "moves a range of user windows into stack <stackNum>"
     },
     
     //--------------------------------------------------------------------------------------------------------

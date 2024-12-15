@@ -148,11 +148,7 @@ void DrvCmds::setupCmdInterpreter( int argc, const char *argv[ ] ) {
 //
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::cmdLineError( ErrMsgId errNum, char *argStr ) {
-    
-    int tokIndex = promptLen + glb -> tok -> tokCharIndex( );
-    
-    markError ( tokIndex );
-    
+   
     for ( int i = 0; i < MAX_ERR_MSG_TAB; i++ ) {
         
         if ( errMsgTab[ i ].errNum == errNum ) {
@@ -242,11 +238,10 @@ void DrvCmds::promptCmdLine( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "readCmdLine" reads in the command line. For a valid command line, the trailing carriage return and/or
-// line feeds are removed and the first token is interpreted as a command. The function returns the command
-// found, an invalid command or an empty command line status. We loop inside the routine until we receive
-// a valid command line or an EOF.
+// "readCmdLine" reads in the command line. The function returns the number of characters read or an error
+// code. We loop inside the routine until we receive a valid command line or an EOF.
 //
+// ??? how would we recognize an end of file for batch input ?
 //------------------------------------------------------------------------------------------------------------
 int DrvCmds::readInputLine( char *cmdBuf ) {
     
@@ -327,7 +322,7 @@ void DrvCmds::execCmdsFromFile( char* fileName ) {
 // Help command. With no arguments, a short help overview is printed. There are commands, widow commands and
 // predefined functions.
 //
-// HELP [ <cmdId> | commands | wcommands | wtypes | predefined ]
+//  help ( cmdId | ‘commands‘ | 'wcommands‘ | ‘wtypes‘ | ‘predefined‘ | 'regset' )
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::helpCmd( ) {
     
@@ -344,9 +339,10 @@ void DrvCmds::helpCmd( ) {
         
         glb -> console -> printChars( "\n" );
     }
-    else if (( glb -> tok -> isTokenTyp( TYP_CMD )) ||
+    else if (( glb -> tok -> isTokenTyp( TYP_CMD  )) ||
              ( glb -> tok -> isTokenTyp( TYP_WCMD )) ||
              ( glb -> tok -> isTokenTyp( TYP_WTYP )) ||
+             ( glb -> tok -> isTokenTyp( TYP_RSET )) ||
              ( glb -> tok -> isTokenTyp( TYP_PREDEFINED_FUNC ))) {
         
         if ( glb -> tok -> isToken( CMD_SET )) {
@@ -364,6 +360,17 @@ void DrvCmds::helpCmd( ) {
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
                 if ( cmdHelpTab[ i ].helpTypeId == TYP_WCMD )
+                    glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+            }
+            
+            glb -> console -> printChars( "\n" );
+        }
+        else if ( glb -> tok -> isToken( REG_SET )) {
+            
+            for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
+                
+                if ( cmdHelpTab[ i ].helpTypeId == TYP_RSET )
+                    
                     glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
             }
             
@@ -408,7 +415,7 @@ void DrvCmds::helpCmd( ) {
 // Exit command. We will exit with the environment variable value for the exit code or the argument value
 // in the command. This will be quite useful for test script development.
 //
-// EXIT <code>
+// EXIT <val>
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::exitCmd( ) {
     
@@ -438,7 +445,7 @@ void DrvCmds::exitCmd( ) {
 // ENV variable dos not exist, it will be allocated with the type of the value. A value of the token NIL will
 // remove a user defined variable.
 //
-// ENV [ <envName> [ <val> ]]
+//  ENV [ <var> [ <val> ]]",
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::envCmd( ) {
     
@@ -506,36 +513,12 @@ void DrvCmds::execFileCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Load physical memory command.
-//
-// LMF <path> [ , <opt ]
-//
-// ??? this will perhaps be better done via load an image from the assembler.
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::loadPhysMemCmd( ) {
-    
-    glb -> console -> printChars((char *) "The Load Physical Memory command... under construction\n" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Save physical memory command.
-//
-// SMF <path> <ofs> [ , <len> ]
-//
-// ??? when we save a memory image, how to load it back ? Purpose ?
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::savePhysMemCmd( ) {
-    
-    glb -> console -> printChars((char *) "The Load Physical Memory command... under construction\n" );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // Reset command.
 //
-// RESET [ ( CPU | MEM | STATS | ALL ) ]
+//  RESET [ ( 'CPU' | 'MEM' | 'STATS' | 'ALL' ) ]
 //
 // ??? when and what statistics to also reset ?
-// ??? what if thee is a unified cache outside the CPU ?
+// ??? what if there is a unified cache outside the CPU ?
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::resetCmd( ) {
     
@@ -579,7 +562,7 @@ void DrvCmds::resetCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Run command. The command will just run the CPU until a "halt" instruction is detected.
 //
-// RUN
+//  RUN
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::runCmd( ) {
     
@@ -590,7 +573,7 @@ void DrvCmds::runCmd( ) {
 // Step command. The command will execute one instruction. Default is one instruction. There is an ENV
 // variable that will set the default to be a single clock step.
 //
-// S [ <steps> ] [ "," "I" | "C" ]
+//  S [ <steps> ] [ , 'I' | 'C' ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::stepCmd( ) {
     
@@ -622,7 +605,7 @@ void DrvCmds::stepCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 // Write line command.
 //
-// W <expr> [ "," <rdx> ]
+//  W <expr> [ , <rdx> ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::writeLineCmd( ) {
     
@@ -656,7 +639,7 @@ void DrvCmds::writeLineCmd( ) {
             
         case TYP_BOOL: {
             
-            if ( rExpr.bVal == true )   glb -> console -> printChars(  "TRUE\n" );
+            if ( rExpr.bVal == true )   glb -> console -> printChars( "TRUE\n" );
             else                        glb -> console -> printChars( "FALSE\n" );
             
         } break;
@@ -691,9 +674,8 @@ void DrvCmds::writeLineCmd( ) {
 // Display register command. This is a rather versatile command, which displays register set, register and
 // all of them in one format.
 //
-// DR [ <regSet>|<reg> ] [ "," <fmt> ]
+// DR [ ( <regSet> | <reg> ) ] [ , <fmt> ]
 //
-// ??? PSTATE regs and FD Stage Regs are the same ?????
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::displayRegCmd( ) {
     
@@ -888,355 +870,6 @@ void DrvCmds::modifyRegCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Display TLB entries command.
-//
-// DTLB (D|I|U) [ <index> ] [ "," <len> ] [ "," <fmt> ] - if no index, list all entries ? practical ?
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::displayTLBCmd( ) {
-    
-    uint32_t    index       = 0;
-    uint32_t    len         = 0;
-    uint32_t    tlbSize     = 0;
-    CpuTlb      *tPtr       = nullptr;
-    int         rdx         = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-    
-    if ( glb -> tok -> tokId( ) == TOK_I ) {
-        
-        tlbSize = glb -> cpu -> iTlb -> getTlbSize( );
-        tPtr    = glb -> cpu -> iTlb;
-        glb -> tok -> nextToken( );
-    }
-    else if ( glb -> tok -> tokId( ) == TOK_D ) {
-        
-        tlbSize = glb -> cpu -> dTlb -> getTlbSize( );
-        tPtr    = glb -> cpu -> dTlb;
-        glb -> tok -> nextToken( );
-    }
-    else throw ( ERR_TLB_TYPE );
-    
-    acceptComma( );
-    
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
-        
-        index = 0;
-        glb -> tok -> nextToken( );
-    }
-    else {
-        
-        DrvExpr rExpr;
-        
-        glb -> eval -> parseExpr( &rExpr );
-        index = rExpr.numVal;
-        
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
-    }
-    
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
-        
-        len = 1;
-        glb -> tok -> nextToken( );
-    }
-    else {
-        
-        DrvExpr rExpr;
-        
-        glb -> eval -> parseExpr( &rExpr );
-        
-        len = rExpr.numVal;
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
-    }
-    
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
-        
-        glb -> tok -> nextToken( );
-        
-        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
-            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
-            ( glb -> tok -> tokId( ) == TOK_DEC )) {
-            
-            rdx = glb -> tok -> tokVal( );
-        }
-        else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
-            
-            rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-        }
-        else throw ( ERR_INVALID_FMT_OPT );
-    }
-    
-    if (( index > tlbSize ) || ( index + len > tlbSize )) throw ( ERR_TLB_SIZE_EXCEEDED );
-    if (( index == 0 ) && ( len == 0 )) len = tlbSize;
-    
-    glb -> lineDisplay -> displayTlbEntries( tPtr, index, len, rdx );
-    glb -> console -> printChars( "\n" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Purge from TLB command.
-//
-// PTLB <I|D|U> <extAdr>
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::purgeTLBCmd( ) {
-    
-    DrvExpr     rExpr;
-    CpuTlb      *tPtr = nullptr;
-    
-    if ( glb -> tok -> tokId( ) == TOK_I ) {
-        
-        tPtr = glb -> cpu -> iTlb;
-        glb -> tok -> nextToken( );
-    }
-    else if ( glb -> tok -> tokId( ) == TOK_D ) {
-        
-        tPtr = glb -> cpu -> dTlb;
-        glb -> tok -> nextToken( );
-    }
-    else throw ( ERR_TLB_TYPE );
-    
-    glb -> eval -> parseExpr( &rExpr );
-    
-    if ( rExpr.typ == TYP_EXT_ADR ) {
-        
-        if ( ! tPtr -> purgeTlbEntryData( rExpr.seg, rExpr.ofs )) throw ( ERR_TLB_PURGE_OP );
-    }
-    else throw ( ERR_EXPECTED_EXT_ADR );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Insert into TLB command.
-//
-// I-TLB <D|I|U> <extAdr> <arg-acc> <arg-adr>
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::insertTLBCmd( ) {
-    
-    DrvExpr     rExpr;
-    uint32_t    tlbSize         = 0;
-    CpuTlb      *tPtr           = nullptr;
-    uint32_t    seg             = 0;
-    uint32_t    ofs             = 0;
-    uint32_t    argAcc          = 0;
-    uint32_t    argAdr          = 0;
-    
-    if ( glb -> tok -> tokId( ) == TOK_I ) {
-        
-        tlbSize = glb -> cpu -> iTlb -> getTlbSize( );
-        tPtr    = glb -> cpu -> iTlb;
-        glb -> tok -> nextToken( );
-    }
-    else if ( glb -> tok -> tokId( ) == TOK_D ) {
-        
-        tlbSize = glb -> cpu -> dTlb -> getTlbSize( );
-        tPtr    = glb -> cpu -> dTlb;
-        glb -> tok -> nextToken( );
-    }
-    else throw ( ERR_TLB_TYPE );
-    
-    glb -> eval -> parseExpr( &rExpr );
-    
-    if ( rExpr.typ == TYP_EXT_ADR ) {
-        
-        seg = rExpr.seg;
-        ofs = rExpr.ofs;
-    }
-    else throw ( ERR_EXPECTED_EXT_ADR );
-    
-    glb -> eval -> parseExpr( &rExpr );
-    
-    if ( rExpr.typ == TYP_NUM ) argAcc = rExpr.numVal;
-    else throw ( ERR_TLB_ACC_DATA );
-    
-    glb -> eval -> parseExpr( &rExpr );
-    
-    if ( rExpr.typ == TYP_NUM ) argAcc = rExpr.numVal;
-    else throw ( ERR_TLB_ADR_DATA );
-    
-    if ( ! tPtr -> insertTlbEntryData( seg, ofs, argAcc, argAdr )) throw ( ERR_TLB_INSERT_OP );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Display cache entries command.
-//
-// DCA ( I|D|U ) "," [ <index> ] [ "," <len> [ ", " <fmt> ]]
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::displayCacheCmd( ) {
-    
-    uint32_t    cacheSize       = 0;
-    CpuMem      *cPtr           = nullptr;
-    uint32_t    index           = 0;
-    uint32_t    len             = 0;
-    int         rdx             = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-    
-    if ( glb -> tok -> tokId( ) == TOK_I ) {
-        
-        cacheSize   = glb -> cpu -> iTlb -> getTlbSize( );
-        cPtr        = glb -> cpu -> iCacheL1;
-        glb -> tok -> nextToken( );
-    }
-    else if ( glb -> tok -> tokId( ) == TOK_D ) {
-        
-        cacheSize     = glb -> cpu -> iCacheL1 -> getMemSize( );
-        cPtr        = glb -> cpu -> dCacheL1;
-        glb -> tok -> nextToken( );
-    }
-    else if ( glb -> tok -> tokId( ) == TOK_U ) {
-        
-        if ( glb -> cpu -> uCacheL2 != nullptr ) {
-            
-            cacheSize     = glb -> cpu -> uCacheL2 -> getMemSize( );
-            cPtr        = glb -> cpu -> uCacheL2;
-            glb -> tok -> nextToken( );
-        }
-        else throw ( ERR_CACHE_NOT_CONFIGURED );
-    }
-    else throw ( ERR_CACHE_TYPE );
-    
-    acceptComma( );
-    
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
-        
-        index = 0;
-        glb -> tok -> nextToken( );
-    }
-    else {
-        
-        DrvExpr rExpr;
-        glb -> eval -> parseExpr( &rExpr );
-        
-        if ( rExpr.typ == TYP_NUM ) {
-            
-            index = rExpr.numVal;
-            if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
-        }
-        else throw ( ERR_EXPECTED_NUMERIC );
-    }
-    
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
-        
-        len = 1;
-        glb -> tok -> nextToken( );
-    }
-    else {
-        
-        DrvExpr rExpr;
-        
-        glb -> eval -> parseExpr( &rExpr );
-        
-        if ( rExpr.typ == TYP_NUM ) {
-            
-            len = rExpr.numVal;
-            if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
-        }
-        else throw ( ERR_EXPECTED_NUMERIC );
-    }
-    
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
-        
-        glb -> tok -> nextToken( );
-        
-        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
-            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
-            ( glb -> tok -> tokId( ) == TOK_DEC )) {
-            
-            rdx = glb -> tok -> tokVal( );
-        }
-        else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
-            
-            rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-        }
-        else throw ( ERR_INVALID_FMT_OPT );
-    }
-    
-    if (( index > cacheSize ) || ( index + len > cacheSize )) throw( ERR_CACHE_SIZE_EXCEEDED );
-    
-    if (( index == 0 ) && ( len == 0 )) len = cacheSize;
-    
-    if ( cPtr != nullptr ) {
-        
-        uint32_t blockEntries = cPtr -> getBlockEntries( );
-        
-        if (( index > blockEntries ) || ( index + len > blockEntries )) {
-            
-            throw( ERR_CACHE_SIZE_EXCEEDED );
-        }
-        
-        if (( index == 0 ) && ( len == 0 )) len = blockEntries;
-        
-        glb -> lineDisplay -> displayCacheEntries( cPtr, index, len, rdx );
-        
-        glb -> console -> printChars( "\n" );
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Purges a cache line from the cache.
-//
-// PCA <I|D|U> "," [ <index> ] "," [ <set> ] "," [<flush>]
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::purgeCacheCmd( ) {
-    
-    uint32_t    cacheSize       = 0;
-    CpuMem      *cPtr           = nullptr;
-    uint32_t    index           = 0;
-    uint32_t    set             = 0;
-    
-    if ( glb -> tok -> tokId( ) == TOK_I ) {
-        
-        cacheSize   = glb -> cpu -> iCacheL1 -> getMemSize( );
-        cPtr        = glb -> cpu -> iCacheL1;
-        glb -> tok -> nextToken( );
-    }
-    else if ( glb -> tok -> tokId( ) == TOK_D ) {
-        
-        cacheSize   = glb -> cpu -> dCacheL1 -> getMemSize( );
-        cPtr        = glb -> cpu -> dCacheL1;
-        glb -> tok -> nextToken( );
-    }
-    else if ( glb -> tok -> tokId( ) == TOK_U ) {
-        
-        if ( glb -> cpu -> uCacheL2 != nullptr ) {
-            
-            cacheSize     = glb -> cpu -> uCacheL2 -> getMemSize( );
-            cPtr        = glb -> cpu -> uCacheL2;
-            glb -> tok -> nextToken( );
-        }
-        else throw ( ERR_CACHE_NOT_CONFIGURED );
-    }
-    else throw ( ERR_CACHE_TYPE );
-    
-    acceptComma( );
-    
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
-        
-        index = 0;
-        glb -> tok -> nextToken( );
-    }
-    else {
-        
-        DrvExpr rExpr;
-        
-        glb -> eval -> parseExpr( &rExpr );
-        
-        if ( rExpr.typ == TYP_NUM ) {
-            
-            index = rExpr.numVal;
-            if ( glb -> tok -> tokId( ) == TOK_COMMA ) glb -> tok -> nextToken( );
-        }
-        else throw (ERR_EXPECTED_NUMERIC );
-    }
-    
-    if ( cPtr != nullptr ) {
-        
-        if ( set > cPtr -> getBlockSets( ) - 1 ) throw ( ERR_CACHE_SET_NUM );
-        
-        MemTagEntry  *tagEntry = cPtr -> getMemTagEntry( index, set );
-        if ( tagEntry != nullptr ) {
-            
-            tagEntry -> valid = false;
-        }
-        else throw ( ERR_CACHE_PURGE_OP );
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
 // Display absolute memory command. The memory address is a byte address. The offset address is a byte address,
 // the length is measured in bytes, rounded up to the a word size. We accept any address and length and only
 // check that the offset plus length does not exceed the address space. The display routines, who will call
@@ -1244,13 +877,13 @@ void DrvCmds::purgeCacheCmd( ) {
 // allow for HEX, OCTAL, DECIMAL and CODE. In the case of the code option, the default number format option
 // is used for showing the offset value.
 //
-// DA <ofs> [ "," <len> [ "," <rdx> ]]
+//  DA <ofs> [ , <len> [ , <fmt> ]]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::displayAbsMemCmd( ) {
     
     DrvExpr     rExpr;
     uint32_t    ofs     = 0;
-    uint32_t    len     = 1;
+    uint32_t    len     = 4;
     int         rdx     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     bool        asCode  = false;
     
@@ -1317,7 +950,7 @@ void DrvCmds::displayAbsMemCmd( ) {
 // Modify absolute memory command. This command accepts data values for up to eight consecutive locations.
 // We also use this command to populate physical memory from a script file.
 //
-// MA <ofs> <val>
+//  MA <ofs> <val>
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::modifyAbsMemCmd( ) {
     
@@ -1349,6 +982,308 @@ void DrvCmds::modifyAbsMemCmd( ) {
     
     mem -> putMemDataWord( ofs, val );
 }
+
+//------------------------------------------------------------------------------------------------------------
+// Display cache entries command.
+//
+//  DCA ( 'I' | 'D' | 'U' ) <index> [ , <len> [ , <fmt> ]]
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::displayCacheCmd( ) {
+    
+    DrvExpr     rExpr;
+    CpuMem      *cPtr           = nullptr;
+    uint32_t    index           = 0;
+    uint32_t    len             = 1;
+    int         rdx             = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    
+    if ( glb -> tok -> tokId( ) == TOK_I ) {
+        
+        cPtr = glb -> cpu -> iCacheL1;
+        glb -> tok -> nextToken( );
+    }
+    else if ( glb -> tok -> tokId( ) == TOK_D ) {
+        
+        cPtr = glb -> cpu -> dCacheL1;
+        glb -> tok -> nextToken( );
+    }
+    else if ( glb -> tok -> tokId( ) == TOK_U ) {
+        
+        if ( glb -> cpu -> uCacheL2 != nullptr ) {
+            
+            cPtr = glb -> cpu -> uCacheL2;
+            glb -> tok -> nextToken( );
+        }
+        else throw ( ERR_CACHE_NOT_CONFIGURED );
+    }
+    else throw ( ERR_CACHE_TYPE );
+    
+    glb -> eval -> parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_NUM ) index = rExpr.numVal;
+    else throw ( ERR_EXPECTED_NUMERIC );
+    
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+       
+        glb -> tok -> nextToken( );
+        glb -> eval -> parseExpr( &rExpr );
+        
+        if ( rExpr.typ == TYP_NUM ) len = rExpr.numVal;
+        else throw ( ERR_EXPECTED_NUMERIC );
+    }
+    
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        
+        glb -> tok -> nextToken( );
+        
+        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
+            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
+            ( glb -> tok -> tokId( ) == TOK_DEC )) {
+            
+            rdx = glb -> tok -> tokVal( );
+            glb -> tok -> nextToken( );
+        }
+        else throw ( ERR_INVALID_FMT_OPT );
+    }
+    
+    checkEOS( );
+   
+    if ( cPtr != nullptr ) {
+        
+        uint32_t blockEntries = cPtr -> getBlockEntries( );
+        
+        if (( index > blockEntries ) || ( index + len > blockEntries )) {
+            
+            throw ( ERR_CACHE_SIZE_EXCEEDED );
+        }
+        
+        if ( len == 0 ) len = blockEntries;
+        
+        glb -> lineDisplay -> displayCacheEntries( cPtr, index, len, rdx );
+        
+        glb -> console -> printChars( "\n" );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Purges a cache line from the cache.
+//
+//  PCA ('I' | 'D' | 'U' ) <index> [ , <set> [, 'F' ]]",
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::purgeCacheCmd( ) {
+    
+    DrvExpr     rExpr;
+    CpuMem      *cPtr           = nullptr;
+    uint32_t    index           = 0;
+    uint32_t    set             = 0;
+    bool        flush           = false;
+    
+    if ( glb -> tok -> tokId( ) == TOK_I ) {
+        
+        cPtr = glb -> cpu -> iCacheL1;
+        glb -> tok -> nextToken( );
+    }
+    else if ( glb -> tok -> tokId( ) == TOK_D ) {
+        
+        cPtr = glb -> cpu -> dCacheL1;
+        glb -> tok -> nextToken( );
+    }
+    else if ( glb -> tok -> tokId( ) == TOK_U ) {
+        
+        if ( glb -> cpu -> uCacheL2 != nullptr ) {
+            
+            cPtr = glb -> cpu -> uCacheL2;
+            glb -> tok -> nextToken( );
+        }
+        else throw ( ERR_CACHE_NOT_CONFIGURED );
+    }
+    else throw ( ERR_CACHE_TYPE );
+    
+    glb -> eval -> parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_NUM ) index = rExpr.numVal;
+    else throw (ERR_EXPECTED_NUMERIC );
+    
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        
+        glb -> tok -> nextToken( );
+        glb -> eval -> parseExpr( &rExpr );
+        
+        if ( rExpr.typ == TYP_NUM ) set = rExpr.numVal;
+        else throw ( ERR_EXPECTED_NUMERIC );
+    }
+    
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        
+        glb -> tok -> nextToken( );
+        
+        if ( glb -> tok -> isToken( TOK_F )) flush = true;
+        else throw ( ERR_INVALID_ARG );
+        
+        glb -> tok -> nextToken( );
+    }
+    
+    checkEOS( );
+    
+    if ( cPtr != nullptr ) {
+        
+        if ( set > cPtr -> getBlockSets( ) - 1 ) throw ( ERR_CACHE_SET_NUM );
+        
+        MemTagEntry  *tagEntry = cPtr -> getMemTagEntry( index, set );
+        if ( tagEntry != nullptr ) {
+            
+            tagEntry -> valid = false;
+        }
+        else throw ( ERR_CACHE_PURGE_OP );
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Display TLB entries command.
+//
+//  DTLB ( 'I' | 'D' ) <index> [ , <len> [ , <rdx> ]]
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::displayTLBCmd( ) {
+    
+    DrvExpr     rExpr;
+    uint32_t    index       = 0;
+    uint32_t    len         = 0;
+    uint32_t    tlbSize     = 0;
+    CpuTlb      *tPtr       = nullptr;
+    int         rdx         = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    
+    if ( glb -> tok -> tokId( ) == TOK_I ) {
+        
+        tlbSize = glb -> cpu -> iTlb -> getTlbSize( );
+        tPtr    = glb -> cpu -> iTlb;
+        glb -> tok -> nextToken( );
+    }
+    else if ( glb -> tok -> tokId( ) == TOK_D ) {
+        
+        tlbSize = glb -> cpu -> dTlb -> getTlbSize( );
+        tPtr    = glb -> cpu -> dTlb;
+        glb -> tok -> nextToken( );
+    }
+    else throw ( ERR_TLB_TYPE );
+    
+    glb -> eval -> parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_NUM ) index = rExpr.numVal;
+    else throw (ERR_EXPECTED_NUMERIC );
+    
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        
+        len = 1;
+        glb -> tok -> nextToken( );
+    }
+    else {
+       
+        glb -> eval -> parseExpr( &rExpr );
+        len = rExpr.numVal;
+    }
+    
+    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        
+        glb -> tok -> nextToken( );
+        
+        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
+            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
+            ( glb -> tok -> tokId( ) == TOK_DEC )) {
+            
+            rdx = glb -> tok -> tokVal( );
+            glb -> tok -> nextToken( );
+        }
+        else throw ( ERR_INVALID_FMT_OPT );
+    }
+    
+    checkEOS( );
+    
+    if ( len == 0 ) len = tlbSize;
+    
+    if (( index > tlbSize ) || ( index + len > tlbSize )) throw ( ERR_TLB_SIZE_EXCEEDED );
+   
+    glb -> lineDisplay -> displayTlbEntries( tPtr, index, len, rdx );
+    glb -> console -> printChars( "\n" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Insert into TLB command.
+//
+//  ITLB ( 'I' | 'D' ) <extAdr> <argAcc> <argAdr>
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::insertTLBCmd( ) {
+    
+    DrvExpr     rExpr;
+    CpuTlb      *tPtr           = nullptr;
+    uint32_t    seg             = 0;
+    uint32_t    ofs             = 0;
+    uint32_t    argAcc          = 0;
+    uint32_t    argAdr          = 0;
+    
+    if ( glb -> tok -> tokId( ) == TOK_I ) {
+        
+        tPtr = glb -> cpu -> iTlb;
+        glb -> tok -> nextToken( );
+    }
+    else if ( glb -> tok -> tokId( ) == TOK_D ) {
+        
+        tPtr = glb -> cpu -> dTlb;
+        glb -> tok -> nextToken( );
+    }
+    else throw ( ERR_TLB_TYPE );
+    
+    glb -> eval -> parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_EXT_ADR ) {
+        
+        seg = rExpr.seg;
+        ofs = rExpr.ofs;
+    }
+    else throw ( ERR_EXPECTED_EXT_ADR );
+    
+    glb -> eval -> parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_NUM ) argAcc = rExpr.numVal;
+    else throw ( ERR_TLB_ACC_DATA );
+    
+    glb -> eval -> parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_NUM ) argAcc = rExpr.numVal;
+    else throw ( ERR_TLB_ADR_DATA );
+    
+    if ( ! tPtr -> insertTlbEntryData( seg, ofs, argAcc, argAdr )) throw ( ERR_TLB_INSERT_OP );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Purge from TLB command.
+//
+//  PTLB ( 'I' | 'D' ) <extAdr>"
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::purgeTLBCmd( ) {
+    
+    DrvExpr     rExpr;
+    CpuTlb      *tPtr = nullptr;
+    
+    if ( glb -> tok -> tokId( ) == TOK_I ) {
+        
+        tPtr = glb -> cpu -> iTlb;
+        glb -> tok -> nextToken( );
+    }
+    else if ( glb -> tok -> tokId( ) == TOK_D ) {
+        
+        tPtr = glb -> cpu -> dTlb;
+        glb -> tok -> nextToken( );
+    }
+    else throw ( ERR_TLB_TYPE );
+    
+    glb -> eval -> parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_EXT_ADR ) {
+        
+        if ( ! tPtr -> purgeTlbEntryData( rExpr.seg, rExpr.ofs )) throw ( ERR_TLB_PURGE_OP );
+    }
+    else throw ( ERR_EXPECTED_EXT_ADR );
+}
+
 
 //------------------------------------------------------------------------------------------------------------
 // Global windows commands. There are handlers for turning windows on, off and set them back to their default
@@ -1403,35 +1338,11 @@ void DrvCmds::winStacksDisable( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Window current command. User definable windows are controlled by their window number. To avoid typing this
-// number all the time for a user window command, a user window can explicitly be set as the current command.
-//
-// WC <winNum>
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::winCurrentCmd( ) {
-    
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
-    
-    DrvExpr rExpr;
-    glb -> eval -> parseExpr( &rExpr );
-    
-    if ( rExpr.typ == TYP_NUM ) {
-        
-        if ( glb -> winDisplay -> validWindowNum( rExpr.numVal )) {
-            
-            glb -> winDisplay -> windowCurrent( rExpr.numVal );
-        }
-        else throw ( ERR_INVALID_WIN_ID );
-    }
-    else throw ( ERR_EXPECTED_WIN_ID );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // Windows enable and disable. When enabled, a window does show up on the screen. The window number is
 // optional, used for user definable windows.
 //
-// <win>E [<winNum>]
-// <win>D [<winNum>]
+//  <win>E [ <winNum> ]
+//  <win>D [ <winNum> ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winEnableCmd( TokId winCmd ) {
     
@@ -1484,7 +1395,7 @@ void DrvCmds::winDisableCmd( TokId winCmd ) {
 // option and pass the tokens to the screen handler. The window number is optional, used for user definable
 // windows.
 //
-// <win>R [ <radix> [ "," <winNum>]]
+//  <win>R [ <radix> [ "," <winNum>]]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winSetRadixCmd( TokId winCmd ) {
     
@@ -1492,7 +1403,13 @@ void DrvCmds::winSetRadixCmd( TokId winCmd ) {
     
     DrvExpr rExpr;
     int     winNum  = 0;
-    int     rdx     = 16;
+    int     rdx     =  glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
+    
+    if ( glb -> tok -> isToken( TOK_EOS )) {
+        
+        glb -> winDisplay -> windowRadix( winCmd, rdx, winNum );
+        return;
+    }
     
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
@@ -1522,24 +1439,22 @@ void DrvCmds::winSetRadixCmd( TokId winCmd ) {
             winNum = rExpr.numVal;
             glb -> tok -> nextToken( );
         }
-        else throw ( ERR_INVALID_RADIX );
+        else throw ( ERR_INVALID_WIN_ID );
     }
     
-    if ( glb -> winDisplay -> validWindowNum( winNum )) {
+    if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
         
-        glb -> winDisplay -> windowRadix( winCmd, rdx, winNum );
-    }
-    else throw ( ERR_INVALID_WIN_ID );
+    glb -> winDisplay -> windowRadix( winCmd, rdx, winNum );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Window scrolling. This command advances the item address of a scrollable window by the number of lines
 // multiplied by the number of items on a line forward or backward. The meaning of the item address and line
-// items is window dependent. The window number is optional, used for user definable windows. If omitted,
-// we mean the current window.
+// items is window dependent. If the amoun is zero, the default value of the window will be used. The window
+// number is optional, used for user definable windows. If omitted, we mean the current window.
 //
-// <win>F [<items> [ "," <winNum>]]
-// <win>B [<items> [ "," <winNum>]]
+//  <win>F [ <amt> [ , <winNum> ]]
+//  <win>B [ <amt> [ , <winNum> ]]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winForwardCmd( TokId winCmd ) {
     
@@ -1552,6 +1467,7 @@ void DrvCmds::winForwardCmd( TokId winCmd ) {
     if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
+        return;
     }
     else {
         
@@ -1562,14 +1478,17 @@ void DrvCmds::winForwardCmd( TokId winCmd ) {
         
         if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
             
-            glb ->  tok -> nextToken( );
+            glb -> tok -> nextToken( );
+            glb -> eval -> parseExpr( &rExpr );
             
-            if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
+            if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
             else throw ( ERR_INVALID_WIN_ID );
-            
-            if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
         }
         else winNum = 0;
+        
+        checkEOS( );
+        
+        if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
         
         glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
     }
@@ -1586,6 +1505,7 @@ void DrvCmds::winBackwardCmd( TokId winCmd ) {
     if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowBackward( winCmd, winItems, winNum  );
+        return;
     }
     
     glb -> eval -> parseExpr( &rExpr );
@@ -1595,24 +1515,36 @@ void DrvCmds::winBackwardCmd( TokId winCmd ) {
     
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
+        glb -> eval -> parseExpr( &rExpr );
         
-        if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
-        else throw ( ERR_INVALID_WIN_ID );
+        if ( rExpr.typ == TYP_NUM ) winItems = rExpr.numVal;
+        else throw ( ERR_INVALID_NUM );
         
-        if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
+        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+            
+            glb -> tok -> nextToken( );
+            glb -> eval -> parseExpr( &rExpr );
+            
+            if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
+            else throw ( ERR_INVALID_WIN_ID );
+        }
+        else winNum = 0;
     }
-    else winNum = 0;
+        
+    checkEOS( );
+    
+    if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
     
     glb -> winDisplay -> windowBackward( winCmd, winItems, winNum  );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Window home. Each window has a home item address, which was set at window creation or trough a non-zero
-// value passed to this command. The command sets the window item address to this value. The meaning of the
-// item address is window dependent. The window number is optional, used for user definable windows.
+// value previously passed to this command. The command sets the window item address to this value. The
+// meaning of the item address is window dependent. The window number is optional, used for user definable
+// windows.
 //
-// <win>H [<pos> [ "," <winNum>]]
+//  <win>H [ <pos> [ "," <winNum> ]]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winHomeCmd( TokId winCmd ) {
     
@@ -1625,6 +1557,7 @@ void DrvCmds::winHomeCmd( TokId winCmd ) {
     if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowHome( winCmd, winPos, winNum  );
+        return;
     }
     
     glb -> eval -> parseExpr( &rExpr );
@@ -1635,13 +1568,16 @@ void DrvCmds::winHomeCmd( TokId winCmd ) {
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         glb -> tok -> nextToken( );
+        glb -> eval -> parseExpr( &rExpr );
         
-        if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
+        if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
         else throw ( ERR_INVALID_WIN_ID );
-        
-        if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
     }
     else winNum = 0;
+    
+    checkEOS( );
+    
+    if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
     
     glb -> winDisplay -> windowHome( winCmd, winPos, winNum  );
 }
@@ -1650,7 +1586,7 @@ void DrvCmds::winHomeCmd( TokId winCmd ) {
 // Window jump. The window jump command sets the item address to the position argument. The meaning of the
 // item address is window dependent. The window number is optional, used for user definable windows.
 //
-// <win>J [<pos> [ "," <winNum>]]
+//  <win>J [ <pos> [ "," <winNum> ]]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winJumpCmd( TokId winCmd ) {
     
@@ -1663,6 +1599,7 @@ void DrvCmds::winJumpCmd( TokId winCmd ) {
     if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowHome( winCmd, winPos, winNum  );
+        return;
     }
     
     glb -> eval -> parseExpr( &rExpr );
@@ -1673,22 +1610,26 @@ void DrvCmds::winJumpCmd( TokId winCmd ) {
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         glb -> tok -> nextToken( );
+        glb -> eval -> parseExpr( &rExpr );
         
-        if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
+        if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
         else throw ( ERR_INVALID_WIN_ID );
-        
-        if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
     }
     else winNum = 0;
+    
+    checkEOS( );
+    
+    if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
     
     glb -> winDisplay -> windowJump( winCmd, winPos, winNum  );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Set window lines. This command sets the the number of rows for a window. The number includes the banner
-// line. The window number is optional, used for user definable windows.
+// line. If the "lines" argument is omitted, the window default value will be used. The window number is
+// optional, used for user definable windows.
 //
-// <win>L [<lines> [ "," <winNum>]]
+//  <win>L [ <lines> [ "," <winNum> ]]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winSetRowsCmd( TokId winCmd ) {
     
@@ -1701,6 +1642,7 @@ void DrvCmds::winSetRowsCmd( TokId winCmd ) {
     if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowHome( winCmd, winLines, winNum  );
+        return;
     }
     
     glb -> eval -> parseExpr( &rExpr );
@@ -1711,16 +1653,102 @@ void DrvCmds::winSetRowsCmd( TokId winCmd ) {
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
         glb -> tok -> nextToken( );
+        glb -> eval -> parseExpr( &rExpr );
         
-        if ( glb -> tok -> tokTyp( ) == TYP_NUM )winNum = glb -> tok -> tokVal( );
+        if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
         else throw ( ERR_INVALID_WIN_ID );
-        
-        if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
     }
     else winNum = 0;
     
+    checkEOS( );
+    
+    if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
+    
     glb -> winDisplay -> windowSetRows( winCmd, winLines, winNum );
     glb -> winDisplay -> reDraw( true );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Window current command. User definable windows are controlled by their window number. To avoid typing this
+// number all the time for a user window command, a user window can explicitly be set as the current command.
+//
+//  WC <winNum>
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::winCurrentCmd( ) {
+    
+    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    
+    DrvExpr     rExpr;
+    uint32_t    winNum = 0;
+    
+    if ( glb -> tok -> isToken( TOK_EOS )) throw ( ERR_EXPECTED_WIN_ID );
+    
+    glb -> eval -> parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
+    else throw ( ERR_INVALID_WIN_ID );
+    
+    if ( ! glb -> winDisplay -> validWindowNum( rExpr.numVal )) throw ( ERR_INVALID_WIN_ID );
+            
+    glb -> winDisplay -> windowCurrent( rExpr.numVal );
+     
+    checkEOS( );
+}
+    
+//------------------------------------------------------------------------------------------------------------
+// This command toggles through alternate window content, if supported by the window. An example is the
+// cache sets in a two-way associative cache. The toggle command will just flip through the sets.
+//
+//  WT [ <winNum> ]
+//------------------------------------------------------------------------------------------------------------
+void  DrvCmds::winToggleCmd( ) {
+    
+    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    
+    DrvExpr     rExpr;
+    uint32_t    winNum = 0;
+    
+    if ( glb -> tok -> isToken( TOK_EOS )) {
+        
+        glb -> winDisplay -> windowToggle( glb -> winDisplay -> getCurrentUserWindow( ));
+        return;
+    }
+    
+    glb -> eval -> parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
+    else throw ( ERR_INVALID_WIN_ID );
+    
+    if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
+    
+    glb -> winDisplay -> windowToggle( glb -> tok -> tokVal( ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// This command exchanges the current user window with the user window specified. It allows to change the
+// order of the user windows in a stacks.
+//
+// WX <winNum>
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::winExchangeCmd( ) {
+    
+    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    
+    DrvExpr     rExpr;
+    uint32_t    winNum = 0;
+    
+    if ( glb -> tok -> isToken( TOK_EOS )) throw ( ERR_EXPECTED_WIN_ID );
+    
+    glb -> eval -> parseExpr( &rExpr );
+    
+    if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
+    else throw ( ERR_INVALID_WIN_ID );
+    
+    checkEOS( );
+    
+    if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
+
+    glb -> winDisplay -> windowExchangeOrder( glb -> tok -> tokVal( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1728,7 +1756,7 @@ void DrvCmds::winSetRowsCmd( TokId winCmd ) {
 // index is used in all the calls to this window. The window type allows to select from a code window, a
 // physical memory window, a TLB and a CACHE window.
 //
-// WN <winType> [ "," <arg> ]
+//  WN <winType> [ , <arg> ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winNewWinCmd( ) {
     
@@ -1736,7 +1764,7 @@ void DrvCmds::winNewWinCmd( ) {
     char    *argStr = nullptr;
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
-    
+   
     if ( glb -> tok -> tokTyp( ) == TYP_SYM ) {
         
         winType = glb -> tok -> tokId( );
@@ -1763,6 +1791,7 @@ void DrvCmds::winNewWinCmd( ) {
         
         glb -> tok -> nextToken( );
     }
+    else throw ( ERR_EXPECTED_WIN_ID );
     
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
@@ -1772,6 +1801,8 @@ void DrvCmds::winNewWinCmd( ) {
         else throw ( ERR_INVALID_ARG );
     }
     
+    checkEOS( );
+    
     glb -> winDisplay -> windowNew( winType, argStr );
     glb -> winDisplay -> reDraw( true );
 }
@@ -1780,7 +1811,7 @@ void DrvCmds::winNewWinCmd( ) {
 // This command removes  a user defined window or window range from the list of windows. A number of -1 will
 // kill all user defined windows.
 //
-// WK [<winNumStart> [ "," <winNumEnd]] || ( -1 )
+//  WK [ <winNumStart> [ "," <winNumEnd]] || ( -1 )
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winKillWinCmd( ) {
     
@@ -1829,7 +1860,7 @@ void DrvCmds::winKillWinCmd( ) {
 // This command assigns a user window to a stack. User windows can be displayed in a separate stack of
 // windows. The first stack is always the main stack, where the predefined and command window can be found.
 //
-// WS <stackNum> [ "," <winNumStart> [ "," <winNumEnd ]]
+//  WS <stackNum> [ , <winNumStart> [ , <winNumEnd ]]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::winSetStackCmd( ) {
     
@@ -1853,33 +1884,30 @@ void DrvCmds::winSetStackCmd( ) {
         winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
         winNumEnd   = winNumStart;
     }
-    else {
-        
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    else if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
             
+        glb -> tok -> nextToken( );
+        glb -> eval -> parseExpr( &rExpr );
+            
+        if ( rExpr.typ == TYP_NUM ) winNumStart = rExpr.numVal;
+        else throw ( ERR_EXPECTED_NUMERIC );
+            
+        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+                
             glb -> tok -> nextToken( );
             glb -> eval -> parseExpr( &rExpr );
-            
-            if ( rExpr.typ == TYP_NUM ) winNumStart = rExpr.numVal;
+                
+            if ( rExpr.typ == TYP_NUM ) winNumEnd = rExpr.numVal;
             else throw ( ERR_EXPECTED_NUMERIC );
-            
-            if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
-                
-                glb -> tok -> nextToken( );
-                glb -> eval -> parseExpr( &rExpr );
-                
-                if ( rExpr.typ == TYP_NUM ) winNumEnd = rExpr.numVal;
-                else throw ( ERR_EXPECTED_NUMERIC );
-            }
-            else winNumEnd = winNumStart;
         }
-        else throw ( ERR_EXPECTED_COMMA );
+        else winNumEnd = winNumStart;
+    }
+    else throw ( ERR_EXPECTED_COMMA );
         
-        if ( winNumStart == -1 ) {
+    if ( winNumStart == -1 ) {
             
-            winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
-            winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
-        }
+        winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
+        winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
     }
     
     if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||
@@ -1887,46 +1915,6 @@ void DrvCmds::winSetStackCmd( ) {
     
     glb -> winDisplay -> windowSetStack( stackNum, winNumStart, winNumEnd );
     glb -> winDisplay -> reDraw( true );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// This command toggles through alternate window content, if the window dos support it. An example is the
-// cache sets in a two-way associative cache. The toggle command will just flip through the sets.
-//
-// WT [ <winNum> ]
-//------------------------------------------------------------------------------------------------------------
-void  DrvCmds::winToggleCmd( ) {
-    
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
-    
-    if ( glb -> tok -> isToken( TOK_EOS )) {
-        
-        glb -> winDisplay -> windowToggle( glb -> winDisplay -> getCurrentUserWindow( ));
-    }
-    else if ( glb -> tok -> tokTyp( ) == TYP_NUM ) {
-        
-        if ( ! glb -> winDisplay -> validWindowNum( glb -> tok -> tokVal( ))) throw ( ERR_INVALID_WIN_ID );
-        glb -> winDisplay -> windowToggle( glb -> tok -> tokVal( ));
-    }
-    else throw ( ERR_EXPECTED_WIN_ID );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// This command exchanges the current user window with the user window specified. It allows to change the
-// order of the user windows in a stacks.
-//
-// WX <winNum>
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::winExchangeCmd( ) {
-    
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
-    
-    if ( glb -> tok -> tokTyp( ) == TYP_NUM ) {
-        
-        if ( ! glb -> winDisplay -> validWindowNum( glb -> tok -> tokVal( ))) throw ( ERR_INVALID_WIN_ID );
-        glb -> winDisplay -> windowExchangeOrder( glb -> tok -> tokVal( ));
-    }
-    else throw ( ERR_EXPECTED_WIN_ID );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1956,9 +1944,7 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
                     case CMD_HELP:          helpCmd( );                     break;
                     case CMD_ENV:           envCmd( );                      break;
                     case CMD_XF:            execFileCmd( );                 break;
-                    case CMD_LMF:           loadPhysMemCmd( );              break;
-                    case CMD_SMF:           savePhysMemCmd( );              break;
-                        
+                   
                     case CMD_WRITE_LINE:    writeLineCmd( );                break;
                         
                     case CMD_RESET:         resetCmd( );                    break;

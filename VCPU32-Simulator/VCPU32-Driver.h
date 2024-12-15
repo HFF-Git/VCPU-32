@@ -45,8 +45,8 @@ const int MAX_ENV_VARIABLES     = 256;
 enum TypeId : uint16_t {
 
     TYP_NIL                 = 0,        TYP_CMD                 = 1,        TYP_WCMD                = 2,
-    TYP_WTYP                = 3,        TYP_SYM                 = 4,        TYP_IDENT               = 5,
-    TYP_PREDEFINED_FUNC     = 6,
+    TYP_WTYP                = 3,        TYP_RSET                = 4,        TYP_SYM                 = 5,
+    TYP_IDENT               = 6,        TYP_PREDEFINED_FUNC     = 7,
     
     TYP_NUM                 = 10,       TYP_STR                 = 11,       TYP_BOOL                = 12,
     TYP_ADR                 = 13,       TYP_EXT_ADR             = 14,       TYP_OP_CODE             = 15,
@@ -97,7 +97,7 @@ enum TokId : uint16_t {
     
     TOK_PM                  = 114,      TOK_PC                  = 115,      TOK_IT                  = 116,
     TOK_DT                  = 117,      TOK_IC                  = 118,      TOK_DC                  = 119,
-    TOK_UC                  = 120,      TOK_TX                  = 121,
+    TOK_UC                  = 120,      TOK_TX                  = 121,      
     
     TOK_ICR                 = 200,      TOK_DCR                 = 201,      TOK_UCR                 = 202,
     TOK_ITR                 = 203,      TOK_DTR                 = 204,      TOK_MCR                 = 205,
@@ -116,14 +116,13 @@ enum TokId : uint16_t {
     CMD_SET                 = 1000,
     
     CMD_ENV                 = 1001,     CMD_EXIT                = 1002,
-    CMD_HELP                = 1003,     CMD_WHELP               = 1004,
+    CMD_HELP                = 1003,     
     CMD_XF                  = 1005,     CMD_WRITE_LINE          = 1006,
     
     CMD_RESET               = 1010,     CMD_RUN                 = 1011,     CMD_STEP                = 1012,
     
     CMD_DR                  = 1020,     CMD_MR                  = 1021,
     CMD_DA                  = 1027,     CMD_MA                  = 1028,
-    CMD_LMF                 = 1031,     CMD_SMF                 = 1032,
     
     CMD_D_TLB               = 1034,     CMD_I_TLB               = 1035,     CMD_P_TLB               = 1036,
     CMD_D_CACHE             = 1037,     CMD_P_CACHE             = 1038,
@@ -161,6 +160,8 @@ enum TokId : uint16_t {
     // General, Segment and Control Registers Tokens.
     //
     //--------------------------------------------------------------------------------------------------------
+    REG_SET                 = 4000,
+    
     GR_0                    = 4100,     GR_1                    = 4101,     GR_2                    = 4102,
     GR_3                    = 4103,     GR_4                    = 4104,     GR_5                    = 4105,
     GR_6                    = 4106,     GR_7                    = 4107,     GR_8                    = 4108,
@@ -1222,8 +1223,6 @@ struct DrvCmds {
     void            helpCmd( );
     void            envCmd( );
     void            execFileCmd( );
-    void            loadPhysMemCmd( );
-    void            savePhysMemCmd( );
     void            writeLineCmd( );
     
     void            resetCmd( );
@@ -1232,14 +1231,13 @@ struct DrvCmds {
    
     void            displayRegCmd( );
     void            modifyRegCmd( );
-    void            displayTLBCmd( );
-    void            purgeTLBCmd( );
-    void            insertTLBCmd( );
-    void            displayCacheCmd( );
-    void            purgeCacheCmd( );
     void            displayAbsMemCmd( );
     void            modifyAbsMemCmd( );
-    void            modifyAbsMemAsCodeCmd( );
+    void            displayCacheCmd( );
+    void            purgeCacheCmd( );
+    void            displayTLBCmd( );
+    void            insertTLBCmd( );
+    void            purgeTLBCmd( );
     
     void            winOnCmd( );
     void            winOffCmd( );
