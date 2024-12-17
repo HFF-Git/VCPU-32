@@ -40,8 +40,48 @@ namespace {
 
 struct termios saveTermSetting;
 
+
+uint16_t toBigEndian16( uint16_t val ) {
+    
+    return( __builtin_bswap16( val ));
+}
+
+uint16_t toBigEndian32( uint32_t val ) {
+    
+    return( __builtin_bswap32( val ));
+}
+
 #else
 
+// ??? check if this also works for Windows. If so, no need to have it in an ifdef.
+
+uint16_t toBigEndian16( uint16_t val ) {
+    
+    return( __builtin_bswap16( val ));
+}
+
+uint16_t toBigEndian32( uint32_t val ) {
+    
+    return( __builtin_bswap32( val ));
+}
+
+#endif
+
+#if 0
+// alternative...
+
+uint16_t toBigEndian16(uint16_t val) {
+    
+    return (val << 8) | (val >> 8);
+}
+
+uint32_t toBigEndian32(uint32_t val) {
+    
+    return ((val << 24) & 0xFF000000) |
+           ((val << 8)  & 0x00FF0000) |
+           ((val >> 8)  & 0x0000FF00) |
+           ((val >> 24) & 0x000000FF);
+}
 
 #endif
 
@@ -83,23 +123,6 @@ void DrvConsoleIO::saveConsoleMode( ) {
     
 }
 
-void DrvConsoleIO::setConsoleModeRaw( ) {
-    
-#if __APPLE__
-    struct termios term;
-    tcgetattr( fileno( stdin ), &term );
-    term.c_lflag &= ~ (ICANON | ECHO );
-    term.c_iflag &= ~IGNBRK;
-    tcsetattr( fileno( stdin ), TCSANOW, &term );
-    
-    // ??? enable non-blocking IO
-    // int flags = fcntl( STDIN_FILENO, F_GETFL, 0 );
-    // fcntl( STDIN_FILENO, F_SETFL, flags | O_NONBLOCK );
-#endif
-    
-    rawModeEnabled = true;
-}
-
 void DrvConsoleIO::resetConsoleMode( ) {
     
 #if __APPLE__
@@ -107,6 +130,24 @@ void DrvConsoleIO::resetConsoleMode( ) {
 #endif
     
     rawModeEnabled = false;
+}
+
+void DrvConsoleIO::setConsoleModeRaw( ) {
+    
+#if __APPLE__
+    struct termios term;
+    tcgetattr( fileno( stdin ), &term );
+    term.c_lflag &= ~ ( ICANON | ECHO );
+    term.c_iflag &= ~IGNBRK;
+    term.c_cc[VDISCARD] = _POSIX_VDISABLE;
+    tcsetattr( STDIN_FILENO, TCSANOW, &term );
+    
+    // ??? enable non-blocking IO
+    // int flags = fcntl( STDIN_FILENO, F_GETFL, 0 );
+    // fcntl( STDIN_FILENO, F_SETFL, flags | O_NONBLOCK );
+#endif
+    
+    rawModeEnabled = true;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -120,7 +161,10 @@ int DrvConsoleIO::readChar(  ) {
     
 #if __APPLE__
     
-    return( getchar( ));
+    char ch;
+    
+    if ( read( STDIN_FILENO, &ch, 1 ) == 1 ) return( ch );
+    else return ( 0 );
     
     // ??? sketch of a non-blocking IO input.
     // char ch;
@@ -132,7 +176,6 @@ int DrvConsoleIO::readChar(  ) {
     // else {
     //
     //      // nothing pressed ...
-    //
     // }
     
 #else
@@ -165,7 +208,7 @@ int DrvConsoleIO::readChar(  ) {
 void DrvConsoleIO::writeChar( char ch  ) {
     
 #if __APPLE__
-    putchar( ch );
+    write( STDOUT_FILENO, &ch, 1 );
 #else
     _putch( int(ch) );
 #endif
@@ -175,7 +218,7 @@ void DrvConsoleIO::writeChar( char ch  ) {
 //------------------------------------------------------------------------------------------------------------
 // "readInputLine" is used by the command line interpreter to get the command. Since we run in raw mode, the
 // basic handling of backspace, carriage return, etc. needs to be handled directly. Characters other than the
-// special chracters are piled up in a local buffer until we read in a carriage return. 
+// special chracters are piled up in a local buffer until we read in a carriage return.
 //
 //------------------------------------------------------------------------------------------------------------
 int DrvConsoleIO::readLine( char *cmdBuf ) {
@@ -187,19 +230,7 @@ int DrvConsoleIO::readLine( char *cmdBuf ) {
         
         ch = readChar( );
 
-        if ( ch == -1 ) {
-            
-            // ??? not clear what we do here ... right now, a window movement will create
-            // a lot of "-1". We should just ignore them...
-            
-            // return( -1 );
-        }
-        else if ( ch == 25 ) {
-            
-            // handle control Y, does not work yet ????
-            return( -1 );
-        }
-        else if (( ch == '\n' ) || ( ch == '\r' )) {
+        if (( ch == '\n' ) || ( ch == '\r' )) {
             
             cmdBuf[ index ] = '\0';
             if ( rawModeEnabled ) writeChar( ch );
@@ -242,7 +273,7 @@ int DrvConsoleIO::readLine( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// "printNum" is a litle utility function to print out a number with a given radix.
 //
 //------------------------------------------------------------------------------------------------------------
 int DrvConsoleIO::printNum( uint32_t num, int rdx ) {
@@ -257,4 +288,4 @@ int DrvConsoleIO::printNum( uint32_t num, int rdx ) {
     else return( printChars( "**num**" ));
 }
 
-// ??? any other little helpers for printing ?
+// ??? any other little helpers for printing to move here ??

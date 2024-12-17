@@ -75,12 +75,6 @@
 // When control is given to the CPU code, the console IO is mapped to a virtual console configured in the IO
 // address space. This interface will also write and read a character at a time.
 //
-// The "printf" style writing is using a function template for defining the function. The implementing code
-// needs to be declared in the include file, so that the compiler can use the template where needed. It looks
-// a bit ugly to have code inside an include file, but seems to be the only working way. Since we had a couple
-// of issues with the window drawing functions of the simulator, there is additional code to catch the issue.
-// So far, it did not occur again.
-//
 //------------------------------------------------------------------------------------------------------------
 struct DrvConsoleIO {
     
@@ -97,35 +91,45 @@ struct DrvConsoleIO {
     int     readLine( char *cmdBuf );
     int     printNum( uint32_t num, int rdx );
     
-    template<typename... Args> int printChars( const char* fmt, Args&&... args ) {
-        
-        size_t len = 0;
-        
-        do {
-            
-            len = snprintf( printBuf, sizeof( printBuf ), fmt, args... );
-           
-            if (( len < 0 ) && ( errno != EINTR )) {
-                
-                fprintf( stderr, "winPrintf (snprintf) error, errno: %d, %s\n", errno, strerror( errno ));
-                fflush( stderr );
-                exit( errno );
-            }
-            
-        } while ( len < 0 );
-        
-        if ( len > 0 ) {
-            
-            for ( int i = 0; i < len; i++  ) writeChar( printBuf[ i ] );
-        }
-        
-        return( static_cast<int>(len));
-    }
+    template<typename... Args> int printChars( const char* fmt, Args&&... args );
     
     private:
-    
+
     char printBuf[ 1024 ];
     bool rawModeEnabled = false;
 };
+
+//------------------------------------------------------------------------------------------------------------
+// "printChars" is the entry point to printing characters to the console. It is a template function to accept
+// different formats and arguments. As such it need to be included in the include file, so that the compiler
+// knows what to do to built the actual function calls. Since we had a couple of issues with the window
+// drawing functions of the simulator, there is additional code to catch the issue. So far, it did not occur
+// again.
+//
+//------------------------------------------------------------------------------------------------------------
+template<typename... Args> int DrvConsoleIO::printChars( const char* fmt, Args&&... args ) {
+    
+    size_t len = 0;
+    
+    do {
+        
+        len = snprintf( printBuf, sizeof( printBuf ), fmt, args... );
+       
+        if (( len < 0 ) && ( errno != EINTR )) {
+            
+            fprintf( stderr, "winPrintf (snprintf) error, errno: %d, %s\n", errno, strerror( errno ));
+            fflush( stderr );
+            exit( errno );
+        }
+        
+    } while ( len < 0 );
+    
+    if ( len > 0 ) {
+        
+        for ( int i = 0; i < len; i++  ) writeChar( printBuf[ i ] );
+    }
+    
+    return( static_cast<int>(len));
+}
 
 #endif /* VCPU32_ConsoleIo_h */

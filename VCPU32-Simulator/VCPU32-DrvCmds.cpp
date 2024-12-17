@@ -87,17 +87,6 @@ void removeComment( char *cmdBuf ) {
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
-// A little helper to print a caret indented by "pos".
-//
-//------------------------------------------------------------------------------------------------------------
-void markError( int pos ) {
-    
-    for ( int i = 0; i < pos; i++ ) fprintf( stdout, " " );
-    fprintf( stdout, "^ \n" );
-}
-
-
 }; // namespace
 
 
