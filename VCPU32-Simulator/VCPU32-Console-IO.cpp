@@ -57,12 +57,12 @@ uint16_t toBigEndian32( uint32_t val ) {
 
 uint16_t toBigEndian16( uint16_t val ) {
     
-    return( __builtin_bswap16( val ));
+    return(_byteswap_ushort( val ));
 }
 
 uint16_t toBigEndian32( uint32_t val ) {
     
-    return( __builtin_bswap32( val ));
+    return(_byteswap_ulong( val ));
 }
 
 #endif
@@ -233,7 +233,19 @@ int DrvConsoleIO::readLine( char *cmdBuf ) {
         if (( ch == '\n' ) || ( ch == '\r' )) {
             
             cmdBuf[ index ] = '\0';
-            if ( rawModeEnabled ) writeChar( ch );
+#if __APPLE__
+            if (rawModeEnabled) writeChar(ch);
+#else
+            if (rawModeEnabled) {
+                if ((ch == '\n') || (ch == '\r')) {
+                    writeChar('\r');
+                    writeChar('\n');
+                }
+            }
+            writeChar(ch);
+#endif
+
+
             return ( index );
         }
         else if (( ch == 8 ) || ( ch == 127 )) {
