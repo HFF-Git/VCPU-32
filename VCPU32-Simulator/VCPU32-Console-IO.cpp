@@ -40,7 +40,6 @@ namespace {
 
 struct termios saveTermSetting;
 
-
 uint16_t toBigEndian16( uint16_t val ) {
     
     return( __builtin_bswap16( val ));
@@ -53,34 +52,14 @@ uint16_t toBigEndian32( uint32_t val ) {
 
 #else
 
-// ??? check if this also works for Windows. If so, no need to have it in an ifdef.
-
 uint16_t toBigEndian16( uint16_t val ) {
     
-    return(_byteswap_ushort( val ));
+    return( _byteswap_ushort( val ));
 }
 
 uint16_t toBigEndian32( uint32_t val ) {
     
-    return(_byteswap_ulong( val ));
-}
-
-#endif
-
-#if 0
-// alternative...
-
-uint16_t toBigEndian16(uint16_t val) {
-    
-    return (val << 8) | (val >> 8);
-}
-
-uint32_t toBigEndian32(uint32_t val) {
-    
-    return ((val << 24) & 0xFF000000) |
-           ((val << 8)  & 0x00FF0000) |
-           ((val >> 8)  & 0x0000FF00) |
-           ((val >> 24) & 0x000000FF);
+    return( _byteswap_ulong( val ));
 }
 
 #endif
@@ -233,18 +212,16 @@ int DrvConsoleIO::readLine( char *cmdBuf ) {
         if (( ch == '\n' ) || ( ch == '\r' )) {
             
             cmdBuf[ index ] = '\0';
+            
+            if ( rawModeEnabled ) {
+                
 #if __APPLE__
-            if (rawModeEnabled) writeChar(ch);
+                writeChar(ch);
 #else
-            if (rawModeEnabled) {
-                if ((ch == '\n') || (ch == '\r')) {
-                    writeChar('\r');
-                    writeChar('\n');
-                }
-            }
-            writeChar(ch);
+                writeChar('\r');
+                writeChar('\n');
 #endif
-
+            }
 
             return ( index );
         }

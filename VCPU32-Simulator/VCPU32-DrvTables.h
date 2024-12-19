@@ -887,7 +887,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
         .helpTypeId = TYP_PREDEFINED_FUNC,  .helpTokId  = PF_EXT_ADR,
         .cmdNameStr     = (char *) "adr",
         .cmdSyntaxStr   = (char *) "adr ( <extAdr> | <adr> | <sr, gr> ) | <gr> )",
-        .helpStr        = (char *) "returns the hash value of a virtual address"
+        .helpStr        = (char *) "returns a virtual address"
     },
     
     {
