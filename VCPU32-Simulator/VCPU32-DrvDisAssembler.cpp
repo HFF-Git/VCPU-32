@@ -107,11 +107,11 @@ int formatComparisonCodes( char *buf, uint32_t cmpCode ) {
     
     switch( cmpCode ) {
             
-        case CC_EQ:  return( snprintf( buf, 2, "EQ" ));
-        case CC_LT:  return( snprintf( buf, 2, "LT" ));
-        case CC_NE:  return( snprintf( buf, 2, "NE" ));
-        case CC_LE:  return( snprintf( buf, 2, "LE" ));
-        default:     return( snprintf( buf, 2, "**" ));
+        case CC_EQ:  return( snprintf( buf, 4, "EQ" ));
+        case CC_LT:  return( snprintf( buf, 4, "LT" ));
+        case CC_NE:  return( snprintf( buf, 4, "NE" ));
+        case CC_LE:  return( snprintf( buf, 4, "LE" ));
+        default:     return( snprintf( buf, 4, "**" ));
     }
 }
 
@@ -124,15 +124,15 @@ int formatTestCodes( char *buf, uint32_t tstCode ) {
     
     switch( tstCode ) {
             
-        case TC_EQ: return( snprintf( buf, 2, "EQ" ));
-        case TC_LT: return( snprintf( buf, 2, "LT" ));
-        case TC_GT: return( snprintf( buf, 2, "GT" ));
-        case TC_EV: return( snprintf( buf, 2, "EV" ));
-        case TC_NE: return( snprintf( buf, 2, "NE" ));
-        case TC_LE: return( snprintf( buf, 2, "LE" ));
-        case TC_GE: return( snprintf( buf, 2, "GE" ));
-        case TC_OD: return( snprintf( buf, 2, "OD" ));
-        default:    return( snprintf( buf, 2, "**" ));
+        case TC_EQ: return( snprintf( buf, 4, "EQ" ));
+        case TC_LT: return( snprintf( buf, 4, "LT" ));
+        case TC_GT: return( snprintf( buf, 4, "GT" ));
+        case TC_EV: return( snprintf( buf, 4, "EV" ));
+        case TC_NE: return( snprintf( buf, 4, "NE" ));
+        case TC_LE: return( snprintf( buf, 4, "LE" ));
+        case TC_GE: return( snprintf( buf, 4, "GE" ));
+        case TC_OD: return( snprintf( buf, 4, "OD" ));
+        default:    return( snprintf( buf, 4, "**" ));
     }
 }
 
