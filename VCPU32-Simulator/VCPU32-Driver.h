@@ -774,6 +774,8 @@ private:
 // correct interpretation of this address. The "lineIncrement" is the increment value for the item address
 // passed. Item addresses are unsigned 32-bit quantities.
 //
+//
+// ??? wouldn't it be nice to react to cursor up and down with scrolling one line ?
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinScrollable : DrvWin {
     
@@ -1026,7 +1028,8 @@ private:
 // Likewise scrolling and line editing are to be handheld. This class is a placeholder for now.
 //
 //
-// ??? to think about ....
+// ??? to think about .... it is not a scrollabl window in our sense here. Still, it would be nice to move
+// the content up and down... hard to do ... we are not a terminal !!!!
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinConsole : DrvWin {
     

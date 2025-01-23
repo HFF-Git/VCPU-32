@@ -121,12 +121,23 @@ void DrvConsoleIO::setConsoleModeRaw( bool nonBlocking ) {
     term.c_lflag &= ~ ( ICANON | ECHO );
     term.c_iflag &= ~IGNBRK;
     term.c_cc[VDISCARD] = _POSIX_VDISABLE;
+    term.c_cc[VMIN] = 1;
+    term.c_cc[VTIME] = 0;
     tcsetattr( STDIN_FILENO, TCSANOW, &term );
     
     if ( nonBlocking ) {
         
         int flags = fcntl( STDIN_FILENO, F_GETFL, 0 );
+        if ( flags == -1 ) {
+            
+            // ??? error ....
+        }
+        
         fcntl( STDIN_FILENO, F_SETFL, flags | O_NONBLOCK );
+        if ( flags == -1 ) {
+            
+            // ??? error ....
+        }
         
         nonBlockingEnabled = true;
     }
@@ -256,7 +267,7 @@ int DrvConsoleIO::readLine( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "printNum" is a litle utility function to print out a number with a given radix.
+// "printNum" is a little utility function to print out a number with a given radix.
 //
 //------------------------------------------------------------------------------------------------------------
 int DrvConsoleIO::printNum( uint32_t num, int rdx ) {
@@ -272,3 +283,4 @@ int DrvConsoleIO::printNum( uint32_t num, int rdx ) {
 }
 
 // ??? any other little helpers for printing to move here ??
+// ??? move all of the print routines here ? benefit ?

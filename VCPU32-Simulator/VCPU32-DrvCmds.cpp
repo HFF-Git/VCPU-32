@@ -438,9 +438,11 @@ void DrvCmds::exitCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::envCmd( ) {
     
+    DrvEnv *env = glb -> env;
+    
     if ( glb -> tok -> tokId( ) == TOK_EOS ) {
         
-        glb -> env -> displayEnvTable( );
+        env -> displayEnvTable( );
     }
     else if ( glb -> tok -> tokTyp( ) == TYP_IDENT ) {
         
@@ -452,10 +454,7 @@ void DrvCmds::envCmd( ) {
         glb -> tok -> nextToken( );
         if ( glb -> tok -> tokId( ) == TOK_EOS ) {
             
-            if ( glb -> env -> isValid( envName )) {
-                
-                glb-> env -> displayEnvTableEntry( envName );
-            }
+            if ( env -> isValid( envName )) env -> displayEnvTableEntry( envName );
             else throw ( ERR_ENV_VAR_NOT_FOUND );
         }
         else {
@@ -463,26 +462,11 @@ void DrvCmds::envCmd( ) {
             DrvExpr rExpr;
             glb -> eval -> parseExpr( &rExpr );
             
-            if ( rExpr.typ == TYP_NUM ) {
-                
-                glb -> env -> setEnvVar( envName, rExpr.numVal );
-            }
-            else if ( rExpr.typ == TYP_BOOL ) {
-                
-                glb -> env -> setEnvVar( envName, rExpr.bVal );
-            }
-            else if ( rExpr.typ == TYP_STR ) {
-                
-                glb -> env -> setEnvVar( envName, rExpr.strVal );
-            }
-            else if ( rExpr.typ == TYP_EXT_ADR ) {
-                
-                glb -> env -> setEnvVar( envName, rExpr.seg, rExpr.ofs );
-            }
-            else if (( rExpr.typ == TYP_SYM ) && ( rExpr.tokId == TOK_NIL )) {
-                
-                glb -> env -> removeEnvVar( envName );
-            }
+            if      ( rExpr.typ == TYP_NUM )        env -> setEnvVar( envName, rExpr.numVal );
+            else if ( rExpr.typ == TYP_BOOL )       env -> setEnvVar( envName, rExpr.bVal );
+            else if ( rExpr.typ == TYP_STR )        env -> setEnvVar( envName, rExpr.strVal );
+            else if ( rExpr.typ == TYP_EXT_ADR )    env -> setEnvVar( envName, rExpr.seg, rExpr.ofs );
+            else if (( rExpr.typ == TYP_SYM ) && ( rExpr.tokId == TOK_NIL )) env -> removeEnvVar( envName );
         }
     }
 }
@@ -508,6 +492,7 @@ void DrvCmds::execFileCmd( ) {
 //
 // ??? when and what statistics to also reset ?
 // ??? what if there is a unified cache outside the CPU ?
+// ??? what execution mode will put the CPU ? halted ?
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::resetCmd( ) {
     
@@ -552,6 +537,8 @@ void DrvCmds::resetCmd( ) {
 // Run command. The command will just run the CPU until a "halt" instruction is detected.
 //
 //  RUN
+//
+// ??? see STEP command for detils on teh console handling.
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::runCmd( ) {
     
@@ -563,6 +550,13 @@ void DrvCmds::runCmd( ) {
 // variable that will set the default to be a single clock step.
 //
 //  S [ <steps> ] [ , 'I' | 'C' ]
+//
+//
+// ??? we need to handle the console window. It should be enabled before we pass control to the CPU.
+// ??? make it the current window, saving the previous current window.
+// ??? put the console mode into non-blocking.
+// ??? hand over to the CPU.
+// ??? on return from the CPU steps, enable blocking mode again and restore the current window.
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::stepCmd( ) {
     
@@ -1910,6 +1904,9 @@ void DrvCmds::winSetStackCmd( ) {
 // Evaluate input line. There are commands, functions, expressions and so on. This routine sets up the
 // tokenizer and dispatches based on the first token in the input line.
 //
+//
+// ??? wouldn't it be nice to react to cursor up and down commands for a given window ? To think about...
+// ??? add commands to the console window.
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::evalInputLine( char *cmdBuf ) {
     

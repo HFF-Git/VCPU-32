@@ -118,7 +118,8 @@ enum winType : int {
     WT_IO_S_WIN     = 18,
     WT_ITLB_S_WIN   = 19,
     WT_DTLB_S_WIN   = 20,
-    WT_TEXT_WIN     = 21
+    WT_TEXT_WIN     = 21,
+    WT_CONSOLE_WIN  = 22
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -2110,6 +2111,65 @@ int DrvWinText::readTextFileLine( int linePos, char *lineBuf, int bufLen  ) {
         return((int) strlen ( lineBuf ));
     }
     else return ( 0 );
+}
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//
+// Methods for the console window class.
+//
+//***********************************************************************************************************
+//***********************************************************************************************************
+
+//------------------------------------------------------------------------------------------------------------
+// Object constructor / Destructor.
+//
+//------------------------------------------------------------------------------------------------------------
+DrvWinConsole::DrvWinConsole( VCPU32Globals *glb ) : DrvWin( glb ) {
+    
+}
+
+DrvWinConsole:: ~DrvWinConsole( ) {
+    
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The default values are the initial settings when windows is brought up the first time, or for the WDEF
+// command.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWinConsole::setDefaults( ) {
+    
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRows( 11 );
+    setColumns( 80 );
+    setDefColumns( 80 );
+    setWinType( WT_CONSOLE_WIN );
+    setEnable( true );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The banner line for command window.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWinConsole::drawBanner( ) {
+    
+    uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE;
+    
+    setWinCursor( 1, 1 );
+    printTextField((char *) "Commands ", fmtDesc );
+    padLine( fmtDesc );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The body lines of the command window are displayed after the banner line. We will never draw in this
+// window via the window routines. The body is the terminal scroll area. What we do however, is to reset
+// any character drawing attribute.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvWinConsole::drawBody( ) {
+    
+    setFieldAtributes( FMT_DEF_ATTR );
 }
 
 //***********************************************************************************************************

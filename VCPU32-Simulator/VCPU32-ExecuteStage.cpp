@@ -429,8 +429,8 @@ void ExecuteStage::process( ) {
             
         case OP_CBR:    case OP_CBRU: {
                  
-             bool branchPedict   = getBit( instr, 23 );
-             bool branchTaken;
+             bool branchPedict  = getBit( instr, 23 );
+             bool branchTaken   = false;;
              
              if ( opCode == OP_CBR ) branchTaken = compareCond( instr, psValA.get( ), psValB.get( ));
              else                    branchTaken = compareCondU( instr, psValA.get( ), psValB.get( ));

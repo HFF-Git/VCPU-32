@@ -331,13 +331,11 @@ void DrvExprEvaluator::pFuncS32( DrvExpr *rExpr ) {
         res = lExpr.numVal;
     }
     else if ( lExpr.typ == TYP_STR ) {
-        
-        if ( strlen( lExpr.strVal ) > 3 ) res = res | ( lExpr.strVal[ 3 ] << 0 );
-        if ( strlen( lExpr.strVal ) > 2 ) res = res | ( lExpr.strVal[ 2 ] << 8 );
-        if ( strlen( lExpr.strVal ) > 1 ) res = res | ( lExpr.strVal[ 1 ] << 16 );
-        if ( strlen( lExpr.strVal ) > 0 ) res = res | ( lExpr.strVal[ 0 ] << 24 );
-        
-        // ??? shift right aligned ?
+       
+        if ( strlen( lExpr.strVal ) > 0 ) res = ( lExpr.strVal[ 0 ] & 0xFF );
+        if ( strlen( lExpr.strVal ) > 1 ) res = ( res << 8 ) | ( lExpr.strVal[ 1 ] & 0xFF );
+        if ( strlen( lExpr.strVal ) > 2 ) res = ( res << 8 ) | ( lExpr.strVal[ 2 ] & 0xFF );
+        if ( strlen( lExpr.strVal ) > 3 ) res = ( res << 8 ) | ( lExpr.strVal[ 3 ] & 0xFF );
     }
     else throw ( ERR_EXPECTED_EXPR );
     
@@ -364,10 +362,10 @@ void DrvExprEvaluator::pFuncU32( DrvExpr *rExpr ) {
     }
     else if ( lExpr.typ == TYP_STR ) {
         
-        if ( strlen( lExpr.strVal ) > 3 ) res = res | ( lExpr.strVal[ 3 ] << 0 );
-        if ( strlen( lExpr.strVal ) > 2 ) res = res | ( lExpr.strVal[ 2 ] << 8 );
-        if ( strlen( lExpr.strVal ) > 1 ) res = res | ( lExpr.strVal[ 1 ] << 16 );
-        if ( strlen( lExpr.strVal ) > 0 ) res = res | ( lExpr.strVal[ 0 ] << 24 );
+        if ( strlen( lExpr.strVal ) > 0 ) res = ( lExpr.strVal[ 0 ] & 0xFF );
+        if ( strlen( lExpr.strVal ) > 1 ) res = ( res << 8 ) | ( lExpr.strVal[ 1 ] & 0xFF );
+        if ( strlen( lExpr.strVal ) > 2 ) res = ( res << 8 ) | ( lExpr.strVal[ 2 ] & 0xFF );
+        if ( strlen( lExpr.strVal ) > 3 ) res = ( res << 8 ) | ( lExpr.strVal[ 3 ] & 0xFF );
     }
     else throw ( ERR_EXPECTED_EXPR );
     

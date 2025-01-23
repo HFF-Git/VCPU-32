@@ -87,9 +87,8 @@ struct DrvConsoleIO {
     void    writeChar( char ch  );
     void    saveConsoleMode( );
     void    restoreConsoleMode( );
-    
     void    setConsoleModeRaw( bool nonBlocking = false );
-    
+   
     int     readLine( char *cmdBuf );
     int     printNum( uint32_t num, int rdx );
     
