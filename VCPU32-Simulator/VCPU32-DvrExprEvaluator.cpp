@@ -310,6 +310,70 @@ DrvExprEvaluator::DrvExprEvaluator( VCPU32Globals *glb ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Coercin functions. Not a lot there yet. The idea is to coerce an expression into a 32-bit value where
+// possible. There are signed and unisgned versions, which at the moment identical. We only have 32-bit
+// values. If we have one day 16-bit and 64-bit vaous in addition, there is more to do. What we also coerce
+// is the first characters of a string, right justified if shorter than 4 bytes.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvExprEvaluator::pFuncS32( DrvExpr *rExpr ) {
+    
+    DrvExpr     lExpr;
+    uint32_t    res = 0;
+     
+    glb -> tok -> nextToken( );
+    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    else throw ( ERR_EXPECTED_LPAREN );
+        
+    parseExpr( &lExpr );
+    if ( lExpr.typ == TYP_NUM ) {
+        
+        res = lExpr.numVal;
+    }
+    else if ( lExpr.typ == TYP_STR ) {
+        
+        if ( strlen( lExpr.strVal ) > 3 ) res = res | ( lExpr.strVal[ 3 ] << 0 );
+        if ( strlen( lExpr.strVal ) > 2 ) res = res | ( lExpr.strVal[ 2 ] << 8 );
+        if ( strlen( lExpr.strVal ) > 1 ) res = res | ( lExpr.strVal[ 1 ] << 16 );
+        if ( strlen( lExpr.strVal ) > 0 ) res = res | ( lExpr.strVal[ 0 ] << 24 );
+    }
+    else throw ( ERR_EXPECTED_EXPR );
+    
+    rExpr -> typ    = TYP_NUM;
+    rExpr -> numVal = res;
+
+    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    else throw ( ERR_EXPECTED_RPAREN );
+}
+
+void DrvExprEvaluator::pFuncU32( DrvExpr *rExpr ) {
+    
+    DrvExpr     lExpr;
+    uint32_t    res = 0;
+     
+    glb -> tok -> nextToken( );
+    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    else throw ( ERR_EXPECTED_LPAREN );
+        
+    parseExpr( &lExpr );
+    if ( lExpr.typ == TYP_NUM ) {
+        
+        res = lExpr.numVal;
+    }
+    else if ( lExpr.typ == TYP_STR ) {
+        
+        if ( strlen( lExpr.strVal ) > 3 ) res = res | ( lExpr.strVal[ 3 ] << 0 );
+        if ( strlen( lExpr.strVal ) > 2 ) res = res | ( lExpr.strVal[ 2 ] << 8 );
+        if ( strlen( lExpr.strVal ) > 1 ) res = res | ( lExpr.strVal[ 1 ] << 16 );
+        if ( strlen( lExpr.strVal ) > 0 ) res = res | ( lExpr.strVal[ 0 ] << 24 );
+    }
+    else throw ( ERR_EXPECTED_EXPR );
+
+    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    else throw ( ERR_EXPECTED_RPAREN );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Assemble function.
 //
 // ASSEMBLE "(" <str> ")"
@@ -501,6 +565,8 @@ void DrvExprEvaluator::parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr 
         case PF_DIS_ASSEMBLE:   pFuncDisAssemble( rExpr );  break;
         case PF_HASH:           pFuncHash( rExpr );         break;
         case PF_EXT_ADR:        pFuncExtAdr( rExpr );       break;
+        case PF_S32:            pFuncS32( rExpr );          break;
+        case PF_U32:            pFuncU32( rExpr );          break;
             
         default: throw ( ERR_UNDEFINED_PFUNC );
     }

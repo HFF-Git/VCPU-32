@@ -86,13 +86,14 @@ bool  DrvConsoleIO::isConsole( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// On Mac/Linux the terminal needs to be set into raw chacater mode. The following routines will save the
+// On Mac/Linux the terminal needs to be set into raw character mode. The following routines will save the
 // current settings, set the raw mode attributes, and restore the saved settings. For a windows system, these
-// methods are a no operation.
+// methods are a no operation. There is aso a non-blocking IO mode. When the simulator hands over control to
+// the CPU, the console IO is mapped to the PDC console driver. The console IO becomes part of the periodic
+// processing and a key pressed will set the flags in the PDC console driver data. We act as "true" hardware.
+// Non-blocking mode is enabled on entry to single step and run command and disabled when we are bac to the
+// simulator.
 //
-// ??? we need to add the idea of a non-blocking mode, so that we can test whether a character was pressed.
-// This also implies that the console IO needs to become part of the periodic processing when the CPU runs.
-// To be developed...
 //------------------------------------------------------------------------------------------------------------
 void DrvConsoleIO::saveConsoleMode( ) {
     
@@ -102,16 +103,17 @@ void DrvConsoleIO::saveConsoleMode( ) {
     
 }
 
-void DrvConsoleIO::resetConsoleMode( ) {
+void DrvConsoleIO::restoreConsoleMode( ) {
     
 #if __APPLE__
     tcsetattr( fileno( stdin ), TCSANOW, &saveTermSetting );
 #endif
     
-    rawModeEnabled = false;
+    nonBlockingEnabled  = false;
+    rawModeEnabled      = false;
 }
 
-void DrvConsoleIO::setConsoleModeRaw( ) {
+void DrvConsoleIO::setConsoleModeRaw( bool nonBlocking ) {
     
 #if __APPLE__
     struct termios term;
@@ -121,9 +123,15 @@ void DrvConsoleIO::setConsoleModeRaw( ) {
     term.c_cc[VDISCARD] = _POSIX_VDISABLE;
     tcsetattr( STDIN_FILENO, TCSANOW, &term );
     
-    // ??? enable non-blocking IO
-    // int flags = fcntl( STDIN_FILENO, F_GETFL, 0 );
-    // fcntl( STDIN_FILENO, F_SETFL, flags | O_NONBLOCK );
+    if ( nonBlocking ) {
+        
+        int flags = fcntl( STDIN_FILENO, F_GETFL, 0 );
+        fcntl( STDIN_FILENO, F_SETFL, flags | O_NONBLOCK );
+        
+        nonBlockingEnabled = true;
+    }
+#else
+    if ( nonBlocking ) nonBlockingEnabled = true;
 #endif
     
     rawModeEnabled = true;
@@ -132,30 +140,16 @@ void DrvConsoleIO::setConsoleModeRaw( ) {
 //------------------------------------------------------------------------------------------------------------
 // "readConsoleChar" is the single entry point to get a character from the terminal. On a Mac/Linux, this is
 // the "getchar" system call. On windows there is a similar call, which does just return one character at a
-// time.
+// time. When nonBkcing is enabled, the function just returns immediately with either a character or a zero.
 //
-// ??? how is a non-blocking IO handled ? We need a way to return the fact that there is no IO.
 //------------------------------------------------------------------------------------------------------------
 int DrvConsoleIO::readChar(  ) {
     
 #if __APPLE__
     
     char ch;
-    
     if ( read( STDIN_FILENO, &ch, 1 ) == 1 ) return( ch );
     else return ( 0 );
-    
-    // ??? sketch of a non-blocking IO input.
-    // char ch;
-    // if ( read ( STDIN_FILENO, &ch, 1 ) > 0 ) {
-    //
-    //      if ( ch == ... ) -> assigned special char was pressed...
-    //      else return ( ch );
-    // }
-    // else {
-    //
-    //      // nothing pressed ...
-    // }
     
 #else
     

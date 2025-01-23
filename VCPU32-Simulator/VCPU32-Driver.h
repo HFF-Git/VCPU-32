@@ -154,7 +154,7 @@ enum TokId : uint16_t {
     PF_SET                  = 3000,
     
     PF_ASSEMBLE             = 3001,     PF_DIS_ASSEMBLE         = 3002,     PF_HASH                 = 3003,
-    PF_EXT_ADR              = 3004,
+    PF_EXT_ADR              = 3004,     PF_S32                  = 3005,     PF_U32                  = 3006,
     
     //--------------------------------------------------------------------------------------------------------
     // General, Segment and Control Registers Tokens.
@@ -290,9 +290,10 @@ enum TokId : uint16_t {
 enum ErrMsgId : uint16_t {
     
     NO_ERR                          = 0,
-    ERR_NOT_IN_WIN_MODE             = 1,
-    ERR_TOO_MANY_ARGS_CMD_LINE      = 2,
-    ERR_EXTRA_TOKEN_IN_STR          = 3,
+    ERR_NOT_SUPPORTED               = 1,
+    ERR_NOT_IN_WIN_MODE             = 2,
+    ERR_TOO_MANY_ARGS_CMD_LINE      = 3,
+    ERR_EXTRA_TOKEN_IN_STR          = 4,
     
     ERR_INVALID_CMD                 = 10,
     ERR_INVALID_ARG                 = 11,
@@ -339,6 +340,7 @@ enum ErrMsgId : uint16_t {
     ERR_EXPECTED_FMT_OPT            = 322,
     ERR_EXPECTED_CLOSING_QUOTE      = 323,
     ERR_EXPECTED_STR                = 324,
+    ERR_EXPECTED_EXPR               = 325,
     
     ERR_UNEXPECTED_EOS              = 350,
     
@@ -559,6 +561,9 @@ struct DrvExprEvaluator {
     void        parseTerm( DrvExpr *rExpr );
     void        parseFactor( DrvExpr *rExpr );
     void        parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr );
+    
+    void        pFuncS32( DrvExpr *rExpr );
+    void        pFuncU32( DrvExpr *rExpr );
     
     void        pFuncAssemble( DrvExpr *rExpr );
     void        pFuncDisAssemble( DrvExpr *rExpr );

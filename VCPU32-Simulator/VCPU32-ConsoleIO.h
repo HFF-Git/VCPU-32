@@ -86,8 +86,10 @@ struct DrvConsoleIO {
     int     readChar( );
     void    writeChar( char ch  );
     void    saveConsoleMode( );
-    void    setConsoleModeRaw( );
-    void    resetConsoleMode( );
+    void    restoreConsoleMode( );
+    
+    void    setConsoleModeRaw( bool nonBlocking = false );
+    
     int     readLine( char *cmdBuf );
     int     printNum( uint32_t num, int rdx );
     
@@ -96,7 +98,8 @@ struct DrvConsoleIO {
     private:
 
     char printBuf[ 1024 ];
-    bool rawModeEnabled = false;
+    bool nonBlockingEnabled = false;
+    bool rawModeEnabled     = false;
 };
 
 //------------------------------------------------------------------------------------------------------------

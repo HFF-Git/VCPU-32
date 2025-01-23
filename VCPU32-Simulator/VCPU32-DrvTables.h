@@ -375,6 +375,8 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "DISASM",             .typ = TYP_PREDEFINED_FUNC, .tid = PF_DIS_ASSEMBLE,     .val = 0        },
     { .name = "HASH",               .typ = TYP_PREDEFINED_FUNC, .tid = PF_HASH,             .val = 0        },
     { .name = "ADR",                .typ = TYP_PREDEFINED_FUNC, .tid = PF_EXT_ADR,          .val = 0        },
+    { .name = "S32",                .typ = TYP_PREDEFINED_FUNC, .tid = PF_S32,              .val = 0        },
+    { .name = "U32",                .typ = TYP_PREDEFINED_FUNC, .tid = PF_U32,              .val = 0        }
     
 };
 
@@ -388,6 +390,7 @@ const int MAX_CMD_TOKEN_TAB = sizeof( cmdTokTab ) / sizeof( DrvToken );
 DrvErrMsgTabEntry const errMsgTab [ ] = {
     
     { .errNum = NO_ERR,                         .errStr = (char *) "NO_ERR" },
+    { .errNum = ERR_NOT_SUPPORTED,              .errStr = (char *) "Command or Function not supported (yet)" },
     
     { .errNum = ERR_INVALID_CMD,                .errStr = (char *) "Invalid command, use help" },
     { .errNum = ERR_INVALID_CHAR_IN_TOKEN_LINE, .errStr = (char *) "Invalid char in input line" },
@@ -431,6 +434,7 @@ DrvErrMsgTabEntry const errMsgTab [ ] = {
     { .errNum = ERR_EXPECTED_SEGMENT_REG,       .errStr = (char *) "Expected a segment register" },
     { .errNum = ERR_EXPECTED_FMT_OPT,           .errStr = (char *) "Expected a format option" },
     { .errNum = ERR_EXPECTED_WIN_TYPE,          .errStr = (char *) "Expected a window type" },
+    { .errNum = ERR_EXPECTED_EXPR,              .errStr = (char *) "Expected an expression" },
    
     { .errNum = ERR_UNEXPECTED_EOS,             .errStr = (char *) "Unexpected end of command line" },
     { .errNum = ERR_NOT_IN_WIN_MODE,            .errStr = (char *) "Command only valid in Windows mode" },
@@ -876,6 +880,20 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     // Predefined Functions.
     //
     //--------------------------------------------------------------------------------------------------------
+    {
+        .helpTypeId = TYP_PREDEFINED_FUNC,  .helpTokId  = PF_S32,
+        .cmdNameStr     = (char *) "s32",
+        .cmdSyntaxStr   = (char *) "s32 ( <expr> )",
+        .helpStr        = (char *) "coerces an expression to a signed 32-bit value"
+    },
+    
+    {
+        .helpTypeId = TYP_PREDEFINED_FUNC,  .helpTokId  = PF_U32,
+        .cmdNameStr     = (char *) "u32",
+        .cmdSyntaxStr   = (char *) "u32 ( <expr> )",
+        .helpStr        = (char *) "coerces an expression to a unsigned 32-bit value"
+    },
+    
     {
         .helpTypeId = TYP_PREDEFINED_FUNC,  .helpTokId  = PF_HASH,
         .cmdNameStr     = (char *) "hash",
