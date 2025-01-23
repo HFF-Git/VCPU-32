@@ -140,7 +140,7 @@ void DrvConsoleIO::setConsoleModeRaw( bool nonBlocking ) {
 //------------------------------------------------------------------------------------------------------------
 // "readConsoleChar" is the single entry point to get a character from the terminal. On a Mac/Linux, this is
 // the "getchar" system call. On windows there is a similar call, which does just return one character at a
-// time. When nonBkcing is enabled, the function just returns immediately with either a character or a zero.
+// time. When nonBlocking is enabled, the function just returns immediately with either a character or a zero.
 //
 //------------------------------------------------------------------------------------------------------------
 int DrvConsoleIO::readChar(  ) {

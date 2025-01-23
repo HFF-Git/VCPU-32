@@ -336,6 +336,8 @@ void DrvExprEvaluator::pFuncS32( DrvExpr *rExpr ) {
         if ( strlen( lExpr.strVal ) > 2 ) res = res | ( lExpr.strVal[ 2 ] << 8 );
         if ( strlen( lExpr.strVal ) > 1 ) res = res | ( lExpr.strVal[ 1 ] << 16 );
         if ( strlen( lExpr.strVal ) > 0 ) res = res | ( lExpr.strVal[ 0 ] << 24 );
+        
+        // ??? shift right aligned ?
     }
     else throw ( ERR_EXPECTED_EXPR );
     
@@ -368,6 +370,9 @@ void DrvExprEvaluator::pFuncU32( DrvExpr *rExpr ) {
         if ( strlen( lExpr.strVal ) > 0 ) res = res | ( lExpr.strVal[ 0 ] << 24 );
     }
     else throw ( ERR_EXPECTED_EXPR );
+    
+    rExpr -> typ    = TYP_NUM;
+    rExpr -> numVal = res;
 
     if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
     else throw ( ERR_EXPECTED_RPAREN );

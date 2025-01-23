@@ -1020,6 +1020,30 @@ private:
 };
 
 //-----------------------------------------------------------------------------------------------------------
+// Console Window. When the CPU is running, it has access to a "console window". This is a rather simple
+// console IO window. Care needs to be taken however what character IO directed to this window means. For
+// example, escape sequences cannot be just printed out as it would severly impact the simulator windwos.
+// Likewise scrolling and line editing are to be handheld. This class is a placeholder for now.
+//
+//
+// ??? to think about ....
+//-----------------------------------------------------------------------------------------------------------
+struct DrvWinConsole : DrvWin {
+    
+public:
+    
+    DrvWinConsole( VCPU32Globals *glb );
+    ~ DrvWinConsole( );
+    
+    void    setDefaults( );
+    void    drawBanner( );
+    void    drawBody( );
+    
+private:
+
+};
+
+//-----------------------------------------------------------------------------------------------------------
 // Command Line Window. The command window is a special class, which comes always last in the windows list
 // and cannot be disabled. It is intended to be a scrollable window, where only the banner line is fixed.
 //
