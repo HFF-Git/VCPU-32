@@ -164,20 +164,19 @@ int DrvConsoleIO::readChar(  ) {
     
 #else
     
-    return(_getch());
-    
-    // ??? sketch of a non-blocking IO input.
-    // if ( _kbhit( )) {
-    //
-    //      char ch = _getch( );
-    //      if ( ch == ... ) -> assigned special char was pressed...
-    //      else return ( ch );
-    // }
-    // else {
-    //
-    //      // nothing pressed ...
-    //
-    // }
+   
+    if (_kbhit()) {
+
+        char ch = _getch();
+        // if (ch == ...)->assigned special char was pressed...
+
+        // still to be evaluated which keys provide which code
+        // issues with cursor keys,page up,down, pos1, end 
+
+        return (ch);
+    }
+    else {
+    }
     
 #endif
     
