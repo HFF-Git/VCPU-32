@@ -167,16 +167,10 @@ int DrvConsoleIO::readChar(  ) {
    
     if (_kbhit()) {
 
-        char ch = _getch();
-        // if (ch == ...)->assigned special char was pressed...
-
-        // still to be evaluated which keys provide which code
-        // issues with cursor keys,page up,down, pos1, end 
-
+        int ch = _getch();
         return (ch);
     }
-    else {
-    }
+ 
     
 #endif
     
