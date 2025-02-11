@@ -50,12 +50,15 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     
     pos = pos % 32;
     len = len % 32;
-    
+
     uint32_t tmpM = ( 1U << len ) - 1;
     uint32_t tmpA = arg >> ( 31 - pos );
     
-    if ( sign ) return( tmpA | ( ~ tmpM ));
-    else        return( tmpA & tmpM );
+    if (( sign ) && ( getBit( arg, pos - len + 1 ))) {
+        
+        return( tmpA | ( ~ tmpM ));
+    }
+    else return( tmpA & tmpM );
 }
 
 uint32_t lowSignExtend32( uint32_t arg, int len ) {
@@ -332,9 +335,8 @@ int formatOpCodeOptions( char *buf, uint32_t instr ) {
             if ( getBitField( instr, 12, 3 ) > 0 ) {
                 
                 cursor += snprintf( buf + cursor, 4, "." );
-                if ( getBit( instr, 10 ))   cursor += snprintf( buf + cursor, 4, "I" );
-                if ( getBit( instr, 11 ))   cursor += snprintf( buf + cursor, 4, "L" );
-                if ( getBit( instr, 12 ))   cursor += snprintf( buf + cursor, 4, "O" );
+                if ( getBit( instr, 10 ))   cursor += snprintf( buf + cursor, 4, "L" );
+                if ( getBit( instr, 11 ))   cursor += snprintf( buf + cursor, 4, "O" );
             }
             
         } break;
@@ -370,7 +372,7 @@ int formatOpCodeOptions( char *buf, uint32_t instr ) {
             
             if (( getBit( instr, 10 ) || getBit( instr, 11 ))) {
                 
-                cursor += snprintf( buf + cursor, 1, "." );
+                cursor += snprintf( buf + cursor, 4, "." );
                 if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, "W" );
                 if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 4, "I" );
             }
@@ -385,7 +387,9 @@ int formatOpCodeOptions( char *buf, uint32_t instr ) {
             
         case OP_PTLB: {
             
-            if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, ".T" );
+            cursor += snprintf( buf + cursor, 4, "." );
+            if ( getBit( instr, 10 )) cursor += snprintf( buf + cursor, 4, "T" );
+            if ( getBit( instr, 11 )) cursor += snprintf( buf + cursor, 4, "M" );
           
         } break;
             
@@ -517,7 +521,7 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
             
         case OP_DIAG: {
             
-            cursor += snprintf( buf + cursor, 32, ",r%d, r%d, r%d, %d",
+            cursor += snprintf( buf + cursor, 32, "r%d, r%d, r%d, %d",
                                 getBitField( instr, 9, 4  ),
                                 getBitField( instr, 27, 4 ),
                                 getBitField( instr, 31, 4 ),
@@ -566,7 +570,7 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
             else {
                 
                 cursor += snprintf( buf + cursor, 4, ", " );
-                cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 27, 12 ), TOK_DEC );
+                cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 27, 12 ), 10 );
                 cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
             }
         
@@ -574,7 +578,8 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
             
         case OP_SHLA: {
             
-            cursor += snprintf( buf + cursor, 16, ", r%d, r%d", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            cursor += snprintf( buf + cursor, 16, ", r%d, %d", getBitField( instr, 27, 4 ),  getBitField( instr, 31, 4 ));
+            
             if ( getBitField( instr, 21, 2 ) > 0 ) cursor += snprintf( buf + cursor, 8, ", %d",  getBitField( instr, 21, 2 ));
             
         } break;
@@ -590,7 +595,7 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
         case OP_LDO: {
             
             cursor += snprintf( buf + cursor, 4, ", " );
-            cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 27, 18 ));
+            cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 27, 18 ), 10 );
             cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
             
         } break;
@@ -598,7 +603,8 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
         case OP_B: 
         case OP_GATE: {
             
-            cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 31, 22 ) << 2, TOK_DEC );
+            cursor += printImmVal( buf + cursor, getBitField( instr, 31, 22, true ) << 2 , 10 );
+                                  
             if ( getBitField( instr, 9, 4 ) > 0 ) cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 9, 4 ));
         
         } break;
@@ -619,7 +625,7 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
             
         case OP_BE: {
             
-            cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 23, 14 ) << 2, TOK_DEC );
+            cursor += printImmVal( buf + cursor, getBitField( instr, 23, 14, true ) << 2, 10 );
             cursor += snprintf( buf + cursor, 16, "(s%d,r%d)", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
             if ( getBitField( instr, 9, 4 ) > 0 ) cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 9, 4 ));
             
@@ -636,8 +642,9 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
         case OP_CBR: 
         case OP_CBRU: {
             
-            cursor += snprintf( buf + cursor, 16, "r%d, r%d,", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
-            cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 23, 15 ) << 2 );
+            cursor += snprintf( buf + cursor, 16, "r%d, r%d, ", getBitField( instr, 27, 4 ), getBitField( instr, 31, 4 ));
+            
+            cursor += printImmVal( buf + cursor, getBitField( instr, 23, 16, true ) << 2, 10 );
             
         } break;
             
@@ -680,11 +687,11 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
         
         case OP_LDPA: {
             
-            if ( getBitField( instr, 27, 4 ) != 0 ) cursor += snprintf( buf + cursor, 8, "r%d", getBitField( instr, 27, 4 ));
+            if ( getBitField( instr, 27, 4 ) != 0 ) cursor += snprintf( buf + cursor, 8, ", r%d", getBitField( instr, 27, 4 ));
             
             if ( getBitField( instr, 13, 2 ) > 0 ) {
                 
-                cursor += snprintf( buf + cursor, 16, "(s%d, r%d)", getBitField(instr, 13, 2 ), getBitField( instr, 31, 4 ));
+                cursor += snprintf( buf + cursor, 16, "(s%d, r%d)", getBitField( instr, 13, 2 ), getBitField( instr, 31, 4 ));
             }
             else cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
                                                           

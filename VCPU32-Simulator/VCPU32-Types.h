@@ -339,7 +339,7 @@ const struct opCodeInfo {
     /* 0x00 */  { "BRK",    OP_BRK,     ( CTRL_INSTR ) },
     /* 0x01 */  { "LDIL",   OP_LDIL,    ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x02 */  { "ADDIL",  OP_ADDIL,   ( COMP_INSTR | REG_R_INSTR ) },
-    /* 0x03 */  { "LOD",    OP_LDO,     ( COMP_INSTR | REG_R_INSTR ) },
+    /* 0x03 */  { "LDO",    OP_LDO,     ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x04 */  { "LSID",   OP_LSID,    ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x05 */  { "EXTR",   OP_EXTR,    ( COMP_INSTR | REG_R_INSTR ) },
     /* 0x06 */  { "DEP",    OP_DEP,     ( COMP_INSTR | REG_R_INSTR ) },

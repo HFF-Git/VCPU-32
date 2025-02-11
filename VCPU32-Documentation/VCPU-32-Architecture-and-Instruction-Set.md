@@ -89,8 +89,8 @@
 # VCPU-32 System Architecture and Instruction Set Reference
 
 Helmut Fieres
-Version B.00.06
-July, 2024
+Version B.00.07
+Feb, 2025
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
@@ -142,7 +142,7 @@ July, 2024
     - [BRK](#brk)
     - [BV](#bv)
     - [BVE](#bve)
-    - [CBR, CBRU](#cbr-cbru)
+    - [CBR, CBRU](#cbr-cbru)BV
     - [CMP, CMPU](#cmp-cmpu)
     - [CMR](#cmr)
     - [DEP](#dep)
@@ -1164,8 +1164,8 @@ Perform an unconditional IA-relative branch with a dynamic offset stored in a ge
 #### Format
 
 ```
-      BR b
-      BR b, r
+      BR (b)
+      BR (b), r
 ```
 
 ```
@@ -1509,10 +1509,22 @@ The conditional move instruction will test register "b" for the condition. If th
 #### Comparison condition codes
 
 ```
-   0 : EQ ( b == 0 )                               2 : NE ( b != 0 )
-   1 : LT ( b < 0, Signed )                        3 : LE ( b <= 0, Signed ) 
-   4 : GT ( b > 0, Signed )                        5 : GE ( b >= 0, Signed )
-   6 : HI ( b > 0, Unsigned )                      7 : HE ( b >= 0, Unsigned )
+
+TC_EQ   = 0x0,  // b = 0
+    TC_LT   = 0x1,  // b < 0, Signed
+    TC_GT   = 0x2,  // b > 0, Signed
+    TC_EV   = 0x3,  // b is even
+
+    TC_NE   = 0x4,  // b != 0
+    TC_LE   = 0x5,  // b <= 0, Signed
+    TC_GE   = 0x6,  // b >= 0, Signed
+    TC_OD   = 0x7   // b is odd
+
+
+   0 : EQ ( b == 0 )                               4 : NE ( b != 0 )
+   1 : LT ( b < 0, Signed )                        5 : LE ( b <= 0, Signed ) 
+   2 : GT ( b > 0, Signed )                        6 : GE ( b >= 0, Signed )
+   3 : EV ( b > 0, Unsigned )                      7 : OD ( b >= 0, Unsigned )
    
    ... 8 .. 15 to be defined: w.g. ODD, EVEN, Left half zero, right half zero, etc.
 ```
@@ -1522,14 +1534,15 @@ The conditional move instruction will test register "b" for the condition. If th
 ```
    switch( instr.[cond] ) {
 
-      case 0: res <- ( GR[instr.[b]] ==  0 ); break;
-      case 1: res <- ( GR[instr.[b]] <   0 ); break;
-      case 2: res <- ( GR[instr.[b]] !=  0 ); break;
-      case 3: res <- ( GR[instr.[b]] <=  0 ); break;
-      case 4: res <- ( GR[instr.[b]] >   0 ); break;
-      case 5: res <- ( GR[instr.[b]] >=  0 ); break;
-      case 6: res <- ( GR[instr.[b]] >U  0 ); break;
-      case 7: res <- ( GR[instr.[b]] >=U 0 ); break;
+      case 0: res <- ( GR[instr.[b]]        ==  0 ); break;
+      case 1: res <- ( GR[instr.[b]]        <   0 ); break;
+      case 2: res <- ( GR[instr.[b]]        >   0 ); break;
+      case 3: res <- ( GR[instr.[b]].[31]   ==  0 ); break;
+
+      case 4: res <- ( GR[instr.[b]]        !=  0 ); break;
+      case 5: res <- ( GR[instr.[b]]        <=  0 ); break;
+      case 6: res <- ( GR[instr.[b]]        >=  0 ); break;
+      case 7: res <- ( GR[instr.[b]].[0]    ==  1 ); break;
 
       ... add more cases ...
 
@@ -2908,7 +2921,16 @@ The "O" bit is set to raise a trap if the instruction either shifts beyond the n
 #### Operation
 
 ```
-   GR[instr.[r]] <- ( GR[instr.[a]] << instr.[sa] ) + GR[instr.[b]];
+    if ( instr.[I] ) {
+
+        tmp <- instr.[28..31];    
+    }
+    else {
+ 
+        tmp <- GR[instr.[b]];
+    }
+
+   GR[instr.[r]] <- ( GR[instr.[a]] << instr.[sa] ) + tmp;
 
    if ( instr.[O] ) && ( ovl ) overflowTrap( );
 ```
@@ -4187,7 +4209,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : DSR     ( 0x07 ): r         :0 :A : 0            : shamt        : 0   : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : SHLA    ( 0x08 ): r         :I :L :O : 0                  : sa  : 0   : a         : b         : 
+   : SHLA    ( 0x08 ): r         :L :O : 0                     : sa  : 0   : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
    : CMR     ( 0x09 ): r         :cond       : 0                           : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:
@@ -4248,7 +4270,7 @@ This appendix lists all instructions by instruction group.
    :-----------------:-----------------------------------------------------------------------------:
    : BV      ( 0x23 ): r         : 0                                                   : b         :
    :-----------------:-----------------------------------------------------------------------------:
-   : BE      ( 0x24 ): r         : 0                                       : a         : b         :
+   : BE      ( 0x24 ): r         : ofs                                     : a         : b         :
    :-----------------:-----------------------------------------------------------------------------:
    : BVE     ( 0x25 ): r         : 0                                       : a         : b         : 
    :-----------------:-----------------------------------------------------------------------------:

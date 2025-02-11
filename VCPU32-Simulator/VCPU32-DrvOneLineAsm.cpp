@@ -118,7 +118,7 @@ void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
     *arg = ( *arg & ( ~ ( tmpM << ( 31 - pos )))) | val;
 }
 
-void setImmVal( uint32_t *instr, int pos, int len, uint32_t val ) {
+void setImmVal( uint32_t *instr, int pos, int len, int32_t val ) {
     
     setBit( instr, pos, (((int32_t) val < 0 ) ? 1 : 0 ));
     setBitField( instr, pos - 1, len - 1, val );
@@ -258,6 +258,7 @@ void parseFactor( DrvExpr *rExpr ) {
             rExpr -> typ    = TYP_EXT_ADR;
             rExpr -> sReg   = tok -> tokVal( );
             
+            tok -> nextToken( );
             acceptComma( );
             
             if ( tok -> isTokenTyp( TYP_GREG )) {
@@ -1059,7 +1060,6 @@ void parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
     else throw ( ERR_EXPECTED_GENERAL_REG );
     
     acceptComma( );
-   
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
         setBitField( instr, 27, 4, tok -> tokVal( ));
@@ -1081,11 +1081,7 @@ void parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
             
             if ( ! isInRangeForBitFieldU( rExpr.numVal, 4 )) throw ( ERR_IMM_VAL_RANGE );
         }
-        else {
-            
-            if ( ! isInRangeForBitField( rExpr.numVal, 4 )) throw ( ERR_IMM_VAL_RANGE );
-        }
-        
+    
         setBitField( instr, 31, 4, rExpr.numVal );
     }
     else throw ( ERR_EXPECTED_NUMERIC );
@@ -1228,7 +1224,7 @@ void parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_NUM ) {
         
-        if ( isInRangeForBitField( rExpr.numVal, 22 )) setImmVal( instr, 31, 22, rExpr.numVal );
+        if ( isInRangeForBitField( rExpr.numVal, 22 )) setBitField( instr, 31, 22, rExpr.numVal >> 2 );
         else throw ( ERR_OFFSET_VAL_RANGE );
     }
     else throw ( ERR_EXPECTED_AN_OFFSET_VAL );
@@ -1331,7 +1327,7 @@ void parseInstrBE( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_NUM ) {
         
-        if ( isInRangeForBitField( rExpr.numVal, 22 )) setImmVal( instr, 23, 14, rExpr.numVal );
+        if ( isInRangeForBitField( rExpr.numVal, 22 )) setBitField( instr, 23, 14, rExpr.numVal >> 2 );
         else throw ( ERR_IMM_VAL_RANGE );
            
         parseExpr( &rExpr );
@@ -1431,7 +1427,7 @@ void parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
     
         if ( isInRangeForBitField( rExpr.numVal, 16 )) {
             
-            setImmVal( instr, 23, 16, rExpr.numVal );
+            setBitField( instr, 23, 16, rExpr.numVal >> 2 );
             tok -> nextToken( );
         }
         else throw ( ERR_IMM_VAL_RANGE );
