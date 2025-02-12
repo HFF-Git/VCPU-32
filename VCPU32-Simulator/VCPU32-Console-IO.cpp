@@ -123,7 +123,7 @@ void DrvConsoleIO::setConsoleModeRaw( bool nonBlocking ) {
     term.c_cc[VDISCARD] = _POSIX_VDISABLE;
     term.c_cc[VMIN] = 1;
     term.c_cc[VTIME] = 0;
-    tcsetattr( STDIN_FILENO, TCSANOW, &term );
+    tcsetattr( STDIN_FILENO, TCSAFLUSH, &term );
     
     if ( nonBlocking ) {
         
@@ -277,3 +277,24 @@ int DrvConsoleIO::printNum( uint32_t num, int rdx ) {
 
 // ??? any other little helpers for printing to move here ??
 // ??? move all of the print routines here ? benefit ?
+
+
+// ??? sketch to enable mouse reprting to capature scrolling and clicks...
+// ??? scroll up: \033[M<x><y>
+// ??? scroll down: \033[M<x><y>
+
+// ??? "x" could be 32 for up and 33 for down... test it...
+
+
+void enableMouseReporting( ) {
+    
+    printf("\033[?1003h"); // Enable basic mouse reporting
+    fflush(stdout);
+}
+
+void disableMouseReporting( ) {
+    
+    printf("\033[?1000l"); // Enable basic mouse reporting
+    fflush(stdout);
+}
+

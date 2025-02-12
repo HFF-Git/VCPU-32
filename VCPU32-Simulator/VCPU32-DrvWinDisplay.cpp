@@ -382,6 +382,7 @@ void DrvWinDisplay::clearScrollArea( ) {
 // foreground and background colors, bold characters and so on. This routine sets the attributes based on the
 // format descriptor. If the descriptor is zero, we will just stay where are with their attributes.
 //
+// ??? comment the attributes meaning....
 //------------------------------------------------------------------------------------------------------------
 void DrvWin::setFieldAtributes( uint32_t fmtDesc ) {
     
