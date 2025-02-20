@@ -7,17 +7,17 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "12C1DA72-C5DC-428D-8A92-3D6663F385D8"
-            shouldBeEnabled = "No"
+            uuid = "81F8086E-A533-4FB7-9FBA-DA6C7E08F4F3"
+            shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "VCPU32-Simulator/VCPU32-Core.cpp"
+            filePath = "VCPU32-Simulator/VCPU32-DrvOneLineAsm.cpp"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "55"
-            endingLineNumber = "55"
-            landmarkName = "CpuCore::CpuCore(cfg)"
-            landmarkType = "7">
+            startingLineNumber = "1136"
+            endingLineNumber = "1136"
+            landmarkName = "parseInstrLDILandADDIL(instr, flags)"
+            landmarkType = "9">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

@@ -61,24 +61,6 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     else return( tmpA & tmpM );
 }
 
-uint32_t lowSignExtend32( uint32_t arg, int len ) {
-    
-    len = len % 32;
-    
-    uint32_t tmpM = ( 1U << ( len - 1 )) - 1;
-    bool     sign = arg % 2;
-    
-    arg = arg >> 1;
-    
-    if ( sign ) return( arg |= ~ tmpM );
-    else        return( arg &= tmpM );
-}
-
-uint32_t immGenPosLenLowSign( uint32_t instr, int pos, int len ) {
-   
-    return( lowSignExtend32( getBitField( instr, pos, len ), len ));
-}
-
 //------------------------------------------------------------------------------------------------------------
 // "printImmVal" display an immediate value in the selected radix. Octals and hex numbers are printed unsigned
 // quantities, decimal numbers are interpreted as signed integers. Most often decimal notation is used to
@@ -152,7 +134,7 @@ int formatOperandModeField( char *buf, uint32_t instr, int rdx = 10 ) {
             
         case OP_MODE_IMM: {
             
-            return( printImmVal( buf, immGenPosLenLowSign( instr, 31, 18 ), 10 ));
+            return( printImmVal( buf, getBitField( instr, 31, 18, true ), 10 ));
             
         } break;
           
@@ -170,7 +152,7 @@ int formatOperandModeField( char *buf, uint32_t instr, int rdx = 10 ) {
             
         case OP_MODE_INDX: {
             
-            int len = printImmVal( buf, immGenPosLenLowSign( instr, 27, 12 ), 10 );
+            int len = printImmVal( buf, getBitField( instr, 27, 12, true ), 10 );
             return ( snprintf( buf + len , 16, "(r%d)", getBitField( instr, 31, 4 )));
             
         } break;
@@ -547,7 +529,7 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
             else {
                 
                 cursor += snprintf( buf + cursor, 4, ", " );
-                cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 27, 12 ), 10 );
+                cursor += printImmVal( buf + cursor, getBitField( instr, 27, 12, true ), 10 );
                
                 if ( getBitField( instr, 13, 2 ) == 0 ) {
                     
@@ -570,7 +552,7 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
             else {
                 
                 cursor += snprintf( buf + cursor, 4, ", " );
-                cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 27, 12 ), 10 );
+                cursor += printImmVal( buf + cursor, getBitField( instr, 27, 12, true ), 10 );
                 cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
             }
         
@@ -595,7 +577,7 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
         case OP_LDO: {
             
             cursor += snprintf( buf + cursor, 4, ", " );
-            cursor += printImmVal( buf + cursor, immGenPosLenLowSign( instr, 27, 18 ), 10 );
+            cursor += printImmVal( buf + cursor, getBitField( instr, 27, 18, true ), 10 );
             cursor += snprintf( buf + cursor, 8, "(r%d)", getBitField( instr, 31, 4 ));
             
         } break;

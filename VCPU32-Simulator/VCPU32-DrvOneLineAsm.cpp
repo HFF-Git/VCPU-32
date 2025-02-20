@@ -118,17 +118,6 @@ void setBitField( uint32_t *arg, int pos, int len, uint32_t val ) {
     *arg = ( *arg & ( ~ ( tmpM << ( 31 - pos )))) | val;
 }
 
-void setImmVal( uint32_t *instr, int pos, int len, int32_t val ) {
-    
-    setBit( instr, pos, (((int32_t) val < 0 ) ? 1 : 0 ));
-    setBitField( instr, pos - 1, len - 1, val );
-}
-
-void setImmValU( uint32_t *instr, int pos, int len, uint32_t val ) {
-    
-    setBitField( instr, pos, len, val );
-}
-
 bool isInRange( int val, int low, int high ) {
     
     return(( val >= low ) && ( val <= high ));
@@ -525,8 +514,8 @@ void parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
             
             for ( int i = 0; i < strlen( optBuf ); i ++ ) {
                 
-                if      ( optBuf[ i ] == 'S' ) setImmValU( instr, 11, 2, 1 );
-                else if ( optBuf[ i ] == 'C' ) setImmValU( instr, 11, 2, 2 );
+                if      ( optBuf[ i ] == 'S' ) setBitField( instr, 11, 2, 1 );
+                else if ( optBuf[ i ] == 'C' ) setBitField( instr, 11, 2, 2 );
                 else throw ( ERR_INVALID_INSTR_OPT );
             }
     
@@ -631,7 +620,7 @@ void parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
    
     if ( rExpr.typ == TYP_NUM ) {
         
-        if ( isInRangeForBitField( rExpr.numVal, 12 )) setImmVal( instr, 27, 12, rExpr.numVal );
+        if ( isInRangeForBitField( rExpr.numVal, 12 )) setBitField( instr, 27, 12, rExpr.numVal );
         else throw ( ERR_IMM_VAL_RANGE );
             
         parseExpr( &rExpr );
@@ -697,12 +686,12 @@ void parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
      
         if ( tok -> isToken( TOK_EOS )) {
             
-            if ( isInRangeForBitField( rExpr.numVal, 18 )) setImmVal( instr, 31, 18, rExpr.numVal );
+            if ( isInRangeForBitField( rExpr.numVal, 18 )) setBitField( instr, 31, 18, rExpr.numVal );
             else throw ( ERR_IMM_VAL_RANGE );
         }
         else {
             
-            if ( isInRangeForBitField( rExpr.numVal, 12 )) setImmVal( instr, 27, 12, rExpr.numVal );
+            if ( isInRangeForBitField( rExpr.numVal, 12 )) setBitField( instr, 27, 12, rExpr.numVal );
             else throw ( ERR_IMM_VAL_RANGE );
             
             parseExpr( &rExpr );
@@ -1160,7 +1149,7 @@ void parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_NUM ) {
 
-        if ( isInRangeForBitFieldU( rExpr.numVal, 22 )) setImmValU( instr, 31, 22, rExpr.numVal  );
+        if ( isInRangeForBitFieldU( rExpr.numVal, 22 )) setBitField( instr, 31, 22, rExpr.numVal  );
         else throw ( ERR_IMM_VAL_RANGE );
     }
     else throw ( ERR_EXPECTED_NUMERIC );
@@ -1190,7 +1179,7 @@ void parseInstrLDO( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_NUM ) {
         
-        if ( isInRangeForBitField( rExpr.numVal, 18 )) setImmVal( instr, 27, 18, rExpr.numVal );
+        if ( isInRangeForBitField( rExpr.numVal, 18 )) setBitField( instr, 27, 18, rExpr.numVal );
         else throw ( ERR_IMM_VAL_RANGE );
         
         parseExpr( &rExpr );
@@ -1200,7 +1189,7 @@ void parseInstrLDO( uint32_t *instr, uint32_t flags ) {
     }
     else if ( rExpr.typ == TYP_ADR ) {
         
-        setImmVal( instr, 27, 18, 0 );
+        setBitField( instr, 27, 18, 0 );
         setBitField( instr, 31, 4, rExpr.numVal );
     }
     else throw ( ERR_EXPECTED_NUMERIC );
@@ -1804,7 +1793,7 @@ void parseInstrBRK( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_NUM ) {
         
-        if ( isInRangeForBitFieldU( rExpr.numVal, 4 )) setImmValU( instr, 9, 4, rExpr.numVal );
+        if ( isInRangeForBitFieldU( rExpr.numVal, 4 )) setBitField( instr, 9, 4, rExpr.numVal );
         else throw ( ERR_IMM_VAL_RANGE );
     }
     else throw ( ERR_EXPECTED_NUMERIC );
@@ -1814,7 +1803,7 @@ void parseInstrBRK( uint32_t *instr, uint32_t flags ) {
     
     if ( rExpr.typ == TYP_NUM ) {
     
-        if ( isInRangeForBitFieldU( rExpr.numVal, 16 )) setImmValU( instr, 31, 16, rExpr.numVal );
+        if ( isInRangeForBitFieldU( rExpr.numVal, 16 )) setBitField( instr, 31, 16, rExpr.numVal );
         else throw ( ERR_IMM_VAL_RANGE );
     }
     else  throw ( ERR_EXPECTED_NUMERIC );
