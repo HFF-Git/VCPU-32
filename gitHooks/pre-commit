@@ -13,7 +13,7 @@ GIT_HOOKS_DIR="../../gitHooks"
 SCRIPT_PATH="$GIT_HOOKS_DIR/update_patch_level.py"
 
 # Directory containing version.h and source files
-SOURCE_DIR="../../VCPU32"  # Update this to your actual source directory path
+SOURCE_DIR="./VCPU32-Simulator"  # Update this to your actual source directory path
 
 # Find staged files in the source directory
 FILES_TO_UPDATE=$(git diff --cached --name-only --diff-filter=AM | grep "^$SOURCE_DIR/")
