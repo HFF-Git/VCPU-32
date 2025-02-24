@@ -13,9 +13,12 @@ SCRIPT_PATH="$REPO_ROOT/gitHooks/update_patch_level.py"
 # Directory containing version.h and source files
 SOURCE_DIR="VCPU32-Simulator"
 
+# Navigate to the repo root (this is critical!)
+cd "$REPO_ROOT" || { echo "Failed to switch to repository root."; exit 1; }
+
 # Find both staged and unstaged modified files in the source directory
-FILES_TO_UPDATE=$(git diff --name-only --diff-filter=AM "$SOURCE_DIR")
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=AM "$SOURCE_DIR")
+FILES_TO_UPDATE=$(git diff --name-only --diff-filter=AM -- "$SOURCE_DIR")
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=AM -- "$SOURCE_DIR")
 
 if [ -z "$FILES_TO_UPDATE" ] && [ -z "$STAGED_FILES" ]; then
     echo "No changes detected in $SOURCE_DIR. Skipping patch level update."
@@ -31,7 +34,7 @@ python3 "$SCRIPT_PATH" "$VERSION_FILE"
 # Stage the modified version file
 git add "$VERSION_FILE"
 
-echo "PATCH_ LEVEL updated in version.h."
+echo "PATCH_LEVEL updated in VCPU32-Version.h."
 
 # Allow the commit to proceed
 exit 0

@@ -25,6 +25,6 @@
 
 const char VERSION[ ]       = "B.00.09";
 const char GIT_BRANCH[ ]    = "Main";
-const int  PATCH_LEVEL      = 16;
+const int  PATCH_LEVEL      = 17;
 
 #endif
