@@ -6,20 +6,10 @@
 # This file needs to be placed manually into the ".git/hooks/" directory.
 # 
 
-# path to version file
-VERSION_FILE="VCPU32-Simulator/VCPU32-Version.h"
+echo "Set patch level"
 
-# read current patch level version
-PATCH_LEVEL_CURRENT=$(grep -oP '(?<=PATCH_LEVEL \s*=\s* )\d+' "$VERSION_FILE")
-
-echo "Current patch level" 
-echo $PATCH_LEVEL_CURRENT
-
-# increment patch level
-PATCH_LEVEL=$((PATCH_LEVEL + 1))
-
-#update patch level in file
-sed -i "s/\(PATCH_LEVEL\s*=\s*\)[0-9]\+/\1$PATCH_LEVEL/" "$VERSION_FILE"
+# update the patch level
+python update-patch-level.py ../VCPU32-Simulator/VCPU32-Version.h
 
 # stage the modified version file
 git add "$VERSION_FILE"

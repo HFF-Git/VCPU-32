@@ -1,3 +1,0 @@
-CPU24 FPGA Implementation in Verilog
-
--- under construction .....
