@@ -13,13 +13,14 @@ GIT_HOOKS_DIR="../../gitHooks"
 SCRIPT_PATH="$GIT_HOOKS_DIR/update_patch_level.py"
 
 # Directory containing version.h and source files
-SOURCE_DIR="./VCPU32-Simulator"  # Update this to your actual source directory path
+SOURCE_DIR="VCPU32-Simulator"  # Update this to your actual source directory path
 
-# Find staged files in the source directory
-FILES_TO_UPDATE=$(git diff --cached --name-only --diff-filter=AM | grep "^$SOURCE_DIR/")
+# Find both staged and unstaged modified files in the source directory
+FILES_TO_UPDATE=$(git diff --name-only --diff-filter=AM $SOURCE_DIR)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=AM $SOURCE_DIR)
 
-if [ -z "$FILES_TO_UPDATE" ]; then
-    echo "No files staged in $SOURCE_DIR. Skipping patch level update."
+if [ -z "$FILES_TO_UPDATE" ] && [ -z "$STAGED_FILES" ]; then
+    echo "No changes detected in $SOURCE_DIR. Skipping patch level update."
     exit 0
 fi
 
