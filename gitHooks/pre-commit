@@ -1,4 +1,4 @@
-#! /bin/bash
+#!/bin/sh
 #
 # A script to automatically modify the "PATCH_LEVEL" in the version file when we commit. The patch level is
 # incremented by one. 
@@ -6,16 +6,36 @@
 # This file needs to be placed manually into the ".git/hooks/" directory.
 # 
 
-echo "Set patch level"
+# gitHooks Scripts Dir
+GIT_HOOKS_DIR="../../gitHooks"
+
+# Path to the Python script
+SCRIPT_PATH="$GIT_HOOKS_DIR/update_patch_level.py"
+
+# Directory containing version.h and source files
+SOURCE_DIR="../../VCPU32"  # Update this to your actual source directory path
+
+# Find staged files in the source directory
+FILES_TO_UPDATE=$(git diff --cached --name-only --diff-filter=AM | grep "^$SOURCE_DIR/")
+
+if [ -z "$FILES_TO_UPDATE" ]; then
+    echo "No files staged in $SOURCE_DIR. Skipping patch level update."
+    exit 0
+fi
 
 # Version file path
 VERSION_FILE="../../VCPU32-Simulator/VCPU32-Version.h"
 
 # update the patch level
-python ../../gitHooks/update-patch-level.py $VERSION_FILE
+pytho3 ../../gitHooks/update-patch-level.py $VERSION_FILE
 
 # stage the modified version file
 git add "$VERSION_FILE"
 
 # exit for git to proceed
 exit 0  
+
+echo "PATCH_ LEVEL updated in version.h."
+
+# Allow the commit to proceed
+exit 0
