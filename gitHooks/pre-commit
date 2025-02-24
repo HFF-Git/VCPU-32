@@ -9,10 +9,10 @@
 echo "Set patch level"
 
 # Version file path
-VERSION_FILE="../VCPU32-Simulator/VCPU32-Version.h"
+VERSION_FILE="../../VCPU32-Simulator/VCPU32-Version.h"
 
 # update the patch level
-python update-patch-level.py $VERSION_FILE
+python ../../gitHooks/update-patch-level.py $VERSION_FILE
 
 # stage the modified version file
 git add "$VERSION_FILE"
