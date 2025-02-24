@@ -1,23 +1,21 @@
 #!/bin/sh
 #
-# A script to automatically modify the "PATCH_LEVEL" in the version file when we commit. The patch level is
-# incremented by one. 
+# A script to automatically modify the "PATCH_LEVEL" in the version file when we commit. 
+# The patch level is incremented by one. 
 #
-# This file needs to be placed manually into the ".git/hooks/" directory.
-# 
 
-# gitHooks Scripts Dir
-GIT_HOOKS_DIR="../../gitHooks"
+# Get the root of the Git repository
+REPO_ROOT=$(git rev-parse --show-toplevel)
 
 # Path to the Python script
-SCRIPT_PATH="$GIT_HOOKS_DIR/update_patch_level.py"
+SCRIPT_PATH="$REPO_ROOT/gitHooks/update_patch_level.py"
 
 # Directory containing version.h and source files
-SOURCE_DIR="VCPU32-Simulator"  # Update this to your actual source directory path
+SOURCE_DIR="VCPU32-Simulator"
 
 # Find both staged and unstaged modified files in the source directory
-FILES_TO_UPDATE=$(git diff --name-only --diff-filter=AM $SOURCE_DIR)
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=AM $SOURCE_DIR)
+FILES_TO_UPDATE=$(git diff --name-only --diff-filter=AM "$SOURCE_DIR")
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=AM "$SOURCE_DIR")
 
 if [ -z "$FILES_TO_UPDATE" ] && [ -z "$STAGED_FILES" ]; then
     echo "No changes detected in $SOURCE_DIR. Skipping patch level update."
@@ -25,16 +23,13 @@ if [ -z "$FILES_TO_UPDATE" ] && [ -z "$STAGED_FILES" ]; then
 fi
 
 # Version file path
-VERSION_FILE="../../VCPU32-Simulator/VCPU32-Version.h"
+VERSION_FILE="$REPO_ROOT/VCPU32-Simulator/VCPU32-Version.h"
 
-# update the patch level
-pytho3 ../../gitHooks/update-patch-level.py $VERSION_FILE
+# Update the patch level using Python
+python3 "$SCRIPT_PATH" "$VERSION_FILE"
 
-# stage the modified version file
+# Stage the modified version file
 git add "$VERSION_FILE"
-
-# exit for git to proceed
-exit 0  
 
 echo "PATCH_ LEVEL updated in version.h."
 
