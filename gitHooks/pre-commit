@@ -1,19 +1,18 @@
 #!/bin/sh
 #
-# A script to automatically modify the "PATCH_LEVEL" in the version file when we commit. 
-# The patch level is incremented by one. 
+# Automatically increment PATCH_LEVEL in VCPU32-Version.h when committing.
 #
 
-# Get the root of the Git repository
-REPO_ROOT=$(git rev-parse --show-toplevel)
+# Resolve the Git repository root manually
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 # Path to the Python script
-SCRIPT_PATH="$REPO_ROOT/gitHooks/update_patch_level.py"
+SCRIPT_PATH="$REPO_ROOT/gitHooks/update-patch-level.py"
 
 # Directory containing version.h and source files
 SOURCE_DIR="VCPU32-Simulator"
 
-# Navigate to the repo root (this is critical!)
+# Navigate to the repo root
 cd "$REPO_ROOT" || { echo "Failed to switch to repository root."; exit 1; }
 
 # Find both staged and unstaged modified files in the source directory
@@ -29,7 +28,7 @@ fi
 VERSION_FILE="$REPO_ROOT/VCPU32-Simulator/VCPU32-Version.h"
 
 # Update the patch level using Python
-python3 "$SCRIPT_PATH" "$VERSION_FILE"
+python "$SCRIPT_PATH" "$VERSION_FILE"
 
 # Stage the modified version file
 git add "$VERSION_FILE"
