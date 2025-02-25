@@ -142,7 +142,7 @@ Feb, 2025
     - [BRK](#brk)
     - [BV](#bv)
     - [BVE](#bve)
-    - [CBR, CBRU](#cbr-cbru)BV
+    - [CBR, CBRU](#cbr-cbru)
     - [CMP, CMPU](#cmp-cmpu)
     - [CMR](#cmr)
     - [DEP](#dep)
@@ -225,8 +225,13 @@ Feb, 2025
   - [Instruction Usage Examples](#instruction-usage-examples)
     - [Loading 32-bit quantities](#loading-32-bit-quantities)
     - [Multi-precision arithmetic](#multi-precision-arithmetic)
+    - [Unsigned multiplication](#unsigned-multiplication)
+    - [Signed multiplication](#signed-multiplication)
     - [Unsigned division](#unsigned-division)
     - [Signed division](#signed-division)
+    - [Bit manipulation](#bit-manipulation)
+    - [Shift and rotate operations](#shift-and-rotate-operations-1)
+    - [Atomic operations](#atomic-operations)
   - [Pipeline Notes](#pipeline-notes)
     - [A three-stage pipelined CPU model](#a-three-stage-pipelined-cpu-model)
     - [A four stage pipeline CPU model](#a-four-stage-pipeline-cpu-model)
@@ -388,6 +393,7 @@ VCPU-32 features two registers to hold the processor state. The **instruction ad
 ```
 
 // ??? how about taken branch traps ( taken, lower and higher : T H L )
+// ??? the V bit is used by the divide step instruction, relation to the carry bit ?
 
 Bits 8 .. 15 of the processor status represent the bit that can be modified by the privileged MST instruction. Setting the other status bits requires the usage of the privileged RFI instruction.
 
@@ -619,7 +625,7 @@ Control flow is implemented through a set of branch instructions. They can be cl
 
 **Unconditional Branches**. Unconditional branches fetch the next instruction address from the computed branch target. The address computation can be relative to the current instruction address ( instruction relative branch ) or relative to an address register ( base register relative ). For a segment local branch, the instruction address segment part will not change. Unconditional branches are also used to jump to a subroutine and return from there. The branch and link instruction types save the return point to a general register. External calls are quite similar, except that they always branch to an absolute offset in the external segment. Just like the branch instruction, the return point can be saved, but this time to a segment is additionally stored in SR0.
 
-**Conditional Branches**. VCPU-32 features one conditional branch instructions. These instruction compares two register values for a certain condition. If the condition is met a branch to the target address is performed.  The target address is always a local address and the offset is instruction address relative. Conditional branches adopt a static prediction model. Forward branches are assumed not taken, backward branches are assumed taken.
+**Conditional Branches**. VCPU-32 features one conditional branch instructions. The instruction compares two register values for a certain condition. If the condition is met a branch to the target address is performed. The target address is always a local address and the offset is instruction address relative. Conditional branches adopt a static prediction model. Forward branches are assumed not taken, backward branches are assumed taken.
 
 ### Privilege change
 
@@ -699,7 +705,7 @@ Memory reference instruction operate on memory and a general register with a uni
 
 The **LDw** and **STw** and instructions access virtual memory. The segment selector field allows to use a logical address with implicit selection of SR4..SR7, or an explicit virtual address using SR1..SR3. The instructions use a **W** for word, a **H** for half-word and a **B** for byte operand size. The **LDA** and **STA** instruction implement word access to the physical memory computing a physical address to access. 
 
-The **LDR** and **STC** instructions support atomic operations. The LDR instruction loads a value form memory and remember this access. The STC instruction will store a value to the same location that the LDR instructions used and return a failure if the value was modified since the last LDR access. This CPU pipeline friendly pair of instructions allow to build higher level atomic operations on top.
+The **LDR** and **STC** instructions support atomic operations. The LDR instruction loads a value from memory and remembers this access. The STC instruction will store a value to the same location that the LDR instructions used and return a failure if the value was modified since the last LDR access. This CPU pipeline friendly pair of instructions allow to build higher level atomic operations on top.
 
 Memory reference instructions can be issued when data translation is either on and off. When address translation is turned off, the memory reference instructions will ignore the segment part and replace it with a zero value. The address is the physical address. It is an architectural requirement that a virtual address with a segment Id of zero maps to an absolute address with the same offset. The absolute address mode instruction also works with translation turned on and off. 
 
@@ -727,7 +733,7 @@ The conditional branch instructions combine a comparison operation with a local 
 
 ### Computational Instructions
 
-The arithmetic, logical and bit field operations instruction represent the computation type instructions. The computation instructions are divided into the numeric instructions **ADD**, **ADC**, **SUB** and **SBC**, the logical instructions **AND**, **OR**, **XOR** and the bit field operational instructions **EXTR**, **DEP** and **DSR**. 
+The arithmetic, logical and bit field operations instruction represent the computation type instructions. The computation instructions are divided into the numeric instructions **ADD**, **ADC**, **SUB** and **SBC**, the logical instructions **AND**, **OR**, **XOR** and the bit field operational instructions **EXTR**, **DEP** and **DSR**. Finally, there is the **DS** instruction for supporting divisions.
 
 The numeric and logical instructions encode the second operand in the operand field. This allows for immediate values, register values and values accessed via their logical address. The numeric instructions allow for a carry/borrow bit for implementing multi-precision operations as well as the distinction between signed and unsigned operation overflow detection traps. The logical instructions allow to negate the operand as well as the output. The bit field instructions will perform bit extraction and deposit as well as double register shifting. These instruction not only implement bit field manipulation, they are also the base for all shift and rotate operations.
 
@@ -1013,7 +1019,7 @@ Performs a bitwise AND of the operand and the target register and stores the res
 
 #### Description
 
-The instruction performs a bitwise AND operation storing the result in general register "r". The "N" bit negates the result making the AND a NAND operation. The "C" allows to complement ( 1's complement ) the operand input, which is the "b" register. Using both "C" and "N" is an undefined operation. See the section on operand encoding for the defined operand modes.
+The instruction performs a bitwise AND operation storing the result in general register "r". The "N" bit negates the result making the AND a NAND operation. The "C" allows to complement ( 1's complement ) the operand input. Using both "C" and "N" is an undefined operation. See the section on operand encoding for the defined operand modes.
 
 #### Operation
 
@@ -1391,7 +1397,7 @@ None.
 
 #### Notes
 
-Often a comparison is followed by a branch in an instruction stream. VCPU-32 therefore features  conditional branch instruction that offers the combination of a register evaluation and branch depending on the condition specified. The condition field does not encode a greater or greater-equal condition. This can easily be done by reversing the registers and inverting the comparison condition.
+Often a comparison is followed by a branch in an instruction stream. VCPU-32 therefore features a conditional branch instruction that offers the combination of a register evaluation and branch depending on the condition specified. The condition field does not encode a greater or greater-equal condition. This can easily be done by reversing the registers and inverting the comparison condition.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -1565,7 +1571,7 @@ In combination with the CMP instruction, simple instruction sequences such as "i
 
    C-code:     if ( a < b ) c = d
 
-   Assumption: ( a -> R2, b -> R6,c -> R1, d -> R4 )
+   Assumption: ( a -> R2, b -> R6, c -> R1, d -> R4 )
 
    CMP.LT R1,R2,R6  ; compare R2 < R6 and store a zero or one in R1
    CMR    R1,R4,R1  ; test R1 and store R4 when condition is met
@@ -1732,7 +1738,7 @@ Performs a right shift of two concatenated registers for shift amount bits and s
 #### Format
 
 ```
-   DSR [.A] r, b, a, shAmt
+   DSR   r, b, a, shAmt
    DSR.A r, b, a
 ```
 
@@ -1896,7 +1902,7 @@ Inserts a translation into the instruction or data TLB.
 ```
      0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
     :--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:--:
-    : ITLB    ( 0x3B ): r         :T                                        : a         : b         :
+    : ITLB    ( 0x3B ): r         :T :                                      : a         : b         :
     :-----------------:-----------------------------------------------------------------------------:
 ```
 
@@ -2000,7 +2006,7 @@ The "M" bit indicates base register increment. If set, a negative value in the "
         if ( instr.[M] ) {
 
             if ( signExtend( ofs, 12 ) < 0 ) tmpOfs = GR[instr.[b]] + signExtend( instr.[ofs], 12 );
-            else                                tmpOfs = GR[instr.[b]];
+            else                             tmpOfs = GR[instr.[b]];
         }
         else tmpOfs = GR[instr.[b]] + signExtend( instr.[ofs], 12 );
     }
@@ -2089,7 +2095,7 @@ The "M" bit indicates base register increment. If set, a negative value in the "
       if ( instr.[M] ) {
 
          if ( signExtend( ofs, 12 ) < 0 ) offset = GR[instr.[b]] + signExtend( ofs, 12 );
-         else                                offset = GR[instr.[b]];
+         else                             offset = GR[instr.[b]];
       }
       else offset = GR[instr.[b]] + signExtend( inatr.[ofs], 12 );
    }
@@ -2406,7 +2412,7 @@ The "M" field identifies the register type. A value of one refers to a control r
 
 #### Notes
 
-None.
+Copying data between general register is typically done using an OR instruction. The assembler can still use the MR opcode and when detecting a move between two general registers emit an OR instruction instead.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -2518,7 +2524,7 @@ Performs a bitwise OR of the operand and the target register and stores the resu
 
 #### Description
 
-The instruction performs a bitwise OR operation storing the result in general register "r". The N bit negates the result making the AND a NAND operation. The C allows to complement ( 1's complement ) the operand input, which is the "b" register. Using both C and N is an undefined operation. See the section on operand encoding for the defined operand modes.
+The instruction performs a bitwise OR operation storing the result in general register "r". The N bit negates the result making the AND a NAND operation. The C allows to complement ( 1's complement ) the operand input. Using both C and N is an undefined operation. See the section on operand encoding for the defined operand modes.
 
 #### Operation
 
@@ -2812,7 +2818,7 @@ The RFI instruction restores the instruction address segment, instruction addres
 
 The RFI instruction is also used to perform a context switch. Changing from one task to another is accomplished by loading the control registers **I-PSW-0** and **I-PSW-1** and then issue the RFI instruction. Setting bits other than the system mask is generally accomplished by constructing the respective status word and then issuing an RFI instruction to set them.
 
-There could be an option to also restore some of the general a segment registers from a set of shadow registers to which they have been saved when the interrupt occurred. The current implementation does not offer this option.
+There could be an option to also restore some of the general and segment registers from a set of shadow registers to which they have been saved when the interrupt occurred. The current implementation does not offer this option.
 
 
 <!--------------------------------------------------------------------------------------------------------->
@@ -2997,7 +3003,7 @@ The "M" bit indicates base register increment. If set, a negative value in the "
       if ( instr.[M] ) {
 
          if ( signExtend( ofs, 12 ) < 0 ) tmpOfs = GR[instr.[b]] + signExtend( instr.[ofs], 12 );
-         else                                tmpOfs = GR[instr.[b]];
+         else                             tmpOfs = GR[instr.[b]];
       }
       else tmpOfs = GR[instr.[b]] + signExtend( instr.[ofs], 12 );
    }
@@ -3080,7 +3086,7 @@ The store absolute instruction will store the target register into memory using 
       if ( instr.[M] ) {
 
          if ( signExtend( ofs, 12 ) < 0 ) tmpOfs = GR[instr.[b]] + signExtend( instr.[ofs], 12 );
-         else                                tmpOfs = GR[instr.[b]];
+         else                             tmpOfs = GR[instr.[b]];
       }
       else tmpOfs = GR[instr.[b]] + signExtend( instr.[ofs], 12 );
    }
@@ -3324,47 +3330,42 @@ There is also the case where the assembler could simplify the coding process by 
 
 VCPU-32 offers an immediate field in the immediate instructions and some computational instructions. Since the fields offer a limited numeric range, a large immediate value needs to be loaded from a sequence of instructions.
 
-| Synthetic Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
+| Synthetic Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
 | **LDI** | LDI GRx, val | LDO GRx, val(GR0) | If val is in the 18-bit range. |
 | **LDI** | LDI GRx, val | LDIL GRx, L%val; LDO   GRx, R%val(GRx) | The 32-bit value is stored with a two instruction sequence. |
-| **ADDI** | ADDI GRx, val | | | 
-| **ADDI** | ADDI GRx, val | | | 
-| **SUBI** | SUBI GRx, val | | | 
-| **SUBI** | SUBI GRx, val | | | 
 |||||
 
 ### Register Operations
 
-| Synthetic Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
+| Synthetic Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
 | **NOP** | NOP | OR  GR0, GR0 | There are many instructions that can be used for a NOP. The idea is to pick one that does not affect the program state. |
 | **CLR** | CLR GRn | AND  GRn, GR0 | Clears a general register. |
 | **COPY** | COPY GRx, GRy | OR  GRx, GRy, GR0 |Copies general register GRy to GRx. |
 | **MR** | MR GRx, GRy | OR GRx, GRy, GR0 | This overlaps the MR instruction for moving two general registers. |
-| **NOT** | NOT GRx, GRy | CMP.NE GRx, GRy | Logical NOT. Tests GRy for a non-zero value and returns 0 or 1. |
-| **INC** | INC [ .< opt > ] GRx, val | , ADC, SUB [ .< opCt > ] GRx, val | Increments GRx by "val". Note that "val" can also be a negative number, which then results in a decrement. |
-| **DEC** | DEC [ .< opt > ] GRx, val | SUB [ .< opt > ] GRx, val | Decrements GRx by "val". Note that "val" can also be a negative number, which then results in an increment. |
+| **NOT** | NOT GRx, GRy | CMP.NE GRx, GRy | Logical NOT. Tests GRy for a non-zero value and returns 0 or 1. |
+| **INC** | INC [ .< opt > ] GRx, val | , ADC, SUB [ .< opCt > ] GRx, val | Increments GRx by "val". Note that "val" can also be a negative number, which then results in a decrement. |
+| **DEC** | DEC [ .< opt > ] GRx, val | SUB [ .< opt > ] GRx, val | Decrements GRx by "val". Note that "val" can also be a negative number, which then results in an increment. |
 | **NEG** | NEG GRx | SUB [ .<opt> ] GRx, GR0, GRy | Negates a register by subtracting GRy from zero. |
 | **COM** | COM GRx | OR.N  GRx, GRx, R0 | OR a zero value with GRx and complements the result stored in GRx. |
-| ... | ... | ... | more to come ... |
+| ... | ... | ... | more to come ... |
 |||||
 
 ### Shift and Rotate Operations
 
 VCPU-32 does not offer instructions for shift and rotate operations. They can easily be realized with the EXTR and DEP instructions.
 
-| Synthetic Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
+| Synthetic Instruction | Possible Assembler Syntax |  Possible Implementation | Purpose |
 |:---|:---|:---|:---|
 | **ASR** | ASR GRx, shamt | EXTR.S Rx, Rx, 31 - shamt, 32 - shamt | For the right shift operations, the shift amount is transformed into the bit position of the bit field and the length of the field to shift right. For arithmetic shifts, the result is sign extended. |
-| **LSR** | LSR GRx, shamt | EXTR   Rx, Rx, 31 - shamt, 32 - shamt | For the right shift operations, the shift amount is transformed into the bot position of the bit field and the length of the field to shift right. |
+| **LSR** | LSR GRx, shamt | EXTR   Rx, Rx, 31 - shamt, 32 - shamt | For the right shift operations, the shift amount is transformed into the bit position of the bit field and the length of the field to shift right. |
 | **LSL** | LSR GRx, shamt | DEP.Z  Rx, Rx, 31 - shamt, 32 - shamt | |
 | **ROL** | ROL GRx, GRy, shamt | DSR Rx, Rx, shamt | |
 | **ROR** | ROR GRx, GRy, shamt | DSR Rx, Rx, 32 - shamt | |
-| **SHL1A** | | | |
-| **SHL2A** | | | |
-| **SHL3A** | | | |
-
+| **SHL1A** | SHL1A GRr, GRx, GRy | SHLA GRr, GRx, GRy, 1 | |
+| **SHL2A** | SHL2A GRr, GRx, GRy | SHLA GRr, GRx, GRy, 2 | |
+| **SHL3A** | SHL2A GRr, GRx, GRy | SHLA GRr, GRx, GRy, 3 | |
 |||||
 
 ### System Type Instructions
@@ -3563,7 +3564,7 @@ The SR5 quadrant contains the global data the modules, the task stack and linkag
       :                           :                        :                           :
       :                           :                        :                           :
       :===========================:                        :===========================: <-- DP
-
+      :                           :                        :                           :
       : Module X                  :                        : Module X globals          :
       :                           :                        :                           :
       :   Function A              :                        :                           :
@@ -4050,7 +4051,6 @@ The linkage table is a memory structure built by the program load operation. It 
 - how to get to the linkage table subsection ? -> DP - 4 location could hold the pointer to the XRT subtable for the module.
 
         
-
 ### Privilege level changes
 
 // privilege changes are also considered as external calls, although perhaps local to a module
@@ -4110,11 +4110,6 @@ Part of the I/O memory address range is allocated to processor dependent code.
 
 ### PDC Services
 
-
-
-
-
-
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->
 <!-- Chapter - VCPU-32 Input/Output system ---------------------------------------------------------------->
@@ -4132,9 +4127,9 @@ VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory add
 
 | Address range start | end |Usage |
 |:---|:---|:---|
-| 0x00000000 | 0xEFFFFFFF | Physical memory |
-| 0xF0000000 | 0xF0FFFFFF | Processor dependent code |
-| 0xFF000000 | 0xFFFFFFFF | IO memory |
+| 0x00000000 | 0xEFFFFFFF | Physical memory |
+| 0xF0000000 | 0xF0FFFFFF | Processor dependent code |
+| 0xFF000000 | 0xFFFFFFFF | IO memory |
 ||||
 
 ### Concept of an I/O Module
@@ -4366,9 +4361,19 @@ Instruction operations are described in a pseudo C style language using assignme
 
 ### Multi-precision arithmetic
 
+### Unsigned multiplication
+
+### Signed multiplication
+
 ### Unsigned division
 
 ### Signed division
+
+### Bit manipulation
+
+### Shift and rotate operations
+
+### Atomic operations
 
 <!--------------------------------------------------------------------------------------------------------->
 <!--------------------------------------------------------------------------------------------------------->

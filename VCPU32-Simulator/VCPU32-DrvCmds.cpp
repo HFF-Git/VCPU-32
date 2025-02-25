@@ -179,6 +179,88 @@ void DrvCmds::acceptRparen( ) {
     else throw ( ERR_EXPECTED_LPAREN );
 }
 
+
+//------------------------------------------------------------------------------------------------------------
+// The simulator command interpreter features a simple command history. It is a circular buffer that holds
+// the last commands. There are functions to show the command history, re-execute a previous command and to
+// retrieve a previous command for editing. The command stack can be accessed with relative command numbers,
+// i.e. "current - 3" or by absolute command number, when still present in the history stack.
+//
+// ??? first cut at command history.... check... it becomes part of the new command interpreter.
+//------------------------------------------------------------------------------------------------------------
+DrvCmdHistory::DrvCmdHistory( VCPU32Globals *glb ) {
+    
+    this -> glb     = glb;
+    this -> head    = 0;
+    this -> tail    = 0;
+    this -> count   = 0;
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Add a command line. If the history buffer is ful, the oldest entry is re-used. The head index points to
+// the next entry for allocation.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvCmdHistory::addCmdLine( char *cmdStr ) {
+    
+    cmdIdCount ++;
+    
+    DrvCmdHistEntry *ptr = &history[ head ];
+    
+    ptr -> cmdId = cmdIdCount;
+    strncpy( ptr -> cmdLine, cmdStr, 256 );
+
+    if ( count == MAX_CMD_HIST_BUF_SIZE ) tail = ( tail + 1) % MAX_CMD_HIST_BUF_SIZE;
+    else count++;
+
+    head = ( head + 1 ) % MAX_CMD_HIST_BUF_SIZE;
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Get a command line. If the command id is negative, the entry relatov to the top is used. "head - 1" refers
+// to the last entry entered. If the command is is positive, we search for the entry with the matching command
+// id, if still in the history buffer.
+//
+//------------------------------------------------------------------------------------------------------------
+char *DrvCmdHistory::getCmdLine( int cmdId ) {
+    
+    if (( cmdId >= 0 ) && (( cmdIdCount - cmdId ) > MAX_CMD_HIST_BUF_SIZE )) return ( nullptr );
+    if (( cmdId < 0  ) && ( - cmdId > cmdIdCount )) return ( nullptr );
+    if ( count == 0 ) return ( nullptr );
+        
+    if ( cmdId >= 0 ) {
+        
+        for ( int i = 0; i < count; i++ ) {
+        
+            int pos = ( tail + i ) % MAX_CMD_HIST_BUF_SIZE;
+            if ( history[ pos ].cmdId == cmdId ) return( history[ pos ].cmdLine );
+        }
+     
+        return( nullptr );
+    }
+    else {
+        
+        int pos = ( head - 1 + cmdId + MAX_CMD_HIST_BUF_SIZE) % MAX_CMD_HIST_BUF_SIZE;
+        return history[ pos ].cmdLine;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// List the commamd history.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvCmdHistory::printCmdistory( ) {
+    
+    glb -> console -> printChars( "Cmd History (%d/%d entries):\n", count, MAX_CMD_HIST_BUF_SIZE );
+    
+    for ( int i = 0; i < count; i++ ) {
+    
+        int pos = ( tail + i ) % MAX_CMD_HIST_BUF_SIZE;
+    
+        glb -> console -> printChars( "[%d]: %s\n", history[ i ].cmdId, history[ i ].cmdLine);
+    }
+}
+
 //------------------------------------------------------------------------------------------------------------
 // Return the current command entered.
 //

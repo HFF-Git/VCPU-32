@@ -32,6 +32,7 @@
 // General maximum size for commands, etc.
 //
 //------------------------------------------------------------------------------------------------------------
+const int MAX_CMD_HIST_BUF_SIZE = 100;
 const int CMD_LINE_BUF_SIZE     = 256;
 const int TOK_STR_SIZE          = 256;
 const int MAX_TOKEN_NAME_SIZE   = 32;
@@ -651,6 +652,41 @@ struct DrvEnv {
     DrvEnvTabEntry  *limit;
     
     VCPU32Globals   *glb = nullptr;
+};
+
+//-----------------------------------------------------------------------------------------------------------
+// Command History. The simulator command interpreter features a simple command history. It is a circular
+// buffer that holds the last commands. There are functions to show the command history, re-execute a
+// previous command and to retrieve a previous command for editing.
+//
+// ??? this becomes part of the new command interpreter
+//-----------------------------------------------------------------------------------------------------------
+struct DrvCmdHistEntry {
+    
+    int  cmdId;
+    char cmdLine[ CMD_LINE_BUF_SIZE ];
+};
+
+struct DrvCmdHistory {
+    
+public:
+    
+    DrvCmdHistory( VCPU32Globals *glb );
+    
+    void addCmdLine( char *cmdStr );
+    char *getCmdLine( int index );
+    
+    void printCmdistory( );
+    
+private:
+    
+    VCPU32Globals   *glb    = nullptr;
+    int cmdIdCount          = 0;
+    int head                = 0;
+    int tail                = 0;
+    int count               = 0;
+    
+    DrvCmdHistEntry history[ MAX_CMD_HIST_BUF_SIZE ];
 };
 
 //-----------------------------------------------------------------------------------------------------------
