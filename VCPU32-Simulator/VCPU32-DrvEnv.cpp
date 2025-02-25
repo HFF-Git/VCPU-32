@@ -506,9 +506,9 @@ void DrvEnv::setupPredefined( ) {
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_TRUE, (bool) true, true, true );
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_FALSE, (bool) false, true, true );
     
-    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_PROG_VERSION, (char *) VERSION, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_GIT_BRANCH, (char *) GIT_BRANCH, true, false );
-    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_PROG_PATCH_LEVEL, (int) PATCH_LEVEL, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_PROG_VERSION, (char *) VCPU32_SIM_VERSION, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_GIT_BRANCH, (char *) VCPU32_SIM_GIT_BRANCH, true, false );
+    if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_PATCH_LEVEL, (int) VCPU32_SIM_PATCH_LEVEL, true, false );
     
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_SHOW_CMD_CNT, true, true, false );
     if ( rStat == NO_ERR ) enterEnvVar((char *)  ENV_CMD_CNT, (int) 0, true, true );

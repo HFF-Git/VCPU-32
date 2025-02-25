@@ -200,10 +200,12 @@ void DrvCmds::printWelcome( ) {
     
     if ( glb -> console -> isConsole( )) {
         
-        glb -> console -> printChars( "VCPU-32 Simulator, Version: %s\n",
-                                     glb -> env -> getEnvVarStr((char *) ENV_PROG_VERSION ));
+        glb -> console -> printChars( "VCPU-32 Simulator, Version: %s, Patch Level: %d\n",
+                                      glb -> env -> getEnvVarStr((char *) ENV_PROG_VERSION ),
+                                      glb -> env -> getEnvVarStr((char *) ENV_PATCH_LEVEL ));
         
-        glb -> console -> printChars( "Git Branch: %s\n", glb -> env -> getEnvVarStr((char *) ENV_GIT_BRANCH ));
+        glb -> console -> printChars( "Git Branch: %s\n",
+                                      glb -> env -> getEnvVarStr((char *) ENV_GIT_BRANCH ));
     }
 }
 

@@ -388,9 +388,9 @@ enum ErrMsgId : uint16_t {
 const char ENV_TRUE[ ]                  = "TRUE";
 const char ENV_FALSE[ ]                 = "FALSE";
 
-const char ENV_GIT_BRANCH[ ]            = "GIT_BRANCH";
 const char ENV_PROG_VERSION [ ]         = "PROG_VERSION";
-const char ENV_PROG_PATCH_LEVEL[ ]      = "PROG_PATCH_LEVEL";
+const char ENV_PATCH_LEVEL [ ]          = "PATCH_LEVEL";
+const char ENV_GIT_BRANCH[ ]            = "GIT_BRANCH";
 
 const char ENV_SHOW_CMD_CNT[ ]          = "SHOW_CMD_CNT" ;
 const char ENV_CMD_CNT[ ]               = "CMD_CNT" ;
