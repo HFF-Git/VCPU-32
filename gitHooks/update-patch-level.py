@@ -13,7 +13,7 @@ def get_git_branch():
 
 # Function to increment the PATCH_LEVEL number
 def increment_patch_level(line):
-    match = re.search(r'const\s+int\s+VCPU32_SIM_PATCH_LEVEL\s*=\s*(\d+);', line)
+    match = re.search(r'const\s+int\s+SIM_PATCH_LEVEL\s*=\s*(\d+);', line)
     if match:
         current_value = int(match.group(1))
         incremented_value = current_value + 1
@@ -24,9 +24,9 @@ def increment_patch_level(line):
 # Function to update the GIT branch
 
 def update_git_branch(line, branch_name):
-    match = re.search(r'const\s+char\s+VCPU32_SIM_GIT_BRANCH\s*\[\]\s*=\s*".*?";', line)
+    match = re.search(r'const\s+char\s+SIM_GIT_BRANCH\s*\[\]\s*=\s*".*?";', line)
     if match:
-        updated_line = f'const char VCPU32_SIM_GIT_BRANCH[] = "{branch_name}";\n'
+        updated_line = f'const char SIM_GIT_BRANCH[] = "{branch_name}";\n'
         return updated_line
     return line
 
