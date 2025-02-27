@@ -1,3 +1,9 @@
+#-------------------------------------------------------------------------------------------------------------
+# Simple program to update the GIT branch and patch level in the VCPU32 Version.h file. Every time we
+# commit to Git, the patch level is increased. Also. we retrive the current GIt branch and update the
+# GIT branch name. Both data items are displayed when teh simulator starts.
+#
+#-------------------------------------------------------------------------------------------------------------
 import re
 import sys
 import subprocess
