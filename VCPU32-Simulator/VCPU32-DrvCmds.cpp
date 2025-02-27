@@ -257,7 +257,7 @@ void DrvCmdHistory::printCmdistory( ) {
     
         int pos = ( tail + i ) % MAX_CMD_HIST_BUF_SIZE;
     
-        glb -> console -> printChars( "[%d]: %s\n", history[ i ].cmdId, history[ i ].cmdLine);
+        glb -> console -> printChars( "[%d]: %s\n", history[ pos ].cmdId, history[ pos ].cmdLine);
     }
 }
 

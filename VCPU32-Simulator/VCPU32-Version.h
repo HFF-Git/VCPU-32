@@ -25,6 +25,6 @@
 
 const char VCPU32_SIM_VERSION[ ]       = "B.00.09";
 const char VCPU32_SIM_GIT_BRANCH[ ]    = "Sign-Bits-Change";
-const int  VCPU33_SIM_PATCH_LEVEL      = 3;
+const int  VCPU42_SIM_PATCH_LEVEL      = 4;
 
 #endif

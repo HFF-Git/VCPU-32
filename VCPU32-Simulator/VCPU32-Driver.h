@@ -116,17 +116,18 @@ enum TokId : uint16_t {
     //--------------------------------------------------------------------------------------------------------
     CMD_SET                 = 1000,
     
-    CMD_ENV                 = 1001,     CMD_EXIT                = 1002,
-    CMD_HELP                = 1003,     
-    CMD_XF                  = 1005,     CMD_WRITE_LINE          = 1006,
+    CMD_EXIT                = 1001,     CMD_HELP                = 1002,
     
-    CMD_RESET               = 1010,     CMD_RUN                 = 1011,     CMD_STEP                = 1012,
+    CMD_DO                  = 1010,     CMD_REDO                = 1011,     CMD_HIST                = 1012,
+    CMD_ENV                 = 1013,     CMD_XF                  = 1014,     CMD_WRITE_LINE          = 1015,
     
-    CMD_DR                  = 1020,     CMD_MR                  = 1021,
-    CMD_DA                  = 1027,     CMD_MA                  = 1028,
+    CMD_RESET               = 1020,     CMD_RUN                 = 1021,     CMD_STEP                = 1022,
     
-    CMD_D_TLB               = 1034,     CMD_I_TLB               = 1035,     CMD_P_TLB               = 1036,
-    CMD_D_CACHE             = 1037,     CMD_P_CACHE             = 1038,
+    CMD_DR                  = 1030,     CMD_MR                  = 1031,
+    CMD_DA                  = 1037,     CMD_MA                  = 1038,
+    
+    CMD_D_TLB               = 1040,     CMD_I_TLB               = 1041,     CMD_P_TLB               = 1042,
+    CMD_D_CACHE             = 1043,     CMD_P_CACHE             = 1044,
     
     //--------------------------------------------------------------------------------------------------------
     // Window Commands Tokens.
