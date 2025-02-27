@@ -25,6 +25,6 @@
 
 const char SIM_VERSION[ ]       = "B.00.09";
 const char SIM_GIT_BRANCH[ ]    = "Sign-Bits-Change";
-const int  SIM_PATCH_LEVEL      = 5;
+const int  SIM_PATCH_LEVEL      = 7;
 
 #endif
