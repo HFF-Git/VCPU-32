@@ -738,6 +738,32 @@ void DrvCmds::writeLineCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::histCmd( ) {
+    
+    
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::doCmd( ) {
+    
+}
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvCmds::redoCmd( ) {
+    
+    
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Display register command. This is a rather versatile command, which displays register set, register and
 // all of them in one format.
 //
@@ -2017,6 +2043,10 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
                    
                     case CMD_WRITE_LINE:    writeLineCmd( );                break;
                         
+                    case CMD_HIST:          histCmd( );                     break;
+                    case CMD_DO:            doCmd( );                       break;
+                    case CMD_REDO:          redoCmd( );                     break;
+                        
                     case CMD_RESET:         resetCmd( );                    break;
                     case CMD_RUN:           runCmd( );                      break;
                     case CMD_STEP:          stepCmd( );                     break;
@@ -2049,19 +2079,19 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
                     case CMD_WB:            winBackwardCmd( cmdId );        break;
                     case CMD_WH:            winHomeCmd( cmdId );            break;
                     case CMD_WJ:            winJumpCmd( cmdId );            break;
-                        
+                  
                     case CMD_PSE:
                     case CMD_SRE:
                     case CMD_PLE:
                     case CMD_SWE:
                     case CMD_WE:            winEnableCmd( cmdId );          break;
-                        
+                       
                     case CMD_PSD:
                     case CMD_SRD:
                     case CMD_PLD:
                     case CMD_SWD:
                     case CMD_WD:            winDisableCmd( cmdId );         break;
-                        
+                  
                     case CMD_PSR:
                     case CMD_SRR:
                     case CMD_PLR:

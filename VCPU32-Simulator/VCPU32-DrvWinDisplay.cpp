@@ -55,6 +55,7 @@
 //  Windows:
 //
 //  Program Regs    -> PS
+//  General Regs    -> GR
 //  Special Regs    -> CR
 //  Pipeline Regs   -> PL
 //  Statistics      -> ST
@@ -99,27 +100,32 @@ enum winType : int {
     
     WT_NIL          = 0,
     WT_CMD_WIN      = 1,
-    WT_PS_WIN       = 2,
-    WT_CR_WIN       = 3,
-    WT_PL_WIN       = 4,
-    WT_ST_WIN       = 5,
-    WT_PM_WIN       = 6,
-    WT_PC_WIN       = 7,
-    WT_ITLB_WIN     = 8,
-    WT_DTLB_WIN     = 9,
-    WT_ICACHE_WIN   = 10,
-    WT_DCACHE_WIN   = 11,
-    WT_UCACHE_WIN   = 12,
-    WT_ICACHE_S_WIN = 13,
-    WT_DCACHE_S_WIN = 14,
-    WT_UCACHE_S_WIN = 15,
-    WT_MEM_S_WIN    = 16,
-    WT_PDC_S_WIN    = 17,
-    WT_IO_S_WIN     = 18,
-    WT_ITLB_S_WIN   = 19,
-    WT_DTLB_S_WIN   = 20,
-    WT_TEXT_WIN     = 21,
-    WT_CONSOLE_WIN  = 22
+    WT_CONSOLE_WIN  = 2,
+    WT_TEXT_WIN     = 3,
+    
+    WT_GR_WIN       = 10,
+    WT_PS_WIN       = 11,
+    WT_CR_WIN       = 12,
+    WT_PL_WIN       = 13,
+    WT_ST_WIN       = 14,
+    WT_PM_WIN       = 15,
+    WT_PC_WIN       = 16,
+    
+    WT_ITLB_WIN     = 20,
+    WT_DTLB_WIN     = 21,
+    WT_ITLB_S_WIN   = 22,
+    WT_DTLB_S_WIN   = 23,
+    
+    WT_ICACHE_WIN   = 30,
+    WT_ICACHE_S_WIN = 31,
+    WT_DCACHE_WIN   = 32,
+    WT_DCACHE_S_WIN = 33,
+    WT_UCACHE_WIN   = 43,
+    WT_UCACHE_S_WIN = 44,
+    
+    WT_MEM_S_WIN    = 50,
+    WT_PDC_S_WIN    = 51,
+    WT_IO_S_WIN     = 52,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -809,6 +815,25 @@ void DrvWinScrollable::winBackward( uint32_t amt ) {
     }
     else currentItemAdr = 0;
 }
+
+//***********************************************************************************************************
+//***********************************************************************************************************
+//
+// Methods for the term window abstract class.
+//
+//***********************************************************************************************************
+//***********************************************************************************************************
+
+//------------------------------------------------------------------------------------------------------------
+// Object creator.
+//
+//------------------------------------------------------------------------------------------------------------
+DrvWinTerm::DrvWinTerm( VCPU32Globals *glb ) : DrvWin( glb ) { }
+DrvWinTerm::~DrvWinTerm( ) { }
+
+// ??? what else should go in this class....
+
+
 
 //***********************************************************************************************************
 //***********************************************************************************************************
@@ -2126,7 +2151,7 @@ int DrvWinText::readTextFileLine( int linePos, char *lineBuf, int bufLen  ) {
 // Object constructor / Destructor.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvWinConsole::DrvWinConsole( VCPU32Globals *glb ) : DrvWin( glb ) {
+DrvWinConsole::DrvWinConsole( VCPU32Globals *glb ) : DrvWinTerm( glb ) {
     
 }
 
@@ -2185,7 +2210,7 @@ void DrvWinConsole::drawBody( ) {
 // Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvWinCommands::DrvWinCommands( VCPU32Globals *glb ) : DrvWin( glb ) { }
+DrvWinCommands::DrvWinCommands( VCPU32Globals *glb ) : DrvWinTerm( glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // The default values are the initial settings when windows is brought up the first time, or for the WDEF
@@ -2323,7 +2348,8 @@ bool DrvWinDisplay::isWinEnabled( int winNum ) {
 //-----------------------------------------------------------------------------------------------------------
 // Before drawing the screen content after the execution of a command line, we need to check whether the
 // number of columns needed for a stack of windows has changed. This function just runs through the window
-// list for a given stack and determines the widest column needed for that stack.
+// list for a given stack and determines the widest column needed for that stack. When no window is enabled
+// the column size will be set to the command wondow default size.
 //
 //-----------------------------------------------------------------------------------------------------------
 int DrvWinDisplay::computeColumnsNeeded( int winStack ) {
@@ -2478,6 +2504,8 @@ void DrvWinDisplay::reDraw( bool mustRedraw ) {
         maxRowsNeeded += cmdWin -> getRows();
     }
     else maxRowsNeeded += cmdWin -> getRows( );
+    
+    if ( maxColumnsNeeded == 0 ) maxColumnsNeeded = cmdWin -> getDefColumns( ) + stackColumnGap;
     
     if ( winStacksOn )  cmdWin -> setColumns( maxColumnsNeeded - stackColumnGap );
     else                cmdWin -> setColumns( maxColumnsNeeded );

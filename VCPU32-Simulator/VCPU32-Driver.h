@@ -845,6 +845,23 @@ private:
     uint32_t        lineIncrement       = 0;
 };
 
+//-----------------------------------------------------------------------------------------------------------
+// Driver terminal type windows. The simulator command window and the simulation console window will inherit
+// form this struct.
+//
+//-----------------------------------------------------------------------------------------------------------
+struct DrvWinTerm : DrvWin {
+    
+public:
+    
+    DrvWinTerm( VCPU32Globals *glb );
+    ~ DrvWinTerm( );
+    
+private:
+    
+    
+};
+
 
 //-----------------------------------------------------------------------------------------------------------
 // Program State Register Window. This window holds the programmer visible state with the exception of the
@@ -1068,7 +1085,7 @@ private:
 // ??? to think about .... it is not a scrollabl window in our sense here. Still, it would be nice to move
 // the content up and down... hard to do ... we are not a terminal !!!!
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinConsole : DrvWin {
+struct DrvWinConsole : DrvWinTerm {
     
 public:
     
@@ -1088,7 +1105,7 @@ private:
 // and cannot be disabled. It is intended to be a scrollable window, where only the banner line is fixed.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinCommands : DrvWin {
+struct DrvWinCommands : DrvWinTerm {
     
 public:
     
@@ -1294,6 +1311,10 @@ struct DrvCmds {
     void            execFileCmd( );
     void            writeLineCmd( );
     
+    void            histCmd( );
+    void            doCmd( );
+    void            redoCmd( );
+    
     void            resetCmd( );
     void            runCmd( );
     void            stepCmd( );
@@ -1357,6 +1378,7 @@ struct VCPU32Globals {
     DrvWinDisplay       *winDisplay     = nullptr;
     DrvCmds             *cmds           = nullptr;
     DrvEnv              *env            = nullptr;
+    DrvCmdHistory       *hist           = nullptr;
    
     CpuCore             *cpu            = nullptr;
 };

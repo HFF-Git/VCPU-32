@@ -18,6 +18,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Types.h"
+#include "VCPU32-File-Format.h"
 #include "VCPU32-Driver.h"
 #include "VCPU32-Core.h"
 
@@ -107,6 +108,7 @@ int main( int argc, const char* argv[ ] ) {
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
     glbDesc.console                     = new DrvConsoleIO( );
     glbDesc.env                         = new DrvEnv( &glbDesc, MAX_ENV_VARIABLES );
+    glbDesc.hist                        = new DrvCmdHistory( &glbDesc );
     glbDesc.cmds                        = new DrvCmds( &glbDesc );
     glbDesc.tok                         = new DrvTokenizer( &glbDesc );
     glbDesc.eval                        = new DrvExprEvaluator( &glbDesc );
