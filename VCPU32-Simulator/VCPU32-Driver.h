@@ -675,9 +675,11 @@ public:
     DrvCmdHistory( VCPU32Globals *glb );
     
     void addCmdLine( char *cmdStr );
+    void removeTopCmdLine( );
     char *getCmdLine( int index );
+    int  getCmdId( );
     
-    void printCmdistory( );
+    void printCmdistory( int depth = MAX_CMD_HIST_BUF_SIZE );
     
 private:
     

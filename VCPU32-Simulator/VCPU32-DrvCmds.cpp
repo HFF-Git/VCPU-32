@@ -210,16 +210,33 @@ void DrvCmdHistory::addCmdLine( char *cmdStr ) {
     ptr -> cmdId = cmdIdCount;
     strncpy( ptr -> cmdLine, cmdStr, 256 );
 
-    if ( count == MAX_CMD_HIST_BUF_SIZE ) tail = ( tail + 1) % MAX_CMD_HIST_BUF_SIZE;
+    if ( count == MAX_CMD_HIST_BUF_SIZE ) tail = ( tail + 1 ) % MAX_CMD_HIST_BUF_SIZE;
     else count++;
 
     head = ( head + 1 ) % MAX_CMD_HIST_BUF_SIZE;
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Get a command line. If the command id is negative, the entry relatov to the top is used. "head - 1" refers
-// to the last entry entered. If the command is is positive, we search for the entry with the matching command
-// id, if still in the history buffer.
+// There is the situation that the current command is the "HIST" command itself. In this case we do not want
+// to add this command to the history buffer. Unfortunately, by the time we decoded the command it is already
+// in the history buffer. So, this routine will allow to remove the top command from the history buffer and
+// updatimg the comdId counter accordingly.
+//
+//------------------------------------------------------------------------------------------------------------
+void DrvCmdHistory::removeTopCmdLine( ) {
+    
+    cmdIdCount --;
+    
+    if ( count == MAX_CMD_HIST_BUF_SIZE ) tail = ( tail - 1 ) % MAX_CMD_HIST_BUF_SIZE;
+    else count--;
+    
+    head = ( head - 1 ) % MAX_CMD_HIST_BUF_SIZE;
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Get a command line from the command history. If the command ID is negative, the entry relativ to the top
+// is used. "head - 1" refers to the last entry entered. If the command ID is positive, we search for the
+// entry with the matching command id, if still in the history buffer.
 //
 //------------------------------------------------------------------------------------------------------------
 char *DrvCmdHistory::getCmdLine( int cmdId ) {
@@ -248,8 +265,9 @@ char *DrvCmdHistory::getCmdLine( int cmdId ) {
 //------------------------------------------------------------------------------------------------------------
 // List the commamd history.
 //
+// ??? print only up to "depth".
 //------------------------------------------------------------------------------------------------------------
-void DrvCmdHistory::printCmdistory( ) {
+void DrvCmdHistory::printCmdistory( int depth ) {
     
     glb -> console -> printChars( "Cmd History (%d/%d entries):\n", count, MAX_CMD_HIST_BUF_SIZE );
     
@@ -259,6 +277,15 @@ void DrvCmdHistory::printCmdistory( ) {
     
         glb -> console -> printChars( "[%d]: %s\n", history[ pos ].cmdId, history[ pos ].cmdLine);
     }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The command history maintains a command counter, which we return here.
+//
+//------------------------------------------------------------------------------------------------------------
+int DrvCmdHistory::getCmdId( ) {
+    
+    return( cmdIdCount );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -312,9 +339,11 @@ void DrvCmds::promptCmdLine( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "readCmdLine" reads in the command line. The function returns the number of characters read or an error
-// code. We loop inside the routine until we receive a valid command line or an EOF.
+// code. We loop inside the routine until we receive a valid command line or an EOF. A non-empty command is
+// also added to the command history buffer.
 //
-// ??? how would we recognize an end of file for batch input ?
+// ??? should we add the history command to the history buffer as well ?
+// ??? we cannot know at this stage what the command is...
 //------------------------------------------------------------------------------------------------------------
 int DrvCmds::readInputLine( char *cmdBuf ) {
     
@@ -326,14 +355,13 @@ int DrvCmds::readInputLine( char *cmdBuf ) {
             
             removeComment( cmdBuf );
             
-            glb -> env -> setEnvVar((char *) ENV_CMD_CNT,
-                                    glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ) + 1 );
+            glb -> hist -> addCmdLine( cmdBuf );
+            glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
+           
             return( len );
         }
         else return( -1 );
     }
-    
-    // else if ( feof( stdin )) exit( glb -> env -> getEnvVarInt((char *) ENV_EXIT_CODE ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -738,12 +766,25 @@ void DrvCmds::writeLineCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// The HIST command displays the command history. Optional, we can onl report a certain depth from the top.
 //
-//
+//  HIST [ depth ]
 //------------------------------------------------------------------------------------------------------------
 void DrvCmds::histCmd( ) {
     
+    DrvExpr rExpr;
+    int     depth = 1;
     
+    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
+        
+        glb -> eval -> parseExpr( &rExpr );
+        
+        if ( rExpr.typ == TYP_NUM ) depth = rExpr.numVal;
+        else                        throw ( ERR_INVALID_NUM );
+    }
+    
+    glb -> hist -> removeTopCmdLine( );
+    glb -> hist -> printCmdistory( depth );
 }
 
 //------------------------------------------------------------------------------------------------------------
