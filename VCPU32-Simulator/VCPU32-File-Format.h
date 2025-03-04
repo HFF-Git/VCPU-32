@@ -36,7 +36,7 @@ enum FileTypes : uint16_t {
     FT_EXECUTABLE           = 2,
     FT_RELOCATABLE          = 3,
     FT_EXECUTABLE_LIB       = 4,
-    FT_RELICATABLE_LIB      = 5,
+    FT_RELOCATABLE_LIB      = 5,
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -82,8 +82,10 @@ enum SectionFlags : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
+// A relocatable library will just have a list of relocatable file content. The library header describs the
+// the content.
 //
-// ... tdb
+// ... tbd
 //------------------------------------------------------------------------------------------------------------
 struct LibraryHeader {
     
@@ -91,9 +93,10 @@ struct LibraryHeader {
     FileTypes       fileType;                   // VCPU32 file type.
     uint16_t        fileVersion;                // VCPU32 file version.
     
+    // ... more to come ...
     
+    uint32_t        headerCheckSum;             // Checksum of header exclusing the checkSum field.
 };
-
 
 //------------------------------------------------------------------------------------------------------------
 // A VCPU32 file starts with a header. All byte offsets are relative to the header offset. Note that the

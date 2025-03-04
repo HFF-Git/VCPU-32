@@ -1543,6 +1543,7 @@ void DrvWinCode::drawLine( uint32_t itemAdr ) {
     uint32_t    instr           = glb -> cpu -> physMem -> getMemDataWord( itemAdr );
     uint32_t    fmtDesc         = FMT_DEF_ATTR;
     bool        plWinEnabled    = glb -> winDisplay -> isWinEnabled( PL_REG_WIN );
+    char        buf[ 128 ];
 
     printNumericField( itemAdr, fmtDesc | FMT_ALIGN_LFT, 12 );
   
@@ -1567,13 +1568,15 @@ void DrvWinCode::drawLine( uint32_t itemAdr ) {
     int operandField = glb -> disAsm -> getOpCodeOptionsFieldWidth( );
     
     clearField( opCodeField );
-    glb -> disAsm -> displayOpCodeAndOptions( instr );
-
+    glb -> disAsm -> formatOpCodeAndOptions( buf, sizeof( buf ), instr );
+    glb -> console -> printChars( "%s", buf );
+    
     setWinCursor( 0, pos + opCodeField );
     
     clearField( operandField );
-    glb -> disAsm -> displayTargetAndOperands( instr, getRadix( ));
-    
+    glb -> disAsm -> formatTargetAndOperands( buf, sizeof( buf ), instr );
+    glb -> console -> printChars( "%s", buf );
+   
     setWinCursor( 0, pos + opCodeField + operandField );
     padLine( );
 }

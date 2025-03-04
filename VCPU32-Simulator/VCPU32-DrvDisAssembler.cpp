@@ -713,11 +713,14 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
 
 
 //************************************************************************************************************
+//
 // Object methods.
+//
 //************************************************************************************************************
 
 //------------------------------------------------------------------------------------------------------------
 // The object constructor.
+//
 //------------------------------------------------------------------------------------------------------------
 DrvDisAssembler::DrvDisAssembler( VCPU32Globals *glb ) {
     
@@ -756,33 +759,15 @@ int DrvDisAssembler::formatTargetAndOperands( char *buf, int bufLen, uint32_t in
     return( cursor );
 }
 
-int DrvDisAssembler::displayOpCodeAndOptions( uint32_t instr ) {
-    
-    int cursor = 0;
-    char buf[ 128 ];
-    
-    cursor = formatOpCodeAndOptions( buf, sizeof( buf ), instr );
-    fprintf( stdout, "%s", buf );
-    return( cursor );
-}
-
-int DrvDisAssembler::displayTargetAndOperands( uint32_t instr, int rdx ) {
-    
-    int cursor = 0;
-    char buf[ 64 ];
-    
-    cursor += formatTargetAndOperands( buf, sizeof( buf ), instr, rdx );
-    fprintf( stdout, "%s", buf );
-    return( cursor );
-}
-
 int DrvDisAssembler::displayInstr( uint32_t instr, int rdx ) {
     
-    int cursor = 0;
+    int  cursor = 0;
+    char buf[ 128 ];
     
-    cursor += displayOpCodeAndOptions( instr );
-    fprintf( stdout, " " );
-    cursor += displayTargetAndOperands( instr, rdx );
+    cursor += formatOpCodeAndOptions( buf, sizeof( buf ), instr );
+    buf[ cursor ] = ' ';
+    cursor += formatTargetAndOperands( buf, sizeof( buf ), instr, rdx );
+    fprintf( stdout, "%s", buf );
     return( cursor );
 }
 

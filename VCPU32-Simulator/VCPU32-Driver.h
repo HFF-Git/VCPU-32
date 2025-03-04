@@ -849,6 +849,7 @@ private:
 // Driver terminal type windows. The simulator command window and the simulation console window will inherit
 // form this struct.
 //
+// ??? perhaps not needed...
 //-----------------------------------------------------------------------------------------------------------
 struct DrvWinTerm : DrvWin {
     
@@ -861,7 +862,6 @@ private:
     
     
 };
-
 
 //-----------------------------------------------------------------------------------------------------------
 // Program State Register Window. This window holds the programmer visible state with the exception of the
@@ -1239,16 +1239,13 @@ public:
     
     DrvDisAssembler( VCPU32Globals *glb );
     
-    int  displayInstr( uint32_t instr, int rdx = 16 );
-    int  displayOpCodeAndOptions( uint32_t instr );
-    int  displayTargetAndOperands( uint32_t instr, int rdx = 16 );
-    
-    int formatInstr( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
     int formatOpCodeAndOptions( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
     int formatTargetAndOperands( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int formatInstr( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int displayInstr( uint32_t instr, int rdx = 16 );
     
-    int  getOpCodeOptionsFieldWidth( );
-    int  getTargetAndOperandsFieldWidth( );
+    int getOpCodeOptionsFieldWidth( );
+    int getTargetAndOperandsFieldWidth( );
     
 private:
     
