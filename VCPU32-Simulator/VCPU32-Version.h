@@ -23,8 +23,8 @@
 #ifndef VCPU32Version_hpp
 #define VCPU32Version_hpp
 
-const char SIM_VERSION[ ]       = "B.00.09";
-const char SIM_GIT_BRANCH[ ]    = "Sign-Bits-Change";
-const int  SIM_PATCH_LEVEL      = 9;
+const char SIM_VERSION[ ]   = "B.00.09";
+const char SIM_GIT_BRANCH[] = "main";
+const int  SIM_PATCH_LEVEL  = 15;
 
 #endif
