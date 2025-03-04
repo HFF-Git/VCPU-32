@@ -58,27 +58,6 @@ uint32_t getBitField( uint32_t arg, int pos, int len, bool sign = false ) {
     else        return( tmpA & tmpM );
 }
 
-uint32_t lowSignExtend32( uint32_t arg, int len ) {
-    
-    len = len % 32;
-    
-    uint32_t tmpM = ( 1U << ( len - 1 )) - 1;
-    bool     sign = arg % 2;
-    
-    arg = arg >> 1;
-    
-    if ( sign ) return( arg |= ~ tmpM );
-    else        return( arg &= tmpM );
-}
-
-uint32_t immGenLowSign( uint32_t instr, int pos, int len ) {
-    
-    pos = pos % 32;
-    len = len % 32;
-    
-    return( lowSignExtend32( getBitField( instr, pos, len ), len ));
-}
-
 uint32_t add32( uint32_t arg1, uint32_t arg2 ) {
     
     return ( arg1 + arg2 );
@@ -649,7 +628,7 @@ void FetchDecodeStage::process( ) {
                 case OP_MODE_IMM: {
                    
                     maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
-                    maStage -> psValB.set( immGenLowSign( instr, 31, 18 ));
+                    maStage -> psValB.set( getBitField( instr, 31, 18, true ));
                     maStage -> psValX.set( 0 );
                    
                 } break;
@@ -680,7 +659,7 @@ void FetchDecodeStage::process( ) {
                     else maStage -> psValA.set( 0 );
                     
                     maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
-                    maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
+                    maStage -> psValX.set( getBitField( instr, 27, 12, true ));
                     
                 } break;
             }
@@ -699,7 +678,7 @@ void FetchDecodeStage::process( ) {
           
             maStage -> psValA.set( 0 );
             maStage -> psValB.set( psPstate1.get( ));
-            maStage -> psValX.set( immGenLowSign( instr, 31, 22 ) << 2 );
+            maStage -> psValX.set( getBitField( instr, 31, 22, true ) << 2 );
             
         } break;
             
@@ -711,7 +690,7 @@ void FetchDecodeStage::process( ) {
             
             maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
-            maStage -> psValX.set( immGenLowSign( instr, 23, 14 ) << 2 );
+            maStage -> psValX.set( getBitField( instr, 23, 14, true ) << 2 );
             
         } break;
             
@@ -817,7 +796,7 @@ void FetchDecodeStage::process( ) {
             
             maStage -> psValA.set( 0 );
             maStage -> psValB.set( psPstate1.get( ));
-            maStage -> psValX.set( immGenLowSign( instr, 31, 22 ) << 2 );
+            maStage -> psValX.set( getBitField( instr, 31, 22, true ) << 2 );
            
             // ??? when do we exactly set the execution level in the status reg ? There are
             // two instructions ahead of us which should NOT benefit from the potential priv change....
@@ -852,14 +831,14 @@ void FetchDecodeStage::process( ) {
             
                 maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             }
-            else maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
+            else maStage -> psValX.set( getBitField( instr, 27, 12, true ));
             
         } break;
             
         case OP_LDIL: {
             
             maStage -> psValA.set( 0 );
-            maStage -> psValB.set( immGenLowSign( instr, 31, 22 ));
+            maStage -> psValB.set( getBitField( instr, 31, 22 ));
             maStage -> psValX.set( 0 );
             
         } break;
@@ -868,7 +847,7 @@ void FetchDecodeStage::process( ) {
             
             maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
-            maStage -> psValX.set( immGenLowSign( instr, 27, 18 ));
+            maStage -> psValX.set( getBitField( instr, 27, 18, true ));
             
         } break;
             
@@ -884,7 +863,7 @@ void FetchDecodeStage::process( ) {
             
             maStage -> psValA.set( 0 );
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
-            maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
+            maStage -> psValX.set( getBitField( instr, 27, 12, true ));
             
         } break;
             
@@ -989,7 +968,7 @@ void FetchDecodeStage::process( ) {
                 
                 maStage -> psValX.set( core -> gReg[ getBitField( instr, 27, 4 ) ].get( ));
             }
-            else maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
+            else maStage -> psValX.set( getBitField( instr, 27, 12, true ));
           
         } break;
             
@@ -997,7 +976,7 @@ void FetchDecodeStage::process( ) {
             
             maStage -> psValA.set( core -> gReg[ getBitField( instr, 9, 4 ) ].get( ));
             maStage -> psValB.set( core -> gReg[ getBitField( instr, 31, 4 ) ].get( ));
-            maStage -> psValX.set( immGenLowSign( instr, 27, 12 ));
+            maStage -> psValX.set( getBitField( instr, 27, 12, true ));
             
         } break;
             
@@ -1059,13 +1038,13 @@ void FetchDecodeStage::process( ) {
         
         if ( getBit( instr, 23 )) {
             
-            psPstate1.set( add32( psPstate1.get( ), immGenLowSign( instr, 31, 22 )));
+            psPstate1.set( add32( psPstate1.get( ), getBitField( instr, 31, 22, true )));
             maStage -> psValX.set( 4 );
         }
         else {
             
             psPstate1.set( psPstate1.get( ) + 4 );
-            maStage -> psValX.set( immGenLowSign( instr, 31, 22 ));
+            maStage -> psValX.set( getBitField( instr, 31, 22, true ));
         }
     }
     else psPstate1.set( psPstate1.get( ) + 4 );

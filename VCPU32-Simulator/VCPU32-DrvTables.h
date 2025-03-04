@@ -63,9 +63,9 @@ DrvToken const cmdTokTab[ ] = {
     
     { .name = "WCOMMANDS",          .typ = TYP_WCMD,                .tid = WCMD_SET                         },
     
-    { .name = "PREDEFINED",         .typ = TYP_PREDEFINED_FUNC, .tid = PF_SET                               },
+    { .name = "PREDEFINED",         .typ = TYP_PREDEFINED_FUNC,     .tid = PF_SET                           },
     
-    { .name = "REGSET",             .typ = TYP_RSET,                .tid = REG_SET                        },
+    { .name = "REGSET",             .typ = TYP_RSET,                .tid = REG_SET                          },
     
     { .name = "WTYPES",             .typ = TYP_WTYP,                .tid = WTYPE_SET                        },
     
@@ -73,18 +73,23 @@ DrvToken const cmdTokTab[ ] = {
     // Command Line tokens.
     //
     //--------------------------------------------------------------------------------------------------------
-    { .name = "ENV",                .typ = TYP_CMD,                 .tid = CMD_ENV                          },
-    { .name = "EXIT",               .typ = TYP_CMD,                 .tid = CMD_EXIT                         },
-    { .name = "E",                  .typ = TYP_CMD,                 .tid = CMD_EXIT                         },
     { .name = "HELP",               .typ = TYP_CMD,                 .tid = CMD_HELP                         },
     { .name = "?",                  .typ = TYP_CMD,                 .tid = CMD_HELP                         },
+    
+    { .name = "EXIT",               .typ = TYP_CMD,                 .tid = CMD_EXIT                         },
+    { .name = "E",                  .typ = TYP_CMD,                 .tid = CMD_EXIT                         },
+    
+    { .name = "HIST",               .typ = TYP_CMD,                 .tid = CMD_HIST                         },
+    { .name = "DO",                 .typ = TYP_CMD,                 .tid = CMD_DO                           },
+    { .name = "REDO",               .typ = TYP_CMD,                 .tid = CMD_REDO                         },
+    { .name = "ENV",                .typ = TYP_CMD,                 .tid = CMD_ENV                          },
     { .name = "XF",                 .typ = TYP_CMD,                 .tid = CMD_XF                           },
+    { .name = "W",                  .typ = TYP_CMD,                 .tid = CMD_WRITE_LINE                   },
+    
     { .name = "RESET",              .typ = TYP_CMD,                 .tid = CMD_RESET                        },
     { .name = "RUN",                .typ = TYP_CMD,                 .tid = CMD_RUN                          },
     { .name = "STEP",               .typ = TYP_CMD,                 .tid = CMD_STEP                         },
     { .name = "S",                  .typ = TYP_CMD,                 .tid = CMD_STEP                         },
-    
-    { .name = "W",                  .typ = TYP_CMD,                 .tid = CMD_WRITE_LINE                   },
     
     { .name = "DR",                 .typ = TYP_CMD,                 .tid = CMD_DR                           },
     { .name = "MR",                 .typ = TYP_CMD,                 .tid = CMD_MR                           },

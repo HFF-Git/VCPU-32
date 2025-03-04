@@ -239,7 +239,7 @@ void DrvTokenizer::parseIdent( ) {
     
     char identBuf[ TOK_INPUT_LINE_SIZE ] = "";
     
-    if ( currentChar == 'L' ) {
+    if (( currentChar == 'L' ) || ( currentChar == 'l' )) {
         
         addChar( identBuf, sizeof( identBuf ), currentChar );
         nextChar( );
@@ -253,11 +253,12 @@ void DrvTokenizer::parseIdent( ) {
                 
                 parseNum( );
                 currentToken.val &= 0xFFFFFC00;
+                return;
             }
             else throw ( ERR_INVALID_CHAR_IN_IDENT );
         }
     }
-    else if ( currentChar == 'R' ) {
+    else if (( currentChar == 'R' ) || ( currentChar == 'r' )) {
         
         addChar( identBuf, sizeof( identBuf ), currentChar );
         nextChar( );
@@ -271,6 +272,7 @@ void DrvTokenizer::parseIdent( ) {
                 
                 parseNum( );
                 currentToken.val &= 0x3FF;
+                return;
             }
             else throw ( ERR_INVALID_CHAR_IN_IDENT );
         }

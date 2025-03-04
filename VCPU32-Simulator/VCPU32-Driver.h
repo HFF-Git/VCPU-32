@@ -32,6 +32,7 @@
 // General maximum size for commands, etc.
 //
 //------------------------------------------------------------------------------------------------------------
+const int MAX_CMD_HIST_BUF_SIZE = 100;
 const int CMD_LINE_BUF_SIZE     = 256;
 const int TOK_STR_SIZE          = 256;
 const int MAX_TOKEN_NAME_SIZE   = 32;
@@ -115,17 +116,18 @@ enum TokId : uint16_t {
     //--------------------------------------------------------------------------------------------------------
     CMD_SET                 = 1000,
     
-    CMD_ENV                 = 1001,     CMD_EXIT                = 1002,
-    CMD_HELP                = 1003,     
-    CMD_XF                  = 1005,     CMD_WRITE_LINE          = 1006,
+    CMD_EXIT                = 1001,     CMD_HELP                = 1002,
     
-    CMD_RESET               = 1010,     CMD_RUN                 = 1011,     CMD_STEP                = 1012,
+    CMD_DO                  = 1010,     CMD_REDO                = 1011,     CMD_HIST                = 1012,
+    CMD_ENV                 = 1013,     CMD_XF                  = 1014,     CMD_WRITE_LINE          = 1015,
     
-    CMD_DR                  = 1020,     CMD_MR                  = 1021,
-    CMD_DA                  = 1027,     CMD_MA                  = 1028,
+    CMD_RESET               = 1020,     CMD_RUN                 = 1021,     CMD_STEP                = 1022,
     
-    CMD_D_TLB               = 1034,     CMD_I_TLB               = 1035,     CMD_P_TLB               = 1036,
-    CMD_D_CACHE             = 1037,     CMD_P_CACHE             = 1038,
+    CMD_DR                  = 1030,     CMD_MR                  = 1031,
+    CMD_DA                  = 1037,     CMD_MA                  = 1038,
+    
+    CMD_D_TLB               = 1040,     CMD_I_TLB               = 1041,     CMD_P_TLB               = 1042,
+    CMD_D_CACHE             = 1043,     CMD_P_CACHE             = 1044,
     
     //--------------------------------------------------------------------------------------------------------
     // Window Commands Tokens.
@@ -388,9 +390,9 @@ enum ErrMsgId : uint16_t {
 const char ENV_TRUE[ ]                  = "TRUE";
 const char ENV_FALSE[ ]                 = "FALSE";
 
-const char ENV_GIT_BRANCH[ ]            = "GIT_BRANCH";
 const char ENV_PROG_VERSION [ ]         = "PROG_VERSION";
-const char ENV_PROG_PATCH_LEVEL[ ]      = "PROG_PATCH_LEVEL";
+const char ENV_PATCH_LEVEL [ ]          = "PATCH_LEVEL";
+const char ENV_GIT_BRANCH[ ]            = "GIT_BRANCH";
 
 const char ENV_SHOW_CMD_CNT[ ]          = "SHOW_CMD_CNT" ;
 const char ENV_CMD_CNT[ ]               = "CMD_CNT" ;
@@ -654,6 +656,41 @@ struct DrvEnv {
 };
 
 //-----------------------------------------------------------------------------------------------------------
+// Command History. The simulator command interpreter features a simple command history. It is a circular
+// buffer that holds the last commands. There are functions to show the command history, re-execute a
+// previous command and to retrieve a previous command for editing.
+//
+// ??? this becomes part of the new command interpreter
+//-----------------------------------------------------------------------------------------------------------
+struct DrvCmdHistEntry {
+    
+    int  cmdId;
+    char cmdLine[ CMD_LINE_BUF_SIZE ];
+};
+
+struct DrvCmdHistory {
+    
+public:
+    
+    DrvCmdHistory( VCPU32Globals *glb );
+    
+    void addCmdLine( char *cmdStr );
+    char *getCmdLine( int index );
+    
+    void printCmdistory( );
+    
+private:
+    
+    VCPU32Globals   *glb    = nullptr;
+    int cmdIdCount          = 0;
+    int head                = 0;
+    int tail                = 0;
+    int count               = 0;
+    
+    DrvCmdHistEntry history[ MAX_CMD_HIST_BUF_SIZE ];
+};
+
+//-----------------------------------------------------------------------------------------------------------
 // The "CPU24DrvBaseWin" class. The simulator will in screen mode feature a set of stacks each with a list
 // of screen sub windows. The default is one stack, the general register set window and the command line
 // window, which also spans all stacks. Each sub window is an instance of a specific window class with this
@@ -808,6 +845,23 @@ private:
     uint32_t        lineIncrement       = 0;
 };
 
+//-----------------------------------------------------------------------------------------------------------
+// Driver terminal type windows. The simulator command window and the simulation console window will inherit
+// form this struct.
+//
+// ??? perhaps not needed...
+//-----------------------------------------------------------------------------------------------------------
+struct DrvWinTerm : DrvWin {
+    
+public:
+    
+    DrvWinTerm( VCPU32Globals *glb );
+    ~ DrvWinTerm( );
+    
+private:
+    
+    
+};
 
 //-----------------------------------------------------------------------------------------------------------
 // Program State Register Window. This window holds the programmer visible state with the exception of the
@@ -1031,7 +1085,7 @@ private:
 // ??? to think about .... it is not a scrollabl window in our sense here. Still, it would be nice to move
 // the content up and down... hard to do ... we are not a terminal !!!!
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinConsole : DrvWin {
+struct DrvWinConsole : DrvWinTerm {
     
 public:
     
@@ -1051,7 +1105,7 @@ private:
 // and cannot be disabled. It is intended to be a scrollable window, where only the banner line is fixed.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinCommands : DrvWin {
+struct DrvWinCommands : DrvWinTerm {
     
 public:
     
@@ -1185,16 +1239,13 @@ public:
     
     DrvDisAssembler( VCPU32Globals *glb );
     
-    int  displayInstr( uint32_t instr, int rdx = 16 );
-    int  displayOpCodeAndOptions( uint32_t instr );
-    int  displayTargetAndOperands( uint32_t instr, int rdx = 16 );
-    
-    int formatInstr( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
     int formatOpCodeAndOptions( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
     int formatTargetAndOperands( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int formatInstr( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int displayInstr( uint32_t instr, int rdx = 16 );
     
-    int  getOpCodeOptionsFieldWidth( );
-    int  getTargetAndOperandsFieldWidth( );
+    int getOpCodeOptionsFieldWidth( );
+    int getTargetAndOperandsFieldWidth( );
     
 private:
     
@@ -1256,6 +1307,10 @@ struct DrvCmds {
     void            envCmd( );
     void            execFileCmd( );
     void            writeLineCmd( );
+    
+    void            histCmd( );
+    void            doCmd( );
+    void            redoCmd( );
     
     void            resetCmd( );
     void            runCmd( );
@@ -1320,6 +1375,7 @@ struct VCPU32Globals {
     DrvWinDisplay       *winDisplay     = nullptr;
     DrvCmds             *cmds           = nullptr;
     DrvEnv              *env            = nullptr;
+    DrvCmdHistory       *hist           = nullptr;
    
     CpuCore             *cpu            = nullptr;
 };
