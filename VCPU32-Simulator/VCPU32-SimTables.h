@@ -30,7 +30,7 @@
 // The value allows for a constant token. The parser can directly use the value in expressions.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvToken const cmdTokTab[ ] = {
+SimToken const cmdTokTab[ ] = {
     
     //--------------------------------------------------------------------------------------------------------
     // General tokens.
@@ -385,14 +385,14 @@ DrvToken const cmdTokTab[ ] = {
     
 };
 
-const int MAX_CMD_TOKEN_TAB = sizeof( cmdTokTab ) / sizeof( DrvToken );
+const int MAX_CMD_TOKEN_TAB = sizeof( cmdTokTab ) / sizeof( SimToken );
 
 //------------------------------------------------------------------------------------------------------------
 // The error message table. Each entry has the error number and the corresponding error message text.
 //
 // ??? sort the entries... a little ...
 //------------------------------------------------------------------------------------------------------------
-DrvErrMsgTabEntry const errMsgTab [ ] = {
+SimErrMsgTabEntry const errMsgTab [ ] = {
     
     { .errNum = NO_ERR,                         .errStr = (char *) "NO_ERR" },
     { .errNum = ERR_NOT_SUPPORTED,              .errStr = (char *) "Command or Function not supported (yet)" },
@@ -479,14 +479,14 @@ DrvErrMsgTabEntry const errMsgTab [ ] = {
     
 };
 
-const int MAX_ERR_MSG_TAB = sizeof( errMsgTab ) / sizeof( DrvErrMsgTabEntry );
+const int MAX_ERR_MSG_TAB = sizeof( errMsgTab ) / sizeof( SimErrMsgTabEntry );
 
 //------------------------------------------------------------------------------------------------------------
 // Help message text table. Each entry has a type field, a token field, a command syntax field and an
 // explanation field.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvHelpMsgEntry const cmdHelpTab[ ] = {
+SimHelpMsgEntry const cmdHelpTab[ ] = {
     
     //--------------------------------------------------------------------------------------------------------
     // Commands.
@@ -928,7 +928,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     }
 };
 
-const int MAX_CMD_HELP_TAB = sizeof( cmdHelpTab ) / sizeof( DrvHelpMsgEntry );
+const int MAX_CMD_HELP_TAB = sizeof( cmdHelpTab ) / sizeof( SimHelpMsgEntry );
 
 //------------------------------------------------------------------------------------------------------------
 // The global token table or the one line assembler. All reserved words are allocated in this table. Each
@@ -936,7 +936,7 @@ const int MAX_CMD_HELP_TAB = sizeof( cmdHelpTab ) / sizeof( DrvHelpMsgEntry );
 // token. The value allows for a constant token. The parser can directly use the value in expressions.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvToken const asmTokTab[ ] = {
+SimToken const asmTokTab[ ] = {
     
     //--------------------------------------------------------------------------------------------------------
     // General registers.
@@ -1144,6 +1144,6 @@ DrvToken const asmTokTab[ ] = {
      
 };
 
-const int MAX_ASM_TOKEN_TAB = sizeof( asmTokTab ) / sizeof( DrvToken );
+const int MAX_ASM_TOKEN_TAB = sizeof( asmTokTab ) / sizeof( SimToken );
 
 #endif  // VCPU32DriverTables_h

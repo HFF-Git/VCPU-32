@@ -19,7 +19,8 @@
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Types.h"
 #include "VCPU32-File-Format.h"
-#include "VCPU32-Driver.h"
+#include "VCPU32-SimDeclarations.h"
+#include "VCPU32-SimTables.h"
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -107,20 +108,19 @@ int main( int argc, const char* argv[ ] ) {
     
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
     glbDesc.console                     = new DrvConsoleIO( );
-    glbDesc.env                         = new DrvEnv( &glbDesc, MAX_ENV_VARIABLES );
-    glbDesc.hist                        = new DrvCmdHistory( &glbDesc );
-    glbDesc.cmds                        = new DrvCmds( &glbDesc );
-    glbDesc.tok                         = new DrvTokenizer( &glbDesc );
-    glbDesc.eval                        = new DrvExprEvaluator( &glbDesc );
-    glbDesc.lineDisplay                 = new DrvLineDisplay( &glbDesc );
-    glbDesc.winDisplay                  = new DrvWinDisplay( &glbDesc );
-    glbDesc.disAsm                      = new DrvDisAssembler( &glbDesc );
-    glbDesc.oneLineAsm                  = new DrvOneLineAsm( &glbDesc );
+    glbDesc.env                         = new SimEnv( &glbDesc, MAX_ENV_VARIABLES );
+    glbDesc.hist                        = new SimCmdHistory( &glbDesc );
+    glbDesc.cmdWin                      = new SimCommandsWin( &glbDesc );
+    glbDesc.tok                         = new SimTokenizer( &glbDesc );
+    glbDesc.eval                        = new SimExprEvaluator( &glbDesc );
+    glbDesc.winDisplay                  = new SimWinDisplay( &glbDesc );
+    glbDesc.disAsm                      = new SimDisAsm( &glbDesc );
+    glbDesc.oneLineAsm                  = new SimOneLineAsm( &glbDesc );
     
     glbDesc.console  -> setConsoleModeRaw( );
     glbDesc.env      -> setupPredefined( );
-    glbDesc.cmds     -> setupCmdInterpreter( argc, argv );
+    glbDesc.cmdWin   -> setupCmdInterpreter( argc, argv );
     glbDesc.cpu      -> reset( );
     
-    glbDesc.cmds     -> cmdInterpreterLoop( );
+    glbDesc.cmdWin   -> cmdInterpreterLoop( );
 }

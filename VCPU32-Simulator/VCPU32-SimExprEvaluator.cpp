@@ -23,8 +23,8 @@
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Version.h"
 #include "VCPU32-Types.h"
-#include "VCPU32-Driver.h"
-#include "VCPU32-DrvTables.h"
+#include "VCPU32-SimDeclarations.h"
+#include "VCPU32-SimTables.h"
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -84,7 +84,7 @@ enum logicalOpId : int {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void addOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+void addOp( SimExpr *rExpr, SimExpr *lExpr ) {
     
     switch ( rExpr -> typ ) {
             
@@ -118,7 +118,7 @@ void addOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void subOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+void subOp( SimExpr *rExpr, SimExpr *lExpr ) {
     
     switch ( rExpr -> typ ) {
             
@@ -152,7 +152,7 @@ void subOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void multOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+void multOp( SimExpr *rExpr, SimExpr *lExpr ) {
     
     switch ( rExpr -> typ ) {
             
@@ -186,7 +186,7 @@ void multOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void divOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+void divOp( SimExpr *rExpr, SimExpr *lExpr ) {
     
     switch ( rExpr -> typ ) {
             
@@ -220,7 +220,7 @@ void divOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void modOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+void modOp( SimExpr *rExpr, SimExpr *lExpr ) {
     
     switch ( rExpr -> typ ) {
             
@@ -254,7 +254,7 @@ void modOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void logicalOp( DrvExpr *rExpr, DrvExpr *lExpr, logicalOpId op ) {
+void logicalOp( SimExpr *rExpr, SimExpr *lExpr, logicalOpId op ) {
     
     switch ( rExpr -> typ ) {
             
@@ -304,7 +304,7 @@ void logicalOp( DrvExpr *rExpr, DrvExpr *lExpr, logicalOpId op ) {
 // Evaluation Expression Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvExprEvaluator::DrvExprEvaluator( VCPU32Globals *glb ) {
+SimExprEvaluator::SimExprEvaluator( VCPU32Globals *glb ) {
     
     this -> glb = glb;
 }
@@ -316,9 +316,9 @@ DrvExprEvaluator::DrvExprEvaluator( VCPU32Globals *glb ) {
 // is the first characters of a string, right justified if shorter than 4 bytes.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::pFuncS32( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncS32( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
+    SimExpr     lExpr;
     uint32_t    res = 0;
      
     glb -> tok -> nextToken( );
@@ -346,9 +346,9 @@ void DrvExprEvaluator::pFuncS32( DrvExpr *rExpr ) {
     else throw ( ERR_EXPECTED_RPAREN );
 }
 
-void DrvExprEvaluator::pFuncU32( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncU32( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
+    SimExpr     lExpr;
     uint32_t    res = 0;
      
     glb -> tok -> nextToken( );
@@ -381,11 +381,11 @@ void DrvExprEvaluator::pFuncU32( DrvExpr *rExpr ) {
 //
 // ASSEMBLE "(" <str> ")"
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::pFuncAssemble( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncAssemble( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
-    uint32_t    instr;
-    ErrMsgId    ret;
+    SimExpr         lExpr;
+    uint32_t        instr;
+    SimErrMsgId     ret = NO_ERR;
     
     glb -> tok -> nextToken( );
     if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
@@ -414,9 +414,9 @@ void DrvExprEvaluator::pFuncAssemble( DrvExpr *rExpr ) {
 //
 // DISASSEMBLE "(" <str> [ "," <rdx> ] ")"
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::pFuncDisAssemble( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncDisAssemble( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
+    SimExpr     lExpr;
     uint32_t    instr;
     char        asmStr[ CMD_LINE_BUF_SIZE ];
     int         rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
@@ -466,9 +466,9 @@ void DrvExprEvaluator::pFuncDisAssemble( DrvExpr *rExpr ) {
 //
 // HASH "(" <extAdr> ")"
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::pFuncHash( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncHash( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
+    SimExpr     lExpr;
     uint32_t    hashVal;
     
     glb -> tok -> nextToken( );
@@ -497,9 +497,9 @@ void DrvExprEvaluator::pFuncHash( DrvExpr *rExpr ) {
 // ADR "(" <expr> "," <expr> ")"
 // ADR "(" <ofs> ")"
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::pFuncExtAdr( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncExtAdr( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
+    SimExpr     lExpr;
     uint32_t    seg;
     
     glb -> tok -> nextToken( );
@@ -560,7 +560,7 @@ void DrvExprEvaluator::pFuncExtAdr( DrvExpr *rExpr ) {
 // Entry point to the predefined functions. We dispatch based on the predefined function token Id.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr ) {
+void SimExprEvaluator::parsePredefinedFunction( SimToken funcId, SimExpr *rExpr ) {
     
     switch( funcId.tid ) {
             
@@ -588,7 +588,7 @@ void DrvExprEvaluator::parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr 
 //                  "(" <expr> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
+void SimExprEvaluator::parseFactor( SimExpr *rExpr ) {
     
     rExpr -> typ       = TYP_NIL;
     rExpr -> numVal    = 0;
@@ -636,7 +636,7 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
     }
     else if ( glb -> tok -> isToken( TOK_IDENT )) {
         
-        DrvEnvTabEntry *entry = glb -> env -> getEnvVarEntry ( glb -> tok -> tokStr( ));
+        SimEnvTabEntry *entry = glb -> env -> getEnvVarEntry ( glb -> tok -> tokStr( ));
         
         if ( entry != nullptr ) {
             
@@ -692,9 +692,9 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
 //
 // ??? type mix options ?
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::parseTerm( DrvExpr *rExpr ) {
+void SimExprEvaluator::parseTerm( SimExpr *rExpr ) {
     
-    DrvExpr lExpr;
+    SimExpr lExpr;
    
     parseFactor( rExpr );
     
@@ -729,9 +729,9 @@ void DrvExprEvaluator::parseTerm( DrvExpr *rExpr ) {
 //
 // ??? type mix options ?
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::parseExpr( DrvExpr *rExpr ) {
+void SimExprEvaluator::parseExpr( SimExpr *rExpr ) {
     
-    DrvExpr lExpr;
+    SimExpr lExpr;
     
     if ( glb -> tok -> isToken( TOK_PLUS )) {
         

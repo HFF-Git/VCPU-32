@@ -13,8 +13,8 @@
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Main
-// Copyright (C) 2022 - 2024 Helmut Fieres
+// VCPU32 - A 32-bit CPU - Console IO
+// Copyright (C) 2024 - 2025 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,

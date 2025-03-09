@@ -66,7 +66,7 @@
 #endif
 
 #include "VCPU32-Types.h"
-#include "VCPU32-ConsoleIO.h"
+#include "VCPU32-SimConsoleIO.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Console IO object. The simulator is a character based interface. The typical terminal IO functionality

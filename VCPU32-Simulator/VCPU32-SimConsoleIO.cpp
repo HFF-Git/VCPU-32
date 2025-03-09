@@ -27,8 +27,9 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Types.h"
-#include "VCPU32-ConsoleIO.h"
-#include "VCPU32-Driver.h"
+#include "VCPU32-SimConsoleIO.h"
+#include "VCPU32-SimDeclarations.h"
+#include "VCPU32-SimTables.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Local name space.
@@ -197,6 +198,7 @@ void DrvConsoleIO::writeChar( char ch  ) {
 // basic handling of backspace, carriage return, etc. needs to be handled directly. Characters other than the
 // special chracters are piled up in a local buffer until we read in a carriage return.
 //
+// ??? which escape sequence should we handle directly ? which to pass on ? how ?
 //------------------------------------------------------------------------------------------------------------
 int DrvConsoleIO::readLine( char *cmdBuf ) {
     

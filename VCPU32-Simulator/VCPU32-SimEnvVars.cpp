@@ -23,29 +23,15 @@
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Version.h"
 #include "VCPU32-Types.h"
-#include "VCPU32-Driver.h"
-#include "VCPU32-DrvTables.h"
+#include "VCPU32-SimDeclarations.h"
+#include "VCPU32-SimTables.h"
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
-// Local name space. We try to keep utility functions local to the file.
+// Local name space. We try to keep utility functions local to the file.  None so far.
 //
 //------------------------------------------------------------------------------------------------------------
 namespace {
-
-//------------------------------------------------------------------------------------------------------------
-// A little helper function to upshift a string in place.
-//
-//------------------------------------------------------------------------------------------------------------
-void upshiftStr( char *str ) {
-    
-    size_t len = strlen( str );
-    
-    if ( len > 0 ) {
-        
-        for ( size_t i = 0; i < len; i++ ) str[ i ] = (char) toupper((int) str[ i ] );
-    }
-}
 
 }; // namespace
 
@@ -72,9 +58,9 @@ void upshiftStr( char *str ) {
 // the search and entry add and remove functions.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvEnv::DrvEnv( VCPU32Globals *glb, uint32_t size ) {
+SimEnv::SimEnv( VCPU32Globals *glb, uint32_t size ) {
    
-    table       = (DrvEnvTabEntry *) calloc( size, sizeof( DrvEnvTabEntry ));
+    table       = (SimEnvTabEntry *) calloc( size, sizeof( SimEnvTabEntry ));
     hwm         = table;
     limit       = &table[ size ];
     this -> glb = glb;
@@ -88,13 +74,13 @@ DrvEnv::DrvEnv( VCPU32Globals *glb, uint32_t size ) {
 // variable type is string and we set a value, the old string is deallocated.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvEnv::setEnvVar( char *name, int iVal ) {
+void SimEnv::setEnvVar( char *name, int iVal ) {
     
     int index = lookupEntry( name );
     
     if ( index >= 0 ) {
         
-        DrvEnvTabEntry *ptr = &table[ index ];
+        SimEnvTabEntry *ptr = &table[ index ];
         
         if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) throw ( ERR_ENV_VALUE_EXPR );
         if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
@@ -105,13 +91,13 @@ void DrvEnv::setEnvVar( char *name, int iVal ) {
     else enterEnvVar( name, ((int) iVal ));
 }
 
-void DrvEnv::setEnvVar( char *name, uint32_t uVal ) {
+void SimEnv::setEnvVar( char *name, uint32_t uVal ) {
     
     int index = lookupEntry( name );
     
     if ( index >= 0 ) {
         
-        DrvEnvTabEntry *ptr = &table[ index ];
+        SimEnvTabEntry *ptr = &table[ index ];
         
         if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) throw ( ERR_ENV_VALUE_EXPR );
         if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
@@ -122,13 +108,13 @@ void DrvEnv::setEnvVar( char *name, uint32_t uVal ) {
     else enterEnvVar( name, ((uint32_t) uVal ));
 }
 
-void DrvEnv::setEnvVar( char *name, bool bVal )  {
+void SimEnv::setEnvVar( char *name, bool bVal )  {
     
     int index = lookupEntry( name );
     
     if ( index >= 0 ) {
         
-        DrvEnvTabEntry *ptr = &table[ index ];
+        SimEnvTabEntry *ptr = &table[ index ];
         
         if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) throw ( ERR_ENV_VALUE_EXPR );
         if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
@@ -139,13 +125,13 @@ void DrvEnv::setEnvVar( char *name, bool bVal )  {
     else enterEnvVar( name, ((bool) bVal ));
 }
 
-void DrvEnv::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
+void SimEnv::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
    
     int index = lookupEntry( name );
     
     if ( index >= 0 ) {
         
-        DrvEnvTabEntry *ptr = &table[ index ];
+        SimEnvTabEntry *ptr = &table[ index ];
         
         if (( ptr -> predefined ) && ( ptr -> typ != TYP_NUM )) throw ( ERR_ENV_VALUE_EXPR );
         if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
@@ -157,13 +143,13 @@ void DrvEnv::setEnvVar( char *name, uint32_t seg, uint32_t ofs )  {
     else enterEnvVar( name, ((uint32_t) seg), ((uint32_t) ofs ));
 }
 
-void DrvEnv::setEnvVar( char *name, char *str )  {
+void SimEnv::setEnvVar( char *name, char *str )  {
    
     int index = lookupEntry( name );
     
     if ( index >= 0 ) {
         
-        DrvEnvTabEntry *ptr = &table[ index ];
+        SimEnvTabEntry *ptr = &table[ index ];
         
         if (( ptr -> predefined ) && ( ptr -> typ != TYP_STR )) throw ( ERR_ENV_VALUE_EXPR );
         if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
@@ -180,7 +166,7 @@ void DrvEnv::setEnvVar( char *name, char *str )  {
 // exist, we return an optional default.
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvEnv::getEnvVarBool( char *name, bool def ) {
+bool SimEnv::getEnvVarBool( char *name, bool def ) {
     
     int index = lookupEntry( name );
     
@@ -188,7 +174,7 @@ bool DrvEnv::getEnvVarBool( char *name, bool def ) {
     else                return ( def );
 }
 
-int  DrvEnv::getEnvVarInt( char *name, int def ) {
+int  SimEnv::getEnvVarInt( char *name, int def ) {
     
     int index = lookupEntry( name );
     
@@ -196,7 +182,7 @@ int  DrvEnv::getEnvVarInt( char *name, int def ) {
     else                return ( def );
 }
 
-uint32_t  DrvEnv::getEnvVarUint( char *name, uint32_t def ) {
+uint32_t  SimEnv::getEnvVarUint( char *name, uint32_t def ) {
     
     int index = lookupEntry( name );
     
@@ -204,25 +190,23 @@ uint32_t  DrvEnv::getEnvVarUint( char *name, uint32_t def ) {
     else                return ( def );
 }
 
-uint32_t  DrvEnv::getEnvVarExtAdrSeg( char *name, uint32_t def ) {
+uint32_t  SimEnv::getEnvVarExtAdrSeg( char *name, uint32_t def ) {
     
     int index = lookupEntry( name );
     
     if ( index >= 0 )   return( table[ index ].seg );
     else                return ( def );
-    
 }
 
-uint32_t  DrvEnv::getEnvVarExtAdrOfs( char *name, uint32_t def ) {
+uint32_t  SimEnv::getEnvVarExtAdrOfs( char *name, uint32_t def ) {
     
     int index = lookupEntry( name );
     
     if ( index >= 0 )   return( table[ index ].ofs );
     else                return ( def );
-    
 }
 
-char *DrvEnv::getEnvVarStr( char *name, char *def ) {
+char *SimEnv::getEnvVarStr( char *name, char *def ) {
     
     int index = lookupEntry( name );
     
@@ -236,13 +220,13 @@ char *DrvEnv::getEnvVarStr( char *name, char *def ) {
 // was at the high water mark, adjust the HWM.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvEnv::removeEnvVar( char *name ) {
+void SimEnv::removeEnvVar( char *name ) {
     
     int index = lookupEntry( name );
     
     if ( index >= 0 ) {
         
-        DrvEnvTabEntry *ptr = &table[ index ];
+        SimEnvTabEntry *ptr = &table[ index ];
         
         if ( ptr -> predefined ) throw( ERR_ENV_PREDEFINED );
         if (( ptr -> typ == TYP_STR ) && ( ptr -> strVal != nullptr )) free( ptr -> strVal );
@@ -263,13 +247,13 @@ void DrvEnv::removeEnvVar( char *name ) {
 // it is a predefined variable, the readonly flag marks the variable read only for the ENV command.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvEnv::enterEnvVar( char *name, int32_t iVal, bool predefined, bool rOnly ) {
+void SimEnv::enterEnvVar( char *name, int32_t iVal, bool predefined, bool rOnly ) {
     
     int index = findFreeEntry( );
     
     if ( index >= 0 ) {
     
-        DrvEnvTabEntry tmp;
+        SimEnvTabEntry tmp;
         strcpy ( tmp.name, name );
         tmp.typ         = TYP_NUM;
         tmp.valid       = true;
@@ -281,13 +265,13 @@ void DrvEnv::enterEnvVar( char *name, int32_t iVal, bool predefined, bool rOnly 
     else throw( ERR_ENV_TABLE_FULL );
 }
 
-void DrvEnv::enterEnvVar( char *name, uint32_t uVal, bool predefined, bool rOnly ) {
+void SimEnv::enterEnvVar( char *name, uint32_t uVal, bool predefined, bool rOnly ) {
     
     int index = findFreeEntry( );
     
     if ( index >= 0 ) {
     
-        DrvEnvTabEntry tmp;
+        SimEnvTabEntry tmp;
         strcpy ( tmp.name, name );
         tmp.typ         = TYP_NUM;
         tmp.valid       = true;
@@ -299,13 +283,13 @@ void DrvEnv::enterEnvVar( char *name, uint32_t uVal, bool predefined, bool rOnly
     else throw( ERR_ENV_TABLE_FULL );
 }
 
-void DrvEnv::enterEnvVar( char *name, bool bVal, bool predefined, bool rOnly ) {
+void SimEnv::enterEnvVar( char *name, bool bVal, bool predefined, bool rOnly ) {
     
     int index = findFreeEntry( );
     
     if ( index >= 0 ) {
     
-        DrvEnvTabEntry tmp;
+        SimEnvTabEntry tmp;
         strcpy ( tmp.name, name );
         tmp.typ         = TYP_BOOL;
         tmp.valid       = true;
@@ -317,13 +301,13 @@ void DrvEnv::enterEnvVar( char *name, bool bVal, bool predefined, bool rOnly ) {
     else throw( ERR_ENV_TABLE_FULL );
 }
 
-void DrvEnv::enterEnvVar( char *name, char *str, bool predefined, bool rOnly ) {
+void SimEnv::enterEnvVar( char *name, char *str, bool predefined, bool rOnly ) {
     
     int index = findFreeEntry( );
     
     if ( index >= 0 ) {
         
-        DrvEnvTabEntry tmp;
+        SimEnvTabEntry tmp;
         strcpy ( tmp.name, name );
         tmp.valid       = true;
         tmp.typ         = TYP_STR;
@@ -336,13 +320,13 @@ void DrvEnv::enterEnvVar( char *name, char *str, bool predefined, bool rOnly ) {
     else throw( ERR_ENV_TABLE_FULL );
 }
 
-void DrvEnv::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined, bool rOnly ) {
+void SimEnv::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined, bool rOnly ) {
     
     int index = findFreeEntry( );
     
     if ( index >= 0 ) {
     
-        DrvEnvTabEntry tmp;
+        SimEnvTabEntry tmp;
         strcpy ( tmp.name, name );
         tmp.typ         = TYP_EXT_ADR;
         tmp.valid       = true;
@@ -359,7 +343,7 @@ void DrvEnv::enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefine
 // Utility functions to return variable attributes.
 //
 //------------------------------------------------------------------------------------------------------------
-bool DrvEnv::isValid( char *name ) {
+bool SimEnv::isValid( char *name ) {
     
     int index = lookupEntry( name );
     
@@ -367,7 +351,7 @@ bool DrvEnv::isValid( char *name ) {
     else return( false );
 }
 
-bool DrvEnv::isReadOnly( char *name ) {
+bool SimEnv::isReadOnly( char *name ) {
     
     int index = lookupEntry( name );
     
@@ -375,7 +359,7 @@ bool DrvEnv::isReadOnly( char *name ) {
     else return( false );
 }
 
-bool DrvEnv::isPredefined( char *name ) {
+bool SimEnv::isPredefined( char *name ) {
     
     int index = lookupEntry( name );
     
@@ -383,7 +367,7 @@ bool DrvEnv::isPredefined( char *name ) {
     else return( false );
 }
 
-DrvEnvTabEntry *DrvEnv::getEnvVarEntry( char *name ) {
+SimEnvTabEntry *SimEnv::getEnvVarEntry( char *name ) {
     
     int index = lookupEntry( name );
     if ( index >= 0 ) return( &table[ index ] );
@@ -391,12 +375,12 @@ DrvEnvTabEntry *DrvEnv::getEnvVarEntry( char *name ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Look a variable. We just do a linear search up to the HWM. SIf not found a -1 is returned. Straightforward.
+// Look a variable. We just do a linear search up to the HWM. If not found a -1 is returned. Straightforward.
 //
 //------------------------------------------------------------------------------------------------------------
-int DrvEnv::lookupEntry( char *name ) {
+int SimEnv::lookupEntry( char *name ) {
     
-    DrvEnvTabEntry *entry = table;
+    SimEnvTabEntry *entry = table;
     
     while ( entry < hwm ) {
         
@@ -412,9 +396,9 @@ int DrvEnv::lookupEntry( char *name ) {
 // none, we try to increase the HWM. If all fails, the table is full.
 //
 //------------------------------------------------------------------------------------------------------------
-int DrvEnv::findFreeEntry( ) {
+int SimEnv::findFreeEntry( ) {
     
-    DrvEnvTabEntry *entry = table;
+    SimEnvTabEntry *entry = table;
     
     while ( entry < hwm ) {
         
@@ -434,9 +418,9 @@ int DrvEnv::findFreeEntry( ) {
 // List the entire ENV table up to the high water mark.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv::displayEnvTable( ) {
+uint8_t SimEnv::displayEnvTable( ) {
     
-    DrvEnvTabEntry *entry = table;
+    SimEnvTabEntry *entry = table;
     
     while ( entry < hwm ) {
         
@@ -451,7 +435,7 @@ uint8_t DrvEnv::displayEnvTable( ) {
 // Display a ENV entry by name.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv::displayEnvTableEntry( char *name ) {
+uint8_t SimEnv::displayEnvTableEntry( char *name ) {
     
     int index = lookupEntry( name );
     
@@ -464,7 +448,7 @@ uint8_t DrvEnv::displayEnvTableEntry( char *name ) {
 //
 // ??? what about the uVal variables.... TYP_NUM is not correct ....
 //------------------------------------------------------------------------------------------------------------
-uint8_t DrvEnv::displayEnvTableEntry( DrvEnvTabEntry *entry ) {
+uint8_t SimEnv::displayEnvTableEntry( SimEnvTabEntry *entry ) {
     
     fprintf( stdout, "%-32s", entry -> name );
     
@@ -499,7 +483,7 @@ uint8_t DrvEnv::displayEnvTableEntry( DrvEnvTabEntry *entry ) {
 // Enter the predefined entries.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvEnv::setupPredefined( ) {
+void SimEnv::setupPredefined( ) {
     
     uint8_t rStat = NO_ERR;
     

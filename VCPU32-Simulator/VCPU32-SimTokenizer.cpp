@@ -23,8 +23,8 @@
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Version.h"
 #include "VCPU32-Types.h"
-#include "VCPU32-Driver.h"
-#include "VCPU32-DrvTables.h"
+#include "VCPU32-SimDeclarations.h"
+#include "VCPU32-SimTables.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Local namespace. These routines are not visible outside this source file.
@@ -70,7 +70,7 @@ void addChar( char *buf, int size, char ch ) {
 // table to be the NIL token, otherwise bad things will happen.
 //
 //------------------------------------------------------------------------------------------------------------
-int lookupToken( char *inputStr, DrvToken *tokTab ) {
+int lookupToken( char *inputStr, SimToken *tokTab ) {
     
     if (( strlen( inputStr ) == 0 ) || ( strlen ( inputStr ) > TOK_NAME_SIZE )) return( -1 );
     
@@ -93,14 +93,14 @@ int lookupToken( char *inputStr, DrvToken *tokTab ) {
 // The object constructor, nothing to do for now.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvTokenizer::DrvTokenizer( VCPU32Globals *glb ) { }
+SimTokenizer::SimTokenizer( VCPU32Globals *glb ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // We initialize a couple of globals that represent the current state of the parsing process. This call is
 // the first before any other method can be called.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvTokenizer::setupTokenizer( char *lineBuf, DrvToken *tokTab ) {
+void SimTokenizer::setupTokenizer( char *lineBuf, SimToken *tokTab ) {
     
     strncpy( tokenLine, lineBuf, strlen( lineBuf ) + 1 );
     
@@ -115,25 +115,25 @@ void DrvTokenizer::setupTokenizer( char *lineBuf, DrvToken *tokTab ) {
 // helper functions for the current token.
 //
 //------------------------------------------------------------------------------------------------------------
-bool        DrvTokenizer::isToken( TokId tokId )        { return( currentToken.tid == tokId ); }
-bool        DrvTokenizer::isTokenTyp( TypeId typId )    { return( currentToken.typ == typId ); }
+bool        SimTokenizer::isToken( SimTokId tokId )        { return( currentToken.tid == tokId ); }
+bool        SimTokenizer::isTokenTyp( SimTokTypeId typId )    { return( currentToken.typ == typId ); }
 
-DrvToken    DrvTokenizer::token( )                      { return( currentToken );     }
-TypeId      DrvTokenizer::tokTyp( )                     { return( currentToken.typ ); }
-TokId       DrvTokenizer::tokId( )                      { return( currentToken.tid ); }
-int         DrvTokenizer::tokVal( )                     { return( currentToken.val ); }
-char        *DrvTokenizer::tokStr( )                    { return( currentToken.str ); }
-uint32_t    DrvTokenizer::tokSeg( )                     { return( currentToken.seg ); }
-uint32_t    DrvTokenizer::tokOfs( )                     { return( currentToken.ofs ); }
+SimToken    SimTokenizer::token( )                      { return( currentToken );     }
+SimTokTypeId      SimTokenizer::tokTyp( )                     { return( currentToken.typ ); }
+SimTokId       SimTokenizer::tokId( )                      { return( currentToken.tid ); }
+int         SimTokenizer::tokVal( )                     { return( currentToken.val ); }
+char        *SimTokenizer::tokStr( )                    { return( currentToken.str ); }
+uint32_t    SimTokenizer::tokSeg( )                     { return( currentToken.seg ); }
+uint32_t    SimTokenizer::tokOfs( )                     { return( currentToken.ofs ); }
 
-int         DrvTokenizer::tokCharIndex( )               { return( currentCharIndex ); }
-char        *DrvTokenizer::tokenLineStr( )              { return( tokenLine ); }
+int         SimTokenizer::tokCharIndex( )               { return( currentCharIndex ); }
+char        *SimTokenizer::tokenLineStr( )              { return( tokenLine ); }
 
 //------------------------------------------------------------------------------------------------------------
 // "nextChar" returns the next character from the token line string.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvTokenizer::nextChar( ) {
+void SimTokenizer::nextChar( ) {
     
     if ( currentCharIndex < currentLineLen ) {
         
@@ -149,7 +149,7 @@ void DrvTokenizer::nextChar( ) {
 //
 // ??? should we detect an address pair here ? <seg>.<ofs> ?
 //------------------------------------------------------------------------------------------------------------
-void DrvTokenizer::parseNum( ) {
+void SimTokenizer::parseNum( ) {
     
     char tmpStr[ TOK_INPUT_LINE_SIZE ]  = "";
     
@@ -194,7 +194,7 @@ void DrvTokenizer::parseNum( ) {
 // no result. One day, the entire simulator might use the lexer functions. Then we need it.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvTokenizer::parseString( ) {
+void SimTokenizer::parseString( ) {
     
     currentToken.tid        = TOK_STR;
     currentToken.typ        = TYP_STR;
@@ -231,7 +231,7 @@ void DrvTokenizer::parseString( ) {
 // check for these kind of qualifiers and if found hand over to parse a number.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvTokenizer::parseIdent( ) {
+void SimTokenizer::parseIdent( ) {
     
     currentToken.tid        = TOK_IDENT;
     currentToken.typ        = TYP_IDENT;
@@ -301,7 +301,7 @@ void DrvTokenizer::parseIdent( ) {
 // "nextToken" is the entry point to the token business. It returns the next token from the input string.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvTokenizer::nextToken( ) {
+void SimTokenizer::nextToken( ) {
 
     currentToken.typ       = TYP_NIL;
     currentToken.tid       = TOK_NIL;

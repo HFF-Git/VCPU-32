@@ -1,15 +1,18 @@
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Simulator Commands
+// VCPU32 - A 32-bit CPU - Simulator command window
 //
 //------------------------------------------------------------------------------------------------------------
-// Welcome to the test driver commands.
-//
+// The command window is the last wscreen area below all enabled windows displayed. It is actuall not a
+// window like the others in that it represents the locked scroll area of the terminal screen. Still, it has
+// a window header and a line drawingf area. However, the print methods will just emit their data without
+// manipluating any window specific ciursors like the othe rwindow objects. In a sense it is a simple line
+// display area.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Simulator Commands
-// Copyright (C) 2022 - 2024 Helmut Fieres
+// CPU32 - A 32-bit CPU - Simulator window subsystem
+// Copyright (C) 2022 - 2025 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -26,12 +29,6 @@
 #include "VCPU32-SimDeclarations.h"
 #include "VCPU32-SimTables.h"
 #include "VCPU32-Core.h"
-
-// ???? this file lwill go away......
-
-
-
-#if 0
 
 //------------------------------------------------------------------------------------------------------------
 // Local name space. We try to keep utility functions local to the file.
@@ -59,30 +56,10 @@ int setRadix( int rdx ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "promptYesNoCancel" is a simple function to print a prompt string with a decision question. The answer can
-//  be yes/no or cancel. A positive result is a "yes" a negative result a "no", anything else a "cancel".
-//
-//------------------------------------------------------------------------------------------------------------
-int promptYesNoCancel( char *promptStr ) {
-    
-    fprintf( stdout, "%s -> ", promptStr );
-    fflush( stdout );
-    
-    char buf[ 8 ] = "";
-    
-    if ( fgets( buf, 8, stdin ) != nullptr ) {
-        
-        if      (( buf[ 0 ] == 'Y' ) ||  ( buf[ 0 ] == 'y' ))   return( 1 );
-        else if (( buf[ 0 ] == 'N' ) ||  ( buf[ 0 ] == 'n' ))   return( -1 );
-        else                                                    return( 0 );
-    }
-    else return( 0 );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // A little helper function to remove the comment part of a command line. We do the changes on the buffer
-// passed in by just setting the ed of string at the position of the ";" comment indicator.
+// passed in by just setting the end of string at the position of the "#" comment indicator.
 //
+// ??? a bit sloppy. what if the "#" is in a string ?
 //------------------------------------------------------------------------------------------------------------
 void removeComment( char *cmdBuf ) {
     
@@ -106,26 +83,64 @@ void removeComment( char *cmdBuf ) {
 
 
 //------------------------------------------------------------------------------------------------------------
-// The object constructor. We just remember where globals are.
+// Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvCmds::DrvCmds( VCPU32Globals *glb ) {
+SimCommandsWin::SimCommandsWin( VCPU32Globals *glb ) : SimWin( glb ) {
     
     this -> glb = glb;
 }
 
 //------------------------------------------------------------------------------------------------------------
+// The default values are the initial settings when windows is brought up the first time, or for the WDEF
+// command.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::setDefaults( ) {
+    
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRows( 11 );
+    setColumns( 80 );
+    setDefColumns( 80 );
+    setWinType( WT_CMD_WIN );
+    setEnable( true );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The banner line for command window.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::drawBanner( ) {
+    
+    uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE;
+    
+    setWinCursor( 1, 1 );
+    printTextField((char *) "Commands ", fmtDesc );
+    padLine( fmtDesc );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The body lines of the command window are displayed after the banner line. We will never draw in this
+// window via the window routines. The body is the terminal scroll area. What we do however, is to reset
+// any character drawing attribute.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::drawBody( ) {
+    
+    setFieldAtributes( FMT_DEF_ATTR );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Get the command interpreter ready.
 //
-// One day we will handle command line arguments....
+// One day we will handle command line arguments.... will this be part of the command win ?
 //
 //  -v           verbose
 //  -i <path>    init file
 //
 // ??? to do ...
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::setupCmdInterpreter( int argc, const char *argv[ ] ) {
-    
+void SimCommandsWin::setupCmdInterpreter( int argc, const char *argv[ ] ) {
     
     while ( argc > 0 ) {
         
@@ -133,7 +148,7 @@ void DrvCmds::setupCmdInterpreter( int argc, const char *argv[ ] ) {
     }
     
     glb -> winDisplay  -> windowDefaults( );
-    glb -> lineDisplay -> lineDefaults( );
+   // glb -> lineDisplay -> lineDefaults( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -142,7 +157,7 @@ void DrvCmds::setupCmdInterpreter( int argc, const char *argv[ ] ) {
 // the command line to where the error was found in the command input.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::cmdLineError( ErrMsgId errNum, char *argStr ) {
+void SimCommandsWin::cmdLineError( SimErrMsgId errNum, char *argStr ) {
    
     for ( int i = 0; i < MAX_ERR_MSG_TAB; i++ ) {
         
@@ -159,31 +174,346 @@ void DrvCmds::cmdLineError( ErrMsgId errNum, char *argStr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// "promptYesNoCancel" is a simple function to print a prompt string with a decision question. The answer can
+//  be yes/no or cancel. A positive result is a "yes" a negative result a "no", anything else a "cancel".
+//
+//------------------------------------------------------------------------------------------------------------
+int SimCommandsWin::promptYesNoCancel( char *promptStr ) {
+    
+    glb -> console -> printChars( "%s -> ", promptStr );
+    
+    char buf[ 8 ] = "";
+    
+    if ( glb -> console -> readLine( buf ) > 0 ) {
+    
+        if      (( buf[ 0 ] == 'Y' ) ||  ( buf[ 0 ] == 'y' ))   return( 1 );
+        else if (( buf[ 0 ] == 'N' ) ||  ( buf[ 0 ] == 'n' ))   return( -1 );
+        else                                                    return( 0 );
+    }
+    else return( 0 );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Token analysis helper functions.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::checkEOS( ) {
+void SimCommandsWin::checkEOS( ) {
     
     if ( ! glb -> tok -> isToken( TOK_EOS )) throw ( ERR_TOO_MANY_ARGS_CMD_LINE );
 }
 
-void DrvCmds::acceptComma( ) {
+void SimCommandsWin::acceptComma( ) {
     
     if ( glb -> tok -> isToken( TOK_COMMA )) glb -> tok -> nextToken( );
     else throw ( ERR_EXPECTED_COMMA );
 }
 
-void DrvCmds::acceptLparen( ) {
+void SimCommandsWin::acceptLparen( ) {
     
     if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
 }
 
-void DrvCmds::acceptRparen( ) {
+void SimCommandsWin::acceptRparen( ) {
     
     if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
 }
+
+
+
+
+// ??? put the methods needed to the command win... it relaces the old command line interpreter...
+
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::lineDefaults( ) {
+    
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "displayInvalidWord" shows a set of "*" when we cannot get a value for word. We make the length of the
+// "*" string according to the current radix.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::displayInvalidWord( int rdx ) {
+    
+    if      ( rdx == 10 )   glb -> console -> printChars( "**********" );
+    else if ( rdx == 8  )   glb -> console -> printChars( "************" );
+    else if ( rdx == 16 )   glb -> console -> printChars( "**********" );
+    else                    glb -> console -> printChars( "**num**" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "displayWord" lists out a 32-bit machine word in the specified number base. If the format parameter is
+// omitted or set to "default", the environment variable for the base number is used.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::displayWord( uint32_t val, int rdx ) {
+    
+    if      ( rdx == 10 )  glb -> console -> printChars( "%10d", val );
+    else if ( rdx == 8  )  glb -> console -> printChars( "%#012o", val );
+    else if ( rdx == 16 )  {
+        
+        if ( val == 0 ) glb -> console -> printChars( "0x00000000" );
+        else glb -> console -> printChars( "%#010x", val );
+    }
+    else glb -> console -> printChars( "**num**" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "displayHalfWord" lists out a 12-bit word in the specified number base. If the format parameter is omitted
+// or set to "default", the environment variable for the base number is used.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::displayHalfWord( uint32_t val, int rdx ) {
+    
+    if      ( rdx == 10 )  glb -> console -> printChars( "%5d", val );
+    else if ( rdx == 8  )  glb -> console -> printChars( "%06o", val );
+    else if ( rdx == 16 )  {
+        
+        if ( val == 0 ) glb -> console -> printChars( "0x0000" );
+        else            glb -> console -> printChars( "%#05x", val );
+    }
+    else glb -> console -> printChars( "**num**" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Display absolute memory content. We will show the memory starting with offset. The words per line is an
+// environmental variable setting. The offset is rounded down to the next 4-byte boundary, the limit is
+// rounded up to the next 4-byte boundary. We display the data in words. The absolute memory address range
+// currently consist of three memory objects. There is main physical memory, PDC memory and IO memory. This
+// routine will make the appropriate call.
+//
+//------------------------------------------------------------------------------------------------------------
+void  SimCommandsWin::displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx ) {
+    
+    uint32_t    index           = ( ofs / 4 ) * 4;
+    uint32_t    limit           = ((( index + len ) + 3 ) / 4 ) * 4;
+    int         wordsPerLine    = glb -> env -> getEnvVarInt((char *) ENV_WORDS_PER_LINE );
+    CpuMem      *physMem        = glb -> cpu -> physMem;
+    CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
+    CpuMem      *ioMem          = glb -> cpu -> ioMem;
+    
+    while ( index < limit ) {
+        
+        displayWord( index, rdx );
+        glb -> console -> printChars( ": " );
+        
+        for ( uint32_t i = 0; i < wordsPerLine; i++ ) {
+            
+            if ( index < limit ) {
+                
+                if ((physMem != nullptr ) && ( physMem -> validAdr( index ))) {
+                    
+                    displayWord( physMem -> getMemDataWord( index ), rdx );
+                }
+                else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
+                    
+                   displayWord( pdcMem -> getMemDataWord( index ), rdx );
+                }
+                else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
+                    
+                    displayWord( ioMem -> getMemDataWord( index ), rdx );
+                }
+                else displayInvalidWord( rdx );
+            }
+                
+            glb -> console -> printChars( " " );
+            
+            index += 4;
+        }
+        
+        glb -> console -> printChars( "\n" );
+    }
+    
+    glb -> console -> printChars( "\n" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Display absolute memory content as code shown in assembler syntax. There is one word per line.
+//
+//------------------------------------------------------------------------------------------------------------
+void  SimCommandsWin::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, int rdx ) {
+    
+    uint32_t    index           = ( ofs / 4 ) * 4;
+    uint32_t    limit           = ((( index + len ) + 3 ) / 4 );
+    CpuMem      *physMem        = glb -> cpu -> physMem;
+    CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
+    CpuMem      *ioMem          = glb -> cpu -> ioMem;
+ 
+    while ( index < limit ) {
+        
+        displayWord( index, rdx );
+        glb -> console -> printChars( ": " );
+        
+        if (( physMem != nullptr ) && ( physMem -> validAdr( index ))) {
+            
+            glb -> disAsm -> displayInstr( physMem -> getMemDataWord( index ), rdx );
+        }
+        else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
+                
+            glb -> disAsm -> displayInstr( pdcMem -> getMemDataWord( index ), rdx );
+        }
+        else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
+                
+            glb -> disAsm -> displayInstr( ioMem -> getMemDataWord( index ), rdx );
+        }
+        else displayInvalidWord( rdx );
+        
+        glb -> console -> printChars( "\n" );
+            
+        index += 1;
+    }
+       
+    glb -> console -> printChars( "\n" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// This routine will print a TLB entry with each field formatted.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::displayTlbEntry( TlbEntry *entry, int rdx ) {
+    
+    glb -> console -> printChars( "[" );
+    if ( entry -> tValid( ))            glb -> console -> printChars( "V" );
+    else glb -> console -> printChars( "v" );
+    if ( entry -> tDirty( ))            glb -> console -> printChars( "D" );
+    else glb -> console -> printChars( "d" );
+    if ( entry -> tTrapPage( ))         glb -> console -> printChars( "P" );
+    else glb -> console -> printChars( "p" );
+    if ( entry -> tTrapDataPage( ))     glb -> console -> printChars( "D" );
+    else glb -> console -> printChars( "d" );
+    glb -> console -> printChars( "]" );
+    
+    glb -> console -> printChars( " Acc: (%d,%d,%d)", entry -> tPageType( ), entry -> tPrivL1( ), entry -> tPrivL2( ));
+    
+    glb -> console -> printChars( " Pid: " );
+    displayHalfWord( entry -> tSegId( ), rdx );
+    
+    glb -> console -> printChars( " Vpn-H: " );
+    displayWord( entry -> vpnHigh, rdx );
+    
+    glb -> console -> printChars( " Vpn-L: " );
+    displayWord( entry -> vpnLow, rdx );
+    
+    glb -> console -> printChars( " PPN: " );
+    displayHalfWord( entry -> tPhysPage( ), rdx  );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "displayTlbEntries" displays a set of TLB entries, line by line.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, int rdx ) {
+    
+    if ( index + len <= tlb -> getTlbSize( )) {
+        
+        for ( uint32_t i = index; i < index + len; i++  ) {
+            
+            displayWord( i, rdx  );
+            glb -> console -> printChars( ": " );
+            
+            TlbEntry *ptr = tlb -> getTlbEntry( i );
+            if ( ptr != nullptr ) displayTlbEntry( ptr, rdx );
+            
+            glb -> console -> printChars( "\n" );
+        }
+        
+    } else glb -> console -> printChars( "index + len out of range\n" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "displayCacheEntries" displays a list of cache line entries. Since we have a coupe of block sizes and
+// perhaps one or more sets, the display is rather complex.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t len, int rdx ) {
+    
+    uint32_t    blockSets       = cPtr -> getBlockSets( );
+    uint32_t    wordsPerBlock   = cPtr -> getBlockSize( ) / 4;
+    uint32_t    wordsPerLine    = 4;
+    uint32_t    linesPerBlock   = wordsPerBlock / wordsPerLine;
+   
+    if ( index + len >=  cPtr -> getBlockEntries( )) {
+        
+        glb -> console -> printChars( " cache index + len out of range\n" );
+        return;
+    }
+    
+    for ( uint32_t lineIndex = index; lineIndex < index + len; lineIndex++  ) {
+        
+        displayWord( lineIndex, rdx  );
+        glb -> console -> printChars( ": " );
+        
+        if ( blockSets >= 1 ) {
+            
+            MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( lineIndex, 0 );
+            uint32_t    *dataPtr    = (uint32_t *) cPtr -> getMemBlockEntry( lineIndex, 0 );
+            
+            glb -> console -> printChars( "(0)[" );
+            if ( tagPtr -> valid )  glb -> console -> printChars( "V" ); else glb -> console -> printChars( "v" );
+            if ( tagPtr -> dirty )  glb -> console -> printChars( "D" ); else glb -> console -> printChars( "d" );
+            glb -> console -> printChars( "] (" );
+            displayWord( tagPtr -> tag, rdx );
+            glb -> console -> printChars( ") \n" );
+            
+            for ( int i = 0; i < linesPerBlock; i++  ) {
+                
+                glb -> console -> printChars( "            (" );
+                
+                for ( int j = 0; j < wordsPerLine; j++ ) {
+                    
+                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], rdx );
+                    if ( i < 3 ) glb -> console -> printChars( " " );
+                }
+                
+                glb -> console -> printChars( ") \n" );
+            }
+        }
+        
+        if ( blockSets >= 2 ) {
+            
+            MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( lineIndex, 0 );
+            uint32_t    *dataPtr    = (uint32_t *) cPtr -> getMemBlockEntry( lineIndex, 1 );
+            
+            glb -> console -> printChars( "            (1)[" );
+            if ( tagPtr -> valid )  glb -> console -> printChars( "V" ); else glb -> console -> printChars( "v" );
+            if ( tagPtr -> dirty )  glb -> console -> printChars( "D" ); else glb -> console -> printChars( "d" );
+            glb -> console -> printChars( "] (" );
+            displayWord( tagPtr -> tag, rdx );
+            glb -> console -> printChars( ")\n" );
+            
+            for ( int i = 0; i < linesPerBlock; i++  ) {
+                
+                glb -> console -> printChars( "            (" );
+                
+                for ( int j = 0; j < wordsPerLine; j++ ) {
+                    
+                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], rdx );
+                    if ( i < 3 ) glb -> console -> printChars( " " );
+                }
+                
+                glb -> console -> printChars( ") \n" );
+            }
+        }
+    }
+}
+
+
+
+
+
+//************************************************************************************************************
+//************************************************************************************************************
+//
+// Object methods.
+//
+//************************************************************************************************************
+//************************************************************************************************************
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -298,7 +628,7 @@ int SimCmdHistory::getCmdId( ) {
 // Return the current command entered.
 //
 //------------------------------------------------------------------------------------------------------------
-TokId DrvCmds::getCurrentCmd( ) {
+SimTokId SimCommandsWin::getCurrentCmd( ) {
     
     return( currentCmd );
 }
@@ -309,7 +639,7 @@ TokId DrvCmds::getCurrentCmd( ) {
 // environment variable table.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::printWelcome( ) {
+void SimCommandsWin::printWelcome( ) {
     
     glb -> env -> setEnvVar((char *) ENV_EXIT_CODE, 0 );
     
@@ -330,7 +660,7 @@ void DrvCmds::printWelcome( ) {
 // comes from a terminal and not an input file.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::promptCmdLine( ) {
+void SimCommandsWin::promptCmdLine( ) {
     
     if ( glb -> console -> isConsole( )) {
         
@@ -346,12 +676,11 @@ void DrvCmds::promptCmdLine( ) {
 //------------------------------------------------------------------------------------------------------------
 // "readCmdLine" reads in the command line. The function returns the number of characters read or an error
 // code. We loop inside the routine until we receive a valid command line or an EOF. A non-empty command is
-// also added to the command history buffer.
+// also added to the command history buffer. The routine returns the length of the command line, if empty
+// a minus one is returned.
 //
-// ??? should we add the history command to the history buffer as well ?
-// ??? we cannot know at this stage what the command is...
 //------------------------------------------------------------------------------------------------------------
-int DrvCmds::readInputLine( char *cmdBuf ) {
+int SimCommandsWin::readInputLine( char *cmdBuf ) {
     
     while ( true ) {
         
@@ -360,7 +689,6 @@ int DrvCmds::readInputLine( char *cmdBuf ) {
         if ( len > 0 ) {
             
             removeComment( cmdBuf );
-            
             glb -> hist -> addCmdLine( cmdBuf );
             glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
            
@@ -379,7 +707,7 @@ int DrvCmds::readInputLine( char *cmdBuf ) {
 //
 // ??? which error would we like to report here vs. pass on to outer command loop ?
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::execCmdsFromFile( char* fileName ) {
+void SimCommandsWin::execCmdsFromFile( char* fileName ) {
     
     char cmdLineBuf[ CMD_LINE_BUF_SIZE ] = "";
     
@@ -410,7 +738,7 @@ void DrvCmds::execCmdsFromFile( char* fileName ) {
         else throw ( ERR_EXPECTED_FILE_NAME  );
     }
     
-    catch ( ErrMsgId errNum ) {
+    catch ( SimErrMsgId errNum ) {
         
         switch ( errNum ) {
                 
@@ -431,7 +759,7 @@ void DrvCmds::execCmdsFromFile( char* fileName ) {
 //
 //  help ( cmdId | ‘commands‘ | 'wcommands‘ | ‘wtypes‘ | ‘predefined‘ | 'regset' )
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::helpCmd( ) {
+void SimCommandsWin::helpCmd( ) {
     
     const char FMT_STR_SUMMARY[ ] = "%-16s%s\n";
     const char FMT_STR_DETAILS[ ] = "%s - %s\n";
@@ -524,9 +852,9 @@ void DrvCmds::helpCmd( ) {
 //
 // EXIT <val>
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::exitCmd( ) {
+void SimCommandsWin::exitCmd( ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     int  exitVal = 0;
     
     if ( glb -> tok -> tokId( ) == TOK_EOS ) {
@@ -554,7 +882,7 @@ void DrvCmds::exitCmd( ) {
 //
 //  ENV [ <var> [ <val> ]]",
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::envCmd( ) {
+void SimCommandsWin::envCmd( ) {
     
     SimEnv *env = glb -> env;
     
@@ -577,7 +905,7 @@ void DrvCmds::envCmd( ) {
         }
         else {
             
-            DrvExpr rExpr;
+            SimExpr rExpr;
             glb -> eval -> parseExpr( &rExpr );
             
             if      ( rExpr.typ == TYP_NUM )        env -> setEnvVar( envName, rExpr.numVal );
@@ -594,7 +922,7 @@ void DrvCmds::envCmd( ) {
 //
 // XF "<filename>"
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::execFileCmd( ) {
+void SimCommandsWin::execFileCmd( ) {
     
     if ( glb -> tok -> tokTyp( ) == TYP_STR ) {
         
@@ -612,7 +940,7 @@ void DrvCmds::execFileCmd( ) {
 // ??? what if there is a unified cache outside the CPU ?
 // ??? what execution mode will put the CPU ? halted ?
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::resetCmd( ) {
+void SimCommandsWin::resetCmd( ) {
     
     if ( glb -> tok -> isToken( TOK_EOS )) {
         
@@ -658,7 +986,7 @@ void DrvCmds::resetCmd( ) {
 //
 // ??? see STEP command for detils on teh console handling.
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::runCmd( ) {
+void SimCommandsWin::runCmd( ) {
     
     glb -> console -> printChars( "RUN command to come ... \n");
 }
@@ -676,9 +1004,9 @@ void DrvCmds::runCmd( ) {
 // ??? hand over to the CPU.
 // ??? on return from the CPU steps, enable blocking mode again and restore the current window.
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::stepCmd( ) {
+void SimCommandsWin::stepCmd( ) {
     
-    DrvExpr  rExpr;
+    SimExpr  rExpr;
     uint32_t numOfSteps = 1;
     
     if ( glb -> tok -> tokTyp( ) == TYP_NUM ) {
@@ -708,9 +1036,9 @@ void DrvCmds::stepCmd( ) {
 //
 //  W <expr> [ , <rdx> ]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::writeLineCmd( ) {
+void SimCommandsWin::writeLineCmd( ) {
     
-    DrvExpr  rExpr;
+    SimExpr  rExpr;
     int      rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
     glb -> eval -> parseExpr( &rExpr );
@@ -776,9 +1104,9 @@ void DrvCmds::writeLineCmd( ) {
 //
 //  HIST [ depth ]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::histCmd( ) {
+void SimCommandsWin::histCmd( ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     int     depth = 1;
     
     if ( glb -> tok -> tokId( ) != TOK_EOS ) {
@@ -797,7 +1125,7 @@ void DrvCmds::histCmd( ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::doCmd( ) {
+void SimCommandsWin::doCmd( ) {
     
 }
 
@@ -805,151 +1133,9 @@ void DrvCmds::doCmd( ) {
 //
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::redoCmd( ) {
+void SimCommandsWin::redoCmd( ) {
     
     
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Display register command. This is a rather versatile command, which displays register set, register and
-// all of them in one format.
-//
-// DR [ ( <regSet> | <reg> ) ] [ , <fmt> ]
-//
-//------------------------------------------------------------------------------------------------------------
-void DrvCmds::displayRegCmd( ) {
-    
-    int     rdx         = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-    TypeId  regSetId    = TYP_GREG;
-    TokId   regId       = GR_SET;
-    int     regNum      = 0;
-    
-    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
-        
-        if (( glb -> tok -> tokTyp( ) == TYP_GREG )        ||
-            ( glb -> tok -> tokTyp( ) == TYP_SREG )        ||
-            ( glb -> tok -> tokTyp( ) == TYP_CREG )        ||
-            ( glb -> tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
-            ( glb -> tok -> tokTyp( ) == TYP_FD_PREG )     ||
-            ( glb -> tok -> tokTyp( ) == TYP_MA_PREG )     ||
-            ( glb -> tok -> tokTyp( ) == TYP_EX_PREG )     ||
-            ( glb -> tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
-            ( glb -> tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
-            ( glb -> tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
-            ( glb -> tok -> tokTyp( ) == TYP_ITLB_REG )    ||
-            ( glb -> tok -> tokTyp( ) == TYP_DTLB_REG )) {
-            
-            regSetId    = glb -> tok -> tokTyp( );
-            regId       = glb -> tok -> tokId( );
-            regNum      = glb -> tok -> tokVal( );
-        }
-        else throw( ERR_EXPECTED_REG_OR_SET );
-        
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
-            
-            glb -> tok -> nextToken( );
-            
-            if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
-                ( glb -> tok -> tokId( ) == TOK_OCT ) ||
-                ( glb -> tok -> tokId( ) == TOK_DEC )) {
-                
-                rdx = glb -> tok -> tokVal( );
-            }
-            else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
-                
-                rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-            }
-            else throw ( ERR_INVALID_FMT_OPT );
-        }
-    }
-    
-    switch( regSetId ) {
-            
-        case TYP_GREG: {
-            
-            if ( regId == GR_SET ) glb -> lineDisplay -> displayGeneralRegSet( rdx );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_GEN_REG_SET, regNum ), rdx );
-            
-        } break;
-            
-        case TYP_SREG: {
-            
-            if ( regId == SR_SET ) glb -> lineDisplay -> displaySegmentRegSet( rdx );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_SEG_REG_SET, regNum ), rdx );
-            
-        } break;
-            
-        case TYP_CREG: {
-            
-            if ( regId == CR_SET ) glb -> lineDisplay -> displayControlRegSet( rdx );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_CTRL_REG_SET, regNum ), rdx );
-            
-        } break;
-            
-        case TYP_IC_L1_REG: {
-            
-            if ( regId == IC_L1_SET ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> iCacheL1, rdx );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_IC_L1_OBJ, regNum ), rdx );
-            
-        } break;
-            
-        case TYP_DC_L1_REG: {
-            
-            if ( regId == DC_L1_SET ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> dCacheL1, rdx );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_DC_L1_OBJ, regNum ), rdx );
-            
-        } break;
-            
-        case TYP_UC_L2_REG: {
-            
-            if ( glb -> cpu -> uCacheL2 != nullptr ) {
-                
-                if ( regId == UC_L2_SET ) glb -> lineDisplay -> displayMemObjRegSet( glb -> cpu -> uCacheL2, rdx );
-                else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_UC_L2_OBJ, regNum ), rdx );
-            }
-            else throw ( ERR_CACHE_NOT_CONFIGURED );
-            
-        } break;
-            
-        case TYP_ITLB_REG: {
-            
-            if ( regId == ITLB_SET ) glb -> lineDisplay -> displayTlbObjRegSet( glb -> cpu -> iTlb, rdx );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_ITLB_OBJ, regNum ), rdx );
-            
-        } break;
-            
-        case TYP_DTLB_REG: {
-            
-            if ( regId == DTLB_SET ) glb -> lineDisplay -> displayTlbObjRegSet( glb -> cpu -> dTlb, rdx );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_DTLB_OBJ, regNum ), rdx );
-            
-        } break;
-            
-        case TYP_FD_PREG: {
-            
-            if ( regId == FD_SET ) glb -> lineDisplay -> displayPlIFetchDecodeRegSet( rdx );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_FD_PSTAGE, regNum ), rdx );
-            
-        } break;
-            
-        case TYP_MA_PREG: {
-            
-            if ( regId == MA_SET ) glb -> lineDisplay -> displayPlMemoryAccessRegSet( rdx );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_MA_PSTAGE, regNum ), rdx );
-            
-        } break;
-            
-        case TYP_EX_PREG: {
-            
-            if ( regId == EX_SET ) glb -> lineDisplay -> displayPlExecuteRegSet( rdx );
-            else glb -> lineDisplay -> displayWord( glb -> cpu -> getReg( RC_EX_PSTAGE, regNum ), rdx );
-            
-        } break;
-            
-        default: ;
-    }
-    
-    glb -> console -> printChars( "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -957,13 +1143,13 @@ void DrvCmds::displayRegCmd( ) {
 //
 // MR <reg> <val>
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::modifyRegCmd( ) {
+void SimCommandsWin::modifyRegCmd( ) {
     
-    TypeId      regSetId    = TYP_GREG;
-    TokId       regId       = TOK_NIL;
+    SimTokTypeId      regSetId    = TYP_GREG;
+    SimTokId       regId       = TOK_NIL;
     int         regNum      = 0;
     uint32_t    val         = 0;
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     
     if (( glb -> tok -> tokTyp( ) == TYP_GREG )        ||
         ( glb -> tok -> tokTyp( ) == TYP_SREG )        ||
@@ -1019,9 +1205,9 @@ void DrvCmds::modifyRegCmd( ) {
 //
 //  DA <ofs> [ , <len> [ , <fmt> ]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::displayAbsMemCmd( ) {
+void SimCommandsWin::displayAbsMemCmd( ) {
     
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     uint32_t    ofs     = 0;
     uint32_t    len     = 4;
     int         rdx     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
@@ -1078,10 +1264,9 @@ void DrvCmds::displayAbsMemCmd( ) {
         
         if ( asCode ) {
             
-            glb -> lineDisplay -> displayAbsMemContentAsCode( ofs, len,
-                                                             glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+            displayAbsMemContentAsCode( ofs, len, glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
         }
-        else glb -> lineDisplay -> displayAbsMemContent( ofs, len, rdx );
+        else displayAbsMemContent( ofs, len, rdx );
     }
     else throw ( ERR_OFS_LEN_LIMIT_EXCEEDED );
 }
@@ -1092,9 +1277,9 @@ void DrvCmds::displayAbsMemCmd( ) {
 //
 //  MA <ofs> <val>
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::modifyAbsMemCmd( ) {
+void SimCommandsWin::modifyAbsMemCmd( ) {
     
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     uint32_t    ofs         = 0;
     uint32_t    val         = 0;
     CpuMem      *physMem    = glb -> cpu -> physMem;
@@ -1128,9 +1313,9 @@ void DrvCmds::modifyAbsMemCmd( ) {
 //
 //  DCA ( 'I' | 'D' | 'U' ) <index> [ , <len> [ , <fmt> ]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::displayCacheCmd( ) {
+void SimCommandsWin::displayCacheCmd( ) {
     
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     CpuMem      *cPtr           = nullptr;
     uint32_t    index           = 0;
     uint32_t    len             = 1;
@@ -1163,12 +1348,21 @@ void DrvCmds::displayCacheCmd( ) {
     else throw ( ERR_EXPECTED_NUMERIC );
     
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
-       
-        glb -> tok -> nextToken( );
-        glb -> eval -> parseExpr( &rExpr );
         
-        if ( rExpr.typ == TYP_NUM ) len = rExpr.numVal;
-        else throw ( ERR_EXPECTED_NUMERIC );
+        glb -> tok -> nextToken( );
+        
+        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+            
+            len = 1;
+            glb -> tok -> nextToken( );
+        }
+        else {
+        
+            glb -> eval -> parseExpr( &rExpr );
+            
+            if ( rExpr.typ == TYP_NUM ) len = rExpr.numVal;
+            else throw ( ERR_EXPECTED_NUMERIC );
+        }
     }
     
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
@@ -1198,8 +1392,7 @@ void DrvCmds::displayCacheCmd( ) {
         
         if ( len == 0 ) len = blockEntries;
         
-        glb -> lineDisplay -> displayCacheEntries( cPtr, index, len, rdx );
-        
+        displayCacheEntries( cPtr, index, len, rdx );
         glb -> console -> printChars( "\n" );
     }
 }
@@ -1209,9 +1402,9 @@ void DrvCmds::displayCacheCmd( ) {
 //
 //  PCA ('I' | 'D' | 'U' ) <index> [ , <set> [, 'F' ]]",
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::purgeCacheCmd( ) {
+void SimCommandsWin::purgeCacheCmd( ) {
     
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     CpuMem      *cPtr           = nullptr;
     uint32_t    index           = 0;
     uint32_t    set             = 0;
@@ -1282,9 +1475,9 @@ void DrvCmds::purgeCacheCmd( ) {
 //
 //  DTLB ( 'I' | 'D' ) <index> [ , <len> [ , <rdx> ]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::displayTLBCmd( ) {
+void SimCommandsWin::displayTLBCmd( ) {
     
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     uint32_t    index       = 0;
     uint32_t    len         = 0;
     uint32_t    tlbSize     = 0;
@@ -1308,17 +1501,22 @@ void DrvCmds::displayTLBCmd( ) {
     glb -> eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) index = rExpr.numVal;
-    else throw (ERR_EXPECTED_NUMERIC );
+    else throw ( ERR_EXPECTED_NUMERIC );
     
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
         
-        len = 1;
         glb -> tok -> nextToken( );
-    }
-    else {
-       
-        glb -> eval -> parseExpr( &rExpr );
-        len = rExpr.numVal;
+        
+        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+            
+            len = 1;
+            glb -> tok -> nextToken( );
+        }
+        else {
+            
+            glb -> eval -> parseExpr( &rExpr );
+            len = rExpr.numVal;
+        }
     }
     
     if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
@@ -1341,7 +1539,7 @@ void DrvCmds::displayTLBCmd( ) {
     
     if (( index > tlbSize ) || ( index + len > tlbSize )) throw ( ERR_TLB_SIZE_EXCEEDED );
    
-    glb -> lineDisplay -> displayTlbEntries( tPtr, index, len, rdx );
+    displayTlbEntries( tPtr, index, len, rdx );
     glb -> console -> printChars( "\n" );
 }
 
@@ -1350,9 +1548,9 @@ void DrvCmds::displayTLBCmd( ) {
 //
 //  ITLB ( 'I' | 'D' ) <extAdr> <argAcc> <argAdr>
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::insertTLBCmd( ) {
+void SimCommandsWin::insertTLBCmd( ) {
     
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     CpuTlb      *tPtr           = nullptr;
     uint32_t    seg             = 0;
     uint32_t    ofs             = 0;
@@ -1398,9 +1596,9 @@ void DrvCmds::insertTLBCmd( ) {
 //
 //  PTLB ( 'I' | 'D' ) <extAdr>"
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::purgeTLBCmd( ) {
+void SimCommandsWin::purgeTLBCmd( ) {
     
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     CpuTlb      *tPtr = nullptr;
     
     if ( glb -> tok -> tokId( ) == TOK_I ) {
@@ -1424,20 +1622,19 @@ void DrvCmds::purgeTLBCmd( ) {
     else throw ( ERR_EXPECTED_EXT_ADR );
 }
 
-
 //------------------------------------------------------------------------------------------------------------
 // Global windows commands. There are handlers for turning windows on, off and set them back to their default
 // values. We also support two stacks of windows next to each other.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winOnCmd( ) {
+void SimCommandsWin::winOnCmd( ) {
     
     winModeOn = true;
     glb -> winDisplay -> windowsOn( );
     glb -> winDisplay -> reDraw( true );
 }
 
-void DrvCmds::winOffCmd( ) {
+void SimCommandsWin::winOffCmd( ) {
     
     if ( winModeOn ) {
         
@@ -1447,7 +1644,7 @@ void DrvCmds::winOffCmd( ) {
     else throw ( ERR_NOT_IN_WIN_MODE );
 }
 
-void DrvCmds::winDefCmd( ) {
+void SimCommandsWin::winDefCmd( ) {
     
     if ( winModeOn ) {
         
@@ -1457,7 +1654,7 @@ void DrvCmds::winDefCmd( ) {
     else throw ( ERR_NOT_IN_WIN_MODE );
 }
 
-void DrvCmds::winStacksEnable( ) {
+void SimCommandsWin::winStacksEnable( ) {
     
     if ( winModeOn ) {
         
@@ -1467,7 +1664,7 @@ void DrvCmds::winStacksEnable( ) {
     else throw ( ERR_NOT_IN_WIN_MODE );
 }
 
-void DrvCmds::winStacksDisable( ) {
+void SimCommandsWin::winStacksDisable( ) {
     
     if ( winModeOn ) {
         
@@ -1484,7 +1681,7 @@ void DrvCmds::winStacksDisable( ) {
 //  <win>E [ <winNum> ]
 //  <win>D [ <winNum> ]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winEnableCmd( TokId winCmd ) {
+void SimCommandsWin::winEnableCmd( SimTokId winCmd ) {
     
     int winNum = 0;
     
@@ -1492,7 +1689,7 @@ void DrvCmds::winEnableCmd( TokId winCmd ) {
     
     if ( glb -> tok -> tokId( ) != TOK_EOS ) {
         
-        DrvExpr rExpr;
+        SimExpr rExpr;
         glb -> eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
@@ -1507,7 +1704,7 @@ void DrvCmds::winEnableCmd( TokId winCmd ) {
     else throw ( ERR_INVALID_WIN_ID );
 }
 
-void DrvCmds::winDisableCmd( TokId winCmd ) {
+void SimCommandsWin::winDisableCmd( SimTokId winCmd ) {
     
     int winNum = 0;
     
@@ -1515,7 +1712,7 @@ void DrvCmds::winDisableCmd( TokId winCmd ) {
     
     if ( glb -> tok -> tokId( ) != TOK_EOS ) {
         
-        DrvExpr rExpr;
+        SimExpr rExpr;
         glb -> eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
@@ -1537,11 +1734,11 @@ void DrvCmds::winDisableCmd( TokId winCmd ) {
 //
 //  <win>R [ <radix> [ "," <winNum>]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winSetRadixCmd( TokId winCmd ) {
+void SimCommandsWin::winSetRadixCmd( SimTokId winCmd ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     int     winNum  = 0;
     int     rdx     =  glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
@@ -1564,7 +1761,7 @@ void DrvCmds::winSetRadixCmd( TokId winCmd ) {
         else {
             
             glb -> eval -> parseExpr( &rExpr );
-            if ( rExpr.typ == TYP_NUM ) rdx = setRadix( rExpr.numVal );
+            if ( rExpr.typ == TYP_NUM ) rdx = ::setRadix( rExpr.numVal );
             else throw ( ERR_INVALID_RADIX );
         }
     }
@@ -1596,9 +1793,9 @@ void DrvCmds::winSetRadixCmd( TokId winCmd ) {
 //  <win>F [ <amt> [ , <winNum> ]]
 //  <win>B [ <amt> [ , <winNum> ]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winForwardCmd( TokId winCmd ) {
+void SimCommandsWin::winForwardCmd( SimTokId winCmd ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     int     winItems = 0;
     int     winNum   = 0;
     
@@ -1634,9 +1831,9 @@ void DrvCmds::winForwardCmd( TokId winCmd ) {
     }
 }
 
-void DrvCmds::winBackwardCmd( TokId winCmd ) {
+void SimCommandsWin::winBackwardCmd( SimTokId winCmd ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     int     winItems = 0;
     int     winNum   = 0;
     
@@ -1686,9 +1883,9 @@ void DrvCmds::winBackwardCmd( TokId winCmd ) {
 //
 //  <win>H [ <pos> [ "," <winNum> ]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winHomeCmd( TokId winCmd ) {
+void SimCommandsWin::winHomeCmd( SimTokId winCmd ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     int     winPos   = 0;
     int     winNum   = 0;
     
@@ -1728,9 +1925,9 @@ void DrvCmds::winHomeCmd( TokId winCmd ) {
 //
 //  <win>J [ <pos> [ "," <winNum> ]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winJumpCmd( TokId winCmd ) {
+void SimCommandsWin::winJumpCmd( SimTokId winCmd ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     int     winPos   = 0;
     int     winNum   = 0;
     
@@ -1771,9 +1968,9 @@ void DrvCmds::winJumpCmd( TokId winCmd ) {
 //
 //  <win>L [ <lines> [ "," <winNum> ]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winSetRowsCmd( TokId winCmd ) {
+void SimCommandsWin::winSetRowsCmd( SimTokId winCmd ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     int     winLines    = 0;
     int     winNum      = 0;
     
@@ -1814,11 +2011,11 @@ void DrvCmds::winSetRowsCmd( TokId winCmd ) {
 //
 //  WC <winNum>
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winCurrentCmd( ) {
+void SimCommandsWin::winCurrentCmd( ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     uint32_t    winNum = 0;
     
     if ( glb -> tok -> isToken( TOK_EOS )) throw ( ERR_EXPECTED_WIN_ID );
@@ -1841,11 +2038,11 @@ void DrvCmds::winCurrentCmd( ) {
 //
 //  WT [ <winNum> ]
 //------------------------------------------------------------------------------------------------------------
-void  DrvCmds::winToggleCmd( ) {
+void  SimCommandsWin::winToggleCmd( ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     uint32_t    winNum = 0;
     
     if ( glb -> tok -> isToken( TOK_EOS )) {
@@ -1870,11 +2067,11 @@ void  DrvCmds::winToggleCmd( ) {
 //
 // WX <winNum>
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winExchangeCmd( ) {
+void SimCommandsWin::winExchangeCmd( ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     uint32_t    winNum = 0;
     
     if ( glb -> tok -> isToken( TOK_EOS )) throw ( ERR_EXPECTED_WIN_ID );
@@ -1898,9 +2095,9 @@ void DrvCmds::winExchangeCmd( ) {
 //
 //  WN <winType> [ , <arg> ]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winNewWinCmd( ) {
+void SimCommandsWin::winNewWinCmd( ) {
     
-    TokId   winType = TOK_NIL;
+    SimTokId   winType = TOK_NIL;
     char    *argStr = nullptr;
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
@@ -1953,9 +2150,9 @@ void DrvCmds::winNewWinCmd( ) {
 //
 //  WK [ <winNumStart> [ "," <winNumEnd]] || ( -1 )
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winKillWinCmd( ) {
+void SimCommandsWin::winKillWinCmd( ) {
     
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
     int         winNumStart     = 0;
     int         winNumEnd       = 0;
     
@@ -2002,9 +2199,9 @@ void DrvCmds::winKillWinCmd( ) {
 //
 //  WS <stackNum> [ , <winNumStart> [ , <winNumEnd ]]
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::winSetStackCmd( ) {
+void SimCommandsWin::winSetStackCmd( ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     int     stackNum    = 0;
     int     winNumStart = 0;
     int     winNumEnd   = 0;
@@ -2065,18 +2262,18 @@ void DrvCmds::winSetStackCmd( ) {
 // ??? wouldn't it be nice to react to cursor up and down commands for a given window ? To think about...
 // ??? add commands to the console window.
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::evalInputLine( char *cmdBuf ) {
+void SimCommandsWin::evalInputLine( char *cmdBuf ) {
     
     try {
         
         if ( strlen( cmdBuf ) > 0 ) {
             
-            glb -> tok -> setupTokenizer( cmdBuf, (DrvToken *) cmdTokTab );
+            glb -> tok -> setupTokenizer( cmdBuf, (SimToken *) cmdTokTab );
             glb -> tok -> nextToken( );
             
             if (( glb -> tok -> isTokenTyp( TYP_CMD )) || ( glb -> tok -> isTokenTyp( TYP_WCMD ))) {
                 
-                TokId cmdId = glb -> tok -> tokId( );
+                SimTokId cmdId = glb -> tok -> tokId( );
                 
                 glb -> tok -> nextToken( );
                 
@@ -2098,14 +2295,15 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
                     case CMD_RUN:           runCmd( );                      break;
                     case CMD_STEP:          stepCmd( );                     break;
                         
-                    case CMD_DR:            displayRegCmd( );               break;
                     case CMD_MR:            modifyRegCmd( );                break;
+                        
                     case CMD_DA:            displayAbsMemCmd( );            break;
                     case CMD_MA:            modifyAbsMemCmd( );             break;
                         
                     case CMD_D_TLB:         displayTLBCmd( );               break;
                     case CMD_I_TLB:         insertTLBCmd( );                break;
                     case CMD_P_TLB:         purgeTLBCmd( );                 break;
+                        
                     case CMD_D_CACHE:       displayCacheCmd( );             break;
                     case CMD_P_CACHE:       purgeCacheCmd( );               break;
                         
@@ -2155,7 +2353,7 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
         }
     }
     
-    catch ( ErrMsgId errNum ) {
+    catch ( SimErrMsgId errNum ) {
         
         glb -> env -> setEnvVar((char *) ENV_EXIT_CODE, -1 );
         cmdLineError( errNum );
@@ -2168,7 +2366,7 @@ void DrvCmds::evalInputLine( char *cmdBuf ) {
 //
 // ??? when is the best point to redraw the windows... exactly once ?
 //------------------------------------------------------------------------------------------------------------
-void DrvCmds::cmdInterpreterLoop( ) {
+void SimCommandsWin::cmdInterpreterLoop( ) {
     
     char cmdLineBuf[ CMD_LINE_BUF_SIZE ] = { 0 };
     
@@ -2185,5 +2383,3 @@ void DrvCmds::cmdInterpreterLoop( ) {
     }
 }
 
-
-#endif

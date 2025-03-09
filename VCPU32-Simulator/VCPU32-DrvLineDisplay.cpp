@@ -20,20 +20,15 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
+
+#if 0
+
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
-#include "VCPU32-Driver.h"
-#include "VCPU32-DrvTables.h"
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-namespace {
+#include "VCPU32-SimDeclarations.h"
+#include "VCPU32-SimTables.h"
 
 
-
-}; // namespace
 
 //------------------------------------------------------------------------------------------------------------
 // The object constructor. We just remember the globals pointer.
@@ -490,4 +485,4 @@ void  DrvLineDisplay::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, in
     glb -> console -> printChars( "\n" );
 }
 
-
+#endif

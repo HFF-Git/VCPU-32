@@ -27,8 +27,8 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Types.h"
-#include "VCPU32-Driver.h"
-#include "VCPU32-DrvTables.h"
+#include "VCPU32-SimDeclarations.h"
+#include "VCPU32-SimTables.h"
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -722,7 +722,7 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
 // The object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvDisAssembler::DrvDisAssembler( VCPU32Globals *glb ) {
+SimDisAsm::SimDisAsm( VCPU32Globals *glb ) {
     
     this -> glb = glb;
 }
@@ -732,7 +732,7 @@ DrvDisAssembler::DrvDisAssembler( VCPU32Globals *glb ) {
 // options, the source and the target. The opCode and options are grouped as are the target and operand.
 //
 //------------------------------------------------------------------------------------------------------------
-int DrvDisAssembler::formatInstr( char *buf, int bufLen, uint32_t instr, int rdx ) {
+int SimDisAsm::formatInstr( char *buf, int bufLen, uint32_t instr, int rdx ) {
     
     int cursor = 0;
     
@@ -741,7 +741,7 @@ int DrvDisAssembler::formatInstr( char *buf, int bufLen, uint32_t instr, int rdx
     return( cursor );
 }
 
-int DrvDisAssembler::formatOpCodeAndOptions( char *buf, int bufLen, uint32_t instr, int rdx ) {
+int SimDisAsm::formatOpCodeAndOptions( char *buf, int bufLen, uint32_t instr, int rdx ) {
     
     int cursor = 0;
    
@@ -750,7 +750,7 @@ int DrvDisAssembler::formatOpCodeAndOptions( char *buf, int bufLen, uint32_t ins
     return( cursor );
 }
 
-int DrvDisAssembler::formatTargetAndOperands( char *buf, int bufLen, uint32_t instr, int rdx ) {
+int SimDisAsm::formatTargetAndOperands( char *buf, int bufLen, uint32_t instr, int rdx ) {
     
     int cursor = 0;
    
@@ -759,7 +759,7 @@ int DrvDisAssembler::formatTargetAndOperands( char *buf, int bufLen, uint32_t in
     return( cursor );
 }
 
-int DrvDisAssembler::displayInstr( uint32_t instr, int rdx ) {
+int SimDisAsm::displayInstr( uint32_t instr, int rdx ) {
     
     int  cursor = 0;
     char buf[ 128 ];
@@ -771,12 +771,12 @@ int DrvDisAssembler::displayInstr( uint32_t instr, int rdx ) {
     return( cursor );
 }
 
-int DrvDisAssembler::getOpCodeOptionsFieldWidth( ) {
+int SimDisAsm::getOpCodeOptionsFieldWidth( ) {
     
     return( 12 );
 }
 
-int DrvDisAssembler::getTargetAndOperandsFieldWidth( ) {
+int SimDisAsm::getTargetAndOperandsFieldWidth( ) {
     
     return( 16 );
 }
