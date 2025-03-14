@@ -414,6 +414,7 @@ SimErrMsgTabEntry const errMsgTab [ ] = {
     { .errNum = ERR_INVALID_S_OP_CODE,          .errStr = (char *) "Invalid synthetic instruction opcode" },
     { .errNum = ERR_INVALID_FMT_OPT,            .errStr = (char *) "Invalid format option" },
     { .errNum = ERR_INVALID_WIN_TYPE,           .errStr = (char *) "Invalid window type" },
+    { .errNum = ERR_INVALID_CMD_ID,             .errStr = (char *) "Invalid command Id" },
     
     { .errNum = ERR_EXPECTED_INSTR_VAL,         .errStr = (char *) "Expected the instruction value" },
     { .errNum = ERR_EXPECTED_FILE_NAME,         .errStr = (char *) "Expected a file name" },

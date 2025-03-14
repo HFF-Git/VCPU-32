@@ -165,21 +165,19 @@ int SimConsoleIO::readChar(  ) {
     
 #else
     
-   
     if (_kbhit()) {
 
         int ch = _getch();
         return (ch);
     }
  
-    
 #endif
     
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "writeConsoleChar" is the single entry point to write to the terminal. On a Mac/Linux, this is the
-// "putchar" system call. On windows there is a similar call, which does just prints one character at a
+// "write" system call. On windows there is a similar call, which does just prints one character at a
 // time.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -198,7 +196,10 @@ void SimConsoleIO::writeChar( char ch  ) {
 // basic handling of backspace, carriage return, etc. needs to be handled directly. Characters other than the
 // special chracters are piled up in a local buffer until we read in a carriage return.
 //
+// We also have the option of a prefilled comand buffer for editing a command line before hitting return.
+//
 // ??? which escape sequence should we handle directly ? which to pass on ? how ?
+// ??? we need a kind of state machine to decode teh escape seqquences we are interested in ...
 //------------------------------------------------------------------------------------------------------------
 int SimConsoleIO::readLine( char *cmdBuf ) {
     
@@ -280,10 +281,15 @@ int SimConsoleIO::printNum( uint32_t num, int rdx ) {
 // ??? any other little helpers for printing to move here ??
 // ??? move all of the print routines here ? benefit ?
 
-
 // ??? sketch to enable mouse reprting to capature scrolling and clicks...
 // ??? scroll up: \033[M<x><y>
 // ??? scroll down: \033[M<x><y>
+
+// ??? cursor left: \033[D
+// ??? cursor right: \033[C
+// ??? cursor up: \033[A
+// ??? cursor down: \033[B
+
 
 // ??? "x" could be 32 for up and 33 for down... test it...
 

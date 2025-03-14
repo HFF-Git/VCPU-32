@@ -221,8 +221,6 @@ void SimCommandsWin::acceptRparen( ) {
 }
 
 
-
-
 // ??? put the methods needed to the command win... it relaces the old command line interpreter...
 
 
@@ -593,25 +591,39 @@ char *SimCmdHistory::getCmdLine( int cmdId ) {
     }
     else {
         
-        int pos = ( head - 1 + cmdId + MAX_CMD_HIST_BUF_SIZE) % MAX_CMD_HIST_BUF_SIZE;
-        return history[ pos ].cmdLine;
+        int pos = ( head + cmdId + MAX_CMD_HIST_BUF_SIZE) % MAX_CMD_HIST_BUF_SIZE;
+        
+        if (( pos < head ) && ( pos >= tail )) return history[ pos ].cmdLine;
+        else return( nullptr );
     }
 }
 
 //------------------------------------------------------------------------------------------------------------
-// List the commamd history.
+// List the commamd history. The "depth" argument indicates what to do. A zero value will lliust the entire
+// history buffer. A positive value up to the number of elements in the history buffer will just list them
+// with their absolute command Id. A negative value will list the commands with a command Id relative to the
+// top of the history command buffer.
 //
-// ??? print only up to "depth".
 //------------------------------------------------------------------------------------------------------------
 void SimCmdHistory::printCmdistory( int depth ) {
     
+    bool relativeCmdId = false;
+    if ( depth < 0 ) {
+        
+        depth           = -depth;
+        relativeCmdId   = true;
+    }
+    
+    if (( depth == 0 ) || ( depth > count )) depth = count;
+  
     glb -> console -> printChars( "Cmd History (%d/%d entries):\n", count, MAX_CMD_HIST_BUF_SIZE );
     
-    for ( int i = 0; i < count; i++ ) {
+    for ( int i = 0; i < depth; i++ ) {
     
-        int pos = ( tail + i ) % MAX_CMD_HIST_BUF_SIZE;
-    
-        glb -> console -> printChars( "[%d]: %s\n", history[ pos ].cmdId, history[ pos ].cmdLine);
+        int pos = ( head - depth + i ) % MAX_CMD_HIST_BUF_SIZE;
+        
+        if ( relativeCmdId ) glb -> console -> printChars( "[%d]: %s\n", - depth + i, history[ pos ].cmdLine);
+        else        glb -> console -> printChars( "[%d]: %s\n", history[ pos ].cmdId, history[ pos ].cmdLine);
     }
 }
 
@@ -679,23 +691,22 @@ void SimCommandsWin::promptCmdLine( ) {
 // also added to the command history buffer. The routine returns the length of the command line, if empty
 // a minus one is returned.
 //
+// ??? how do we deal with the option to edit a command line ? pass a pre-filled cmdBuf ?
 //------------------------------------------------------------------------------------------------------------
 int SimCommandsWin::readInputLine( char *cmdBuf ) {
-    
-    while ( true ) {
+  
+    // ??? what of the cmdBuf is prefilled ?
+    int len = glb -> console -> readLine( cmdBuf );
         
-        int len = glb -> console -> readLine( cmdBuf );
-        
-        if ( len > 0 ) {
+    if ( len > 0 ) {
             
-            removeComment( cmdBuf );
-            glb -> hist -> addCmdLine( cmdBuf );
-            glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
+        removeComment( cmdBuf );
+        glb -> hist -> addCmdLine( cmdBuf );
+        glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
            
-            return( len );
-        }
-        else return( -1 );
+        return( len );
     }
+    else return( -1 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1107,7 +1118,7 @@ void SimCommandsWin::writeLineCmd( ) {
 void SimCommandsWin::histCmd( ) {
     
     SimExpr rExpr;
-    int     depth = 1;
+    int     depth = 0;
     
     if ( glb -> tok -> tokId( ) != TOK_EOS ) {
         
@@ -1122,20 +1133,67 @@ void SimCommandsWin::histCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Execute a previous command again. The command Id can be an absolute command Id or a top of the command
+// history buffer relative command Id. The seöected command is copied to the top of the history buffer and
+// then passed to the command interpreter for execution.
 //
-//
+// DO <cmdNum>
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::doCmd( ) {
     
+    SimExpr rExpr;
+    int     cmdId = 0;
+    
+    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
+        
+        glb -> eval -> parseExpr( &rExpr );
+        
+        if ( rExpr.typ == TYP_NUM ) cmdId = rExpr.numVal;
+        else                        throw ( ERR_INVALID_NUM );
+    }
+    
+    glb -> hist -> removeTopCmdLine( );
+    char *cmdStr = glb -> hist -> getCmdLine( cmdId );
+    
+    if ( cmdStr != nullptr ) {
+        
+        glb -> hist -> addCmdLine( cmdStr );
+        evalInputLine( cmdStr );
+    }
+    else throw( ERR_INVALID_CMD_ID );
 }
 
 //------------------------------------------------------------------------------------------------------------
+// REDO is almost like DO, except that we get the selected command and put it already into the input command
+// line string. We also print it without a carroage return. The idea is that it can now be edited.
 //
-//
+// REDO <cmdNum>
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::redoCmd( ) {
     
+    SimExpr rExpr;
+    int     cmdId = 0;
     
+    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
+        
+        glb -> eval -> parseExpr( &rExpr );
+        
+        if ( rExpr.typ == TYP_NUM ) cmdId = rExpr.numVal;
+        else                        throw ( ERR_INVALID_NUM );
+    }
+    
+    glb -> hist -> removeTopCmdLine( );
+    char *cmdStr = glb -> hist -> getCmdLine( cmdId );
+    
+    if ( cmdStr != nullptr ) {
+        
+        glb -> hist -> addCmdLine( cmdStr );
+        
+        // ??? here is will be different....
+        // ??? pass the string to a command line reader...
+        // ??? on return -> evalInputLine( cmdStr );
+    }
+    else throw( ERR_INVALID_CMD_ID );
 }
 
 //------------------------------------------------------------------------------------------------------------

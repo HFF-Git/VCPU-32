@@ -25,6 +25,6 @@
 
 const char SIM_VERSION[ ]   = "B.00.09";
 const char SIM_GIT_BRANCH[] = "Terminal-Win-Changes";
-const int  SIM_PATCH_LEVEL  = 1;
+const int  SIM_PATCH_LEVEL  = 3;
 
 #endif // VCPU32SimVersion_h

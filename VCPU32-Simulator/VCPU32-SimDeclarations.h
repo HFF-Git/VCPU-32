@@ -412,6 +412,7 @@ enum SimErrMsgId : uint16_t {
     ERR_INVALID_REG_COMBO           = 26,
     ERR_INVALID_OP_CODE             = 27,
     ERR_INVALID_S_OP_CODE           = 28,
+    ERR_INVALID_CMD_ID              = 29,
     
     ERR_EXPECTED_COMMA              = 100,
     ERR_EXPECTED_LPAREN             = 101,
