@@ -28,9 +28,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-
-#ifndef VCPU32_ConsoleIo_h
-#define VCPU32_ConsoleIo_h
+#ifndef VCPU32_SimConsoleIo_h
+#define VCPU32_SimConsoleIo_h
 
 //------------------------------------------------------------------------------------------------------------
 // Mac and Windows know different include files and procedure names for some POSIX routines.
@@ -66,7 +65,7 @@
 #endif
 
 #include "VCPU32-Types.h"
-#include "VCPU32-SimConsoleIO.h"
+// #include "VCPU32-SimConsoleIO.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Console IO object. The simulator is a character based interface. The typical terminal IO functionality
@@ -76,11 +75,11 @@
 // address space. This interface will also write and read a character at a time.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvConsoleIO {
+struct SimConsoleIO {
     
     public:
     
-    DrvConsoleIO( );
+    SimConsoleIO( );
     
     bool    isConsole( );
     int     readChar( );
@@ -109,7 +108,7 @@ struct DrvConsoleIO {
 // again.
 //
 //------------------------------------------------------------------------------------------------------------
-template<typename... Args> int DrvConsoleIO::printChars( const char* fmt, Args&&... args ) {
+template<typename... Args> int SimConsoleIO::printChars( const char* fmt, Args&&... args ) {
     
     size_t len = 0;
     

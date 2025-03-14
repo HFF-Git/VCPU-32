@@ -71,7 +71,7 @@ uint16_t toBigEndian32( uint32_t val ) {
 // Object constructur. We will save the current terminal settings, just in case.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvConsoleIO::DrvConsoleIO( ) {
+SimConsoleIO::SimConsoleIO( ) {
     
     saveConsoleMode( );
 }
@@ -81,7 +81,7 @@ DrvConsoleIO::DrvConsoleIO( ) {
 // a file.
 //
 //------------------------------------------------------------------------------------------------------------
-bool  DrvConsoleIO::isConsole( ) {
+bool  SimConsoleIO::isConsole( ) {
     
     return( isatty( fileno( stdin )));
 }
@@ -96,7 +96,7 @@ bool  DrvConsoleIO::isConsole( ) {
 // simulator.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvConsoleIO::saveConsoleMode( ) {
+void SimConsoleIO::saveConsoleMode( ) {
     
 #if __APPLE__
     tcgetattr( fileno( stdin ), &saveTermSetting );
@@ -104,7 +104,7 @@ void DrvConsoleIO::saveConsoleMode( ) {
     
 }
 
-void DrvConsoleIO::restoreConsoleMode( ) {
+void SimConsoleIO::restoreConsoleMode( ) {
     
 #if __APPLE__
     tcsetattr( fileno( stdin ), TCSANOW, &saveTermSetting );
@@ -114,7 +114,7 @@ void DrvConsoleIO::restoreConsoleMode( ) {
     rawModeEnabled      = false;
 }
 
-void DrvConsoleIO::setConsoleModeRaw( bool nonBlocking ) {
+void SimConsoleIO::setConsoleModeRaw( bool nonBlocking ) {
     
 #if __APPLE__
     struct termios term;
@@ -155,7 +155,7 @@ void DrvConsoleIO::setConsoleModeRaw( bool nonBlocking ) {
 // time. When nonBlocking is enabled, the function just returns immediately with either a character or a zero.
 //
 //------------------------------------------------------------------------------------------------------------
-int DrvConsoleIO::readChar(  ) {
+int SimConsoleIO::readChar(  ) {
     
 #if __APPLE__
     
@@ -183,7 +183,7 @@ int DrvConsoleIO::readChar(  ) {
 // time.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvConsoleIO::writeChar( char ch  ) {
+void SimConsoleIO::writeChar( char ch  ) {
     
 #if __APPLE__
     write( STDOUT_FILENO, &ch, 1 );
@@ -200,7 +200,7 @@ void DrvConsoleIO::writeChar( char ch  ) {
 //
 // ??? which escape sequence should we handle directly ? which to pass on ? how ?
 //------------------------------------------------------------------------------------------------------------
-int DrvConsoleIO::readLine( char *cmdBuf ) {
+int SimConsoleIO::readLine( char *cmdBuf ) {
     
     int ch;
     int index = 0;
@@ -265,7 +265,7 @@ int DrvConsoleIO::readLine( char *cmdBuf ) {
 // "printNum" is a little utility function to print out a number with a given radix.
 //
 //------------------------------------------------------------------------------------------------------------
-int DrvConsoleIO::printNum( uint32_t num, int rdx ) {
+int SimConsoleIO::printNum( uint32_t num, int rdx ) {
     
     if      ( rdx == 10 )  return( printChars( "%d", num ));
     else if ( rdx == 8  )  return( printChars( "%#012o", num ));

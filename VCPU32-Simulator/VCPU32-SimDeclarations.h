@@ -20,8 +20,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#ifndef VCPU32Driver_h
-#define VCPU32Driver_h
+#ifndef VCPU32SimDeclarations_h
+#define VCPU32SimDeclarations_h
 
 #include "VCPU32-SimConsoleIO.h"
 #include "VCPU32-Types.h"
@@ -109,7 +109,7 @@ enum SimWinIndex : int {
 // established descriptor set by the attributes routine.
 //
 //------------------------------------------------------------------------------------------------------------
-enum fmtDescOptions : uint32_t {
+enum FmtDescOptions : uint32_t {
     
     FMT_USE_ACTUAL_ATTR = 0x0,
     
@@ -1401,7 +1401,7 @@ private:
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals {
     
-    DrvConsoleIO        *console        = nullptr;
+    SimConsoleIO        *console        = nullptr;
     SimTokenizer        *tok            = nullptr;
     SimExprEvaluator    *eval           = nullptr;
     SimDisAsm           *disAsm         = nullptr;
@@ -1414,4 +1414,4 @@ struct VCPU32Globals {
     CpuCore             *cpu            = nullptr;
 };
 
-#endif  // VCPU32Driver_h
+#endif  // VCPU32SimDeclarations_h

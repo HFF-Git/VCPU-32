@@ -24,7 +24,7 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#include "VCPU32-Version.h"
+#include "VCPU32-SimVersion.h"
 #include "VCPU32-Types.h"
 #include "VCPU32-SimDeclarations.h"
 #include "VCPU32-SimTables.h"
