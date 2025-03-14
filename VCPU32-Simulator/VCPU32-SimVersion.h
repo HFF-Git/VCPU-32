@@ -20,11 +20,11 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#ifndef VCPU32Version_hpp
-#define VCPU32Version_hpp
+#ifndef VCPU32SimVersion_h
+#define VCPU32SimVersion_h
 
 const char SIM_VERSION[ ]   = "B.00.09";
 const char SIM_GIT_BRANCH[] = "Terminal-Win-Changes";
 const int  SIM_PATCH_LEVEL  = 1;
 
-#endif
+#endif // VCPU32SimVersion_h
