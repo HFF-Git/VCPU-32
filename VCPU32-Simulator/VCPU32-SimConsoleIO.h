@@ -84,16 +84,23 @@ struct SimConsoleIO {
     bool    isConsole( );
     int     readChar( );
     void    writeChar( char ch  );
+    void    writeCarriageReturn( );
+    
+    // ??? rethink the raw mode, should we be in this mode always ? We handle a lot already...
+    
     void    saveConsoleMode( );
     void    restoreConsoleMode( );
     void    setConsoleModeRaw( bool nonBlocking = false );
    
-    int     readLine( char *cmdBuf );
-    int     printNum( uint32_t num, int rdx );
+    int     readLine( char *cmdBuf, int cmdBufLen );
     
     template<typename... Args> int printChars( const char* fmt, Args&&... args );
+    int     printNum( uint32_t num, int rdx );
+    
     
     private:
+    
+    // ??? need to add cursors and index for teh commadn buffer ?
 
     char printBuf[ 1024 ];
     bool nonBlockingEnabled = false;

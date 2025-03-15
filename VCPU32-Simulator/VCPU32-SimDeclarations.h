@@ -1191,7 +1191,7 @@ public:
     void            setDefaults( );
     void            drawBanner( );
     void            drawBody( );
-    SimTokId           getCurrentCmd( );
+    SimTokId        getCurrentCmd( );
     void            setupCmdInterpreter( int argc, const char *argv[ ] );
     void            cmdInterpreterLoop( );
     
@@ -1199,7 +1199,7 @@ private:
     
     void            printWelcome( );
     void            promptCmdLine( );
-    int             readInputLine( char *cmdBuf );
+    int             readInputLine( char *cmdBuf, int cmdBufLen );
     void            evalInputLine( char *cmdBuf );
     void            cmdLineError( SimErrMsgId errNum, char *argStr = nullptr );
     int             promptYesNoCancel( char *promptStr );
