@@ -180,11 +180,11 @@ void SimCommandsWin::cmdLineError( SimErrMsgId errNum, char *argStr ) {
 //------------------------------------------------------------------------------------------------------------
 int SimCommandsWin::promptYesNoCancel( char *promptStr ) {
     
-    glb -> console -> printChars( "%s -> ", promptStr );
+    int len = glb -> console -> printChars( "%s -> ", promptStr );
     
     char buf[ 8 ] = "";
     
-    if ( glb -> console -> readLine( buf, sizeof( buf )) > 0 ) {
+    if ( glb -> console -> readCmdLine( buf, 0, len ) > 0 ) {
     
         if      (( buf[ 0 ] == 'Y' ) ||  ( buf[ 0 ] == 'y' ))   return( 1 );
         else if (( buf[ 0 ] == 'N' ) ||  ( buf[ 0 ] == 'n' ))   return( -1 );
@@ -672,7 +672,7 @@ void SimCommandsWin::printWelcome( ) {
 // comes from a terminal and not an input file.
 //
 //------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::promptCmdLine( ) {
+int SimCommandsWin::promptCmdLine( ) {
     
     if ( glb -> console -> isConsole( )) {
         
@@ -683,6 +683,8 @@ void SimCommandsWin::promptCmdLine( ) {
         
         promptLen += glb -> console -> printChars( "->" );
     }
+    
+    return( promptLen );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -693,9 +695,9 @@ void SimCommandsWin::promptCmdLine( ) {
 //
 // ??? how do we deal with the option to edit a command line ? pass a pre-filled cmdBuf ?
 //------------------------------------------------------------------------------------------------------------
-int SimCommandsWin::readInputLine( char *cmdBuf ) {
+int SimCommandsWin::readInputLine( char *cmdBuf, int promptLen ) {
   
-    int len = glb -> console -> readLine( cmdBuf, 0 );
+    int len = glb -> console -> readCmdLine( cmdBuf, 0, promptLen );
    
     if ( len > 0 ) {
             
@@ -2435,8 +2437,8 @@ void SimCommandsWin::cmdInterpreterLoop( ) {
     
     while ( true ) {
         
-        promptCmdLine( );
-        if ( readInputLine( cmdLineBuf )) {
+        int promptLen = promptCmdLine( );
+        if ( readInputLine( cmdLineBuf, promptLen )) {
             
             evalInputLine( cmdLineBuf );
             if ( winModeOn ) glb -> winDisplay -> reDraw( );

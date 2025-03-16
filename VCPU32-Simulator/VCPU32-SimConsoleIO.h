@@ -86,7 +86,7 @@ struct SimConsoleIO {
     bool    isConsole( );
     int     readChar( );
     void    writeChar( char ch  );
-    int     readLine( char *cmdBuf, int initCmdBufLen = 0, int cursorOfs = 0 );
+    int     readCmdLine( char *cmdBuf, int initCmdBufLen = 0, int cursorOfs = 0 );
     
     template<typename... Args> int printChars( const char* fmt, Args&&... args );
     int     printNum( uint32_t num, int rdx );

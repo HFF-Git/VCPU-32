@@ -1198,8 +1198,8 @@ public:
 private:
     
     void            printWelcome( );
-    void            promptCmdLine( );
-    int             readInputLine( char *cmdBuf );
+    int             promptCmdLine( );
+    int             readInputLine( char *cmdBuf, int promptLen = 0 );
     void            evalInputLine( char *cmdBuf );
     void            cmdLineError( SimErrMsgId errNum, char *argStr = nullptr );
     int             promptYesNoCancel( char *promptStr );

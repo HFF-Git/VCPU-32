@@ -321,16 +321,15 @@ void SimConsoleIO::writeCharAtPos( int ch, int strSize, int pos ) {
 // This option is used by the REDO command which lists a previously entered command presented for editing.
 //
 //
-// ??? we would also need to know where the command line wold starting in the terminal line. Otherwise the
-// cursor is confused...
+// ??? needs to clarify what exactly is being inserted aor removed when the cursor is in the line...
 //
 // ??? handle further escape sequence.
 // ??? cursor up: \033[A
 // ??? cursor down: \033[B
 // ??? which escape sequence should we handle directly ? which to pass on ? how ?
 //------------------------------------------------------------------------------------------------------------
-int SimConsoleIO::readLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
-    
+int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
+   
     enum CharType : uint16_t {
         
         CT_NORMAL           = 0,
@@ -342,8 +341,6 @@ int SimConsoleIO::readLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
     int         strSize = 0;
     int         cursor  = 0;
     CharType    state   = CT_NORMAL;
-    
-    // ??? cursor offset ???
     
     if (( initCmdBufLen > 0 ) && ( initCmdBufLen < CMD_LINE_BUF_SIZE - 1 )) {
         
@@ -379,9 +376,7 @@ int SimConsoleIO::readLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
                 else if ( isBackSpaceChar( ch )) {
                     
                     if ( strSize > 0 ) {
-                        
-                        // ??? cursor offset ???
-                        
+                       
                         removeChar( cmdBuf, &strSize, &cursor );
                         writeBackSpace( );
                     }
@@ -390,10 +385,8 @@ int SimConsoleIO::readLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
                     
                     if ( strSize < CMD_LINE_BUF_SIZE - 1 ) {
                         
-                        // ??? cursor offset ???
-                        
                         insertChar( cmdBuf, ch, &strSize, &cursor );
-                        if ( isprint( ch )) writeCharAtPos( ch, strSize, cursor );
+                        if ( isprint( ch )) writeCharAtPos( ch, strSize, cursor + cursorOfs );
                     }
                 }
                 
@@ -405,10 +398,12 @@ int SimConsoleIO::readLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
                         
                     case 'D': {
                         
-                        // ??? cursor offset ???
+                        if ( cursor > 0 ) {
+                          
+                            cursor --;
+                            writeCursorLeft( );
+                        }
                         
-                        cursor --;
-                        writeCursorLeft( );
                         state = CT_NORMAL;
                     
                     } break;
@@ -416,9 +411,7 @@ int SimConsoleIO::readLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
                     case 'C': {
                         
                         if ( cursor < strSize ) {
-                            
-                            // ??? cursor offset ???
-                            
+                          
                             cursor ++;
                             writeCursorRight( );
                         }
