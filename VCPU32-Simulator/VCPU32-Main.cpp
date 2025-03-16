@@ -117,7 +117,7 @@ int main( int argc, const char* argv[ ] ) {
     glbDesc.disAsm                      = new SimDisAsm( &glbDesc );
     glbDesc.oneLineAsm                  = new SimOneLineAsm( &glbDesc );
     
-    glbDesc.console  -> setConsoleModeRaw( );
+    glbDesc.console  -> initConsoleIO( );
     glbDesc.env      -> setupPredefined( );
     glbDesc.cmdWin   -> setupCmdInterpreter( argc, argv );
     glbDesc.cpu      -> reset( );

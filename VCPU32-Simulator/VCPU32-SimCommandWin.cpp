@@ -693,11 +693,10 @@ void SimCommandsWin::promptCmdLine( ) {
 //
 // ??? how do we deal with the option to edit a command line ? pass a pre-filled cmdBuf ?
 //------------------------------------------------------------------------------------------------------------
-int SimCommandsWin::readInputLine( char *cmdBuf, int cmdBufLen ) {
+int SimCommandsWin::readInputLine( char *cmdBuf ) {
   
-    // ??? what of the cmdBuf is prefilled ?
-    int len = glb -> console -> readLine( cmdBuf, cmdBufLen );
-        
+    int len = glb -> console -> readLine( cmdBuf, 0 );
+   
     if ( len > 0 ) {
             
         removeComment( cmdBuf );
@@ -2407,7 +2406,11 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
                     default:                throw ( ERR_INVALID_CMD );
                 }
             }
-            else throw ( ERR_INVALID_CMD );
+            else {
+                
+                printf( "Got: %s\n", cmdBuf ); // for debugging ...
+                throw ( ERR_INVALID_CMD );
+            }
         }
     }
     
@@ -2433,7 +2436,7 @@ void SimCommandsWin::cmdInterpreterLoop( ) {
     while ( true ) {
         
         promptCmdLine( );
-        if ( readInputLine( cmdLineBuf, sizeof( cmdLineBuf ) )) {
+        if ( readInputLine( cmdLineBuf )) {
             
             evalInputLine( cmdLineBuf );
             if ( winModeOn ) glb -> winDisplay -> reDraw( );

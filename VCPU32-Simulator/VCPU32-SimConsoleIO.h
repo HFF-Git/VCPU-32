@@ -65,7 +65,6 @@
 #endif
 
 #include "VCPU32-Types.h"
-// #include "VCPU32-SimConsoleIO.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Console IO object. The simulator is a character based interface. The typical terminal IO functionality
@@ -80,31 +79,28 @@ struct SimConsoleIO {
     public:
     
     SimConsoleIO( );
+    ~SimConsoleIO( );
     
+    void    initConsoleIO( bool nonBlocking = false );
+    void    setBlocking( bool enabled );
     bool    isConsole( );
     int     readChar( );
     void    writeChar( char ch  );
-    void    writeCarriageReturn( );
-    
-    // ??? rethink the raw mode, should we be in this mode always ? We handle a lot already...
-    
-    void    saveConsoleMode( );
-    void    restoreConsoleMode( );
-    void    setConsoleModeRaw( bool nonBlocking = false );
-   
-    int     readLine( char *cmdBuf, int cmdBufLen );
+    int     readLine( char *cmdBuf, int initCmdBufLen = 0, int cursorOfs = 0 );
     
     template<typename... Args> int printChars( const char* fmt, Args&&... args );
     int     printNum( uint32_t num, int rdx );
     
-    
     private:
     
-    // ??? need to add cursors and index for teh commadn buffer ?
-
-    char printBuf[ 1024 ];
-    bool nonBlockingEnabled = false;
-    bool rawModeEnabled     = false;
+    void    writeCarriageReturn( );
+    void    writeBackSpace( );
+    void    writeCursorLeft( );
+    void    writeCursorRight( );
+    void    writeCharAtPos( int ch, int strSize, int pos );
+    
+    char    outputPrintBuf[ 1024 ]  = { 0 };
+    bool    nonBlockingEnabled      = false;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -121,7 +117,7 @@ template<typename... Args> int SimConsoleIO::printChars( const char* fmt, Args&&
     
     do {
         
-        len = snprintf( printBuf, sizeof( printBuf ), fmt, args... );
+        len = snprintf( outputPrintBuf, sizeof( outputPrintBuf ), fmt, args... );
        
         if (( len < 0 ) && ( errno != EINTR )) {
             
@@ -134,10 +130,10 @@ template<typename... Args> int SimConsoleIO::printChars( const char* fmt, Args&&
     
     if ( len > 0 ) {
         
-        for ( int i = 0; i < len; i++  ) writeChar( printBuf[ i ] );
+        for ( int i = 0; i < len; i++  ) writeChar( outputPrintBuf[ i ] );
     }
     
-    return( static_cast<int>(len));
+    return( static_cast<int>( len ));
 }
 
 #endif /* VCPU32_ConsoleIo_h */

@@ -1199,7 +1199,7 @@ private:
     
     void            printWelcome( );
     void            promptCmdLine( );
-    int             readInputLine( char *cmdBuf, int cmdBufLen );
+    int             readInputLine( char *cmdBuf );
     void            evalInputLine( char *cmdBuf );
     void            cmdLineError( SimErrMsgId errNum, char *argStr = nullptr );
     int             promptYesNoCancel( char *promptStr );
