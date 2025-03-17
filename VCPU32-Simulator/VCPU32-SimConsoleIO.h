@@ -91,12 +91,20 @@ struct SimConsoleIO {
     template<typename... Args> int printChars( const char* fmt, Args&&... args );
     int     printNum( uint32_t num, int rdx );
     
+    void    clearScreen( );
+    void    setAbsCursor( int row, int col );
+    void    setWindowSize( int row, int col );
+    void    setScrollArea( int start, int end );
+    void    clearScrollArea( );
+    
     private:
     
     void    writeCarriageReturn( );
     void    writeBackSpace( );
     void    writeCursorLeft( );
     void    writeCursorRight( );
+    void    writeScrollUp( int n );
+    void    writeScrollDown( int n );
     void    writeCharAtPos( int ch, int strSize, int pos );
     
     char    outputPrintBuf[ 1024 ]  = { 0 };

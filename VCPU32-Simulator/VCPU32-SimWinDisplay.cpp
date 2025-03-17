@@ -97,40 +97,6 @@ SimWinDisplay::SimWinDisplay( VCPU32Globals *glb ) {
     windowList[ CTRL_REG_WIN ]  = new SimWinSpecialRegs( glb );
     windowList[ PL_REG_WIN ]    = new SimWinPipeLineRegs( glb );
     windowList[ STATS_WIN ]     = new SimWinStatistics( glb );
-   //  glb -> cmdWin               = new SimCommandsWin( glb );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Building a screen will imply a ton of escape sequence to send to the terminal screen. The following batch
-// of routines will put out the escape sequence for clearing data, position a cursor and so on. There is
-// a lot of writing that will take place. A future version could come up with a string concatenation scheme,
-// and use fewer writes.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimWinDisplay::clearScreen( ) {
-    
-    glb -> console -> printChars((char *) "\x1b[2J" );
-    glb -> console -> printChars((char *) "\x1b[3J" );
-}
-
-void SimWinDisplay::setAbsCursor( int row, int col ) {
-    
-    glb -> console -> printChars((char *) "\x1b[%d;%dH", row, col );
-}
-
-void SimWinDisplay::setWindowSize( int row, int col ) {
-    
-    glb -> console -> printChars((char *) "\x1b[8;%d;%dt", row, col );
-}
-
-void SimWinDisplay::setScrollArea( int start, int end ) {
-    
-    glb -> console -> printChars((char *) "\x1b[%d;%dr", start, end );
-}
-
-void SimWinDisplay::clearScrollArea( ) {
-    
-    glb -> console -> printChars((char *) "\x1b[r" );
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -373,12 +339,11 @@ void SimWinDisplay::reDraw( bool mustRedraw ) {
         actualRowSize      = maxRowsNeeded;
         actualColumnSize   = maxColumnsNeeded;
         
-        setWindowSize( actualRowSize, actualColumnSize );
-        setAbsCursor( 1, 1 );
-        clearScrollArea( );
-        clearScreen( );
-
-        setScrollArea( actualRowSize - glb -> cmdWin -> getRows( ) + 2, actualRowSize );
+        glb -> console -> setWindowSize( actualRowSize, actualColumnSize );
+        glb -> console -> setAbsCursor( 1, 1 );
+        glb -> console -> clearScrollArea( );
+        glb -> console -> clearScreen( );
+        glb -> console -> setScrollArea( actualRowSize - glb -> cmdWin -> getRows( ) + 2, actualRowSize );
     }
     
     for ( int i = 0; i < MAX_WINDOWS; i++ ) {
@@ -390,7 +355,7 @@ void SimWinDisplay::reDraw( bool mustRedraw ) {
     }
     
     glb -> cmdWin -> reDraw( );
-    setAbsCursor( actualRowSize, 1 );
+    glb -> console -> setAbsCursor( actualRowSize, 1 );
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -408,8 +373,8 @@ void SimWinDisplay::windowsOn( ) {
 
 void SimWinDisplay::windowsOff( ) {
     
-    clearScrollArea( );
-    clearScreen( );
+    glb -> console -> clearScrollArea( );
+    glb -> console -> clearScreen( );
 }
 
 void SimWinDisplay::windowDefaults( ) {

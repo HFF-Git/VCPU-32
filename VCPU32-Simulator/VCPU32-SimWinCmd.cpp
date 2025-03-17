@@ -73,6 +73,26 @@ void removeComment( char *cmdBuf ) {
 }; // namespace
 
 
+
+// ??? the command window should not directly print to tge screen. Instead we need to print to a line
+// buffer array to support scrolling in windows mode. When a line.
+//
+// ??? how to best do that ? How do recognize lines ?
+//
+// ??? teh command line buffer is a ircular buffer, needs to have a last entered index, and a current
+// cursor index to tell from where to start filling the command window area. Also, when we hit a CR
+// the cursor should jump to the last index and disply from there again.
+//
+// ????? in a sense the line mode becomes a windows mode, the command window just another window...
+//
+// ??? we need to ensure that only the command win prints are done with the command win print routine,
+// which knows the special details...
+//
+// ??? a ton of work .....
+
+
+
+
 //************************************************************************************************************
 //************************************************************************************************************
 //
@@ -148,7 +168,6 @@ void SimCommandsWin::setupCmdInterpreter( int argc, const char *argv[ ] ) {
     }
     
     glb -> winDisplay  -> windowDefaults( );
-   // glb -> lineDisplay -> lineDefaults( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -218,18 +237,6 @@ void SimCommandsWin::acceptRparen( ) {
     
     if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
-}
-
-
-// ??? put the methods needed to the command win... it relaces the old command line interpreter...
-
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::lineDefaults( ) {
-    
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -501,19 +508,6 @@ void SimCommandsWin::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
     }
 }
 
-
-
-
-
-//************************************************************************************************************
-//************************************************************************************************************
-//
-// Object methods.
-//
-//************************************************************************************************************
-//************************************************************************************************************
-
-
 //------------------------------------------------------------------------------------------------------------
 // The simulator command interpreter features a simple command history. It is a circular buffer that holds
 // the last commands. There are functions to show the command history, re-execute a previous command and to
@@ -674,17 +668,19 @@ void SimCommandsWin::printWelcome( ) {
 //------------------------------------------------------------------------------------------------------------
 int SimCommandsWin::promptCmdLine( ) {
     
+    int len = 0;
+    
     if ( glb -> console -> isConsole( )) {
         
         if ( glb -> env -> getEnvVarBool((char *) ENV_SHOW_CMD_CNT )) {
             
-            promptLen = glb -> console -> printChars( "(%i) ", glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ));
+            len = glb -> console -> printChars( "(%i) ", glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ));
         }
         
-        promptLen += glb -> console -> printChars( "->" );
+        len += glb -> console -> printChars( "->" );
     }
     
-    return( promptLen );
+    return( len );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -702,8 +698,8 @@ int SimCommandsWin::readInputLine( char *cmdBuf, int promptLen ) {
     if ( len > 0 ) {
             
         removeComment( cmdBuf );
-        glb -> hist -> addCmdLine( cmdBuf );
-        glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
+       // glb -> hist -> addCmdLine( cmdBuf ); // ??? a good place ? how about we do it in eval line ?
+       // glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
            
         return( len );
     }
@@ -1112,7 +1108,8 @@ void SimCommandsWin::writeLineCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The HIST command displays the command history. Optional, we can onl report a certain depth from the top.
+// The HIST command displays the command history. Optional, we can only report a certain depth from the top.
+// The HIST command itself is not added to the history stack.
 //
 //  HIST [ depth ]
 //------------------------------------------------------------------------------------------------------------
@@ -1165,15 +1162,18 @@ void SimCommandsWin::doCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// REDO is almost like DO, except that we get the selected command and put it already into the input command
-// line string. We also print it without a carroage return. The idea is that it can now be edited.
+// REDO is almost like DO, except that we retrieve the selected command and put it already into the input
+// command line string for the readCmdLine routine. We also print it without a carriaage return. The idea
+// is that it can now be edited. The edited command is added to teh history buffer and then executed. The
+// REDO command itself is not added to the command history stack. If he cmdNum is omitted, REDO will take
+// the last command entered.
 //
 // REDO <cmdNum>
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::redoCmd( ) {
     
     SimExpr rExpr;
-    int     cmdId = 0;
+    int     cmdId = -1;
     
     if ( glb -> tok -> tokId( ) != TOK_EOS ) {
         
@@ -1188,11 +1188,18 @@ void SimCommandsWin::redoCmd( ) {
     
     if ( cmdStr != nullptr ) {
         
-        glb -> hist -> addCmdLine( cmdStr );
+        char tmpCmd[ 256 ];
+        strncpy( tmpCmd, cmdStr, sizeof( tmpCmd ));
         
-        // ??? here is will be different....
-        // ??? pass the string to a command line reader...
-        // ??? on return -> evalInputLine( cmdStr );
+        glb -> console -> printChars( "%s", tmpCmd );
+        
+        size_t len = glb -> console -> readCmdLine( tmpCmd, (int) strlen( tmpCmd ));
+        if ( len > 0 ) {
+            
+            glb -> hist -> addCmdLine( tmpCmd );
+            glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
+            evalInputLine( tmpCmd );
+        }
     }
     else throw( ERR_INVALID_CMD_ID );
 }
@@ -2438,7 +2445,10 @@ void SimCommandsWin::cmdInterpreterLoop( ) {
     while ( true ) {
         
         int promptLen = promptCmdLine( );
-        if ( readInputLine( cmdLineBuf, promptLen )) {
+        if ( readInputLine( cmdLineBuf, promptLen ) > 0 ) {
+            
+            glb -> hist -> addCmdLine( cmdLineBuf );
+            glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
             
             evalInputLine( cmdLineBuf );
             if ( winModeOn ) glb -> winDisplay -> reDraw( );

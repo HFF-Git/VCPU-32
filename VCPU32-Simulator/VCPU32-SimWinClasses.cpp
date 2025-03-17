@@ -766,7 +766,7 @@ void SimWinCode::drawBanner( ) {
     int         currentItemAdr      = getCurrentItemAdr( );
     int         currentItemAdrLimit = currentItemAdr + (( getRows( ) - 1 ) * getLineIncrement( ));
     int         currentIaOfs        = (int) glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1  );
-    SimTokId       currentCmd          = glb -> cmdWin -> getCurrentCmd( );
+    SimTokId    currentCmd          = glb -> cmdWin -> getCurrentCmd( );
     bool        isCurrent           = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
     uint32_t    blockEntries        = glb -> cpu -> physMem -> getBlockEntries( );
     uint32_t    blockSize           = glb -> cpu -> physMem -> getBlockSize( );

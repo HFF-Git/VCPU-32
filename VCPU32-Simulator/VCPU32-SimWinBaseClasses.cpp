@@ -148,7 +148,7 @@ void SimWin::setWinCursor( int row, int col ) {
     if ( row > winRows )            row = winRows;
     if ( col > MAX_WIN_COL_SIZE )   col = MAX_WIN_COL_SIZE;
     
-    setAbsCursor( winAbsCursorRow + row - 1, winAbsCursorCol + col );
+    glb -> console -> setAbsCursor( winAbsCursorRow + row - 1, winAbsCursorCol + col );
     
     lastRowPos = row;
     lastColPos = col;
@@ -157,9 +157,8 @@ void SimWin::setWinCursor( int row, int col ) {
 int SimWin::getWinCursorRow( ) { return( lastRowPos ); }
 int SimWin::getWinCursorCol( ) { return( lastColPos ); }
 
-
-
-
+// ??? should this become part of teh console IO ? it is also not really a fgield but rather a change in
+// attributes...
 //------------------------------------------------------------------------------------------------------------
 // A window will consist of lines with lines having fields on them. A field has a set of attributes such as
 // foreground and background colors, bold characters and so on. This routine sets the attributes based on the
@@ -192,15 +191,6 @@ void SimWin::setFieldAtributes( uint32_t fmtDesc ) {
             default:    glb -> console -> printChars((char *) "\x1b[39m");
         }
     }
-}
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-//------------------------------------------------------------------------------------------------------------
-void SimWin::setAbsCursor( int row, int col ) {
-    
-    glb -> console -> printChars((char *) "\x1b[%d;%dH", row, col );
 }
 
 //------------------------------------------------------------------------------------------------------------

@@ -88,7 +88,12 @@ bool isLeftBracketChar( int ch ) {
 //------------------------------------------------------------------------------------------------------------
 void removeChar( char *buf, int *strSize, int *pos ) {
     
-    if (( *strSize > 0 ) && ( *pos > 0 )) {
+    if (( *strSize > 0 ) && ( *strSize == *pos )) {
+        
+        *strSize    = *strSize - 1;
+        *pos        = *pos - 1;
+    }
+    else if (( *strSize > 0 ) && ( *pos > 0 )) {
    
         for ( int i = *pos; i < *strSize; i++ ) buf[ i ] = buf[ i + 1 ];
         *strSize    = *strSize - 1;
@@ -281,6 +286,17 @@ void SimConsoleIO::writeCursorRight( ) {
     printChars( "\033[C" );
 }
 
+void SimConsoleIO::writeScrollUp( int n ) {
+    
+    printChars( "\033[%dS", n );
+}
+
+void SimConsoleIO::writeScrollDown( int n ) {
+    
+    printChars( "\033[%dT", n );
+}
+
+
 void SimConsoleIO::writeCharAtPos( int ch, int strSize, int pos ) {
     
     if ( pos == strSize ) {
@@ -320,12 +336,6 @@ void SimConsoleIO::writeCharAtPos( int ch, int strSize, int pos ) {
 // We also have the option of a prefilled command buffer for editing a command line before hitting return.
 // This option is used by the REDO command which lists a previously entered command presented for editing.
 //
-//
-// ??? needs to clarify what exactly is being inserted aor removed when the cursor is in the line...
-//
-// ??? handle further escape sequence.
-// ??? cursor up: \033[A
-// ??? cursor down: \033[B
 // ??? which escape sequence should we handle directly ? which to pass on ? how ?
 //------------------------------------------------------------------------------------------------------------
 int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
@@ -376,7 +386,7 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
                 else if ( isBackSpaceChar( ch )) {
                     
                     if ( strSize > 0 ) {
-                       
+                        
                         removeChar( cmdBuf, &strSize, &cursor );
                         writeBackSpace( );
                     }
@@ -420,9 +430,32 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
                         
                     } break;
                         
-                        // ??? handle further escape sequence.
-                        // ??? cursor up: \033[A
-                        // ??? cursor down: \033[B
+                        
+                    // ??? for a quick test ... it seems the scroll content is lost when it
+                    // leaves the screen. Seems to be a bigger issue.
+                    //
+                    // ??? i would need to implement a command line buffer and lnes are prited from there.
+                    // A new output line is simple entered to the output line stack. Then I print from the
+                    // current line buffer index backward filling the scroll area screen. The screen is thus
+                    // not really a scroll area, bit a scollable command screen.
+                        
+                    // The functionlaity should be in the Command Window code. But we need to report the
+                    // cursor keys pressed...
+         
+                        
+                    case 'A': {
+                        
+                        writeScrollUp( 1 );
+                        state = CT_NORMAL;
+                        
+                    } break;
+                        
+                    case 'B': {
+                        
+                        writeScrollDown( 1 );
+                        state = CT_NORMAL;
+                        
+                    } break;
                         
                     default: state = CT_NORMAL;
                 }
@@ -433,9 +466,35 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "printNum" is a little utility function to print out a number with a given radix.
+// Print routines.
 //
 //------------------------------------------------------------------------------------------------------------
+void SimConsoleIO::clearScreen( ) {
+    
+    printChars((char *) "\x1b[2J" );
+    printChars((char *) "\x1b[3J" );
+}
+
+void SimConsoleIO::setAbsCursor( int row, int col ) {
+    
+    printChars((char *) "\x1b[%d;%dH", row, col );
+}
+
+void SimConsoleIO::setWindowSize( int row, int col ) {
+    
+    printChars((char *) "\x1b[8;%d;%dt", row, col );
+}
+
+void SimConsoleIO::setScrollArea( int start, int end ) {
+    
+    printChars((char *) "\x1b[%d;%dr", start, end );
+}
+
+void SimConsoleIO::clearScrollArea( ) {
+    
+    printChars((char *) "\x1b[r" );
+}
+
 int SimConsoleIO::printNum( uint32_t num, int rdx ) {
     
     if      ( rdx == 10 )  return( printChars( "%d", num ));

@@ -103,6 +103,7 @@ enum SimWinIndex : int {
     LAST_UWIN       = 31
 };
 
+// ??? should this become part of cosole IO ?
 //------------------------------------------------------------------------------------------------------------
 // Format descriptor for putting out a field. The options are simply ORed. The idea is that a format descriptor
 // can be assembled once and used for many fields. A value of zero will indicate to simply use the previously
@@ -871,7 +872,6 @@ protected:
     
     VCPU32Globals   *glb;
     
-    void            setAbsCursor( int row, int col );
     void            setFieldAtributes( uint32_t fmtDesc );
     int             printWord( uint32_t val, int rdx = 16, uint32_t fmtDesc = 0 );
     int             printText( char *text, int len );
@@ -1209,7 +1209,6 @@ private:
     void            acceptLparen( );
     void            acceptRparen( );
     
-    void            lineDefaults( );
     void            displayInvalidWord( int rdx );
     void            displayWord( uint32_t val, int rdx = 16 );
     void            displayHalfWord( uint32_t val, int rdx = 16 );
@@ -1272,8 +1271,10 @@ private:
     
     VCPU32Globals   *glb       = nullptr;
     bool            winModeOn  = false;
-    SimTokId           currentCmd = TOK_NIL;
-    int             promptLen  = 0;
+    SimTokId        currentCmd = TOK_NIL;
+    
+    // ??? need an output line area...
+    // and logic what to display from there...
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -1324,12 +1325,6 @@ public:
     bool            validUserWindowType( SimTokId winType );
     bool            isCurrentWin( int winNum );
     bool            isWinEnabled( int winNum );
-    
-    void            clearScreen( );
-    void            setAbsCursor( int row, int col );
-    void            setWindowSize( int row, int col );
-    void            setScrollArea( int start, int end );
-    void            clearScrollArea( );
     
 private:
     
