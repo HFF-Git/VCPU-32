@@ -1978,7 +1978,7 @@ SimOneLineAsm::SimOneLineAsm( VCPU32Globals *glb ) {
     
     this -> glb = glb;
     
-    tok = new SimTokenizer( glb );
+    tok = new SimTokenizer( );
 }
 
 SimErrMsgId SimOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {

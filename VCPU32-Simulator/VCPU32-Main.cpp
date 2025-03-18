@@ -107,12 +107,10 @@ int main( int argc, const char* argv[ ] ) {
     cpuDesc.ioDesc.priority             = 3;
     
     glbDesc.cpu                         = new CpuCore( &cpuDesc );
+    
     glbDesc.console                     = new SimConsoleIO( );
     glbDesc.env                         = new SimEnv( &glbDesc, MAX_ENV_VARIABLES );
-    glbDesc.hist                        = new SimCmdHistory( &glbDesc );
     glbDesc.cmdWin                      = new SimCommandsWin( &glbDesc );
-    glbDesc.tok                         = new SimTokenizer( &glbDesc );
-    glbDesc.eval                        = new SimExprEvaluator( &glbDesc );
     glbDesc.winDisplay                  = new SimWinDisplay( &glbDesc );
     glbDesc.disAsm                      = new SimDisAsm( &glbDesc );
     glbDesc.oneLineAsm                  = new SimOneLineAsm( &glbDesc );

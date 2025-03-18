@@ -74,22 +74,16 @@ void removeComment( char *cmdBuf ) {
 
 
 
-// ??? the command window should not directly print to tge screen. Instead we need to print to a line
-// buffer array to support scrolling in windows mode. When a line.
+// ??? the command window should not directly print to the screen. Instead we need to print to a line
+// buffer array to support scrolling in windows mode. In a sense the line mode becomes a windows mode,
+// the command window just another window...
 //
-// ??? how to best do that ? How do recognize lines ?
-//
-// ??? teh command line buffer is a ircular buffer, needs to have a last entered index, and a current
-// cursor index to tell from where to start filling the command window area. Also, when we hit a CR
-// the cursor should jump to the last index and disply from there again.
-//
-// ????? in a sense the line mode becomes a windows mode, the command window just another window...
+// ??? the command line buffer is a circular buffer of lines separated by "\n".
 //
 // ??? we need to ensure that only the command win prints are done with the command win print routine,
 // which knows the special details...
 //
 // ??? a ton of work .....
-
 
 
 
@@ -109,6 +103,11 @@ void removeComment( char *cmdBuf ) {
 SimCommandsWin::SimCommandsWin( VCPU32Globals *glb ) : SimWin( glb ) {
     
     this -> glb = glb;
+    
+    tok     = new SimTokenizer( );
+    eval    = new SimExprEvaluator( glb, tok );
+    hist    = new SimCmdHistory( );
+    winOut  = new SimCmdWinOutBuffer( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -218,24 +217,24 @@ int SimCommandsWin::promptYesNoCancel( char *promptStr ) {
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::checkEOS( ) {
     
-    if ( ! glb -> tok -> isToken( TOK_EOS )) throw ( ERR_TOO_MANY_ARGS_CMD_LINE );
+    if ( ! tok -> isToken( TOK_EOS )) throw ( ERR_TOO_MANY_ARGS_CMD_LINE );
 }
 
 void SimCommandsWin::acceptComma( ) {
     
-    if ( glb -> tok -> isToken( TOK_COMMA )) glb -> tok -> nextToken( );
+    if ( tok -> isToken( TOK_COMMA )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_COMMA );
 }
 
 void SimCommandsWin::acceptLparen( ) {
     
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
 }
 
 void SimCommandsWin::acceptRparen( ) {
     
-    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
 }
 
@@ -514,11 +513,9 @@ void SimCommandsWin::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
 // retrieve a previous command for editing. The command stack can be accessed with relative command numbers,
 // i.e. "current - 3" or by absolute command number, when still present in the history stack.
 //
-// ??? first cut at command history.... check... it becomes part of the new command interpreter.
 //------------------------------------------------------------------------------------------------------------
-SimCmdHistory::SimCmdHistory( VCPU32Globals *glb ) {
+SimCmdHistory::SimCmdHistory( ) {
     
-    this -> glb     = glb;
     this -> head    = 0;
     this -> tail    = 0;
     this -> count   = 0;
@@ -531,93 +528,55 @@ SimCmdHistory::SimCmdHistory( VCPU32Globals *glb ) {
 //------------------------------------------------------------------------------------------------------------
 void SimCmdHistory::addCmdLine( char *cmdStr ) {
     
-    cmdIdCount ++;
-    
     SimCmdHistEntry *ptr = &history[ head ];
     
-    ptr -> cmdId = cmdIdCount;
+    ptr -> cmdId = nextCmdNum;
     strncpy( ptr -> cmdLine, cmdStr, 256 );
 
     if ( count == MAX_CMD_HIST_BUF_SIZE ) tail = ( tail + 1 ) % MAX_CMD_HIST_BUF_SIZE;
     else count++;
 
+    nextCmdNum ++;
     head = ( head + 1 ) % MAX_CMD_HIST_BUF_SIZE;
 }
 
 //------------------------------------------------------------------------------------------------------------
-// There is the situation that the current command is the "HIST" command itself. In this case we do not want
-// to add this command to the history buffer. Unfortunately, by the time we decoded the command it is already
-// in the history buffer. So, this routine will allow to remove the top command from the history buffer and
-// updatimg the comdId counter accordingly.
+// Get a command line from the command history. If the command reference is negative, the entry relativ to
+// the top is used. "head - 1" refers to the last entry entered. If the command ID is positive, we search for
+// the entry with the matching command id, if still in the history buffer. Optionally, we return the absoolute
+// command Id.
 //
 //------------------------------------------------------------------------------------------------------------
-void SimCmdHistory::removeTopCmdLine( ) {
+char *SimCmdHistory::getCmdLine( int cmdRef, int *cmdId ) {
     
-    cmdIdCount --;
-    
-    if ( count == MAX_CMD_HIST_BUF_SIZE ) tail = ( tail - 1 ) % MAX_CMD_HIST_BUF_SIZE;
-    else count--;
-    
-    head = ( head - 1 ) % MAX_CMD_HIST_BUF_SIZE;
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Get a command line from the command history. If the command ID is negative, the entry relativ to the top
-// is used. "head - 1" refers to the last entry entered. If the command ID is positive, we search for the
-// entry with the matching command id, if still in the history buffer.
-//
-//------------------------------------------------------------------------------------------------------------
-char *SimCmdHistory::getCmdLine( int cmdId ) {
-    
-    if (( cmdId >= 0 ) && (( cmdIdCount - cmdId ) > MAX_CMD_HIST_BUF_SIZE )) return ( nullptr );
-    if (( cmdId < 0  ) && ( - cmdId > cmdIdCount )) return ( nullptr );
+    if (( cmdRef >= 0 ) && (( nextCmdNum - cmdRef ) > MAX_CMD_HIST_BUF_SIZE )) return ( nullptr );
+    if (( cmdRef < 0  ) && ( - cmdRef > nextCmdNum )) return ( nullptr );
     if ( count == 0 ) return ( nullptr );
         
-    if ( cmdId >= 0 ) {
+    if ( cmdRef >= 0 ) {
         
         for ( int i = 0; i < count; i++ ) {
         
             int pos = ( tail + i ) % MAX_CMD_HIST_BUF_SIZE;
-            if ( history[ pos ].cmdId == cmdId ) return( history[ pos ].cmdLine );
+            if ( history[ pos ].cmdId == cmdRef ) {
+                
+                if ( cmdId != nullptr ) *cmdId = history[ pos ].cmdId;
+                return( history[ pos ].cmdLine );
+            }
         }
      
         return( nullptr );
     }
     else {
         
-        int pos = ( head + cmdId + MAX_CMD_HIST_BUF_SIZE) % MAX_CMD_HIST_BUF_SIZE;
+        int pos = ( head + cmdRef + MAX_CMD_HIST_BUF_SIZE) % MAX_CMD_HIST_BUF_SIZE;
         
-        if (( pos < head ) && ( pos >= tail )) return history[ pos ].cmdLine;
+        if (( pos < head ) && ( pos >= tail )) {
+            
+            if ( cmdId != nullptr ) *cmdId = history[ pos ].cmdId;
+            return history[ pos ].cmdLine;
+        }
         else return( nullptr );
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// List the commamd history. The "depth" argument indicates what to do. A zero value will lliust the entire
-// history buffer. A positive value up to the number of elements in the history buffer will just list them
-// with their absolute command Id. A negative value will list the commands with a command Id relative to the
-// top of the history command buffer.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCmdHistory::printCmdistory( int depth ) {
-    
-    bool relativeCmdId = false;
-    if ( depth < 0 ) {
-        
-        depth           = -depth;
-        relativeCmdId   = true;
-    }
-    
-    if (( depth == 0 ) || ( depth > count )) depth = count;
-  
-    glb -> console -> printChars( "Cmd History (%d/%d entries):\n", count, MAX_CMD_HIST_BUF_SIZE );
-    
-    for ( int i = 0; i < depth; i++ ) {
-    
-        int pos = ( head - depth + i ) % MAX_CMD_HIST_BUF_SIZE;
-        
-        if ( relativeCmdId ) glb -> console -> printChars( "[%d]: %s\n", - depth + i, history[ pos ].cmdLine);
-        else        glb -> console -> printChars( "[%d]: %s\n", history[ pos ].cmdId, history[ pos ].cmdLine);
     }
 }
 
@@ -625,10 +584,28 @@ void SimCmdHistory::printCmdistory( int depth ) {
 // The command history maintains a command counter, which we return here.
 //
 //------------------------------------------------------------------------------------------------------------
-int SimCmdHistory::getCmdId( ) {
+int SimCmdHistory::getCmdNum( ) {
     
-    return( cmdIdCount );
+    return( nextCmdNum );
 }
+
+int  SimCmdHistory::getCmdCount( ) {
+    
+    return( count );
+}
+
+
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//
+//------------------------------------------------------------------------------------------------------------
+SimCmdWinOutBuffer::SimCmdWinOutBuffer( ) {
+    
+    
+}
+
 
 //------------------------------------------------------------------------------------------------------------
 // Return the current command entered.
@@ -698,9 +675,6 @@ int SimCommandsWin::readInputLine( char *cmdBuf, int promptLen ) {
     if ( len > 0 ) {
             
         removeComment( cmdBuf );
-       // glb -> hist -> addCmdLine( cmdBuf ); // ??? a good place ? how about we do it in eval line ?
-       // glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
-           
         return( len );
     }
     else return( -1 );
@@ -772,7 +746,7 @@ void SimCommandsWin::helpCmd( ) {
     const char FMT_STR_SUMMARY[ ] = "%-16s%s\n";
     const char FMT_STR_DETAILS[ ] = "%s - %s\n";
     
-    if ( glb -> tok -> isToken( TOK_EOS )) {
+    if ( tok -> isToken( TOK_EOS )) {
         
         for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
             
@@ -782,13 +756,13 @@ void SimCommandsWin::helpCmd( ) {
         
         glb -> console -> printChars( "\n" );
     }
-    else if (( glb -> tok -> isTokenTyp( TYP_CMD  )) ||
-             ( glb -> tok -> isTokenTyp( TYP_WCMD )) ||
-             ( glb -> tok -> isTokenTyp( TYP_WTYP )) ||
-             ( glb -> tok -> isTokenTyp( TYP_RSET )) ||
-             ( glb -> tok -> isTokenTyp( TYP_PREDEFINED_FUNC ))) {
+    else if (( tok -> isTokenTyp( TYP_CMD  )) ||
+             ( tok -> isTokenTyp( TYP_WCMD )) ||
+             ( tok -> isTokenTyp( TYP_WTYP )) ||
+             ( tok -> isTokenTyp( TYP_RSET )) ||
+             ( tok -> isTokenTyp( TYP_PREDEFINED_FUNC ))) {
         
-        if ( glb -> tok -> isToken( CMD_SET )) {
+        if ( tok -> isToken( CMD_SET )) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
@@ -798,7 +772,7 @@ void SimCommandsWin::helpCmd( ) {
             
             glb -> console -> printChars( "\n" );
         }
-        else if ( glb -> tok -> isToken( WCMD_SET )) {
+        else if ( tok -> isToken( WCMD_SET )) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
@@ -808,7 +782,7 @@ void SimCommandsWin::helpCmd( ) {
             
             glb -> console -> printChars( "\n" );
         }
-        else if ( glb -> tok -> isToken( REG_SET )) {
+        else if ( tok -> isToken( REG_SET )) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
@@ -819,7 +793,7 @@ void SimCommandsWin::helpCmd( ) {
             
             glb -> console -> printChars( "\n" );
         }
-        else if ( glb -> tok -> isToken( WTYPE_SET )) {
+        else if ( tok -> isToken( WTYPE_SET )) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
@@ -830,7 +804,7 @@ void SimCommandsWin::helpCmd( ) {
             
             glb -> console -> printChars( "\n" );
         }
-        else if ( glb -> tok -> isToken( PF_SET )) {
+        else if ( tok -> isToken( PF_SET )) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
@@ -844,7 +818,7 @@ void SimCommandsWin::helpCmd( ) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
-                if ( cmdHelpTab[ i ].helpTokId == glb -> tok -> tokId( )) {
+                if ( cmdHelpTab[ i ].helpTokId == tok -> tokId( )) {
                     
                     glb -> console -> printChars( FMT_STR_DETAILS, cmdHelpTab[ i ].cmdSyntaxStr, cmdHelpTab[ i ].helpStr );
                 }
@@ -865,14 +839,14 @@ void SimCommandsWin::exitCmd( ) {
     SimExpr rExpr;
     int  exitVal = 0;
     
-    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         exitVal = glb -> env -> getEnvVarInt((char *) ENV_EXIT_CODE );
         exit(( exitVal > 255 ) ? 255 : exitVal );
     }
     else {
         
-        glb -> eval -> parseExpr( &rExpr );
+        eval -> parseExpr( &rExpr );
         
         if (( rExpr.typ == TYP_NUM ) && ( rExpr.numVal >= 0 ) && ( rExpr.numVal <= 255 )) {
             
@@ -894,19 +868,19 @@ void SimCommandsWin::envCmd( ) {
     
     SimEnv *env = glb -> env;
     
-    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         env -> displayEnvTable( );
     }
-    else if ( glb -> tok -> tokTyp( ) == TYP_IDENT ) {
+    else if ( tok -> tokTyp( ) == TYP_IDENT ) {
         
         char envName[ MAX_ENV_NAME_SIZE ];
         
-        strcpy( envName, glb -> tok -> tokStr( ));
+        strcpy( envName, tok -> tokStr( ));
         upshiftStr( envName );
         
-        glb -> tok -> nextToken( );
-        if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+        tok -> nextToken( );
+        if ( tok -> tokId( ) == TOK_EOS ) {
             
             if ( env -> isValid( envName )) env -> displayEnvTableEntry( envName );
             else throw ( ERR_ENV_VAR_NOT_FOUND );
@@ -914,7 +888,7 @@ void SimCommandsWin::envCmd( ) {
         else {
             
             SimExpr rExpr;
-            glb -> eval -> parseExpr( &rExpr );
+            eval -> parseExpr( &rExpr );
             
             if      ( rExpr.typ == TYP_NUM )        env -> setEnvVar( envName, rExpr.numVal );
             else if ( rExpr.typ == TYP_BOOL )       env -> setEnvVar( envName, rExpr.bVal );
@@ -932,9 +906,9 @@ void SimCommandsWin::envCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::execFileCmd( ) {
     
-    if ( glb -> tok -> tokTyp( ) == TYP_STR ) {
+    if ( tok -> tokTyp( ) == TYP_STR ) {
         
-        execCmdsFromFile( glb -> tok -> tokStr( ));
+        execCmdsFromFile( tok -> tokStr( ));
     }
     else throw( ERR_EXPECTED_FILE_NAME );
 }
@@ -950,13 +924,13 @@ void SimCommandsWin::execFileCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::resetCmd( ) {
     
-    if ( glb -> tok -> isToken( TOK_EOS )) {
+    if ( tok -> isToken( TOK_EOS )) {
         
         glb -> cpu -> reset( );
     }
-    else if ( glb -> tok -> tokTyp( ) == TYP_SYM ) {
+    else if ( tok -> tokTyp( ) == TYP_SYM ) {
         
-        switch( glb -> tok -> tokId( )) {
+        switch( tok -> tokId( )) {
                 
             case TOK_CPU: {
                 
@@ -1017,19 +991,19 @@ void SimCommandsWin::stepCmd( ) {
     SimExpr  rExpr;
     uint32_t numOfSteps = 1;
     
-    if ( glb -> tok -> tokTyp( ) == TYP_NUM ) {
+    if ( tok -> tokTyp( ) == TYP_NUM ) {
         
-        glb -> eval -> parseExpr( &rExpr );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) numOfSteps = rExpr.numVal;
         else throw ( ERR_EXPECTED_STEPS );
     }
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
-        if      ( glb -> tok -> tokId( ) == TOK_I ) glb -> cpu -> instrStep( numOfSteps );
-        else if ( glb -> tok -> tokId( ) == TOK_C ) glb -> cpu -> clockStep( numOfSteps );
+        tok -> nextToken( );
+        if      ( tok -> tokId( ) == TOK_I ) glb -> cpu -> instrStep( numOfSteps );
+        else if ( tok -> tokId( ) == TOK_C ) glb -> cpu -> clockStep( numOfSteps );
         else                                        throw ( ERR_INVALID_STEP_OPTION );
     }
     
@@ -1049,21 +1023,21 @@ void SimCommandsWin::writeLineCmd( ) {
     SimExpr  rExpr;
     int      rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         
-        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
-            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
-            ( glb -> tok -> tokId( ) == TOK_DEC )) {
+        if (( tok -> tokId( ) == TOK_HEX ) ||
+            ( tok -> tokId( ) == TOK_OCT ) ||
+            ( tok -> tokId( ) == TOK_DEC )) {
             
-            rdx = glb -> tok -> tokVal( );
+            rdx = tok -> tokVal( );
             
-            glb -> tok -> nextToken( );
+            tok -> nextToken( );
         }
-        else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+        else if ( tok -> tokId( ) == TOK_EOS ) {
             
             rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
         }
@@ -1109,25 +1083,36 @@ void SimCommandsWin::writeLineCmd( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // The HIST command displays the command history. Optional, we can only report a certain depth from the top.
-// The HIST command itself is not added to the history stack.
 //
 //  HIST [ depth ]
+//
+// ??? command numbers are shown as absolute numbers. Have an option to show relative numbers ?
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::histCmd( ) {
     
     SimExpr rExpr;
     int     depth = 0;
+    int     cmdCount = hist -> getCmdCount( );
     
-    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
+    if ( tok -> tokId( ) != TOK_EOS ) {
         
-        glb -> eval -> parseExpr( &rExpr );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) depth = rExpr.numVal;
         else                        throw ( ERR_INVALID_NUM );
     }
     
-    glb -> hist -> removeTopCmdLine( );
-    glb -> hist -> printCmdistory( depth );
+    if (( depth == 0 ) || ( depth > cmdCount )) depth = cmdCount;
+    
+    for ( int i = -depth; i < 0; i++ ) {
+        
+        int  cmdRef = 0;
+        char *cmdLine = hist -> getCmdLine( i, &cmdRef );
+        
+        if ( cmdLine != nullptr )
+            glb -> console -> printChars( "[%d]: %s\n", cmdRef, cmdLine );
+        
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1142,23 +1127,18 @@ void SimCommandsWin::doCmd( ) {
     SimExpr rExpr;
     int     cmdId = 0;
     
-    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
+    if ( tok -> tokId( ) != TOK_EOS ) {
         
-        glb -> eval -> parseExpr( &rExpr );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) cmdId = rExpr.numVal;
         else                        throw ( ERR_INVALID_NUM );
     }
     
-    glb -> hist -> removeTopCmdLine( );
-    char *cmdStr = glb -> hist -> getCmdLine( cmdId );
+    char *cmdStr = hist -> getCmdLine( cmdId );
     
-    if ( cmdStr != nullptr ) {
-        
-        glb -> hist -> addCmdLine( cmdStr );
-        evalInputLine( cmdStr );
-    }
-    else throw( ERR_INVALID_CMD_ID );
+    if ( cmdStr != nullptr )    evalInputLine( cmdStr );
+    else                        throw( ERR_INVALID_CMD_ID );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1175,16 +1155,15 @@ void SimCommandsWin::redoCmd( ) {
     SimExpr rExpr;
     int     cmdId = -1;
     
-    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
+    if ( tok -> tokId( ) != TOK_EOS ) {
         
-        glb -> eval -> parseExpr( &rExpr );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) cmdId = rExpr.numVal;
         else                        throw ( ERR_INVALID_NUM );
     }
     
-    glb -> hist -> removeTopCmdLine( );
-    char *cmdStr = glb -> hist -> getCmdLine( cmdId );
+    char *cmdStr = hist -> getCmdLine( cmdId );
     
     if ( cmdStr != nullptr ) {
         
@@ -1196,8 +1175,8 @@ void SimCommandsWin::redoCmd( ) {
         size_t len = glb -> console -> readCmdLine( tmpCmd, (int) strlen( tmpCmd ));
         if ( len > 0 ) {
             
-            glb -> hist -> addCmdLine( tmpCmd );
-            glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
+            hist -> addCmdLine( tmpCmd );
+            glb -> env -> setEnvVar((char *) ENV_CMD_CNT, hist -> getCmdNum( ));
             evalInputLine( tmpCmd );
         }
     }
@@ -1217,28 +1196,28 @@ void SimCommandsWin::modifyRegCmd( ) {
     uint32_t    val         = 0;
     SimExpr     rExpr;
     
-    if (( glb -> tok -> tokTyp( ) == TYP_GREG )        ||
-        ( glb -> tok -> tokTyp( ) == TYP_SREG )        ||
-        ( glb -> tok -> tokTyp( ) == TYP_CREG )        ||
-        ( glb -> tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
-        ( glb -> tok -> tokTyp( ) == TYP_FD_PREG )     ||
-        ( glb -> tok -> tokTyp( ) == TYP_MA_PREG )     ||
-        ( glb -> tok -> tokTyp( ) == TYP_EX_PREG )     ||
-        ( glb -> tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
-        ( glb -> tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
-        ( glb -> tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
-        ( glb -> tok -> tokTyp( ) == TYP_ITLB_REG )    ||
-        ( glb -> tok -> tokTyp( ) == TYP_DTLB_REG )) {
+    if (( tok -> tokTyp( ) == TYP_GREG )        ||
+        ( tok -> tokTyp( ) == TYP_SREG )        ||
+        ( tok -> tokTyp( ) == TYP_CREG )        ||
+        ( tok -> tokTyp( ) == TYP_PSTATE_PREG ) ||
+        ( tok -> tokTyp( ) == TYP_FD_PREG )     ||
+        ( tok -> tokTyp( ) == TYP_MA_PREG )     ||
+        ( tok -> tokTyp( ) == TYP_EX_PREG )     ||
+        ( tok -> tokTyp( ) == TYP_IC_L1_REG )   ||
+        ( tok -> tokTyp( ) == TYP_DC_L1_REG )   ||
+        ( tok -> tokTyp( ) == TYP_UC_L2_REG )   ||
+        ( tok -> tokTyp( ) == TYP_ITLB_REG )    ||
+        ( tok -> tokTyp( ) == TYP_DTLB_REG )) {
         
-        regSetId    = glb -> tok -> tokTyp( );
-        regId       = glb -> tok -> tokId( );
-        regNum      = glb -> tok -> tokVal( );
-        glb -> tok -> nextToken( );
+        regSetId    = tok -> tokTyp( );
+        regId       = tok -> tokId( );
+        regNum      = tok -> tokVal( );
+        tok -> nextToken( );
     }
     else throw ( ERR_INVALID_REG_ID );
     
-    if ( glb -> tok -> tokId( ) == TOK_EOS ) throw( ERR_EXPECTED_NUMERIC );
-    glb -> eval -> parseExpr( &rExpr );
+    if ( tok -> tokId( ) == TOK_EOS ) throw( ERR_EXPECTED_NUMERIC );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) val = rExpr.numVal;
     else throw ( ERR_INVALID_NUM );
@@ -1279,49 +1258,49 @@ void SimCommandsWin::displayAbsMemCmd( ) {
     int         rdx     = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     bool        asCode  = false;
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) ofs = rExpr.numVal;
     else throw ( ERR_EXPECTED_START_OFS );
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         
-        if ( glb -> tok -> isToken( TOK_COMMA )) {
+        if ( tok -> isToken( TOK_COMMA )) {
             
             len = 4;
         }
         else {
             
-            glb -> eval -> parseExpr( &rExpr );
+            eval -> parseExpr( &rExpr );
             
             if ( rExpr.typ == TYP_NUM ) len = rExpr.numVal;
             else throw ( ERR_EXPECTED_LEN );
         }
     }
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         
-        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
-            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
-            ( glb -> tok -> tokId( ) == TOK_DEC )) {
+        if (( tok -> tokId( ) == TOK_HEX ) ||
+            ( tok -> tokId( ) == TOK_OCT ) ||
+            ( tok -> tokId( ) == TOK_DEC )) {
             
-            rdx = glb -> tok -> tokVal( );
+            rdx = tok -> tokVal( );
         }
-        else if ( glb -> tok -> tokId( ) == TOK_CODE ) {
+        else if ( tok -> tokId( ) == TOK_CODE ) {
             
             asCode = true;
         }
-        else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+        else if ( tok -> tokId( ) == TOK_EOS ) {
             
             rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
         }
         else throw ( ERR_INVALID_FMT_OPT );
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
     
     checkEOS( );
@@ -1353,12 +1332,12 @@ void SimCommandsWin::modifyAbsMemCmd( ) {
     CpuMem      *ioMem      = glb -> cpu -> ioMem;
     CpuMem      *mem        = nullptr;
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) ofs = rExpr.numVal;
     else throw ( ERR_EXPECTED_OFS );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) val = rExpr.numVal;
     else throw ( ERR_INVALID_NUM );
@@ -1387,60 +1366,60 @@ void SimCommandsWin::displayCacheCmd( ) {
     uint32_t    len             = 1;
     int         rdx             = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
-    if ( glb -> tok -> tokId( ) == TOK_I ) {
+    if ( tok -> tokId( ) == TOK_I ) {
         
         cPtr = glb -> cpu -> iCacheL1;
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> tokId( ) == TOK_D ) {
+    else if ( tok -> tokId( ) == TOK_D ) {
         
         cPtr = glb -> cpu -> dCacheL1;
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> tokId( ) == TOK_U ) {
+    else if ( tok -> tokId( ) == TOK_U ) {
         
         if ( glb -> cpu -> uCacheL2 != nullptr ) {
             
             cPtr = glb -> cpu -> uCacheL2;
-            glb -> tok -> nextToken( );
+            tok -> nextToken( );
         }
         else throw ( ERR_CACHE_NOT_CONFIGURED );
     }
     else throw ( ERR_CACHE_TYPE );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) index = rExpr.numVal;
     else throw ( ERR_EXPECTED_NUMERIC );
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        if ( tok -> tokId( ) == TOK_COMMA ) {
             
             len = 1;
-            glb -> tok -> nextToken( );
+            tok -> nextToken( );
         }
         else {
         
-            glb -> eval -> parseExpr( &rExpr );
+            eval -> parseExpr( &rExpr );
             
             if ( rExpr.typ == TYP_NUM ) len = rExpr.numVal;
             else throw ( ERR_EXPECTED_NUMERIC );
         }
     }
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         
-        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
-            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
-            ( glb -> tok -> tokId( ) == TOK_DEC )) {
+        if (( tok -> tokId( ) == TOK_HEX ) ||
+            ( tok -> tokId( ) == TOK_OCT ) ||
+            ( tok -> tokId( ) == TOK_DEC )) {
             
-            rdx = glb -> tok -> tokVal( );
-            glb -> tok -> nextToken( );
+            rdx = tok -> tokVal( );
+            tok -> nextToken( );
         }
         else throw ( ERR_INVALID_FMT_OPT );
     }
@@ -1476,49 +1455,49 @@ void SimCommandsWin::purgeCacheCmd( ) {
     uint32_t    set             = 0;
     bool        flush           = false;
     
-    if ( glb -> tok -> tokId( ) == TOK_I ) {
+    if ( tok -> tokId( ) == TOK_I ) {
         
         cPtr = glb -> cpu -> iCacheL1;
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> tokId( ) == TOK_D ) {
+    else if ( tok -> tokId( ) == TOK_D ) {
         
         cPtr = glb -> cpu -> dCacheL1;
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> tokId( ) == TOK_U ) {
+    else if ( tok -> tokId( ) == TOK_U ) {
         
         if ( glb -> cpu -> uCacheL2 != nullptr ) {
             
             cPtr = glb -> cpu -> uCacheL2;
-            glb -> tok -> nextToken( );
+            tok -> nextToken( );
         }
         else throw ( ERR_CACHE_NOT_CONFIGURED );
     }
     else throw ( ERR_CACHE_TYPE );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) index = rExpr.numVal;
     else throw (ERR_EXPECTED_NUMERIC );
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
-        glb -> eval -> parseExpr( &rExpr );
+        tok -> nextToken( );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) set = rExpr.numVal;
         else throw ( ERR_EXPECTED_NUMERIC );
     }
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         
-        if ( glb -> tok -> isToken( TOK_F )) flush = true;
+        if ( tok -> isToken( TOK_F )) flush = true;
         else throw ( ERR_INVALID_ARG );
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
     
     checkEOS( );
@@ -1550,51 +1529,51 @@ void SimCommandsWin::displayTLBCmd( ) {
     CpuTlb      *tPtr       = nullptr;
     int         rdx         = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
-    if ( glb -> tok -> tokId( ) == TOK_I ) {
+    if ( tok -> tokId( ) == TOK_I ) {
         
         tlbSize = glb -> cpu -> iTlb -> getTlbSize( );
         tPtr    = glb -> cpu -> iTlb;
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> tokId( ) == TOK_D ) {
+    else if ( tok -> tokId( ) == TOK_D ) {
         
         tlbSize = glb -> cpu -> dTlb -> getTlbSize( );
         tPtr    = glb -> cpu -> dTlb;
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
     else throw ( ERR_TLB_TYPE );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) index = rExpr.numVal;
     else throw ( ERR_EXPECTED_NUMERIC );
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        if ( tok -> tokId( ) == TOK_COMMA ) {
             
             len = 1;
-            glb -> tok -> nextToken( );
+            tok -> nextToken( );
         }
         else {
             
-            glb -> eval -> parseExpr( &rExpr );
+            eval -> parseExpr( &rExpr );
             len = rExpr.numVal;
         }
     }
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         
-        if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
-            ( glb -> tok -> tokId( ) == TOK_OCT ) ||
-            ( glb -> tok -> tokId( ) == TOK_DEC )) {
+        if (( tok -> tokId( ) == TOK_HEX ) ||
+            ( tok -> tokId( ) == TOK_OCT ) ||
+            ( tok -> tokId( ) == TOK_DEC )) {
             
-            rdx = glb -> tok -> tokVal( );
-            glb -> tok -> nextToken( );
+            rdx = tok -> tokVal( );
+            tok -> nextToken( );
         }
         else throw ( ERR_INVALID_FMT_OPT );
     }
@@ -1623,19 +1602,19 @@ void SimCommandsWin::insertTLBCmd( ) {
     uint32_t    argAcc          = 0;
     uint32_t    argAdr          = 0;
     
-    if ( glb -> tok -> tokId( ) == TOK_I ) {
+    if ( tok -> tokId( ) == TOK_I ) {
         
         tPtr = glb -> cpu -> iTlb;
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> tokId( ) == TOK_D ) {
+    else if ( tok -> tokId( ) == TOK_D ) {
         
         tPtr = glb -> cpu -> dTlb;
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
     else throw ( ERR_TLB_TYPE );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_EXT_ADR ) {
         
@@ -1644,12 +1623,12 @@ void SimCommandsWin::insertTLBCmd( ) {
     }
     else throw ( ERR_EXPECTED_EXT_ADR );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) argAcc = rExpr.numVal;
     else throw ( ERR_TLB_ACC_DATA );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) argAcc = rExpr.numVal;
     else throw ( ERR_TLB_ADR_DATA );
@@ -1667,19 +1646,19 @@ void SimCommandsWin::purgeTLBCmd( ) {
     SimExpr     rExpr;
     CpuTlb      *tPtr = nullptr;
     
-    if ( glb -> tok -> tokId( ) == TOK_I ) {
+    if ( tok -> tokId( ) == TOK_I ) {
         
         tPtr = glb -> cpu -> iTlb;
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> tokId( ) == TOK_D ) {
+    else if ( tok -> tokId( ) == TOK_D ) {
         
         tPtr = glb -> cpu -> dTlb;
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
     else throw ( ERR_TLB_TYPE );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_EXT_ADR ) {
         
@@ -1753,10 +1732,10 @@ void SimCommandsWin::winEnableCmd( SimTokId winCmd ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
+    if ( tok -> tokId( ) != TOK_EOS ) {
         
         SimExpr rExpr;
-        glb -> eval -> parseExpr( &rExpr );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
         else throw ( ERR_EXPECTED_WIN_ID );
@@ -1776,10 +1755,10 @@ void SimCommandsWin::winDisableCmd( SimTokId winCmd ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    if ( glb -> tok -> tokId( ) != TOK_EOS ) {
+    if ( tok -> tokId( ) != TOK_EOS ) {
         
         SimExpr rExpr;
-        glb -> eval -> parseExpr( &rExpr );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
         else throw ( ERR_EXPECTED_WIN_ID );
@@ -1808,39 +1787,39 @@ void SimCommandsWin::winSetRadixCmd( SimTokId winCmd ) {
     int     winNum  = 0;
     int     rdx     =  glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
-    if ( glb -> tok -> isToken( TOK_EOS )) {
+    if ( tok -> isToken( TOK_EOS )) {
         
         glb -> winDisplay -> windowRadix( winCmd, rdx, winNum );
         return;
     }
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
         rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
     else {
         
-        if ( glb -> tok -> isToken( TOK_OCT ))      rdx = 8;
-        else if ( glb -> tok -> isToken( TOK_DEC )) rdx = 10;
-        else if ( glb -> tok -> isToken( TOK_HEX )) rdx = 16;
+        if ( tok -> isToken( TOK_OCT ))      rdx = 8;
+        else if ( tok -> isToken( TOK_DEC )) rdx = 10;
+        else if ( tok -> isToken( TOK_HEX )) rdx = 16;
         else {
             
-            glb -> eval -> parseExpr( &rExpr );
+            eval -> parseExpr( &rExpr );
             if ( rExpr.typ == TYP_NUM ) rdx = ::setRadix( rExpr.numVal );
             else throw ( ERR_INVALID_RADIX );
         }
     }
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
-        glb -> eval -> parseExpr( &rExpr );
+        tok -> nextToken( );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) {
             
             winNum = rExpr.numVal;
-            glb -> tok -> nextToken( );
+            tok -> nextToken( );
         }
         else throw ( ERR_INVALID_WIN_ID );
     }
@@ -1867,22 +1846,22 @@ void SimCommandsWin::winForwardCmd( SimTokId winCmd ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowForward( winCmd, winItems, winNum  );
         return;
     }
     else {
         
-        glb -> eval -> parseExpr( &rExpr );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) winItems = rExpr.numVal;
         else throw ( ERR_INVALID_NUM );
         
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        if ( tok -> tokId( ) == TOK_COMMA ) {
             
-            glb -> tok -> nextToken( );
-            glb -> eval -> parseExpr( &rExpr );
+            tok -> nextToken( );
+            eval -> parseExpr( &rExpr );
             
             if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
             else throw ( ERR_INVALID_WIN_ID );
@@ -1905,28 +1884,28 @@ void SimCommandsWin::winBackwardCmd( SimTokId winCmd ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowBackward( winCmd, winItems, winNum  );
         return;
     }
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) winItems = rExpr.numVal;
     else throw ( ERR_INVALID_NUM );
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> eval -> parseExpr( &rExpr );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) winItems = rExpr.numVal;
         else throw ( ERR_INVALID_NUM );
         
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        if ( tok -> tokId( ) == TOK_COMMA ) {
             
-            glb -> tok -> nextToken( );
-            glb -> eval -> parseExpr( &rExpr );
+            tok -> nextToken( );
+            eval -> parseExpr( &rExpr );
             
             if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
             else throw ( ERR_INVALID_WIN_ID );
@@ -1957,21 +1936,21 @@ void SimCommandsWin::winHomeCmd( SimTokId winCmd ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowHome( winCmd, winPos, winNum  );
         return;
     }
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) winPos = rExpr.numVal;
     else throw ( ERR_INVALID_NUM );
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
-        glb -> eval -> parseExpr( &rExpr );
+        tok -> nextToken( );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
         else throw ( ERR_INVALID_WIN_ID );
@@ -1999,21 +1978,21 @@ void SimCommandsWin::winJumpCmd( SimTokId winCmd ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowHome( winCmd, winPos, winNum  );
         return;
     }
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) winPos = rExpr.numVal;
     else throw ( ERR_INVALID_NUM );
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
-        glb -> eval -> parseExpr( &rExpr );
+        tok -> nextToken( );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
         else throw ( ERR_INVALID_WIN_ID );
@@ -2042,21 +2021,21 @@ void SimCommandsWin::winSetRowsCmd( SimTokId winCmd ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         glb -> winDisplay -> windowHome( winCmd, winLines, winNum  );
         return;
     }
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) winLines = rExpr.numVal;
     else throw ( ERR_INVALID_NUM );
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
-        glb -> eval -> parseExpr( &rExpr );
+        tok -> nextToken( );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
         else throw ( ERR_INVALID_WIN_ID );
@@ -2084,9 +2063,9 @@ void SimCommandsWin::winCurrentCmd( ) {
     SimExpr     rExpr;
     uint32_t    winNum = 0;
     
-    if ( glb -> tok -> isToken( TOK_EOS )) throw ( ERR_EXPECTED_WIN_ID );
+    if ( tok -> isToken( TOK_EOS )) throw ( ERR_EXPECTED_WIN_ID );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
     else throw ( ERR_INVALID_WIN_ID );
@@ -2111,20 +2090,20 @@ void  SimCommandsWin::winToggleCmd( ) {
     SimExpr     rExpr;
     uint32_t    winNum = 0;
     
-    if ( glb -> tok -> isToken( TOK_EOS )) {
+    if ( tok -> isToken( TOK_EOS )) {
         
         glb -> winDisplay -> windowToggle( glb -> winDisplay -> getCurrentUserWindow( ));
         return;
     }
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
     else throw ( ERR_INVALID_WIN_ID );
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
     
-    glb -> winDisplay -> windowToggle( glb -> tok -> tokVal( ));
+    glb -> winDisplay -> windowToggle( tok -> tokVal( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2140,9 +2119,9 @@ void SimCommandsWin::winExchangeCmd( ) {
     SimExpr     rExpr;
     uint32_t    winNum = 0;
     
-    if ( glb -> tok -> isToken( TOK_EOS )) throw ( ERR_EXPECTED_WIN_ID );
+    if ( tok -> isToken( TOK_EOS )) throw ( ERR_EXPECTED_WIN_ID );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) winNum = rExpr.numVal;
     else throw ( ERR_INVALID_WIN_ID );
@@ -2151,7 +2130,7 @@ void SimCommandsWin::winExchangeCmd( ) {
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
 
-    glb -> winDisplay -> windowExchangeOrder( glb -> tok -> tokVal( ));
+    glb -> winDisplay -> windowExchangeOrder( tok -> tokVal( ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2168,9 +2147,9 @@ void SimCommandsWin::winNewWinCmd( ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
    
-    if ( glb -> tok -> tokTyp( ) == TYP_SYM ) {
+    if ( tok -> tokTyp( ) == TYP_SYM ) {
         
-        winType = glb -> tok -> tokId( );
+        winType = tok -> tokId( );
         
         if ((( winType == TOK_PM  ) && ( glb -> cpu -> physMem   == nullptr ))     ||
             (( winType == TOK_PC  ) && ( glb -> cpu -> physMem   == nullptr ))     ||
@@ -2192,15 +2171,15 @@ void SimCommandsWin::winNewWinCmd( ) {
         if ( ! glb -> winDisplay -> validUserWindowType( winType ))
             throw ( ERR_INVALID_WIN_TYPE );
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
     else throw ( ERR_EXPECTED_WIN_ID );
     
-    if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    if ( tok -> tokId( ) == TOK_COMMA ) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         
-        if (glb ->  tok -> tokTyp( ) == TYP_STR ) argStr = glb -> tok -> tokStr( );
+        if ( tok -> tokTyp( ) == TYP_STR ) argStr = tok -> tokStr( );
         else throw ( ERR_INVALID_ARG );
     }
     
@@ -2224,22 +2203,22 @@ void SimCommandsWin::winKillWinCmd( ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
         winNumEnd   = winNumStart;
     }
     else {
         
-        glb -> eval -> parseExpr( &rExpr );
+        eval -> parseExpr( &rExpr );
         
         if ( rExpr.typ == TYP_NUM ) winNumStart = rExpr.numVal;
         else throw ( ERR_EXPECTED_NUMERIC );
         
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        if ( tok -> tokId( ) == TOK_COMMA ) {
             
-            glb -> tok -> nextToken( );
-            glb -> eval -> parseExpr( &rExpr );
+            tok -> nextToken( );
+            eval -> parseExpr( &rExpr );
             
             if ( rExpr.typ == TYP_NUM ) winNumEnd = rExpr.numVal;
             else throw ( ERR_EXPECTED_NUMERIC );
@@ -2274,7 +2253,7 @@ void SimCommandsWin::winSetStackCmd( ) {
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
     
-    glb -> eval -> parseExpr( &rExpr );
+    eval -> parseExpr( &rExpr );
     
     if ( rExpr.typ == TYP_NUM ) stackNum = rExpr.numVal;
     else throw ( ERR_EXPECTED_STACK_ID );
@@ -2282,23 +2261,23 @@ void SimCommandsWin::winSetStackCmd( ) {
     if ( ! glb -> winDisplay -> validWindowStackNum( stackNum ))
         throw ( ERR_INVALID_WIN_STACK_ID );
     
-    if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+    if ( tok -> tokId( ) == TOK_EOS ) {
         
         winNumStart = glb -> winDisplay -> getCurrentUserWindow( );
         winNumEnd   = winNumStart;
     }
-    else if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+    else if ( tok -> tokId( ) == TOK_COMMA ) {
             
-        glb -> tok -> nextToken( );
-        glb -> eval -> parseExpr( &rExpr );
+        tok -> nextToken( );
+        eval -> parseExpr( &rExpr );
             
         if ( rExpr.typ == TYP_NUM ) winNumStart = rExpr.numVal;
         else throw ( ERR_EXPECTED_NUMERIC );
             
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        if ( tok -> tokId( ) == TOK_COMMA ) {
                 
-            glb -> tok -> nextToken( );
-            glb -> eval -> parseExpr( &rExpr );
+            tok -> nextToken( );
+            eval -> parseExpr( &rExpr );
                 
             if ( rExpr.typ == TYP_NUM ) winNumEnd = rExpr.numVal;
             else throw ( ERR_EXPECTED_NUMERIC );
@@ -2322,11 +2301,9 @@ void SimCommandsWin::winSetStackCmd( ) {
 
 //------------------------------------------------------------------------------------------------------------
 // Evaluate input line. There are commands, functions, expressions and so on. This routine sets up the
-// tokenizer and dispatches based on the first token in the input line.
+// tokenizer and dispatches based on the first token in the input line. The commands are also added to the
+// command history, with the exception of the HITS, DO and REDOP comamnds.
 //
-//
-// ??? wouldn't it be nice to react to cursor up and down commands for a given window ? To think about...
-// ??? add commands to the console window.
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::evalInputLine( char *cmdBuf ) {
     
@@ -2334,14 +2311,20 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
         
         if ( strlen( cmdBuf ) > 0 ) {
             
-            glb -> tok -> setupTokenizer( cmdBuf, (SimToken *) cmdTokTab );
-            glb -> tok -> nextToken( );
+            tok -> setupTokenizer( cmdBuf, (SimToken *) cmdTokTab );
+            tok -> nextToken( );
             
-            if (( glb -> tok -> isTokenTyp( TYP_CMD )) || ( glb -> tok -> isTokenTyp( TYP_WCMD ))) {
+            if (( tok -> isTokenTyp( TYP_CMD )) || ( tok -> isTokenTyp( TYP_WCMD ))) {
                 
-                SimTokId cmdId = glb -> tok -> tokId( );
+                SimTokId cmdId = tok -> tokId( );
                 
-                glb -> tok -> nextToken( );
+                tok -> nextToken( );
+                
+                if (( cmdId != CMD_HIST ) && ( cmdId != CMD_DO ) && ( cmdId != CMD_REDO )) {
+                    
+                    hist -> addCmdLine( cmdBuf );
+                    glb -> env -> setEnvVar((char *) ENV_CMD_CNT, hist -> getCmdNum( ));
+                }
                 
                 switch( cmdId ) {
                         
@@ -2417,7 +2400,8 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
             }
             else {
                 
-                printf( "Got: %s\n", cmdBuf ); // for debugging ...
+                hist -> addCmdLine( cmdBuf );
+                glb -> env -> setEnvVar((char *) ENV_CMD_CNT, hist -> getCmdNum( ));
                 throw ( ERR_INVALID_CMD );
             }
         }
@@ -2447,8 +2431,8 @@ void SimCommandsWin::cmdInterpreterLoop( ) {
         int promptLen = promptCmdLine( );
         if ( readInputLine( cmdLineBuf, promptLen ) > 0 ) {
             
-            glb -> hist -> addCmdLine( cmdLineBuf );
-            glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
+          //  glb -> hist -> addCmdLine( cmdLineBuf );
+          //  glb -> env -> setEnvVar((char *) ENV_CMD_CNT, glb -> hist -> getCmdId( ));
             
             evalInputLine( cmdLineBuf );
             if ( winModeOn ) glb -> winDisplay -> reDraw( );

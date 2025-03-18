@@ -709,4 +709,3 @@ void SimWinDisplay::windowKill( int winNumStart, int winNumEnd ) {
         }
     }
 }
-

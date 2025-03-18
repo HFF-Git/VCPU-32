@@ -93,7 +93,7 @@ int lookupToken( char *inputStr, SimToken *tokTab ) {
 // The object constructor, nothing to do for now.
 //
 //------------------------------------------------------------------------------------------------------------
-SimTokenizer::SimTokenizer( VCPU32Globals *glb ) { }
+SimTokenizer::SimTokenizer( ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // We initialize a couple of globals that represent the current state of the parsing process. This call is
@@ -115,19 +115,19 @@ void SimTokenizer::setupTokenizer( char *lineBuf, SimToken *tokTab ) {
 // helper functions for the current token.
 //
 //------------------------------------------------------------------------------------------------------------
-bool        SimTokenizer::isToken( SimTokId tokId )        { return( currentToken.tid == tokId ); }
-bool        SimTokenizer::isTokenTyp( SimTokTypeId typId )    { return( currentToken.typ == typId ); }
+bool            SimTokenizer::isToken( SimTokId tokId )         { return( currentToken.tid == tokId ); }
+bool            SimTokenizer::isTokenTyp( SimTokTypeId typId )  { return( currentToken.typ == typId ); }
 
-SimToken    SimTokenizer::token( )                      { return( currentToken );     }
-SimTokTypeId      SimTokenizer::tokTyp( )                     { return( currentToken.typ ); }
-SimTokId       SimTokenizer::tokId( )                      { return( currentToken.tid ); }
-int         SimTokenizer::tokVal( )                     { return( currentToken.val ); }
-char        *SimTokenizer::tokStr( )                    { return( currentToken.str ); }
-uint32_t    SimTokenizer::tokSeg( )                     { return( currentToken.seg ); }
-uint32_t    SimTokenizer::tokOfs( )                     { return( currentToken.ofs ); }
+SimToken        SimTokenizer::token( )                          { return( currentToken );     }
+SimTokTypeId    SimTokenizer::tokTyp( )                         { return( currentToken.typ ); }
+SimTokId        SimTokenizer::tokId( )                          { return( currentToken.tid ); }
+int             SimTokenizer::tokVal( )                         { return( currentToken.val ); }
+char            *SimTokenizer::tokStr( )                        { return( currentToken.str ); }
+uint32_t        SimTokenizer::tokSeg( )                         { return( currentToken.seg ); }
+uint32_t        SimTokenizer::tokOfs( )                         { return( currentToken.ofs ); }
 
-int         SimTokenizer::tokCharIndex( )               { return( currentCharIndex ); }
-char        *SimTokenizer::tokenLineStr( )              { return( tokenLine ); }
+int             SimTokenizer::tokCharIndex( )                   { return( currentCharIndex ); }
+char            *SimTokenizer::tokenLineStr( )                  { return( tokenLine ); }
 
 //------------------------------------------------------------------------------------------------------------
 // "nextChar" returns the next character from the token line string.

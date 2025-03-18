@@ -3,13 +3,13 @@
 // VCPU32 - A 32-bit CPU - Simulator expressions
 //
 //------------------------------------------------------------------------------------------------------------
-// ...
-//
+// The command interpreter features expression evaluation for command arguments. It is a straightforward
+// recursive top down interpeter.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Simulator Commands
-// Copyright (C) 2022 - 2024 Helmut Fieres
+// VCPU32 - A 32-bit CPU - Simulator expressions
+// Copyright (C) 2022 - 2025 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -304,9 +304,10 @@ void logicalOp( SimExpr *rExpr, SimExpr *lExpr, logicalOpId op ) {
 // Evaluation Expression Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-SimExprEvaluator::SimExprEvaluator( VCPU32Globals *glb ) {
+SimExprEvaluator::SimExprEvaluator( VCPU32Globals *glb, SimTokenizer *tok ) {
     
     this -> glb = glb;
+    this -> tok = tok;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -321,8 +322,8 @@ void SimExprEvaluator::pFuncS32( SimExpr *rExpr ) {
     SimExpr     lExpr;
     uint32_t    res = 0;
      
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
         
     parseExpr( &lExpr );
@@ -342,7 +343,7 @@ void SimExprEvaluator::pFuncS32( SimExpr *rExpr ) {
     rExpr -> typ    = TYP_NUM;
     rExpr -> numVal = res;
 
-    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_RPAREN );
 }
 
@@ -351,8 +352,8 @@ void SimExprEvaluator::pFuncU32( SimExpr *rExpr ) {
     SimExpr     lExpr;
     uint32_t    res = 0;
      
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
         
     parseExpr( &lExpr );
@@ -372,7 +373,7 @@ void SimExprEvaluator::pFuncU32( SimExpr *rExpr ) {
     rExpr -> typ    = TYP_NUM;
     rExpr -> numVal = res;
 
-    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_RPAREN );
 }
 
@@ -387,8 +388,8 @@ void SimExprEvaluator::pFuncAssemble( SimExpr *rExpr ) {
     uint32_t        instr;
     SimErrMsgId     ret = NO_ERR;
     
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
         
     parseExpr( &lExpr );
@@ -405,7 +406,7 @@ void SimExprEvaluator::pFuncAssemble( SimExpr *rExpr ) {
     }
     else throw ( ERR_EXPECTED_STR );
 
-    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_RPAREN );
 }
 
@@ -421,36 +422,36 @@ void SimExprEvaluator::pFuncDisAssemble( SimExpr *rExpr ) {
     char        asmStr[ CMD_LINE_BUF_SIZE ];
     int         rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
     
-    glb -> eval -> parseExpr( &lExpr );
+    parseExpr( &lExpr );
     
     if ( lExpr.typ == TYP_NUM ) {
         
         instr = lExpr.numVal;
         
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        if ( tok -> tokId( ) == TOK_COMMA ) {
             
-            glb -> tok -> nextToken( );
+            tok -> nextToken( );
             
-            if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
-                ( glb -> tok -> tokId( ) == TOK_OCT ) ||
-                ( glb -> tok -> tokId( ) == TOK_DEC )) {
+            if (( tok -> tokId( ) == TOK_HEX ) ||
+                ( tok -> tokId( ) == TOK_OCT ) ||
+                ( tok -> tokId( ) == TOK_DEC )) {
                 
-                rdx = glb -> tok -> tokVal( );
+                rdx = tok -> tokVal( );
                 
-                glb -> tok -> nextToken( );
+                tok -> nextToken( );
             }
-            else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+            else if ( tok -> tokId( ) == TOK_EOS ) {
                 
                 throw ( ERR_UNEXPECTED_EOS );
             }
             else throw ( ERR_INVALID_FMT_OPT );
         }
         
-        if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+        if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
         else throw ( ERR_EXPECTED_RPAREN );
         
         glb -> disAsm -> formatInstr( asmStr, sizeof( asmStr ), instr );
@@ -471,8 +472,8 @@ void SimExprEvaluator::pFuncHash( SimExpr *rExpr ) {
     SimExpr     lExpr;
     uint32_t    hashVal;
     
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
         
     parseExpr( &lExpr );
@@ -485,7 +486,7 @@ void SimExprEvaluator::pFuncHash( SimExpr *rExpr ) {
     }
     else throw ( ERR_EXPECTED_STR );
 
-    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_RPAREN );
 }
 
@@ -502,17 +503,17 @@ void SimExprEvaluator::pFuncExtAdr( SimExpr *rExpr ) {
     SimExpr     lExpr;
     uint32_t    seg;
     
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
     
-    if ( glb -> tok -> isTokenTyp( TYP_SREG )) {
+    if ( tok -> isTokenTyp( TYP_SREG )) {
         
-        seg = glb -> cpu -> getReg( RC_SEG_REG_SET, glb -> tok -> tokVal( ));
+        seg = glb -> cpu -> getReg( RC_SEG_REG_SET, tok -> tokVal( ));
         
-        glb -> tok -> nextToken( );
-        if ( ! glb -> tok -> isToken( TOK_COMMA )) throw ( ERR_EXPECTED_COMMA );
-        else glb -> tok -> nextToken( );
+        tok -> nextToken( );
+        if ( ! tok -> isToken( TOK_COMMA )) throw ( ERR_EXPECTED_COMMA );
+        else tok -> nextToken( );
         
         parseExpr( &lExpr );
         
@@ -522,7 +523,7 @@ void SimExprEvaluator::pFuncExtAdr( SimExpr *rExpr ) {
             rExpr -> seg = seg;
             rExpr -> ofs = lExpr.numVal;
             
-            if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+            if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
             else throw ( ERR_EXPECTED_RPAREN );
         }
         else throw ( ERR_EXPECTED_OFS );
@@ -540,7 +541,7 @@ void SimExprEvaluator::pFuncExtAdr( SimExpr *rExpr ) {
             rExpr -> seg = glb -> cpu -> getReg( RC_SEG_REG_SET, segId );
             rExpr -> ofs = lExpr.numVal;
             
-            if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+            if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
             else throw ( ERR_EXPECTED_RPAREN );
         }
         else if ( lExpr.typ == TYP_EXT_ADR ) {
@@ -549,7 +550,7 @@ void SimExprEvaluator::pFuncExtAdr( SimExpr *rExpr ) {
             rExpr -> seg = lExpr.seg;
             rExpr -> ofs = lExpr.ofs;
             
-            if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+            if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
             else throw ( ERR_EXPECTED_RPAREN );
         }
         else throw( ERR_INVALID_EXPR );
@@ -593,50 +594,50 @@ void SimExprEvaluator::parseFactor( SimExpr *rExpr ) {
     rExpr -> typ       = TYP_NIL;
     rExpr -> numVal    = 0;
     
-    if ( glb -> tok -> isTokenTyp( TYP_NUM ))  {
+    if ( tok -> isTokenTyp( TYP_NUM ))  {
         
         rExpr -> typ     = TYP_NUM;
-        rExpr -> numVal  = glb -> tok -> tokVal( );
-        glb -> tok -> nextToken( );
+        rExpr -> numVal  = tok -> tokVal( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_EXT_ADR )) {
+    else if ( tok -> isTokenTyp( TYP_EXT_ADR )) {
         
         rExpr -> typ    = TYP_EXT_ADR;
-        rExpr -> seg    = glb -> tok -> tokSeg( );
-        rExpr -> ofs    = glb -> tok -> tokOfs( );
-        glb -> tok -> nextToken( );
+        rExpr -> seg    = tok -> tokSeg( );
+        rExpr -> ofs    = tok -> tokOfs( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_STR ))  {
+    else if ( tok -> isTokenTyp( TYP_STR ))  {
         
         rExpr -> typ = TYP_STR;
-        strcpy( rExpr -> strVal, glb -> tok -> tokStr( ));
-        glb -> tok -> nextToken( );
+        strcpy( rExpr -> strVal, tok -> tokStr( ));
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_GREG ))  {
+    else if ( tok -> isTokenTyp( TYP_GREG ))  {
         
         rExpr -> typ    = TYP_NUM;
-        rExpr -> numVal = glb -> cpu -> getReg( RC_GEN_REG_SET, glb -> tok -> tokVal( ));
-        glb -> tok -> nextToken( );
+        rExpr -> numVal = glb -> cpu -> getReg( RC_GEN_REG_SET, tok -> tokVal( ));
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_SREG ))  {
+    else if ( tok -> isTokenTyp( TYP_SREG ))  {
         
         rExpr -> typ    = TYP_SREG;
-        rExpr -> numVal = glb -> cpu -> getReg( RC_SEG_REG_SET, glb -> tok -> tokVal( ));
-        glb -> tok -> nextToken( );
+        rExpr -> numVal = glb -> cpu -> getReg( RC_SEG_REG_SET, tok -> tokVal( ));
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_CREG ))  {
+    else if ( tok -> isTokenTyp( TYP_CREG ))  {
         
         rExpr -> typ    = TYP_CREG;
-        rExpr -> numVal = glb -> cpu -> getReg( RC_CTRL_REG_SET, glb -> tok -> tokVal( ));
-        glb -> tok -> nextToken( );
+        rExpr -> numVal = glb -> cpu -> getReg( RC_CTRL_REG_SET, tok -> tokVal( ));
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_PREDEFINED_FUNC )) {
+    else if ( tok -> isTokenTyp( TYP_PREDEFINED_FUNC )) {
         
-        parsePredefinedFunction( glb -> tok -> token( ), rExpr );
+        parsePredefinedFunction( tok -> token( ), rExpr );
     }
-    else if ( glb -> tok -> isToken( TOK_IDENT )) {
+    else if ( tok -> isToken( TOK_IDENT )) {
         
-        SimEnvTabEntry *entry = glb -> env -> getEnvVarEntry ( glb -> tok -> tokStr( ));
+        SimEnvTabEntry *entry = glb -> env -> getEnvVarEntry ( tok -> tokStr( ));
         
         if ( entry != nullptr ) {
             
@@ -661,23 +662,23 @@ void SimExprEvaluator::parseFactor( SimExpr *rExpr ) {
         }
         else throw( ERR_ENV_VAR_NOT_FOUND );
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isToken( TOK_NEG )) {
+    else if ( tok -> isToken( TOK_NEG )) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseFactor( rExpr );
         rExpr -> numVal = ~ rExpr -> numVal;
     }
-    else if ( glb -> tok -> isToken( TOK_LPAREN )) {
+    else if ( tok -> isToken( TOK_LPAREN )) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseExpr( rExpr );
             
-        if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+        if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
         else throw ( ERR_EXPECTED_RPAREN );
     }
-    else if (( glb -> tok -> tokTyp( ) == TYP_NIL ) && ( glb -> tok -> tokId( ) == TOK_EOS )) {
+    else if (( tok -> tokTyp( ) == TYP_NIL ) && ( tok -> tokId( ) == TOK_EOS )) {
         
         rExpr -> typ = TYP_NIL;
     }
@@ -698,14 +699,14 @@ void SimExprEvaluator::parseTerm( SimExpr *rExpr ) {
    
     parseFactor( rExpr );
     
-    while (( glb -> tok -> tokId( ) == TOK_MULT )   ||
-           ( glb -> tok -> tokId( ) == TOK_DIV  )   ||
-           ( glb -> tok -> tokId( ) == TOK_MOD  )   ||
-           ( glb -> tok -> tokId( ) == TOK_AND  ))  {
+    while (( tok -> tokId( ) == TOK_MULT )   ||
+           ( tok -> tokId( ) == TOK_DIV  )   ||
+           ( tok -> tokId( ) == TOK_MOD  )   ||
+           ( tok -> tokId( ) == TOK_AND  ))  {
         
-        uint8_t op = glb -> tok -> tokId( );
+        uint8_t op = tok -> tokId( );
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseFactor( &lExpr );
         
         if ( lExpr.typ == TYP_NIL ) throw ( ERR_UNEXPECTED_EOS );
@@ -733,16 +734,16 @@ void SimExprEvaluator::parseExpr( SimExpr *rExpr ) {
     
     SimExpr lExpr;
     
-    if ( glb -> tok -> isToken( TOK_PLUS )) {
+    if ( tok -> isToken( TOK_PLUS )) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseTerm( rExpr );
         
         if ( rExpr -> typ != TYP_NUM ) throw ( ERR_EXPECTED_NUMERIC );
     }
-    else if ( glb -> tok -> isToken( TOK_MINUS )) {
+    else if ( tok -> isToken( TOK_MINUS )) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseTerm( rExpr );
         
         if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal = - (int32_t) rExpr -> numVal;
@@ -750,14 +751,14 @@ void SimExprEvaluator::parseExpr( SimExpr *rExpr ) {
     }
     else parseTerm( rExpr );
     
-    while (( glb -> tok -> isToken( TOK_PLUS   )) ||
-           ( glb -> tok -> isToken( TOK_MINUS  )) ||
-           ( glb -> tok -> isToken( TOK_OR     )) ||
-           ( glb -> tok -> isToken( TOK_XOR    ))) {
+    while (( tok -> isToken( TOK_PLUS   )) ||
+           ( tok -> isToken( TOK_MINUS  )) ||
+           ( tok -> isToken( TOK_OR     )) ||
+           ( tok -> isToken( TOK_XOR    ))) {
         
-        uint8_t op = glb -> tok -> tokId( );
+        uint8_t op = tok -> tokId( );
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseTerm( &lExpr );
         
         if ( lExpr.typ == TYP_NIL ) throw ( ERR_UNEXPECTED_EOS );

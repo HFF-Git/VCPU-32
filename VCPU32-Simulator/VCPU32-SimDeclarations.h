@@ -583,7 +583,7 @@ struct SimTokenizer {
 
     public:
 
-    SimTokenizer( VCPU32Globals *glb );
+    SimTokenizer( );
 
     void            setupTokenizer( char *lineBuf, SimToken *tokTab );
     void            nextToken( );
@@ -651,7 +651,7 @@ struct SimExprEvaluator {
     
     public:
     
-    SimExprEvaluator( VCPU32Globals *glb );
+    SimExprEvaluator( VCPU32Globals *glb, SimTokenizer *tok );
     
     void        setTokenizer( SimTokenizer *tok );
     void        parseExpr( SimExpr *rExpr );
@@ -670,8 +670,10 @@ struct SimExprEvaluator {
     void        pFuncHash( SimExpr *rExpr );
     void        pFuncExtAdr( SimExpr *rExpr );
     
-  
-    VCPU32Globals   *glb = nullptr;
+private:
+    
+    VCPU32Globals *glb  = nullptr;
+    SimTokenizer *tok   = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -768,25 +770,41 @@ struct SimCmdHistory {
     
 public:
     
-    SimCmdHistory( VCPU32Globals *glb );
+    SimCmdHistory( );
     
     void addCmdLine( char *cmdStr );
-    void removeTopCmdLine( );
-    char *getCmdLine( int index );
-    int  getCmdId( );
-    
-    void printCmdistory( int depth = MAX_CMD_HIST_BUF_SIZE );
-    
+    char *getCmdLine( int cmdRef, int *cmdId = nullptr );
+    int  getCmdCount( );
+    int  getCmdNum( );
+   
 private:
     
-    VCPU32Globals   *glb    = nullptr;
-    int cmdIdCount          = 0;
+    int nextCmdNum          = 0;
     int head                = 0;
     int tail                = 0;
     int count               = 0;
     
     SimCmdHistEntry history[ MAX_CMD_HIST_BUF_SIZE ];
 };
+
+//-----------------------------------------------------------------------------------------------------------
+// Command Window output buffer. The ouput buffer will store all putput from the command window to support
+// scrolling. This is the price you pay when noraml terminal scrollling is restricted to an area of the
+// screen.
+//
+//
+//-----------------------------------------------------------------------------------------------------------
+struct SimCmdWinOutBuffer {
+    
+public:
+    
+    SimCmdWinOutBuffer( );
+    
+private:
+    
+    
+};
+
 
 //-----------------------------------------------------------------------------------------------------------
 // The "CPU24DrvBaseWin" class. The simulator will in screen mode feature a set of stacks each with a list
@@ -1269,10 +1287,16 @@ private:
     
     private:
     
-    VCPU32Globals   *glb       = nullptr;
-    bool            winModeOn  = false;
-    SimTokId        currentCmd = TOK_NIL;
+    VCPU32Globals           *glb        = nullptr;
+    SimCmdHistory           *hist       = nullptr;
+    SimTokenizer            *tok        = nullptr;
+    SimExprEvaluator        *eval       = nullptr;
+    SimCmdWinOutBuffer      *winOut     = nullptr;
+   
+    bool                    winModeOn   = false;
+    SimTokId                currentCmd  = TOK_NIL;
     
+
     // ??? need an output line area...
     // and logic what to display from there...
 };
@@ -1398,15 +1422,12 @@ private:
 struct VCPU32Globals {
     
     SimConsoleIO        *console        = nullptr;
-    SimTokenizer        *tok            = nullptr;
-    SimExprEvaluator    *eval           = nullptr;
+    SimEnv              *env            = nullptr;
     SimDisAsm           *disAsm         = nullptr;
     SimOneLineAsm       *oneLineAsm     = nullptr;
-    SimWinDisplay       *winDisplay     = nullptr;
     SimCommandsWin      *cmdWin         = nullptr;
-    SimEnv              *env            = nullptr;
-    SimCmdHistory       *hist           = nullptr;
-   
+    SimWinDisplay       *winDisplay     = nullptr;
+    
     CpuCore             *cpu            = nullptr;
 };
 
