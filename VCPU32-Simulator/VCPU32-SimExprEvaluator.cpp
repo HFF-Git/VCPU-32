@@ -27,13 +27,9 @@
 #include "VCPU32-SimTables.h"
 #include "VCPU32-Core.h"
 
+
 //------------------------------------------------------------------------------------------------------------
-// Idea:
-//
-// It turns out that a better command line parser would be a more powerful way to analyze a command line.
-// We have commands that just execute a command and functions that return a value. When we have a parser
-// we could implement such functions as arguments to the commands. Commands them selves may just be just a
-// function with a void return.
+// The commadn line features an expression evaluator for the arguments. The overall syntaxt is as follows:
 //
 //      <command>   ->  <cmdId> [ <argList> ]
 //      <function>  ->  <funcId> “(“ [ <argList> ] ")"
@@ -57,7 +53,7 @@
 //      <expr>      ->  [ ( "+" | "-" ) ] <term> { <exprOp> <term> }
 //      <exprOp>    ->  "+" | "-" | "|" | "^"
 //
-// If a command is called, there is no output another than what the command was issuing itself.
+// If a command is called, there is no output other than what the command was issuing.
 // If a function is called in the command place, the function result will be printed.
 // If an argument represents a function, its return value will be the argument in the command.
 //
@@ -81,7 +77,7 @@ enum logicalOpId : int {
 };
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Add operation.
 //
 //------------------------------------------------------------------------------------------------------------
 void addOp( SimExpr *rExpr, SimExpr *lExpr ) {
@@ -115,7 +111,7 @@ void addOp( SimExpr *rExpr, SimExpr *lExpr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Sub operation.
 //
 //------------------------------------------------------------------------------------------------------------
 void subOp( SimExpr *rExpr, SimExpr *lExpr ) {
@@ -149,7 +145,7 @@ void subOp( SimExpr *rExpr, SimExpr *lExpr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Multiply operation.
 //
 //------------------------------------------------------------------------------------------------------------
 void multOp( SimExpr *rExpr, SimExpr *lExpr ) {
@@ -183,7 +179,7 @@ void multOp( SimExpr *rExpr, SimExpr *lExpr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Divide Operation.
 //
 //------------------------------------------------------------------------------------------------------------
 void divOp( SimExpr *rExpr, SimExpr *lExpr ) {
@@ -217,7 +213,7 @@ void divOp( SimExpr *rExpr, SimExpr *lExpr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Modulo operation.
 //
 //------------------------------------------------------------------------------------------------------------
 void modOp( SimExpr *rExpr, SimExpr *lExpr ) {
@@ -251,7 +247,7 @@ void modOp( SimExpr *rExpr, SimExpr *lExpr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Logical operation.
 //
 //------------------------------------------------------------------------------------------------------------
 void logicalOp( SimExpr *rExpr, SimExpr *lExpr, logicalOpId op ) {
@@ -306,8 +302,8 @@ void logicalOp( SimExpr *rExpr, SimExpr *lExpr, logicalOpId op ) {
 //------------------------------------------------------------------------------------------------------------
 SimExprEvaluator::SimExprEvaluator( VCPU32Globals *glb, SimTokenizer *tok ) {
     
-    this -> glb = glb;
-    this -> tok = tok;
+    this -> glb         = glb;
+    this -> tok         = tok;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -772,4 +768,3 @@ void SimExprEvaluator::parseExpr( SimExpr *rExpr ) {
         }
     }
 }
-

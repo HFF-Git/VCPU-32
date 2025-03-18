@@ -58,12 +58,11 @@ namespace {
 // the search and entry add and remove functions.
 //
 //------------------------------------------------------------------------------------------------------------
-SimEnv::SimEnv( VCPU32Globals *glb, uint32_t size ) {
+SimEnv::SimEnv( uint32_t size ) {
    
     table       = (SimEnvTabEntry *) calloc( size, sizeof( SimEnvTabEntry ));
     hwm         = table;
     limit       = &table[ size ];
-    this -> glb = glb;
 }
 
 //------------------------------------------------------------------------------------------------------------

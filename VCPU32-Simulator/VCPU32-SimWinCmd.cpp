@@ -596,15 +596,171 @@ int  SimCmdHistory::getCmdCount( ) {
 
 
 
+/*
+
+ // ??? to sort out ...
+
+ // Print buffer contents (for debugging)
+ void printBuffer(CircularBuffer *cb) {
+     printf("Buffer contents:\n");
+     int i = cb->tail;
+     for (int c = 0; c < cb->count; c++) {
+         putchar(cb->buffer[i]);
+         i = (i + 1) % BUFFER_SIZE;
+     }
+     printf("\n");
+ }
+
+ // Print a line given a pointer and length
+ void printLine(char *line, int length) {
+     for (int i = 0; i < length; i++) {
+         putchar(line[i]);
+     }
+     printf("\n");
+ }
+
+ int main() {
+     CircularBuffer cb;
+     initBuffer(&cb);
+
+     printToBuffer(&cb, "Line %d: Hello, %s!\n", 1, "world");
+     printToBuffer(&cb, "Line %d: Another line\n", 2);
+     printToBuffer(&cb, "Line %d: Testing formatted %s\n", 3, "output");
+
+     printBuffer(&cb);
+
+     int len, foundLines;
+     char *ptr = getLinePointer(&cb, 1, &len, &foundLines);
+     if (ptr) {
+         printf("Line 1 below head (%d chars, %d lines found): ", len, foundLines);
+         printLine(ptr, len);
+     }
+
+     ptr = getLinePointer(&cb, 3, &len, &foundLines);
+     if (ptr) {
+         printf("Line 3 below head (%d chars, %d lines found): ", len, foundLines);
+         printLine(ptr, len);
+     }
+
+     return 0;
+ }
+ */
+
+
 //------------------------------------------------------------------------------------------------------------
 //
 //
 //
 //------------------------------------------------------------------------------------------------------------
-SimCmdWinOutBuffer::SimCmdWinOutBuffer( ) {
+SimCmdWinOutBuffer::SimCmdWinOutBuffer( ) { }
+
+
+void SimCmdWinOutBuffer::initBuffer( ) {
     
+    head    = 0;
+    tail    = 0;
+    count   = 0;
     
 }
+
+void SimCmdWinOutBuffer::makeRoom(  int requiredSpace ) {
+    
+    while ( count + requiredSpace > MAX_WIN_OUT_BUFFER_SIZE ) {
+        while ( count > 0 && buffer[tail] != '\n') {
+            tail = ( tail + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
+            count--;
+        }
+        if ( count > 0 ) {
+            tail = ( tail + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
+            count--;
+        }
+    }
+}
+
+void SimCmdWinOutBuffer::addToBuffer( const char *data ) {
+    
+    int len = (int) strlen( data );
+    
+    if ( len > MAX_WIN_OUT_BUFFER_SIZE ) {
+        
+        data += ( len - MAX_WIN_OUT_BUFFER_SIZE );
+        len = MAX_WIN_OUT_BUFFER_SIZE;
+    }
+    
+    makeRoom( len );
+    
+    for ( int i = 0; i < len; i++ ) {
+        
+        buffer[ head] = data[ i ];
+        head = ( head + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
+    }
+    
+    count += len;
+}
+
+void SimCmdWinOutBuffer::printChars( const char *format, ... ) {
+    
+    char    temp[ MAX_WIN_OUT_LINE_SIZE ];
+    va_list args;
+    
+    va_start( args, format );
+    int len = vsnprintf( temp, MAX_WIN_OUT_LINE_SIZE, format, args );
+    va_end(args);
+
+    if ( len > 0 ) {
+        
+        if ( len >= MAX_WIN_OUT_LINE_SIZE ) {
+            
+            len = MAX_WIN_OUT_LINE_SIZE - 1; // Ensure null termination
+            temp[ len ] = '\0';
+        }
+        
+        addToBuffer( temp );
+    }
+}
+
+char *SimCmdWinOutBuffer::getLinePointer( int n, int *lineLength, int *lineCount ) {
+    
+    if ( count == 0 ) {
+        
+        *lineCount = 0;
+        return NULL;  // Buffer is empty
+    }
+
+    int index = head;
+    int linesFound = 0;
+    int lastFoundIndex = tail;  // Default to earliest available line
+
+    while ( index != tail) {
+        
+        index = ( index - 1 + MAX_WIN_OUT_BUFFER_SIZE ) % MAX_WIN_OUT_BUFFER_SIZE;
+        
+        if ( buffer[ index ] == '\n' ) {
+            
+            linesFound++;
+            lastFoundIndex = (index + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
+            
+            if ( linesFound == n ) break;
+        }
+    }
+
+    *lineCount = linesFound;
+    *lineLength = 0;
+
+    int endIndex = lastFoundIndex;
+    
+    while ( endIndex != head && buffer[ endIndex ] != '\n' ) {
+        
+        endIndex = ( endIndex + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
+    }
+
+    *lineLength = ( endIndex >= lastFoundIndex )
+                      ? ( endIndex - lastFoundIndex )
+                      : ( MAX_WIN_OUT_BUFFER_SIZE - lastFoundIndex + endIndex );
+
+    return &buffer[ lastFoundIndex ];
+}
+
 
 
 //------------------------------------------------------------------------------------------------------------

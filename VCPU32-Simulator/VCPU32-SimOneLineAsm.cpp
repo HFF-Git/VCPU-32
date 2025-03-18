@@ -1974,10 +1974,8 @@ void parseLine( char *inputStr, uint32_t *instr ) {
 // comments, only the opcode and the operands.
 //
 //------------------------------------------------------------------------------------------------------------
-SimOneLineAsm::SimOneLineAsm( VCPU32Globals *glb ) {
-    
-    this -> glb = glb;
-    
+SimOneLineAsm::SimOneLineAsm( ) {
+ 
     tok = new SimTokenizer( );
 }
 

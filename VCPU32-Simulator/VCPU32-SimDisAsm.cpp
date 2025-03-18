@@ -722,10 +722,7 @@ int formatOperands( char *buf, uint32_t instr, int rdx = 10 ) {
 // The object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-SimDisAsm::SimDisAsm( VCPU32Globals *glb ) {
-    
-    this -> glb = glb;
-}
+SimDisAsm::SimDisAsm( ) { }
 
 //------------------------------------------------------------------------------------------------------------
 // Print an instruction, nicely formatted. An instruction has generally four parts. The opCode, the opCode

@@ -171,6 +171,9 @@ SimConsoleIO::~SimConsoleIO( ) {
 // "true" hardware. Non-blocking mode is enabled on entry to single step and run command and disabled when we
 // are back to the simulator.
 //
+//
+// ??? perhaps a place to save the previous setings and restore them ?
+// ??? Or just do all this in teh object creator ?
 //------------------------------------------------------------------------------------------------------------
 void SimConsoleIO::initConsoleIO( bool nonBlocking ) {
     
@@ -183,21 +186,6 @@ void SimConsoleIO::initConsoleIO( bool nonBlocking ) {
     term.c_cc[VMIN] = 1;
     term.c_cc[VTIME] = 0;
     tcsetattr( STDIN_FILENO, TCSAFLUSH, &term );
-    
-    if ( nonBlocking ) {
-        
-        int flags = fcntl( STDIN_FILENO, F_GETFL, 0 );
-        if ( flags == -1 ) {
-            
-            // ??? error ....
-        }
-        
-        flags = fcntl( STDIN_FILENO, F_SETFL, flags | O_NONBLOCK );
-        if ( flags == -1 ) {
-            
-            // ??? error ....
-        }
-    }
 #endif
     
     nonBlockingEnabled  = nonBlocking;
@@ -213,9 +201,43 @@ bool  SimConsoleIO::isConsole( ) {
     return( isatty( fileno( stdin )));
 }
 
+//------------------------------------------------------------------------------------------------------------
+// "setBlocking" will put the terminal into blocking or non-blocking mode. For the command interpreter we will
+// use the blockinhg mode. When the CPU runs, the console IO must be non-blocking, and we check for input on
+// each CPU "tick". On a Mac this is actual work, on Windows the blockng flags will be enough to set.
+//
+//------------------------------------------------------------------------------------------------------------
 void SimConsoleIO::setBlocking( bool enabled ) {
     
-    nonBlockingEnabled = enabled;
+#if __APPLE__
+    
+    int flags = fcntl( STDIN_FILENO, F_GETFL, 0 );
+    if ( flags == -1 ) {
+        
+        // ??? error ....
+    }
+    else {
+        
+        if ( enabled ) {
+            
+            if( fcntl( STDIN_FILENO, F_SETFL, flags | O_NONBLOCK ) == -1 ) {
+          
+                // ??? error ....
+            }
+        }
+        else {
+          
+            if ( fcntl( STDIN_FILENO, F_SETFL, flags &= ~O_NONBLOCK ) == -1 ) {
+               
+                // ??? error ....
+            }
+        }
+    }
+    
+#else
+    nonBlockingEnabled = true;
+#endif
+    
 }
 
 //------------------------------------------------------------------------------------------------------------

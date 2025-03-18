@@ -31,12 +31,14 @@
 // General maximum size for commands, etc.
 //
 //------------------------------------------------------------------------------------------------------------
-const int MAX_CMD_HIST_BUF_SIZE = 100;
-const int CMD_LINE_BUF_SIZE     = 256;
-const int TOK_STR_SIZE          = 256;
-const int MAX_TOKEN_NAME_SIZE   = 32;
-const int MAX_ENV_NAME_SIZE     = 32;
-const int MAX_ENV_VARIABLES     = 256;
+const int MAX_CMD_HIST_BUF_SIZE     = 32;
+const int MAX_WIN_OUT_BUFFER_SIZE   = 64 * 1024;
+const int MAX_WIN_OUT_LINE_SIZE     = 128;
+const int CMD_LINE_BUF_SIZE         = 256;
+const int TOK_STR_SIZE              = 256;
+const int MAX_TOKEN_NAME_SIZE       = 32;
+const int MAX_ENV_NAME_SIZE         = 32;
+const int MAX_ENV_VARIABLES         = 256;
 
 //------------------------------------------------------------------------------------------------------------
 // Fundamental constants for the window system.
@@ -554,6 +556,45 @@ struct SimHelpMsgEntry {
 };
 
 //------------------------------------------------------------------------------------------------------------
+// A simple one line assembler. This object is the counter part to the disassembler. We will parse a one
+// line input string for a valid instruction, using the syntax of the real assembler. There will be no
+// labels and comments, only the opcode and the operands.
+//
+//------------------------------------------------------------------------------------------------------------
+struct SimOneLineAsm {
+    
+public:
+    
+    SimOneLineAsm( );
+    SimErrMsgId parseAsmLine( char *inputStr, uint32_t *instr );
+    
+private:
+    
+    char *inputStr;
+    
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The disassembler function. The disassembler takes a machine instruction word and displays it in human
+// readable form.
+//
+//------------------------------------------------------------------------------------------------------------
+struct SimDisAsm {
+    
+public:
+    
+    SimDisAsm( );
+    
+    int formatOpCodeAndOptions( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int formatTargetAndOperands( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int formatInstr( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int displayInstr( uint32_t instr, int rdx = 16 );
+    
+    int getOpCodeOptionsFieldWidth( );
+    int getTargetAndOperandsFieldWidth( );
+};
+
+//------------------------------------------------------------------------------------------------------------
 // The command line interpreter as well as the one line assembler work the command line or assembly line
 // processed as a list of tokens. A token found in a string is recorded using the token structure. The token
 // types are numeric, virtual address and string.
@@ -672,8 +713,8 @@ struct SimExprEvaluator {
     
 private:
     
-    VCPU32Globals *glb  = nullptr;
-    SimTokenizer *tok   = nullptr;
+    VCPU32Globals   *glb        = nullptr;
+    SimTokenizer    *tok        = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -708,7 +749,7 @@ struct SimEnvTabEntry {
 //------------------------------------------------------------------------------------------------------------
 struct SimEnv {
     
-    SimEnv( VCPU32Globals *glb, uint32_t size );
+    SimEnv( uint32_t size );
     
     uint8_t         displayEnvTable( );
     uint8_t         displayEnvTableEntry( char *name );
@@ -750,8 +791,6 @@ struct SimEnv {
     SimEnvTabEntry  *table;
     SimEnvTabEntry  *hwm;
     SimEnvTabEntry  *limit;
-    
-    VCPU32Globals   *glb = nullptr;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -800,9 +839,19 @@ public:
     
     SimCmdWinOutBuffer( );
     
+    void initBuffer( );
+    void addToBuffer( const char *data );
+    void printChars( const char *format, ... );
+    char *getLinePointer( int n, int *lineLength, int *lineCount );
+    
 private:
     
+    void makeRoom( int requiredSpace );
     
+    char    buffer[ 64 * 1024 ]     = { 0 };
+    int     head                    = 0;
+    int     tail                    = 0;
+    int     count                   = 0;
 };
 
 
@@ -1179,6 +1228,7 @@ private:
 //
 // ??? to think about .... it is not a scrollabl window in our sense here. Still, it would be nice to move
 // the content up and down... hard to do ... we are not a terminal !!!!
+// ??? turns out the command winwod has a similar problem, and we impoemented an output buffer there...
 //-----------------------------------------------------------------------------------------------------------
 struct SimWinConsole : SimWin {
     
@@ -1287,18 +1337,15 @@ private:
     
     private:
     
-    VCPU32Globals           *glb        = nullptr;
-    SimCmdHistory           *hist       = nullptr;
-    SimTokenizer            *tok        = nullptr;
-    SimExprEvaluator        *eval       = nullptr;
-    SimCmdWinOutBuffer      *winOut     = nullptr;
+    VCPU32Globals           *glb            = nullptr;
+    SimCmdHistory           *hist           = nullptr;
+    SimTokenizer            *tok            = nullptr;
+    SimExprEvaluator        *eval           = nullptr;
+    SimCmdWinOutBuffer      *winOut         = nullptr;
+    SimCommandsWin          *cmdWin         = nullptr;
    
-    bool                    winModeOn   = false;
-    SimTokId                currentCmd  = TOK_NIL;
-    
-
-    // ??? need an output line area...
-    // and logic what to display from there...
+    bool                    winModeOn       = false;
+    SimTokId                currentCmd      = TOK_NIL;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -1364,52 +1411,6 @@ private:
     
     VCPU32Globals   *glb                        = nullptr;
     SimWin          *windowList[ MAX_WINDOWS ]  = { nullptr };
-};
-
-
-
-//------------------------------------------------------------------------------------------------------------
-// The disassembler function. The disassembler takes a machine instruction word and displays it in human
-// readable form.
-//
-//------------------------------------------------------------------------------------------------------------
-struct SimDisAsm {
-    
-public:
-    
-    SimDisAsm( VCPU32Globals *glb );
-    
-    int formatOpCodeAndOptions( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
-    int formatTargetAndOperands( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
-    int formatInstr( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
-    int displayInstr( uint32_t instr, int rdx = 16 );
-    
-    int getOpCodeOptionsFieldWidth( );
-    int getTargetAndOperandsFieldWidth( );
-    
-private:
-    
-    VCPU32Globals *glb = nullptr;
-};
-
-//------------------------------------------------------------------------------------------------------------
-// A simple one line assembler. This object is the counter part to the disassembler. We will parse a one
-// line input string for a valid instruction, using the syntax of the real assembler. There will be no
-// labels and comments, only the opcode and the operands.
-//
-//------------------------------------------------------------------------------------------------------------
-struct SimOneLineAsm {
-    
-public:
-    
-    SimOneLineAsm( VCPU32Globals *glb );
-    SimErrMsgId parseAsmLine( char *inputStr, uint32_t *instr );
-    
-private:
-    
-    VCPU32Globals   *glb = nullptr;
-    char            *inputStr;
-    
 };
 
 //------------------------------------------------------------------------------------------------------------
