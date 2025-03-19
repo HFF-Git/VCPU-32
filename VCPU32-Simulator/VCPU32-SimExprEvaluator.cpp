@@ -304,6 +304,9 @@ SimExprEvaluator::SimExprEvaluator( VCPU32Globals *glb, SimTokenizer *tok ) {
     
     this -> glb         = glb;
     this -> tok         = tok;
+    
+    disAsm      = new SimDisAsm( );
+    oneLineAsm  = new SimOneLineAsm( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -391,7 +394,7 @@ void SimExprEvaluator::pFuncAssemble( SimExpr *rExpr ) {
     parseExpr( &lExpr );
     if ( lExpr.typ == TYP_STR ) {
         
-        ret = glb -> oneLineAsm -> parseAsmLine( lExpr.strVal, &instr );
+        ret = oneLineAsm -> parseAsmLine( lExpr.strVal, &instr );
         
         if ( ret == NO_ERR ) {
             
@@ -450,7 +453,7 @@ void SimExprEvaluator::pFuncDisAssemble( SimExpr *rExpr ) {
         if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
         else throw ( ERR_EXPECTED_RPAREN );
         
-        glb -> disAsm -> formatInstr( asmStr, sizeof( asmStr ), instr );
+        disAsm -> formatInstr( asmStr, sizeof( asmStr ), instr );
         
         rExpr -> typ = TYP_STR;
         strcpy( rExpr -> strVal, asmStr );

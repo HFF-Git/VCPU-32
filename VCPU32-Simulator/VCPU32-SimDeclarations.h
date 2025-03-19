@@ -715,6 +715,8 @@ private:
     
     VCPU32Globals   *glb        = nullptr;
     SimTokenizer    *tok        = nullptr;
+    SimDisAsm       *disAsm     = nullptr;
+    SimOneLineAsm   *oneLineAsm = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1103,6 +1105,10 @@ public:
     void setDefaults( );
     void drawBanner( );
     void drawLine( uint32_t index );
+    
+private:
+    
+    SimDisAsm *disAsm = nullptr;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -1343,6 +1349,7 @@ private:
     SimExprEvaluator        *eval           = nullptr;
     SimCmdWinOutBuffer      *winOut         = nullptr;
     SimCommandsWin          *cmdWin         = nullptr;
+    SimDisAsm               *disAsm         = nullptr;
    
     bool                    winModeOn       = false;
     SimTokId                currentCmd      = TOK_NIL;
@@ -1424,8 +1431,6 @@ struct VCPU32Globals {
     
     SimConsoleIO        *console        = nullptr;
     SimEnv              *env            = nullptr;
-    SimDisAsm           *disAsm         = nullptr;
-    SimOneLineAsm       *oneLineAsm     = nullptr;
     SimCommandsWin      *cmdWin         = nullptr;
     SimWinDisplay       *winDisplay     = nullptr;
     

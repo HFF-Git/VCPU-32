@@ -108,6 +108,7 @@ SimCommandsWin::SimCommandsWin( VCPU32Globals *glb ) : SimWin( glb ) {
     eval    = new SimExprEvaluator( glb, tok );
     hist    = new SimCmdHistory( );
     winOut  = new SimCmdWinOutBuffer( );
+    disAsm  = new SimDisAsm( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -356,21 +357,21 @@ void  SimCommandsWin::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, in
         
         if (( physMem != nullptr ) && ( physMem -> validAdr( index ))) {
             
-            glb -> disAsm -> displayInstr( physMem -> getMemDataWord( index ), rdx );
+            disAsm -> displayInstr( physMem -> getMemDataWord( index ), rdx );
         }
         else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
                 
-            glb -> disAsm -> displayInstr( pdcMem -> getMemDataWord( index ), rdx );
+            disAsm -> displayInstr( pdcMem -> getMemDataWord( index ), rdx );
         }
         else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
                 
-            glb -> disAsm -> displayInstr( ioMem -> getMemDataWord( index ), rdx );
+            disAsm -> displayInstr( ioMem -> getMemDataWord( index ), rdx );
         }
         else displayInvalidWord( rdx );
         
         glb -> console -> printChars( "\n" );
             
-        index += 1;
+        index += 4;
     }
        
     glb -> console -> printChars( "\n" );
@@ -2385,6 +2386,8 @@ void SimCommandsWin::winKillWinCmd( ) {
             winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
             winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
         }
+        
+        if ( winNumStart > winNumEnd ) winNumEnd = winNumStart;
     }
     
     if (( ! glb -> winDisplay -> validWindowNum( winNumStart )) ||

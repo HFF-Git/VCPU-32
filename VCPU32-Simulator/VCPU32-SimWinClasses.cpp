@@ -449,6 +449,7 @@ void SimWinPipeLineRegs::drawBanner( ) {
 //------------------------------------------------------------------------------------------------------------
 // The pipeline window shows the pipeline registers of the three stages.
 //
+// ??? can we also print entire lines using pritChars ?
 //------------------------------------------------------------------------------------------------------------
 void SimWinPipeLineRegs::drawBody( ) {
     
@@ -726,12 +727,15 @@ void SimWinAbsMem::drawLine( uint32_t itemAdr ) {
 //***********************************************************************************************************
 
 //------------------------------------------------------------------------------------------------------------
-// Object constructor.
+// Object constructor. We create a dfisassembler object for displaying the decoded instructions.
 //
-//
+// ??? check math for wond scrolling, debug: 0xf000000 + forward ....
 // ??? need to rework for virtual addresses ? We need to work with segment and offset !!!!
 //------------------------------------------------------------------------------------------------------------
-SimWinCode::SimWinCode( VCPU32Globals *glb ) : SimWinScrollable( glb ) { }
+SimWinCode::SimWinCode( VCPU32Globals *glb ) : SimWinScrollable( glb ) {
+    
+    disAsm = new SimDisAsm( );
+}
 
 //------------------------------------------------------------------------------------------------------------
 // The default values are the initial settings when windows is brought up the first time, or for the WDEF
@@ -748,32 +752,27 @@ void SimWinCode::setDefaults( ) {
     setHomeItemAdr( 0 );
     setCurrentItemAdr( glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 ));
     setLineIncrement( 4 );
-    setLimitItemAdr( 0 );
+    setLimitItemAdr( UINT_MAX );
     setWinType( WT_PC_WIN );
     setEnable( false );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The banner for the code window shows the code address. We also need to set the item address limit. As this
-// can change with some commands outside the windows system, better set it every time. There is one more
-// thing. It would be nice to automatically scroll the window for the single step command. We detect this
-// by examining the current command and adjust the current item address to scroll to the next lines to show.
+// The banner for the code window shows the code address. It would be nice to automatically scroll the window
+// for the single step command. We detect this by examining the current command and adjust the current item
+// address to scroll to the next lines to show.
 //
 //------------------------------------------------------------------------------------------------------------
 void SimWinCode::drawBanner( ) {
     
     uint32_t    fmtDesc             = FMT_BOLD | FMT_INVERSE;
-    int         currentItemAdr      = getCurrentItemAdr( );
-    int         currentItemAdrLimit = currentItemAdr + (( getRows( ) - 1 ) * getLineIncrement( ));
-    int         currentIaOfs        = (int) glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1  );
+    uint32_t    currentItemAdr      = getCurrentItemAdr( );
+    uint32_t    currentItemAdrLimit = currentItemAdr + (( getRows( ) - 1 ) * getLineIncrement( ));
+    uint32_t    currentIaOfs        = (int) glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1  );
     SimTokId    currentCmd          = glb -> cmdWin -> getCurrentCmd( );
     bool        isCurrent           = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
-    uint32_t    blockEntries        = glb -> cpu -> physMem -> getBlockEntries( );
-    uint32_t    blockSize           = glb -> cpu -> physMem -> getBlockSize( );
     bool        hasIaOfsAdr         = (( currentIaOfs >= currentItemAdr ) && ( currentIaOfs <= currentItemAdrLimit ));
     
-    setLimitItemAdr(( blockEntries * blockSize ) - 1 );
-   
     if (( currentCmd == CMD_STEP ) && ( hasIaOfsAdr )) {
         
         if      ( currentIaOfs >= currentItemAdrLimit ) winJump( currentIaOfs );
@@ -800,10 +799,26 @@ void SimWinCode::drawBanner( ) {
 //------------------------------------------------------------------------------------------------------------
 void SimWinCode::drawLine( uint32_t itemAdr ) {
     
-    uint32_t    instr           = glb -> cpu -> physMem -> getMemDataWord( itemAdr );
     uint32_t    fmtDesc         = FMT_DEF_ATTR;
     bool        plWinEnabled    = glb -> winDisplay -> isWinEnabled( PL_REG_WIN );
-    char        buf[ 128 ];
+    CpuMem      *physMem        = glb -> cpu -> physMem;
+    CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
+    CpuMem      *ioMem          = glb -> cpu -> ioMem;
+    uint32_t    instr           = 0xFFFFFFFF;
+    char        buf[ 128 ]      = { 0 };
+    
+    if (( physMem != nullptr ) && ( physMem -> validAdr( itemAdr ))) {
+        
+        instr = physMem -> getMemDataWord( itemAdr );
+    }
+    else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( itemAdr ))) {
+        
+        instr = pdcMem -> getMemDataWord( itemAdr );
+    }
+    else if (( ioMem != nullptr ) && ( ioMem -> validAdr( itemAdr ))) {
+        
+        instr = ioMem -> getMemDataWord( itemAdr );
+    }
 
     printNumericField( itemAdr, fmtDesc | FMT_ALIGN_LFT, 12 );
   
@@ -824,17 +839,17 @@ void SimWinCode::drawLine( uint32_t itemAdr ) {
     printNumericField( instr, fmtDesc | FMT_ALIGN_LFT, 12 );
     
     int pos          = getWinCursorCol( );
-    int opCodeField  = glb -> disAsm -> getOpCodeOptionsFieldWidth( );
-    int operandField = glb -> disAsm -> getOpCodeOptionsFieldWidth( );
+    int opCodeField  = disAsm -> getOpCodeOptionsFieldWidth( );
+    int operandField = disAsm -> getOpCodeOptionsFieldWidth( );
     
     clearField( opCodeField );
-    glb -> disAsm -> formatOpCodeAndOptions( buf, sizeof( buf ), instr );
+    disAsm -> formatOpCodeAndOptions( buf, sizeof( buf ), instr );
     glb -> console -> printChars( "%s", buf );
     
     setWinCursor( 0, pos + opCodeField );
     
     clearField( operandField );
-    glb -> disAsm -> formatTargetAndOperands( buf, sizeof( buf ), instr );
+    disAsm -> formatTargetAndOperands( buf, sizeof( buf ), instr );
     glb -> console -> printChars( "%s", buf );
    
     setWinCursor( 0, pos + opCodeField + operandField );

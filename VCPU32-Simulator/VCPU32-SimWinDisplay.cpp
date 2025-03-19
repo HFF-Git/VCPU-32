@@ -674,20 +674,16 @@ void SimWinDisplay::windowNew( SimTokId winType, char *argStr ) {
 
 //-----------------------------------------------------------------------------------------------------------
 // "Window Kill" is the counter part to user windows creation and will remove a window. The method supports
-// removing a range of user windows. When we kill a window that was the current window, we need to set a
-// new one. We just pick the first used entry in the user range.
+// removing a range of user windows. When the start is greaterthan teh end, the end is also set to the start
+// window Id. When we kill a window that was the current window, we need to set a new one. We just pick the
+// first used entry in the user range.
 //
 //-----------------------------------------------------------------------------------------------------------
 void SimWinDisplay::windowKill( int winNumStart, int winNumEnd ) {
     
     if (( winNumStart < FIRST_UWIN ) || ( winNumEnd > LAST_UWIN ))  return;
     
-    if ( winNumStart > winNumEnd ) {
-        
-        int tmp = winNumStart;
-        winNumStart = winNumEnd;
-        winNumEnd = tmp;
-    }
+    if ( winNumStart > winNumEnd ) winNumEnd = winNumStart;
     
     for ( int i = winNumStart; i <= winNumEnd; i++ ) {
          

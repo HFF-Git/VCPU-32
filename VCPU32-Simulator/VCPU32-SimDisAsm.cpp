@@ -761,9 +761,9 @@ int SimDisAsm::displayInstr( uint32_t instr, int rdx ) {
     int  cursor = 0;
     char buf[ 128 ];
     
-    cursor += formatOpCodeAndOptions( buf, sizeof( buf ), instr );
+    cursor += formatOpCodeAndOptions( buf + cursor, sizeof( buf ), instr );
     buf[ cursor ] = ' ';
-    cursor += formatTargetAndOperands( buf, sizeof( buf ), instr, rdx );
+    cursor += formatTargetAndOperands( buf + cursor, sizeof( buf ), instr, rdx );
     fprintf( stdout, "%s", buf );
     return( cursor );
 }

@@ -110,8 +110,6 @@ int main( int argc, const char* argv[ ] ) {
     
     glbDesc.env                         = new SimEnv( MAX_ENV_VARIABLES );
     glbDesc.console                     = new SimConsoleIO( );
-    glbDesc.oneLineAsm                  = new SimOneLineAsm( );
-    glbDesc.disAsm                      = new SimDisAsm( );
     glbDesc.cmdWin                      = new SimCommandsWin( &glbDesc );
     glbDesc.winDisplay                  = new SimWinDisplay( &glbDesc );
    
