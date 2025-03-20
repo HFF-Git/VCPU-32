@@ -257,7 +257,7 @@ int SimConsoleIO::readChar( ) {
 #else
     if ( blockingMode ) {
         
-        while ( !kbhit( )) Sleep( 50 );
+        while ( ! _kbhit( )) Sleep( 50 );
         return( _getch( ));
     }
     else {

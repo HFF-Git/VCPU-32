@@ -314,8 +314,8 @@ int SimCmdWinOutBuffer::printChars( const char *format, ... ) {
         
         addToBuffer( temp );
         
-        // ??? test only .... we fill teh buffer and just print out ....
-        write( STDOUT_FILENO, temp, strlen( temp ));
+        // ??? test only .... we fill the buffer and just print out ....
+        write( 2, temp, strlen( temp ));
     }
     
     return( len );

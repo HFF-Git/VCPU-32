@@ -30,7 +30,7 @@
 // The value allows for a constant token. The parser can directly use the value in expressions.
 //
 //------------------------------------------------------------------------------------------------------------
-SimToken const cmdTokTab[ ] = {
+const SimToken cmdTokTab[ ] = {
     
     //--------------------------------------------------------------------------------------------------------
     // General tokens.
@@ -273,7 +273,7 @@ SimToken const cmdTokTab[ ] = {
     { .name = "FD_PSW0",            .typ = TYP_FD_PREG,         .tid = FD_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "FD_PSW1",            .typ = TYP_FD_PREG,         .tid = FD_PSW1,             .val = PSTAGE_REG_ID_PSW_1      },
     { .name = "PLFD",               .typ = TYP_FD_PREG,         .tid = FD_SET,              .val = 0                        },
-    
+   
     { .name = "PSW0",               .typ = TYP_FD_PREG,         .tid = FD_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "PSW1",               .typ = TYP_FD_PREG,         .tid = FD_PSW1,             .val = PSTAGE_REG_ID_PSW_1      },
     
@@ -394,7 +394,7 @@ const int MAX_CMD_TOKEN_TAB = sizeof( cmdTokTab ) / sizeof( SimToken );
 //
 // ??? sort the entries... a little ...
 //------------------------------------------------------------------------------------------------------------
-SimErrMsgTabEntry const errMsgTab [ ] = {
+const SimErrMsgTabEntry errMsgTab [ ] = {
     
     { .errNum = NO_ERR,                         .errStr = (char *) "NO_ERR" },
     { .errNum = ERR_NOT_SUPPORTED,              .errStr = (char *) "Command or Function not supported (yet)" },
@@ -489,7 +489,7 @@ const int MAX_ERR_MSG_TAB = sizeof( errMsgTab ) / sizeof( SimErrMsgTabEntry );
 // explanation field.
 //
 //------------------------------------------------------------------------------------------------------------
-SimHelpMsgEntry const cmdHelpTab[ ] = {
+const SimHelpMsgEntry cmdHelpTab[ ] = {
     
     //--------------------------------------------------------------------------------------------------------
     // Commands.
@@ -665,7 +665,6 @@ SimHelpMsgEntry const cmdHelpTab[ ] = {
     // Window commands and types.
     //
     //--------------------------------------------------------------------------------------------------------
-    
     {
         .helpTypeId = TYP_WCMD,  .helpTokId  = CMD_WOFF,
         .cmdNameStr     = (char *) "woff",
@@ -960,7 +959,7 @@ const int MAX_CMD_HELP_TAB = sizeof( cmdHelpTab ) / sizeof( SimHelpMsgEntry );
 // token. The value allows for a constant token. The parser can directly use the value in expressions.
 //
 //------------------------------------------------------------------------------------------------------------
-SimToken const asmTokTab[ ] = {
+const SimToken asmTokTab[ ] = {
     
     //--------------------------------------------------------------------------------------------------------
     // General registers.

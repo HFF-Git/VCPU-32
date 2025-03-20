@@ -49,6 +49,7 @@
 #include <fcntl.h>
 #else
 //#include <unistd.h>
+#include <windows.h>
 #include <conio.h>
 #include <stdio.h>
 #include <stdint.h>
