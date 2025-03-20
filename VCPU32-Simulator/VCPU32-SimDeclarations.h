@@ -216,6 +216,7 @@ enum SimTokId : uint16_t {
     CMD_SET                 = 1000,
     
     CMD_EXIT                = 1001,     CMD_HELP                = 1002,
+    CMD_WC_CU               = 1003,     CMD_WC_CD               = 1004,
     
     CMD_DO                  = 1010,     CMD_REDO                = 1011,     CMD_HIST                = 1012,
     CMD_ENV                 = 1013,     CMD_XF                  = 1014,     CMD_WRITE_LINE          = 1015,
@@ -843,7 +844,7 @@ public:
     
     void initBuffer( );
     void addToBuffer( const char *data );
-    void printChars( const char *format, ... );
+    int  printChars( const char *format, ... );
     char *getLinePointer( int n, int *lineLength, int *lineCount );
     
 private:
@@ -1302,6 +1303,9 @@ private:
     void            histCmd( );
     void            doCmd( );
     void            redoCmd( );
+    
+    void            cursorUpCmd( );
+    void            cursorDownCmd( );
     
     void            resetCmd( );
     void            runCmd( );

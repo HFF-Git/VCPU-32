@@ -45,6 +45,8 @@ namespace {
 struct termios saveTermSetting;
 #endif
 
+char outputBuffer[ 1024 ];
+
 //------------------------------------------------------------------------------------------------------------
 //
 //
@@ -246,10 +248,10 @@ void SimConsoleIO::setBlockingMode( bool enabled ) {
 // ??? this also means on Windows a "busy" loop..... :-(
 // ??? perhas a "sleep" eases the busy loop a little...
 //------------------------------------------------------------------------------------------------------------
-int SimConsoleIO::readChar(  ) {
+int SimConsoleIO::readChar( ) {
     
 #if __APPLE__
-    int ch;
+    char ch;
     if ( read( STDIN_FILENO, &ch, 1 ) == 1 ) return( ch );
     else return ( 0 );
 #else
@@ -287,6 +289,26 @@ void SimConsoleIO::writeChar( char ch  ) {
     
 }
 
+//------------------------------------------------------------------------------------------------------------
+//
+// ??? another version which does not use templates... try it ...
+//------------------------------------------------------------------------------------------------------------
+int SimConsoleIO::writeChars( const char *format, ... ) {
+    
+    va_list args;
+    
+    va_start( args, format );
+    int len = vsnprintf( outputBuffer, sizeof( outputBuffer ), format, args );
+    va_end(args);
+    
+    if ( len > 0 ) {
+        
+        for ( int i = 0; i < len; i++  ) writeChar( outputBuffer[ i ] );
+    }
+    
+    return( len );
+}
+    
 //------------------------------------------------------------------------------------------------------------
 // "writeCarriageReturn" will emit a carriage return. This is done slighty different for Macs / Windows.
 //
@@ -327,7 +349,6 @@ void SimConsoleIO::writeScrollDown( int n ) {
     printChars( "\033[%dT", n );
 }
 
-
 void SimConsoleIO::writeCharAtPos( int ch, int strSize, int pos ) {
     
     if ( pos == strSize ) {
@@ -367,8 +388,9 @@ void SimConsoleIO::writeCharAtPos( int ch, int strSize, int pos ) {
 // We also have the option of a prefilled command buffer for editing a command line before hitting return.
 // This option is used by the REDO command which lists a previously entered command presented for editing.
 //
-// ??? which escape sequence should we handle directly ? which to pass on ? how ?
-//
+// Finally, there is the cursor up anddown key. These keys are used to scoll teh command line window. When
+// such a key is detected, the current accumulatd input is discarded and replaced by a pseudo command for
+// cursor up or down. The rooutne returns immediately.
 //
 // ??? what if character is zero ?????? ( blocking )
 //------------------------------------------------------------------------------------------------------------
@@ -380,6 +402,10 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
         CT_ESCAPE           = 1,
         CT_ESCAPE_BRACKET   = 2
     };
+    
+    char cursorUpStr[ ]     = "WC_CU";
+    char cursorDownStr[ ]   = "WC_CD";
+    
     
     int         ch      = ' ';
     int         strSize = 0;
@@ -397,13 +423,6 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
         ch = readChar( );
      
         switch ( state ) {
-                
-            case CT_ESCAPE: {
-                
-                if ( isLeftBracketChar( ch )) state = CT_ESCAPE_BRACKET;
-                else                          state = CT_NORMAL;
-                
-            } break;
                 
             case CT_NORMAL: {
                 
@@ -427,8 +446,8 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
                 }
                 else if ( ch == 0 ) {
                     
-                    // ??? we should not get a zero, as this indicates NO charaxter was read.
-                    // ??? what to exactly do with this in blocking mode ?
+                    // ??? what to do ...
+                    
                 }
                 else {
                     
@@ -438,6 +457,13 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
                         if ( isprint( ch )) writeCharAtPos( ch, strSize, cursor + cursorOfs );
                     }
                 }
+                
+            } break;
+                
+            case CT_ESCAPE: {
+                
+                if ( isLeftBracketChar( ch )) state = CT_ESCAPE_BRACKET;
+                else                          state = CT_NORMAL;
                 
             } break;
                 
@@ -469,30 +495,17 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
                         
                     } break;
                         
-                        
-                    // ??? for a quick test ... it seems the scroll content is lost when it
-                    // leaves the screen. Seems to be a bigger issue.
-                    //
-                    // ??? i would need to implement a command line buffer and lnes are prited from there.
-                    // A new output line is simple entered to the output line stack. Then I print from the
-                    // current line buffer index backward filling the scroll area screen. The screen is thus
-                    // not really a scroll area, bit a scollable command screen.
-                        
-                    // The functionlaity should be in the Command Window code. But we need to report the
-                    // cursor keys pressed...
-         
-                        
                     case 'A': {
                         
-                        writeScrollUp( 1 );
-                        state = CT_NORMAL;
+                        strncpy( cmdBuf, cursorUpStr, strlen( cursorUpStr ));
+                        return((int) strlen( cursorUpStr ));
                         
                     } break;
                         
                     case 'B': {
                         
-                        writeScrollDown( 1 );
-                        state = CT_NORMAL;
+                        strncpy( cmdBuf, cursorDownStr, strlen( cursorDownStr ));
+                        return((int) strlen( cursorDownStr ));
                         
                     } break;
                         
@@ -548,26 +561,3 @@ int SimConsoleIO::printNum( uint32_t num, int rdx ) {
 
 
 // ??? any other little helpers for printing to move here ??
-// ??? move all of the print routines here ? benefit ?
-
-
-//------------------------------------------------------------------------------------------------------------
-//
-//
-// ??? sketch to enable mouse reporting to capature scrolling and clicks...
-// ??? scroll up: \033[M<x><y>
-// ??? scroll down: \033[M<x><y>
-// ??? "x" could be 32 for up and 33 for down... test it...
-//------------------------------------------------------------------------------------------------------------
-void enableMouseReporting( ) {
-    
-    printf( "\033[?1003h" ); // Enable basic mouse reporting
-    fflush( stdout );
-}
-
-void disableMouseReporting( ) {
-    
-    printf( "\033[?1000l" ); // Enable basic mouse reporting
-    fflush( stdout );
-}
-

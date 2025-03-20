@@ -3,11 +3,12 @@
 // VCPU32 - A 32-bit CPU - Simulator command window
 //
 //------------------------------------------------------------------------------------------------------------
-// The command window is the last wscreen area below all enabled windows displayed. It is actuall not a
-// window like the others in that it represents the locked scroll area of the terminal screen. Still, it has
-// a window header and a line drawingf area. However, the print methods will just emit their data without
-// manipluating any window specific ciursors like the othe rwindow objects. In a sense it is a simple line
-// display area.
+// The command window is the last screen area below all enabled windows displayed. It is actuall not a window
+// like the others in that it represents the locked scroll area of the terminal screen. Still, it has a
+// window header and a line drawing area. However, the print methods will just emit their data without
+// manipluating any window specific cursors like the other window objects. In a sense it is a simple line
+// display area. Nevertheless, to enable scrolling of this window, an output buffer needs to be implemented
+// that stores all output in a circular buffer to use for text output. Just like a "real" terminal.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -112,6 +113,26 @@ SimCommandsWin::SimCommandsWin( VCPU32Globals *glb ) : SimWin( glb ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Get the command interpreter ready.
+//
+// One day we will handle command line arguments.... will this be part of the command win ?
+//
+//  -v           verbose
+//  -i <path>    init file
+//
+// ??? to do ...
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::setupCmdInterpreter( int argc, const char *argv[ ] ) {
+    
+    while ( argc > 0 ) {
+        
+        argc --;
+    }
+    
+    glb -> winDisplay  -> windowDefaults( );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // The default values are the initial settings when windows is brought up the first time, or for the WDEF
 // command.
 //
@@ -140,34 +161,216 @@ void SimCommandsWin::drawBanner( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The body lines of the command window are displayed after the banner line. We will never draw in this
-// window via the window routines. The body is the terminal scroll area. What we do however, is to reset
-// any character drawing attribute.
+// The body lines of the command window are displayed after the banner line. The window is filled from the
+// putput buffer.
 //
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::drawBody( ) {
     
     setFieldAtributes( FMT_DEF_ATTR );
+    
+    // ??? tons of work to do here....
+}
+
+
+
+/*
+
+ // ??? to sort out ...
+
+ // Print buffer contents (for debugging)
+ void printBuffer(CircularBuffer *cb) {
+     printf("Buffer contents:\n");
+     int i = cb->tail;
+     for (int c = 0; c < cb->count; c++) {
+         putchar(cb->buffer[i]);
+         i = (i + 1) % BUFFER_SIZE;
+     }
+     printf("\n");
+ }
+
+ // Print a line given a pointer and length
+ void printLine(char *line, int length) {
+     for (int i = 0; i < length; i++) {
+         putchar(line[i]);
+     }
+     printf("\n");
+ }
+
+ int main() {
+     CircularBuffer cb;
+     initBuffer(&cb);
+
+     printToBuffer(&cb, "Line %d: Hello, %s!\n", 1, "world");
+     printToBuffer(&cb, "Line %d: Another line\n", 2);
+     printToBuffer(&cb, "Line %d: Testing formatted %s\n", 3, "output");
+
+     printBuffer(&cb);
+
+     int len, foundLines;
+     char *ptr = getLinePointer(&cb, 1, &len, &foundLines);
+     if (ptr) {
+         printf("Line 1 below head (%d chars, %d lines found): ", len, foundLines);
+         printLine(ptr, len);
+     }
+
+     ptr = getLinePointer(&cb, 3, &len, &foundLines);
+     if (ptr) {
+         printf("Line 3 below head (%d chars, %d lines found): ", len, foundLines);
+         printLine(ptr, len);
+     }
+
+     return 0;
+ }
+ */
+
+
+//------------------------------------------------------------------------------------------------------------
+// Command window output buffer. We cannot directly print to the command window when we want to support
+// scrolling of the command window data. Instead, all printing is routed to a command window buffer. The
+// buffer is a circular structure, the oldest lines are removed when we need room. Lines are separated by the
+// "\n" character. When it comes to printing the window body content, the data is taken from the windows
+// ouput buffer.
+//
+//------------------------------------------------------------------------------------------------------------
+SimCmdWinOutBuffer::SimCmdWinOutBuffer( ) { }
+
+void SimCmdWinOutBuffer::initBuffer( ) {
+    
+    head    = 0;
+    tail    = 0;
+    count   = 0;
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Get the command interpreter ready.
+// When we needroom, the oldest data is removed. We take care that we remove entire lines, even if we would
+// need less space for the new data to enter.
 //
-// One day we will handle command line arguments.... will this be part of the command win ?
-//
-//  -v           verbose
-//  -i <path>    init file
-//
-// ??? to do ...
 //------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::setupCmdInterpreter( int argc, const char *argv[ ] ) {
+void SimCmdWinOutBuffer::makeRoom(  int requiredSpace ) {
     
-    while ( argc > 0 ) {
+    while ( count + requiredSpace > MAX_WIN_OUT_BUFFER_SIZE ) {
+        while ( count > 0 && buffer[tail] != '\n') {
+            tail = ( tail + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
+            count--;
+        }
+        if ( count > 0 ) {
+            tail = ( tail + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
+            count--;
+        }
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Add new data to the output buffer. When there is not enough room, we will remove the oldest data entered.
+// Note that we do not add entire lines, but rather add what ever is entered via the printChar methods. The
+// line seprator is explicetly added by the calling routines. If the data to enter is large than the entire
+// window putput buffer, we only add the last N characters from the input string. However, given that the
+// window out buffer is rather large, this should never really happen.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCmdWinOutBuffer::addToBuffer( const char *data ) {
+    
+    int len = (int) strlen( data );
+    
+    if ( len > MAX_WIN_OUT_BUFFER_SIZE ) {
         
-        argc --;
+        data += ( len - MAX_WIN_OUT_BUFFER_SIZE );
+        len = MAX_WIN_OUT_BUFFER_SIZE;
     }
     
-    glb -> winDisplay  -> windowDefaults( );
+    makeRoom( len );
+    
+    for ( int i = 0; i < len; i++ ) {
+        
+        buffer[ head] = data[ i ];
+        head = ( head + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
+    }
+    
+    count += len;
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "printChars" will add data to the window output buffer. It is modelled after the "printf" family of output
+// routines and accepts a fomrat string and a variable number of arguments.
+//
+//------------------------------------------------------------------------------------------------------------
+int SimCmdWinOutBuffer::printChars( const char *format, ... ) {
+    
+    char    temp[ MAX_WIN_OUT_LINE_SIZE ];
+    va_list args;
+    
+    va_start( args, format );
+    int len = vsnprintf( temp, MAX_WIN_OUT_LINE_SIZE, format, args );
+    va_end(args);
+
+    if ( len > 0 ) {
+        
+        if ( len >= MAX_WIN_OUT_LINE_SIZE ) {
+            
+            len = MAX_WIN_OUT_LINE_SIZE - 1; // Ensure null termination
+            temp[ len ] = '\0';
+        }
+        
+        addToBuffer( temp );
+        
+        // ??? test only .... we fill teh buffer and just print out ....
+        write( STDOUT_FILENO, temp, strlen( temp ));
+    }
+    
+    return( len );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "getLinePointer" is part of the putput portion. We need a routine that allows to retrieve the last N lines
+// to print them to the command window body.
+//
+//
+// ??? to think about, what is the nest wy to display a chunk of lines from the output buffer ?
+// ??? there needs to be a cursor to the actual position of the screen subsubset and the number of lines the
+// current command window can hist.
+//
+//------------------------------------------------------------------------------------------------------------
+char *SimCmdWinOutBuffer::getLinePointer( int n, int *lineLength, int *lineCount ) {
+    
+    if ( count == 0 ) {
+        
+        *lineCount = 0;
+        return NULL;  // Buffer is empty
+    }
+
+    int index = head;
+    int linesFound = 0;
+    int lastFoundIndex = tail;  // Default to earliest available line
+
+    while ( index != tail) {
+        
+        index = ( index - 1 + MAX_WIN_OUT_BUFFER_SIZE ) % MAX_WIN_OUT_BUFFER_SIZE;
+        
+        if ( buffer[ index ] == '\n' ) {
+            
+            linesFound++;
+            lastFoundIndex = (index + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
+            
+            if ( linesFound == n ) break;
+        }
+    }
+
+    *lineCount = linesFound;
+    *lineLength = 0;
+
+    int endIndex = lastFoundIndex;
+    
+    while ( endIndex != head && buffer[ endIndex ] != '\n' ) {
+        
+        endIndex = ( endIndex + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
+    }
+
+    *lineLength = ( endIndex >= lastFoundIndex )
+                      ? ( endIndex - lastFoundIndex )
+                      : ( MAX_WIN_OUT_BUFFER_SIZE - lastFoundIndex + endIndex );
+
+    return &buffer[ lastFoundIndex ];
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -182,14 +385,14 @@ void SimCommandsWin::cmdLineError( SimErrMsgId errNum, char *argStr ) {
         
         if ( errMsgTab[ i ].errNum == errNum ) {
             
-            glb -> console -> printChars( "%s\n", errMsgTab[ i ].errStr );
+            winOut -> printChars( "%s\n", errMsgTab[ i ].errStr );
             return;
         }
     }
     
-    glb -> console -> printChars( "Error: %d", errNum );
-    if ( argStr != nullptr )  glb -> console -> printChars( "%32s", argStr );
-    glb -> console -> printChars( "/n" );
+    winOut -> printChars( "Error: %d", errNum );
+    if ( argStr != nullptr )  winOut -> printChars( "%32s", argStr );
+    winOut -> printChars( "/n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -199,7 +402,7 @@ void SimCommandsWin::cmdLineError( SimErrMsgId errNum, char *argStr ) {
 //------------------------------------------------------------------------------------------------------------
 int SimCommandsWin::promptYesNoCancel( char *promptStr ) {
     
-    int len = glb -> console -> printChars( "%s -> ", promptStr );
+    int len = winOut -> printChars( "%s -> ", promptStr );
     
     char buf[ 8 ] = "";
     
@@ -237,275 +440,6 @@ void SimCommandsWin::acceptRparen( ) {
     
     if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "displayInvalidWord" shows a set of "*" when we cannot get a value for word. We make the length of the
-// "*" string according to the current radix.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::displayInvalidWord( int rdx ) {
-    
-    if      ( rdx == 10 )   glb -> console -> printChars( "**********" );
-    else if ( rdx == 8  )   glb -> console -> printChars( "************" );
-    else if ( rdx == 16 )   glb -> console -> printChars( "**********" );
-    else                    glb -> console -> printChars( "**num**" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "displayWord" lists out a 32-bit machine word in the specified number base. If the format parameter is
-// omitted or set to "default", the environment variable for the base number is used.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::displayWord( uint32_t val, int rdx ) {
-    
-    if      ( rdx == 10 )  glb -> console -> printChars( "%10d", val );
-    else if ( rdx == 8  )  glb -> console -> printChars( "%#012o", val );
-    else if ( rdx == 16 )  {
-        
-        if ( val == 0 ) glb -> console -> printChars( "0x00000000" );
-        else glb -> console -> printChars( "%#010x", val );
-    }
-    else glb -> console -> printChars( "**num**" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "displayHalfWord" lists out a 12-bit word in the specified number base. If the format parameter is omitted
-// or set to "default", the environment variable for the base number is used.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::displayHalfWord( uint32_t val, int rdx ) {
-    
-    if      ( rdx == 10 )  glb -> console -> printChars( "%5d", val );
-    else if ( rdx == 8  )  glb -> console -> printChars( "%06o", val );
-    else if ( rdx == 16 )  {
-        
-        if ( val == 0 ) glb -> console -> printChars( "0x0000" );
-        else            glb -> console -> printChars( "%#05x", val );
-    }
-    else glb -> console -> printChars( "**num**" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Display absolute memory content. We will show the memory starting with offset. The words per line is an
-// environmental variable setting. The offset is rounded down to the next 4-byte boundary, the limit is
-// rounded up to the next 4-byte boundary. We display the data in words. The absolute memory address range
-// currently consist of three memory objects. There is main physical memory, PDC memory and IO memory. This
-// routine will make the appropriate call.
-//
-//------------------------------------------------------------------------------------------------------------
-void  SimCommandsWin::displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx ) {
-    
-    uint32_t    index           = ( ofs / 4 ) * 4;
-    uint32_t    limit           = ((( index + len ) + 3 ) / 4 ) * 4;
-    int         wordsPerLine    = glb -> env -> getEnvVarInt((char *) ENV_WORDS_PER_LINE );
-    CpuMem      *physMem        = glb -> cpu -> physMem;
-    CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
-    CpuMem      *ioMem          = glb -> cpu -> ioMem;
-    
-    while ( index < limit ) {
-        
-        displayWord( index, rdx );
-        glb -> console -> printChars( ": " );
-        
-        for ( uint32_t i = 0; i < wordsPerLine; i++ ) {
-            
-            if ( index < limit ) {
-                
-                if ((physMem != nullptr ) && ( physMem -> validAdr( index ))) {
-                    
-                    displayWord( physMem -> getMemDataWord( index ), rdx );
-                }
-                else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
-                    
-                   displayWord( pdcMem -> getMemDataWord( index ), rdx );
-                }
-                else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
-                    
-                    displayWord( ioMem -> getMemDataWord( index ), rdx );
-                }
-                else displayInvalidWord( rdx );
-            }
-                
-            glb -> console -> printChars( " " );
-            
-            index += 4;
-        }
-        
-        glb -> console -> printChars( "\n" );
-    }
-    
-    glb -> console -> printChars( "\n" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Display absolute memory content as code shown in assembler syntax. There is one word per line.
-//
-//------------------------------------------------------------------------------------------------------------
-void  SimCommandsWin::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, int rdx ) {
-    
-    uint32_t    index           = ( ofs / 4 ) * 4;
-    uint32_t    limit           = ((( index + len ) + 3 ) / 4 );
-    CpuMem      *physMem        = glb -> cpu -> physMem;
-    CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
-    CpuMem      *ioMem          = glb -> cpu -> ioMem;
- 
-    while ( index < limit ) {
-        
-        displayWord( index, rdx );
-        glb -> console -> printChars( ": " );
-        
-        if (( physMem != nullptr ) && ( physMem -> validAdr( index ))) {
-            
-            disAsm -> displayInstr( physMem -> getMemDataWord( index ), rdx );
-        }
-        else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
-                
-            disAsm -> displayInstr( pdcMem -> getMemDataWord( index ), rdx );
-        }
-        else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
-                
-            disAsm -> displayInstr( ioMem -> getMemDataWord( index ), rdx );
-        }
-        else displayInvalidWord( rdx );
-        
-        glb -> console -> printChars( "\n" );
-            
-        index += 4;
-    }
-       
-    glb -> console -> printChars( "\n" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// This routine will print a TLB entry with each field formatted.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::displayTlbEntry( TlbEntry *entry, int rdx ) {
-    
-    glb -> console -> printChars( "[" );
-    if ( entry -> tValid( ))            glb -> console -> printChars( "V" );
-    else glb -> console -> printChars( "v" );
-    if ( entry -> tDirty( ))            glb -> console -> printChars( "D" );
-    else glb -> console -> printChars( "d" );
-    if ( entry -> tTrapPage( ))         glb -> console -> printChars( "P" );
-    else glb -> console -> printChars( "p" );
-    if ( entry -> tTrapDataPage( ))     glb -> console -> printChars( "D" );
-    else glb -> console -> printChars( "d" );
-    glb -> console -> printChars( "]" );
-    
-    glb -> console -> printChars( " Acc: (%d,%d,%d)", entry -> tPageType( ), entry -> tPrivL1( ), entry -> tPrivL2( ));
-    
-    glb -> console -> printChars( " Pid: " );
-    displayHalfWord( entry -> tSegId( ), rdx );
-    
-    glb -> console -> printChars( " Vpn-H: " );
-    displayWord( entry -> vpnHigh, rdx );
-    
-    glb -> console -> printChars( " Vpn-L: " );
-    displayWord( entry -> vpnLow, rdx );
-    
-    glb -> console -> printChars( " PPN: " );
-    displayHalfWord( entry -> tPhysPage( ), rdx  );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "displayTlbEntries" displays a set of TLB entries, line by line.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, int rdx ) {
-    
-    if ( index + len <= tlb -> getTlbSize( )) {
-        
-        for ( uint32_t i = index; i < index + len; i++  ) {
-            
-            displayWord( i, rdx  );
-            glb -> console -> printChars( ": " );
-            
-            TlbEntry *ptr = tlb -> getTlbEntry( i );
-            if ( ptr != nullptr ) displayTlbEntry( ptr, rdx );
-            
-            glb -> console -> printChars( "\n" );
-        }
-        
-    } else glb -> console -> printChars( "index + len out of range\n" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "displayCacheEntries" displays a list of cache line entries. Since we have a coupe of block sizes and
-// perhaps one or more sets, the display is rather complex.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t len, int rdx ) {
-    
-    uint32_t    blockSets       = cPtr -> getBlockSets( );
-    uint32_t    wordsPerBlock   = cPtr -> getBlockSize( ) / 4;
-    uint32_t    wordsPerLine    = 4;
-    uint32_t    linesPerBlock   = wordsPerBlock / wordsPerLine;
-   
-    if ( index + len >=  cPtr -> getBlockEntries( )) {
-        
-        glb -> console -> printChars( " cache index + len out of range\n" );
-        return;
-    }
-    
-    for ( uint32_t lineIndex = index; lineIndex < index + len; lineIndex++  ) {
-        
-        displayWord( lineIndex, rdx  );
-        glb -> console -> printChars( ": " );
-        
-        if ( blockSets >= 1 ) {
-            
-            MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( lineIndex, 0 );
-            uint32_t    *dataPtr    = (uint32_t *) cPtr -> getMemBlockEntry( lineIndex, 0 );
-            
-            glb -> console -> printChars( "(0)[" );
-            if ( tagPtr -> valid )  glb -> console -> printChars( "V" ); else glb -> console -> printChars( "v" );
-            if ( tagPtr -> dirty )  glb -> console -> printChars( "D" ); else glb -> console -> printChars( "d" );
-            glb -> console -> printChars( "] (" );
-            displayWord( tagPtr -> tag, rdx );
-            glb -> console -> printChars( ") \n" );
-            
-            for ( int i = 0; i < linesPerBlock; i++  ) {
-                
-                glb -> console -> printChars( "            (" );
-                
-                for ( int j = 0; j < wordsPerLine; j++ ) {
-                    
-                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], rdx );
-                    if ( i < 3 ) glb -> console -> printChars( " " );
-                }
-                
-                glb -> console -> printChars( ") \n" );
-            }
-        }
-        
-        if ( blockSets >= 2 ) {
-            
-            MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( lineIndex, 0 );
-            uint32_t    *dataPtr    = (uint32_t *) cPtr -> getMemBlockEntry( lineIndex, 1 );
-            
-            glb -> console -> printChars( "            (1)[" );
-            if ( tagPtr -> valid )  glb -> console -> printChars( "V" ); else glb -> console -> printChars( "v" );
-            if ( tagPtr -> dirty )  glb -> console -> printChars( "D" ); else glb -> console -> printChars( "d" );
-            glb -> console -> printChars( "] (" );
-            displayWord( tagPtr -> tag, rdx );
-            glb -> console -> printChars( ")\n" );
-            
-            for ( int i = 0; i < linesPerBlock; i++  ) {
-                
-                glb -> console -> printChars( "            (" );
-                
-                for ( int j = 0; j < wordsPerLine; j++ ) {
-                    
-                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], rdx );
-                    if ( i < 3 ) glb -> console -> printChars( " " );
-                }
-                
-                glb -> console -> printChars( ") \n" );
-            }
-        }
-    }
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -595,173 +529,274 @@ int  SimCmdHistory::getCmdCount( ) {
     return( count );
 }
 
-
-
-/*
-
- // ??? to sort out ...
-
- // Print buffer contents (for debugging)
- void printBuffer(CircularBuffer *cb) {
-     printf("Buffer contents:\n");
-     int i = cb->tail;
-     for (int c = 0; c < cb->count; c++) {
-         putchar(cb->buffer[i]);
-         i = (i + 1) % BUFFER_SIZE;
-     }
-     printf("\n");
- }
-
- // Print a line given a pointer and length
- void printLine(char *line, int length) {
-     for (int i = 0; i < length; i++) {
-         putchar(line[i]);
-     }
-     printf("\n");
- }
-
- int main() {
-     CircularBuffer cb;
-     initBuffer(&cb);
-
-     printToBuffer(&cb, "Line %d: Hello, %s!\n", 1, "world");
-     printToBuffer(&cb, "Line %d: Another line\n", 2);
-     printToBuffer(&cb, "Line %d: Testing formatted %s\n", 3, "output");
-
-     printBuffer(&cb);
-
-     int len, foundLines;
-     char *ptr = getLinePointer(&cb, 1, &len, &foundLines);
-     if (ptr) {
-         printf("Line 1 below head (%d chars, %d lines found): ", len, foundLines);
-         printLine(ptr, len);
-     }
-
-     ptr = getLinePointer(&cb, 3, &len, &foundLines);
-     if (ptr) {
-         printf("Line 3 below head (%d chars, %d lines found): ", len, foundLines);
-         printLine(ptr, len);
-     }
-
-     return 0;
- }
- */
-
-
 //------------------------------------------------------------------------------------------------------------
-//
-//
+// "displayInvalidWord" shows a set of "*" when we cannot get a value for word. We make the length of the
+// "*" string according to the current radix.
 //
 //------------------------------------------------------------------------------------------------------------
-SimCmdWinOutBuffer::SimCmdWinOutBuffer( ) { }
-
-
-void SimCmdWinOutBuffer::initBuffer( ) {
+void SimCommandsWin::displayInvalidWord( int rdx ) {
     
-    head    = 0;
-    tail    = 0;
-    count   = 0;
+    if      ( rdx == 10 )   winOut -> printChars( "**********" );
+    else if ( rdx == 8  )   winOut -> printChars( "************" );
+    else if ( rdx == 16 )   winOut -> printChars( "**********" );
+    else                    winOut -> printChars( "**num**" );
 }
 
-void SimCmdWinOutBuffer::makeRoom(  int requiredSpace ) {
+//------------------------------------------------------------------------------------------------------------
+// "displayWord" lists out a 32-bit machine word in the specified number base. If the format parameter is
+// omitted or set to "default", the environment variable for the base number is used.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::displayWord( uint32_t val, int rdx ) {
     
-    while ( count + requiredSpace > MAX_WIN_OUT_BUFFER_SIZE ) {
-        while ( count > 0 && buffer[tail] != '\n') {
-            tail = ( tail + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
-            count--;
-        }
-        if ( count > 0 ) {
-            tail = ( tail + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
-            count--;
-        }
+    if      ( rdx == 10 )  winOut -> printChars( "%10d", val );
+    else if ( rdx == 8  )  winOut -> printChars( "%#012o", val );
+    else if ( rdx == 16 )  {
+        
+        if ( val == 0 ) winOut -> printChars( "0x00000000" );
+        else winOut -> printChars( "%#010x", val );
     }
+    else winOut -> printChars( "**num**" );
 }
 
-void SimCmdWinOutBuffer::addToBuffer( const char *data ) {
+//------------------------------------------------------------------------------------------------------------
+// "displayHalfWord" lists out a 12-bit word in the specified number base. If the format parameter is omitted
+// or set to "default", the environment variable for the base number is used.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::displayHalfWord( uint32_t val, int rdx ) {
     
-    int len = (int) strlen( data );
-    
-    if ( len > MAX_WIN_OUT_BUFFER_SIZE ) {
+    if      ( rdx == 10 )  winOut -> printChars( "%5d", val );
+    else if ( rdx == 8  )  winOut -> printChars( "%06o", val );
+    else if ( rdx == 16 )  {
         
-        data += ( len - MAX_WIN_OUT_BUFFER_SIZE );
-        len = MAX_WIN_OUT_BUFFER_SIZE;
+        if ( val == 0 ) winOut -> printChars( "0x0000" );
+        else            winOut -> printChars( "%#05x", val );
     }
-    
-    makeRoom( len );
-    
-    for ( int i = 0; i < len; i++ ) {
-        
-        buffer[ head] = data[ i ];
-        head = ( head + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
-    }
-    
-    count += len;
+    else winOut -> printChars( "**num**" );
 }
 
-void SimCmdWinOutBuffer::printChars( const char *format, ... ) {
+//------------------------------------------------------------------------------------------------------------
+// Display absolute memory content. We will show the memory starting with offset. The words per line is an
+// environmental variable setting. The offset is rounded down to the next 4-byte boundary, the limit is
+// rounded up to the next 4-byte boundary. We display the data in words. The absolute memory address range
+// currently consist of three memory objects. There is main physical memory, PDC memory and IO memory. This
+// routine will make the appropriate call.
+//
+//------------------------------------------------------------------------------------------------------------
+void  SimCommandsWin::displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx ) {
     
-    char    temp[ MAX_WIN_OUT_LINE_SIZE ];
-    va_list args;
+    uint32_t    index           = ( ofs / 4 ) * 4;
+    uint32_t    limit           = ((( index + len ) + 3 ) / 4 ) * 4;
+    int         wordsPerLine    = glb -> env -> getEnvVarInt((char *) ENV_WORDS_PER_LINE );
+    CpuMem      *physMem        = glb -> cpu -> physMem;
+    CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
+    CpuMem      *ioMem          = glb -> cpu -> ioMem;
     
-    va_start( args, format );
-    int len = vsnprintf( temp, MAX_WIN_OUT_LINE_SIZE, format, args );
-    va_end(args);
-
-    if ( len > 0 ) {
+    while ( index < limit ) {
         
-        if ( len >= MAX_WIN_OUT_LINE_SIZE ) {
+        displayWord( index, rdx );
+        winOut -> printChars( ": " );
+        
+        for ( uint32_t i = 0; i < wordsPerLine; i++ ) {
             
-            len = MAX_WIN_OUT_LINE_SIZE - 1; // Ensure null termination
-            temp[ len ] = '\0';
+            if ( index < limit ) {
+                
+                if ((physMem != nullptr ) && ( physMem -> validAdr( index ))) {
+                    
+                    displayWord( physMem -> getMemDataWord( index ), rdx );
+                }
+                else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
+                    
+                   displayWord( pdcMem -> getMemDataWord( index ), rdx );
+                }
+                else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
+                    
+                    displayWord( ioMem -> getMemDataWord( index ), rdx );
+                }
+                else displayInvalidWord( rdx );
+            }
+                
+            winOut -> printChars( " " );
+            
+            index += 4;
         }
         
-        addToBuffer( temp );
+        winOut -> printChars( "\n" );
     }
+    
+    winOut -> printChars( "\n" );
 }
 
-char *SimCmdWinOutBuffer::getLinePointer( int n, int *lineLength, int *lineCount ) {
+//------------------------------------------------------------------------------------------------------------
+// Display absolute memory content as code shown in assembler syntax. There is one word per line.
+//
+//------------------------------------------------------------------------------------------------------------
+void  SimCommandsWin::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, int rdx ) {
     
-    if ( count == 0 ) {
+    uint32_t    index           = ( ofs / 4 ) * 4;
+    uint32_t    limit           = ((( index + len ) + 3 ) / 4 );
+    CpuMem      *physMem        = glb -> cpu -> physMem;
+    CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
+    CpuMem      *ioMem          = glb -> cpu -> ioMem;
+ 
+    while ( index < limit ) {
         
-        *lineCount = 0;
-        return NULL;  // Buffer is empty
+        displayWord( index, rdx );
+        winOut -> printChars( ": " );
+        
+        if (( physMem != nullptr ) && ( physMem -> validAdr( index ))) {
+            
+            disAsm -> displayInstr( physMem -> getMemDataWord( index ), rdx );
+        }
+        else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
+                
+            disAsm -> displayInstr( pdcMem -> getMemDataWord( index ), rdx );
+        }
+        else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
+                
+            disAsm -> displayInstr( ioMem -> getMemDataWord( index ), rdx );
+        }
+        else displayInvalidWord( rdx );
+        
+        winOut -> printChars( "\n" );
+            
+        index += 4;
     }
+       
+    winOut -> printChars( "\n" );
+}
 
-    int index = head;
-    int linesFound = 0;
-    int lastFoundIndex = tail;  // Default to earliest available line
+//------------------------------------------------------------------------------------------------------------
+// This routine will print a TLB entry with each field formatted.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::displayTlbEntry( TlbEntry *entry, int rdx ) {
+    
+    winOut -> printChars( "[" );
+    if ( entry -> tValid( ))            winOut -> printChars( "V" );
+    else winOut -> printChars( "v" );
+    if ( entry -> tDirty( ))            winOut -> printChars( "D" );
+    else winOut -> printChars( "d" );
+    if ( entry -> tTrapPage( ))         winOut -> printChars( "P" );
+    else winOut -> printChars( "p" );
+    if ( entry -> tTrapDataPage( ))     winOut -> printChars( "D" );
+    else winOut -> printChars( "d" );
+    winOut -> printChars( "]" );
+    
+    winOut -> printChars( " Acc: (%d,%d,%d)", entry -> tPageType( ), entry -> tPrivL1( ), entry -> tPrivL2( ));
+    
+    winOut -> printChars( " Pid: " );
+    displayHalfWord( entry -> tSegId( ), rdx );
+    
+    winOut -> printChars( " Vpn-H: " );
+    displayWord( entry -> vpnHigh, rdx );
+    
+    winOut -> printChars( " Vpn-L: " );
+    displayWord( entry -> vpnLow, rdx );
+    
+    winOut -> printChars( " PPN: " );
+    displayHalfWord( entry -> tPhysPage( ), rdx  );
+}
 
-    while ( index != tail) {
+//------------------------------------------------------------------------------------------------------------
+// "displayTlbEntries" displays a set of TLB entries, line by line.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, int rdx ) {
+    
+    if ( index + len <= tlb -> getTlbSize( )) {
         
-        index = ( index - 1 + MAX_WIN_OUT_BUFFER_SIZE ) % MAX_WIN_OUT_BUFFER_SIZE;
+        for ( uint32_t i = index; i < index + len; i++  ) {
+            
+            displayWord( i, rdx  );
+            winOut -> printChars( ": " );
+            
+            TlbEntry *ptr = tlb -> getTlbEntry( i );
+            if ( ptr != nullptr ) displayTlbEntry( ptr, rdx );
+            
+            winOut -> printChars( "\n" );
+        }
         
-        if ( buffer[ index ] == '\n' ) {
+    } else winOut -> printChars( "index + len out of range\n" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "displayCacheEntries" displays a list of cache line entries. Since we have a coupe of block sizes and
+// perhaps one or more sets, the display is rather complex.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t len, int rdx ) {
+    
+    uint32_t    blockSets       = cPtr -> getBlockSets( );
+    uint32_t    wordsPerBlock   = cPtr -> getBlockSize( ) / 4;
+    uint32_t    wordsPerLine    = 4;
+    uint32_t    linesPerBlock   = wordsPerBlock / wordsPerLine;
+   
+    if ( index + len >=  cPtr -> getBlockEntries( )) {
+        
+        winOut -> printChars( " cache index + len out of range\n" );
+        return;
+    }
+    
+    for ( uint32_t lineIndex = index; lineIndex < index + len; lineIndex++  ) {
+        
+        displayWord( lineIndex, rdx  );
+        winOut -> printChars( ": " );
+        
+        if ( blockSets >= 1 ) {
             
-            linesFound++;
-            lastFoundIndex = (index + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
+            MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( lineIndex, 0 );
+            uint32_t    *dataPtr    = (uint32_t *) cPtr -> getMemBlockEntry( lineIndex, 0 );
             
-            if ( linesFound == n ) break;
+            winOut -> printChars( "(0)[" );
+            if ( tagPtr -> valid )  winOut -> printChars( "V" ); else winOut -> printChars( "v" );
+            if ( tagPtr -> dirty )  winOut -> printChars( "D" ); else winOut -> printChars( "d" );
+            winOut -> printChars( "] (" );
+            displayWord( tagPtr -> tag, rdx );
+            winOut -> printChars( ") \n" );
+            
+            for ( int i = 0; i < linesPerBlock; i++  ) {
+                
+                winOut -> printChars( "            (" );
+                
+                for ( int j = 0; j < wordsPerLine; j++ ) {
+                    
+                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], rdx );
+                    if ( i < 3 ) winOut -> printChars( " " );
+                }
+                
+                winOut -> printChars( ") \n" );
+            }
+        }
+        
+        if ( blockSets >= 2 ) {
+            
+            MemTagEntry *tagPtr     = cPtr -> getMemTagEntry( lineIndex, 0 );
+            uint32_t    *dataPtr    = (uint32_t *) cPtr -> getMemBlockEntry( lineIndex, 1 );
+            
+            winOut -> printChars( "            (1)[" );
+            if ( tagPtr -> valid )  winOut -> printChars( "V" ); else winOut -> printChars( "v" );
+            if ( tagPtr -> dirty )  winOut -> printChars( "D" ); else winOut -> printChars( "d" );
+            winOut -> printChars( "] (" );
+            displayWord( tagPtr -> tag, rdx );
+            winOut -> printChars( ")\n" );
+            
+            for ( int i = 0; i < linesPerBlock; i++  ) {
+                
+                winOut -> printChars( "            (" );
+                
+                for ( int j = 0; j < wordsPerLine; j++ ) {
+                    
+                    displayWord( dataPtr[ ( i * wordsPerLine ) + j ], rdx );
+                    if ( i < 3 ) winOut -> printChars( " " );
+                }
+                
+                winOut -> printChars( ") \n" );
+            }
         }
     }
-
-    *lineCount = linesFound;
-    *lineLength = 0;
-
-    int endIndex = lastFoundIndex;
-    
-    while ( endIndex != head && buffer[ endIndex ] != '\n' ) {
-        
-        endIndex = ( endIndex + 1 ) % MAX_WIN_OUT_BUFFER_SIZE;
-    }
-
-    *lineLength = ( endIndex >= lastFoundIndex )
-                      ? ( endIndex - lastFoundIndex )
-                      : ( MAX_WIN_OUT_BUFFER_SIZE - lastFoundIndex + endIndex );
-
-    return &buffer[ lastFoundIndex ];
 }
-
-
 
 //------------------------------------------------------------------------------------------------------------
 // Return the current command entered.
@@ -784,11 +819,11 @@ void SimCommandsWin::printWelcome( ) {
     
     if ( glb -> console -> isConsole( )) {
         
-        glb -> console -> printChars( "VCPU-32 Simulator, Version: %s, Patch Level: %d\n",
+        winOut -> printChars( "VCPU-32 Simulator, Version: %s, Patch Level: %d\n",
                                       glb -> env -> getEnvVarStr((char *) ENV_PROG_VERSION ),
                                       glb -> env -> getEnvVarStr((char *) ENV_PATCH_LEVEL ));
         
-        glb -> console -> printChars( "Git Branch: %s\n",
+        winOut -> printChars( "Git Branch: %s\n",
                                       glb -> env -> getEnvVarStr((char *) ENV_GIT_BRANCH ));
     }
 }
@@ -807,10 +842,10 @@ int SimCommandsWin::promptCmdLine( ) {
         
         if ( glb -> env -> getEnvVarBool((char *) ENV_SHOW_CMD_CNT )) {
             
-            len = glb -> console -> printChars( "(%i) ", glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ));
+            len = winOut -> printChars( "(%i) ", glb -> env -> getEnvVarInt((char *) ENV_CMD_CNT ));
         }
         
-        len += glb -> console -> printChars( "->" );
+        len += winOut -> printChars( "->" );
     }
     
     return( len );
@@ -822,11 +857,13 @@ int SimCommandsWin::promptCmdLine( ) {
 // also added to the command history buffer. The routine returns the length of the command line, if empty
 // a minus one is returned.
 //
-// ??? how do we deal with the option to edit a command line ? pass a pre-filled cmdBuf ?
 //------------------------------------------------------------------------------------------------------------
 int SimCommandsWin::readInputLine( char *cmdBuf, int promptLen ) {
   
     int len = glb -> console -> readCmdLine( cmdBuf, 0, promptLen );
+    
+    // ??? add to win output buffer ?
+    // winOut -> addToBuffer( cmdBuf );
    
     if ( len > 0 ) {
             
@@ -864,7 +901,7 @@ void SimCommandsWin::execCmdsFromFile( char* fileName ) {
                     
                     if ( glb -> env -> getEnvVarBool((char *) ENV_ECHO_CMD_INPUT )) {
                         
-                        glb -> console -> printChars( "%s\n", cmdLineBuf );
+                        winOut -> printChars( "%s\n", cmdLineBuf );
                     }
                     
                     removeComment( cmdLineBuf );
@@ -882,7 +919,7 @@ void SimCommandsWin::execCmdsFromFile( char* fileName ) {
                 
             case ERR_OPEN_EXEC_FILE: {
                 
-                glb -> console -> printChars( "Error in opening file: \"%s\"", fileName );
+                winOut -> printChars( "Error in opening file: \"%s\"", fileName );
                 
             } break;
                 
@@ -907,10 +944,11 @@ void SimCommandsWin::helpCmd( ) {
         for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
             
             if ( cmdHelpTab[ i ].helpTypeId == TYP_CMD )
-                glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+                
+                winOut -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
         }
         
-        glb -> console -> printChars( "\n" );
+        winOut -> printChars( "\n" );
     }
     else if (( tok -> isTokenTyp( TYP_CMD  )) ||
              ( tok -> isTokenTyp( TYP_WCMD )) ||
@@ -923,20 +961,20 @@ void SimCommandsWin::helpCmd( ) {
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
                 if ( cmdHelpTab[ i ].helpTypeId == TYP_CMD )
-                    glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+                    winOut -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
             }
             
-            glb -> console -> printChars( "\n" );
+            winOut -> printChars( "\n" );
         }
         else if ( tok -> isToken( WCMD_SET )) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
                 if ( cmdHelpTab[ i ].helpTypeId == TYP_WCMD )
-                    glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+                    winOut -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
             }
             
-            glb -> console -> printChars( "\n" );
+            winOut -> printChars( "\n" );
         }
         else if ( tok -> isToken( REG_SET )) {
             
@@ -944,10 +982,10 @@ void SimCommandsWin::helpCmd( ) {
                 
                 if ( cmdHelpTab[ i ].helpTypeId == TYP_RSET )
                     
-                    glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+                    winOut -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
             }
             
-            glb -> console -> printChars( "\n" );
+            winOut -> printChars( "\n" );
         }
         else if ( tok -> isToken( WTYPE_SET )) {
             
@@ -955,20 +993,20 @@ void SimCommandsWin::helpCmd( ) {
                 
                 if ( cmdHelpTab[ i ].helpTypeId == TYP_WTYP )
                     
-                    glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+                    winOut -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
             }
             
-            glb -> console -> printChars( "\n" );
+            winOut -> printChars( "\n" );
         }
         else if ( tok -> isToken( PF_SET )) {
             
             for ( int i = 0; i < MAX_CMD_HELP_TAB; i++ ) {
                 
                 if ( cmdHelpTab[ i ].helpTypeId == TYP_PREDEFINED_FUNC )
-                    glb -> console -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
+                    winOut -> printChars( FMT_STR_SUMMARY, cmdHelpTab[ i ].cmdNameStr, cmdHelpTab[ i ].helpStr );
             }
             
-            glb -> console -> printChars( "\n" );
+            winOut -> printChars( "\n" );
         }
         else {
             
@@ -976,7 +1014,7 @@ void SimCommandsWin::helpCmd( ) {
                 
                 if ( cmdHelpTab[ i ].helpTokId == tok -> tokId( )) {
                     
-                    glb -> console -> printChars( FMT_STR_DETAILS, cmdHelpTab[ i ].cmdSyntaxStr, cmdHelpTab[ i ].helpStr );
+                    winOut -> printChars( FMT_STR_DETAILS, cmdHelpTab[ i ].cmdSyntaxStr, cmdHelpTab[ i ].helpStr );
                 }
             }
         }
@@ -1056,6 +1094,24 @@ void SimCommandsWin::envCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Up/Down Cursor handling. The up/down cursor is used to scoll the command window content. They are not
+// really commands like the other commands. When the console IO detects a curosr up/down escape sequence, it
+// aborts the current input, if any, and returns the up / down cusors commands "WC_CU" / "WC_DN". Their
+// decoding leads to the these handler routines.
+//
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::cursorUpCmd( ) {
+    
+    winOut -> printChars( "Cursor Up\n" );
+}
+
+void SimCommandsWin::cursorDownCmd( ) {
+    
+    winOut -> printChars( "Cursor Down\n" );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Execute commands from a file command. The actual work is done in the "execCmdsFromFile" routine.
 //
 // XF "<filename>"
@@ -1126,7 +1182,7 @@ void SimCommandsWin::resetCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::runCmd( ) {
     
-    glb -> console -> printChars( "RUN command to come ... \n");
+    winOut -> printChars( "RUN command to come ... \n");
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1206,30 +1262,30 @@ void SimCommandsWin::writeLineCmd( ) {
             
         case TYP_BOOL: {
             
-            if ( rExpr.bVal == true )   glb -> console -> printChars( "TRUE\n" );
-            else                        glb -> console -> printChars( "FALSE\n" );
+            if ( rExpr.bVal == true )   winOut -> printChars( "TRUE\n" );
+            else                        winOut -> printChars( "FALSE\n" );
             
         } break;
             
         case TYP_NUM: {
             
             glb -> console -> printNum( rExpr.numVal, rdx );
-            glb -> console -> printChars( "\n" );
+            winOut -> printChars( "\n" );
             
         } break;
             
         case TYP_STR: {
             
-            glb -> console -> printChars( "\"%s\"\n", rExpr.strVal );
+            winOut -> printChars( "\"%s\"\n", rExpr.strVal );
             
         } break;
             
         case TYP_EXT_ADR: {
             
             glb -> console -> printNum( rExpr.seg, rdx );
-            glb -> console -> printChars( "." );
+            winOut -> printChars( "." );
             glb -> console -> printNum( rExpr.ofs, rdx );
-            glb -> console -> printChars( "\n" );
+            winOut -> printChars( "\n" );
             
         } break;
             
@@ -1243,6 +1299,7 @@ void SimCommandsWin::writeLineCmd( ) {
 //  HIST [ depth ]
 //
 // ??? command numbers are shown as absolute numbers. Have an option to show relative numbers ?
+// ??? how about a negatve depth shows relative numbers ?
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::histCmd( ) {
     
@@ -1266,8 +1323,7 @@ void SimCommandsWin::histCmd( ) {
         char *cmdLine = hist -> getCmdLine( i, &cmdRef );
         
         if ( cmdLine != nullptr )
-            glb -> console -> printChars( "[%d]: %s\n", cmdRef, cmdLine );
-        
+            winOut -> printChars( "[%d]: %s\n", cmdRef, cmdLine );
     }
 }
 
@@ -1326,7 +1382,7 @@ void SimCommandsWin::redoCmd( ) {
         char tmpCmd[ 256 ];
         strncpy( tmpCmd, cmdStr, sizeof( tmpCmd ));
         
-        glb -> console -> printChars( "%s", tmpCmd );
+        winOut -> printChars( "%s", tmpCmd );
         if ( glb -> console -> readCmdLine( tmpCmd, (int) strlen( tmpCmd ))) evalInputLine( tmpCmd );
     }
     else throw( ERR_INVALID_CMD_ID );
@@ -1587,7 +1643,7 @@ void SimCommandsWin::displayCacheCmd( ) {
         if ( len == 0 ) len = blockEntries;
         
         displayCacheEntries( cPtr, index, len, rdx );
-        glb -> console -> printChars( "\n" );
+        winOut -> printChars( "\n" );
     }
 }
 
@@ -1734,7 +1790,7 @@ void SimCommandsWin::displayTLBCmd( ) {
     if (( index > tlbSize ) || ( index + len > tlbSize )) throw ( ERR_TLB_SIZE_EXCEEDED );
    
     displayTlbEntries( tPtr, index, len, rdx );
-    glb -> console -> printChars( "\n" );
+    winOut -> printChars( "\n" );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2480,6 +2536,10 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
                         
                     case TOK_NIL:                                           break;
                     case CMD_EXIT:          exitCmd( );                     break;
+                    
+                    case CMD_WC_CU:         cursorUpCmd( );                 break;
+                    case CMD_WC_CD:         cursorDownCmd( );               break;
+                        
                     case CMD_HELP:          helpCmd( );                     break;
                     case CMD_ENV:           envCmd( );                      break;
                     case CMD_XF:            execFileCmd( );                 break;

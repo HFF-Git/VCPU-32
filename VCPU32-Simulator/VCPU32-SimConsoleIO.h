@@ -86,6 +86,8 @@ struct SimConsoleIO {
     bool    isConsole( );
     int     readChar( );
     void    writeChar( char ch  );
+    int     writeChars( const char *format, ... );
+
     int     readCmdLine( char *cmdBuf, int initCmdBufLen = 0, int cursorOfs = 0 );
     
     template<typename... Args> int printChars( const char* fmt, Args&&... args );
@@ -118,6 +120,7 @@ struct SimConsoleIO {
 // drawing functions of the simulator, there is additional code to catch the issue. So far, it did not occur
 // again.
 //
+// ??? replace with a vsnprintf version ?
 //------------------------------------------------------------------------------------------------------------
 template<typename... Args> int SimConsoleIO::printChars( const char* fmt, Args&&... args ) {
     
@@ -143,5 +146,7 @@ template<typename... Args> int SimConsoleIO::printChars( const char* fmt, Args&&
     
     return( static_cast<int>( len ));
 }
+
+
 
 #endif /* VCPU32_ConsoleIo_h */
