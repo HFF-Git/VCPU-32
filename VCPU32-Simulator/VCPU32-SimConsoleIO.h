@@ -81,8 +81,8 @@ struct SimConsoleIO {
     SimConsoleIO( );
     ~SimConsoleIO( );
     
-    void    initConsoleIO( bool nonBlocking = false );
-    void    setBlocking( bool enabled );
+    void    initConsoleIO( );
+    void    setBlockingMode( bool enabled );
     bool    isConsole( );
     int     readChar( );
     void    writeChar( char ch  );
@@ -108,7 +108,7 @@ struct SimConsoleIO {
     void    writeCharAtPos( int ch, int strSize, int pos );
     
     char    outputPrintBuf[ 1024 ]  = { 0 };
-    bool    nonBlockingEnabled      = false;
+    bool    blockingMode            = false;
 };
 
 //------------------------------------------------------------------------------------------------------------

@@ -273,7 +273,6 @@ SimToken const cmdTokTab[ ] = {
     
     { .name = "PSW0",               .typ = TYP_FD_PREG,         .tid = FD_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "PSW1",               .typ = TYP_FD_PREG,         .tid = FD_PSW1,             .val = PSTAGE_REG_ID_PSW_1      },
-    { .name = "PS",                 .typ = TYP_FD_PREG,         .tid = FD_SET,              .val = 0                        },
     
     { .name = "MA_PSW0",            .typ = TYP_MA_PREG,         .tid = MA_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "MA_PSW1",            .typ = TYP_MA_PREG,         .tid = MA_PSW1,             .val = PSTAGE_REG_ID_PSW_0      },
@@ -505,6 +504,27 @@ SimHelpMsgEntry const cmdHelpTab[ ] = {
         .cmdNameStr     = (char *) "exit",
         .cmdSyntaxStr   = (char *) "exit (e) [ <val> ]",
         .helpStr        = (char *) "program exit"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_HIST,
+        .cmdNameStr     = (char *) "hist",
+        .cmdSyntaxStr   = (char *) "hist [ depth ]",
+        .helpStr        = (char *) "command history"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_DO,
+        .cmdNameStr     = (char *) "do",
+        .cmdSyntaxStr   = (char *) "do [ cmdNum ]",
+        .helpStr        = (char *) "re-execute command"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_REDO,
+        .cmdNameStr     = (char *) "redo",
+        .cmdSyntaxStr   = (char *) "redo [ cmdNum ]",
+        .helpStr        = (char *) "edit and then re-execute command"
     },
     
     {

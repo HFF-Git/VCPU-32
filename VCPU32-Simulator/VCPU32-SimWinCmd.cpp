@@ -661,7 +661,6 @@ void SimCmdWinOutBuffer::initBuffer( ) {
     head    = 0;
     tail    = 0;
     count   = 0;
-    
 }
 
 void SimCmdWinOutBuffer::makeRoom(  int requiredSpace ) {
@@ -1328,14 +1327,7 @@ void SimCommandsWin::redoCmd( ) {
         strncpy( tmpCmd, cmdStr, sizeof( tmpCmd ));
         
         glb -> console -> printChars( "%s", tmpCmd );
-        
-        size_t len = glb -> console -> readCmdLine( tmpCmd, (int) strlen( tmpCmd ));
-        if ( len > 0 ) {
-            
-            hist -> addCmdLine( tmpCmd );
-            glb -> env -> setEnvVar((char *) ENV_CMD_CNT, hist -> getCmdNum( ));
-            evalInputLine( tmpCmd );
-        }
+        if ( glb -> console -> readCmdLine( tmpCmd, (int) strlen( tmpCmd ))) evalInputLine( tmpCmd );
     }
     else throw( ERR_INVALID_CMD_ID );
 }
@@ -1347,11 +1339,11 @@ void SimCommandsWin::redoCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::modifyRegCmd( ) {
     
-    SimTokTypeId      regSetId    = TYP_GREG;
-    SimTokId       regId       = TOK_NIL;
-    int         regNum      = 0;
-    uint32_t    val         = 0;
-    SimExpr     rExpr;
+    SimTokTypeId    regSetId    = TYP_GREG;
+    SimTokId        regId       = TOK_NIL;
+    int             regNum      = 0;
+    uint32_t        val         = 0;
+    SimExpr         rExpr;
     
     if (( tok -> tokTyp( ) == TYP_GREG )        ||
         ( tok -> tokTyp( ) == TYP_SREG )        ||
@@ -2476,7 +2468,6 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
             if (( tok -> isTokenTyp( TYP_CMD )) || ( tok -> isTokenTyp( TYP_WCMD ))) {
                 
                 SimTokId cmdId = tok -> tokId( );
-                
                 tok -> nextToken( );
                 
                 if (( cmdId != CMD_HIST ) && ( cmdId != CMD_DO ) && ( cmdId != CMD_REDO )) {
@@ -2559,8 +2550,11 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
             }
             else {
                 
+                printf( "Got: %s\n", cmdBuf );
+                
                 hist -> addCmdLine( cmdBuf );
                 glb -> env -> setEnvVar((char *) ENV_CMD_CNT, hist -> getCmdNum( ));
+                glb -> env -> setEnvVar((char *) ENV_EXIT_CODE, -1 );
                 throw ( ERR_INVALID_CMD );
             }
         }

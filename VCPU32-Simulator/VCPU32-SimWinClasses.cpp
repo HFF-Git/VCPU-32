@@ -3,8 +3,9 @@
 // VCPU32 - A 32-bit CPU - Simulator window classes
 //
 //------------------------------------------------------------------------------------------------------------
-// This module ...
-//
+// This module contains all of the mothods for the different windows that the simlulator supports. The
+// exception is the command window, which is in a separate file. A window generally consist of a banner line,
+// shown in inverse video and a nuber of body lines.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -102,6 +103,7 @@ void buildAccessRightsStr( char *bufStr, int bufLen, uint8_t type, uint8_t privL
 //
 //***********************************************************************************************************
 //***********************************************************************************************************
+
 
 //------------------------------------------------------------------------------------------------------------
 // Object creator.
@@ -824,17 +826,24 @@ void SimWinCode::drawLine( uint32_t itemAdr ) {
   
     if (( plWinEnabled ) && ( itemAdr == glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1  ))) {
             
-        printTextField( (char *) "(fd)>", fmtDesc, 5 );
+        printTextField((char *) "(fd)>", fmtDesc, 5 );
     }
     else if (( plWinEnabled ) && ( itemAdr == glb -> cpu -> getReg( RC_MA_PSTAGE, PSTAGE_REG_ID_PSW_1  ))) {
             
-        printTextField( (char *) "(ma) ", fmtDesc, 5 );
+        printTextField((char *) "(ma) ", fmtDesc, 5 );
     }
     else if (( plWinEnabled ) && ( itemAdr == glb -> cpu -> getReg( RC_EX_PSTAGE, PSTAGE_REG_ID_PSW_1  ))) {
             
-        printTextField( (char *) "(ex) ", fmtDesc, 5 );
+        printTextField((char *) "(ex) ", fmtDesc, 5 );
     }
-    else printTextField((char *) "     ", fmtDesc, 5 );
+    else if ( itemAdr == glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1 )) {
+        
+        printTextField((char *) "    >", fmtDesc, 5 );
+    }
+    else {
+        
+        printTextField((char *) "     ", fmtDesc, 5 );
+    }
    
     printNumericField( instr, fmtDesc | FMT_ALIGN_LFT, 12 );
     

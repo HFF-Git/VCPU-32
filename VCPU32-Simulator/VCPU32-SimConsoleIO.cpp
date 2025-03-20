@@ -83,7 +83,8 @@ bool isLeftBracketChar( int ch ) {
 
 //------------------------------------------------------------------------------------------------------------
 // "removeChar" will remove a character from the input buffer at the cursor position and adjust the string
-// size accordingly. The cursor stays here it is.
+// size accordingly. If the cursor is at the end of the string, both string size and cursor position are
+// decremented by one, otherwise the cursor stays where it is and just the string size is decremented.
 //
 //------------------------------------------------------------------------------------------------------------
 void removeChar( char *buf, int *strSize, int *pos ) {
@@ -93,7 +94,7 @@ void removeChar( char *buf, int *strSize, int *pos ) {
         *strSize    = *strSize - 1;
         *pos        = *pos - 1;
     }
-    else if (( *strSize > 0 ) && ( *pos > 0 )) {
+    else if (( *strSize > 0 ) && ( *pos >= 0 )) {
    
         for ( int i = *pos; i < *strSize; i++ ) buf[ i ] = buf[ i + 1 ];
         *strSize    = *strSize - 1;
@@ -173,9 +174,9 @@ SimConsoleIO::~SimConsoleIO( ) {
 //
 //
 // ??? perhaps a place to save the previous setings and restore them ?
-// ??? Or just do all this in teh object creator ?
+// ??? Or just do all this in the object creator ?
 //------------------------------------------------------------------------------------------------------------
-void SimConsoleIO::initConsoleIO( bool nonBlocking ) {
+void SimConsoleIO::initConsoleIO( ) {
     
 #if __APPLE__
     struct termios term;
@@ -188,7 +189,7 @@ void SimConsoleIO::initConsoleIO( bool nonBlocking ) {
     tcsetattr( STDIN_FILENO, TCSAFLUSH, &term );
 #endif
     
-    nonBlockingEnabled  = nonBlocking;
+    blockingMode  = true;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -202,12 +203,12 @@ bool  SimConsoleIO::isConsole( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "setBlocking" will put the terminal into blocking or non-blocking mode. For the command interpreter we will
-// use the blockinhg mode. When the CPU runs, the console IO must be non-blocking, and we check for input on
-// each CPU "tick". On a Mac this is actual work, on Windows the blockng flags will be enough to set.
+// "setBlockingMode" will put the terminal into blocking or non-blocking mode. For the command interpreter we
+// will use the blocking mode, i.e. we wait for character input. When the CPU runs, the console IO must be in
+// non-blocking, and we check for input on each CPU "tick".
 //
 //------------------------------------------------------------------------------------------------------------
-void SimConsoleIO::setBlocking( bool enabled ) {
+void SimConsoleIO::setBlockingMode( bool enabled ) {
     
 #if __APPLE__
     
@@ -218,45 +219,53 @@ void SimConsoleIO::setBlocking( bool enabled ) {
     }
     else {
         
-        if ( enabled ) {
-            
-            if( fcntl( STDIN_FILENO, F_SETFL, flags | O_NONBLOCK ) == -1 ) {
-          
-                // ??? error ....
-            }
-        }
-        else {
-          
-            if ( fcntl( STDIN_FILENO, F_SETFL, flags &= ~O_NONBLOCK ) == -1 ) {
+        if ( enabled )  flags &= ~O_NONBLOCK;
+        else            flags |= O_NONBLOCK;
+        
+        if ( fcntl( STDIN_FILENO, F_SETFL, flags ) == -1 ) {
                
-                // ??? error ....
-            }
+            // ??? error ....
         }
     }
-    
-#else
-    nonBlockingEnabled = true;
 #endif
     
+    blockingMode = enabled;
 }
 
 //------------------------------------------------------------------------------------------------------------
 // "readConsoleChar" is the single entry point to get a character from the terminal input. On Mac/Linux, this
-// is the "read" system call. On windows there is a similar call, which does just return one character at a
-// time. When nonBlocking is enabled, the function just returns immediately with either a character or a zero.
+// is the "read" system call. Whether the mode is blocking or non-blocking is set in the terminal settings.
+// The read function is the same. If there is no character available, a zero is returned, otherwise the
+// character.
 //
+// On Windows there is a similar call, which does just return one character at a time. However, there seems
+// to be no real waiting function. Instead, the "_kbhit" tests for a keyboard input. In blocking mode, we
+// will loop for a keyboard input and then get the character. In non-blocking mode, we test the keyboard and
+// return either the character typed or a zero.
+//
+// ??? this also means on Windows a "busy" loop..... :-(
+// ??? perhas a "sleep" eases the busy loop a little...
 //------------------------------------------------------------------------------------------------------------
 int SimConsoleIO::readChar(  ) {
     
 #if __APPLE__
-    char ch;
+    int ch;
     if ( read( STDIN_FILENO, &ch, 1 ) == 1 ) return( ch );
     else return ( 0 );
 #else
-    if (_kbhit( )) {
+    if ( blockingMode ) {
         
-        int ch = _getch();
-        return ( ch );
+        while ( !kbhit( )) Sleep( 50 );
+        return( _getch( ));
+    }
+    else {
+        
+        if ( _kbhit( )) {
+        
+            int ch = _getch();
+            return ( ch );
+        }
+        else return( 0 );
     }
 #endif
     
@@ -359,6 +368,9 @@ void SimConsoleIO::writeCharAtPos( int ch, int strSize, int pos ) {
 // This option is used by the REDO command which lists a previously entered command presented for editing.
 //
 // ??? which escape sequence should we handle directly ? which to pass on ? how ?
+//
+//
+// ??? what if character is zero ?????? ( blocking )
 //------------------------------------------------------------------------------------------------------------
 int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
    
@@ -383,7 +395,7 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
     while ( true ) {
         
         ch = readChar( );
-        
+     
         switch ( state ) {
                 
             case CT_ESCAPE: {
@@ -412,6 +424,11 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
                         removeChar( cmdBuf, &strSize, &cursor );
                         writeBackSpace( );
                     }
+                }
+                else if ( ch == 0 ) {
+                    
+                    // ??? we should not get a zero, as this indicates NO charaxter was read.
+                    // ??? what to exactly do with this in blocking mode ?
                 }
                 else {
                     
