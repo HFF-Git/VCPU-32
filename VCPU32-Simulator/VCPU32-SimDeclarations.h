@@ -288,15 +288,14 @@ enum SimTokId : uint16_t {
     CR_30                   = 4330,     CR_31                   = 4331,     CR_SET                  = 4332,
     
     FD_PSW0                 = 4500,     FD_PSW1                 = 4501,
-    FD_SET                  = 4502,
     
     MA_PSW0                 = 4600,     MA_PSW1                 = 4601,     MA_INSTR                = 4602,
     MA_A                    = 4603,     MA_B                    = 4604,     MA_X                    = 4605,
-    MA_S                    = 4606,     MA_SET                  = 4607,
+    MA_S                    = 4606,     MA_SET2                  = 4607,
     
     EX_PSW0                 = 4650,     EX_PSW1                 = 4651,     EX_INSTR                = 4652,
     EX_A                    = 4653,     EX_B                    = 4654,     EX_X                    = 4655,
-    EX_S                    = 4656,     EX_SET                  = 4657,
+    EX_S                    = 4656,     EX_SET2                  = 4657,
     
     IC_L1_STATE             = 4700,     IC_L1_REQ               = 4701,     IC_L1_REQ_SEG           = 4702,
     IC_L1_REQ_OFS           = 4703,     IC_L1_REQ_TAG           = 4704,     IC_L1_REQ_LEN           = 4705,
