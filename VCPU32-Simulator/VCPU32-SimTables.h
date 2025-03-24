@@ -79,9 +79,6 @@ const SimToken cmdTokTab[ ] = {
     { .name = "EXIT",               .typ = TYP_CMD,                 .tid = CMD_EXIT                         },
     { .name = "E",                  .typ = TYP_CMD,                 .tid = CMD_EXIT                         },
     
-    { .name = "WC_CU",              .typ = TYP_CMD,                 .tid = CMD_WC_CU                        },
-    { .name = "WC_CD",              .typ = TYP_CMD,                 .tid = CMD_WC_CD                        },
-    
     { .name = "HIST",               .typ = TYP_CMD,                 .tid = CMD_HIST                         },
     { .name = "DO",                 .typ = TYP_CMD,                 .tid = CMD_DO                           },
     { .name = "REDO",               .typ = TYP_CMD,                 .tid = CMD_REDO                         },

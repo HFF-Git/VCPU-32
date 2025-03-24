@@ -32,9 +32,11 @@
 //
 //------------------------------------------------------------------------------------------------------------
 const int MAX_CMD_HIST_BUF_SIZE     = 32;
-const int MAX_WIN_OUT_BUFFER_SIZE   = 64 * 1024;
-const int MAX_WIN_OUT_LINE_SIZE     = 128;
+const int MAX_WIN_OUT_LINES         = 128;
+const int MAX_WIN_OUT_LINE_SIZE     = 256;
+const int MAX_WIN_CMD_LINES         = 64;
 const int CMD_LINE_BUF_SIZE         = 256;
+
 const int TOK_STR_SIZE              = 256;
 const int MAX_TOKEN_NAME_SIZE       = 32;
 const int MAX_ENV_NAME_SIZE         = 32;
@@ -216,8 +218,7 @@ enum SimTokId : uint16_t {
     CMD_SET                 = 1000,
     
     CMD_EXIT                = 1001,     CMD_HELP                = 1002,
-    CMD_WC_CU               = 1003,     CMD_WC_CD               = 1004,
-    
+   
     CMD_DO                  = 1010,     CMD_REDO                = 1011,     CMD_HIST                = 1012,
     CMD_ENV                 = 1013,     CMD_XF                  = 1014,     CMD_WRITE_LINE          = 1015,
     
@@ -841,19 +842,26 @@ public:
     
     SimCmdWinOutBuffer( );
     
-    void initBuffer( );
-    void addToBuffer( const char *data );
-    int  printChars( const char *format, ... );
-    char *getLinePointer( int n, int *lineLength, int *lineCount );
+    void        initBuffer( );
+    void        addToBuffer( const char *data );
+    int         printChars( const char *format, ... );
+    
+    char        *getLinePointer( uint16_t line );
+    uint16_t    getCursorIndex( );
+    uint16_t    getTopIndex( );
+    
+    void        setScreenLines( uint16_t lines );
+    void        scrollUp( uint16_t lines = 1 );
+    void        scrollDown( uint16_t lines = 1 );
+    
     
 private:
     
-    void makeRoom( int requiredSpace );
-    
-    char    buffer[ 64 * 1024 ]     = { 0 };
-    int     head                    = 0;
-    int     tail                    = 0;
-    int     count                   = 0;
+    char        buffer[ MAX_WIN_OUT_LINES ] [ MAX_WIN_OUT_LINE_SIZE ] = { 0 };
+    uint16_t    topIndex;       // Index of the most recent line
+    uint16_t    cursorIndex;    // Screen start position
+    uint16_t    screenLines;    // Number of visible lines (8-32)
+    uint16_t    charPos;        // Current character position in the last line
 };
 
 
@@ -1302,9 +1310,6 @@ private:
     void            histCmd( );
     void            doCmd( );
     void            redoCmd( );
-    
-    void            cursorUpCmd( );
-    void            cursorDownCmd( );
     
     void            resetCmd( );
     void            runCmd( );

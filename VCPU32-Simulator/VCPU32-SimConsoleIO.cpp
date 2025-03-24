@@ -388,9 +388,11 @@ void SimConsoleIO::writeCharAtPos( int ch, int strSize, int pos ) {
 // We also have the option of a prefilled command buffer for editing a command line before hitting return.
 // This option is used by the REDO command which lists a previously entered command presented for editing.
 //
-// Finally, there is the cursor up anddown key. These keys are used to scoll teh command line window. When
-// such a key is detected, the current accumulatd input is discarded and replaced by a pseudo command for
-// cursor up or down. The rooutne returns immediately.
+// Finally, there is the cursor up and down key. These keys are used to scoll the command line window. When
+// such a key is detected, the current accumulatd input is discarded awe return with a negative value.
+//
+//  cursor up -> -2
+//  cursor down -> -3 
 //
 // ??? what if character is zero ?????? ( blocking )
 //------------------------------------------------------------------------------------------------------------
@@ -402,10 +404,6 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
         CT_ESCAPE           = 1,
         CT_ESCAPE_BRACKET   = 2
     };
-    
-    char cursorUpStr[ ]     = "WC_CU";
-    char cursorDownStr[ ]   = "WC_CD";
-    
     
     int         ch      = ' ';
     int         strSize = 0;
@@ -497,18 +495,16 @@ int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) 
                         
                     case 'A': {
                         
-                        strncpy( cmdBuf, cursorUpStr, strlen( cursorUpStr ));
-                        return((int) strlen( cursorUpStr ));
+                        return( - 2 ); // cursor up ...
                         
                     } break;
-                        
+                    
                     case 'B': {
                         
-                        strncpy( cmdBuf, cursorDownStr, strlen( cursorDownStr ));
-                        return((int) strlen( cursorDownStr ));
+                        return( - 3 ); // cursor dpwn ...
                         
                     } break;
-                        
+                 
                     default: state = CT_NORMAL;
                 }
         
