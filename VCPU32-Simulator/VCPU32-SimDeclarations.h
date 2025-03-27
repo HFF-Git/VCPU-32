@@ -1281,7 +1281,9 @@ private:
     
     void            printWelcome( );
     int             promptCmdLine( );
-    int             readInputLine( char *cmdBuf, int promptLen = 0 );
+    int             readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs = 0 );
+   // int             readInputLine( char *cmdBuf, int promptLen = 0 );
+    
     void            evalInputLine( char *cmdBuf );
     void            cmdLineError( SimErrMsgId errNum, char *argStr = nullptr );
     int             promptYesNoCancel( char *promptStr );
@@ -1361,6 +1363,7 @@ private:
    
     bool                    winModeOn       = false;
     SimTokId                currentCmd      = TOK_NIL;
+   
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -1418,7 +1421,7 @@ private:
     int             computeRowsNeeded( int winStack );
     void            setWindowColumns( int winStack, int columns );
     void            setWindowOrigins( int winStack, int rowOffset = 1, int colOffset = 1 );
-    
+   
     int             actualRowSize               = 0;
     int             actualColumnSize            = 0;
     int             currentUserWinNum           = -1;

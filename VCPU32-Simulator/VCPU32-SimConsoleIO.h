@@ -88,19 +88,6 @@ struct SimConsoleIO {
     int     readChar( );
     void    writeChar( char ch  );
     int     writeChars( const char *format, ... );
-
-    int     readCmdLine( char *cmdBuf, int initCmdBufLen = 0, int cursorOfs = 0 );
-    
-    template<typename... Args> int printChars( const char* fmt, Args&&... args );
-    int     printNum( uint32_t num, int rdx );
-    
-    void    clearScreen( );
-    void    setAbsCursor( int row, int col );
-    void    setWindowSize( int row, int col );
-    void    setScrollArea( int start, int end );
-    void    clearScrollArea( );
-    
-    private:
     
     void    writeCarriageReturn( );
     void    writeBackSpace( );
@@ -109,45 +96,18 @@ struct SimConsoleIO {
     void    writeScrollUp( int n );
     void    writeScrollDown( int n );
     void    writeCharAtPos( int ch, int strSize, int pos );
+  
+    void    clearScreen( );
+    void    setAbsCursor( int row, int col );
+    void    setWindowSize( int row, int col );
+    void    setScrollArea( int start, int end );
+    void    clearScrollArea( );
+    
+    
+    private:
     
     char    outputPrintBuf[ 1024 ]  = { 0 };
     bool    blockingMode            = false;
 };
-
-//------------------------------------------------------------------------------------------------------------
-// "printChars" is the entry point to printing characters to the console. It is a template function to accept
-// different formats and arguments. As such it need to be included in the include file, so that the compiler
-// knows what to do to built the actual function calls. Since we had a couple of issues with the window
-// drawing functions of the simulator, there is additional code to catch the issue. So far, it did not occur
-// again.
-//
-// ??? replace with a vsnprintf version ?
-//------------------------------------------------------------------------------------------------------------
-template<typename... Args> int SimConsoleIO::printChars( const char* fmt, Args&&... args ) {
-    
-    size_t len = 0;
-    
-    do {
-        
-        len = snprintf( outputPrintBuf, sizeof( outputPrintBuf ), fmt, args... );
-       
-        if (( len < 0 ) && ( errno != EINTR )) {
-            
-            fprintf( stderr, "winPrintf (snprintf) error, errno: %d, %s\n", errno, strerror( errno ));
-            fflush( stderr );
-            exit( errno );
-        }
-        
-    } while ( len < 0 );
-    
-    if ( len > 0 ) {
-        
-        for ( int i = 0; i < len; i++  ) writeChar( outputPrintBuf[ i ] );
-    }
-    
-    return( static_cast<int>( len ));
-}
-
-
 
 #endif /* VCPU32_ConsoleIo_h */

@@ -26,6 +26,7 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
+#include "VCPU32-SimVersion.h"
 #include "VCPU32-Types.h"
 #include "VCPU32-SimConsoleIO.h"
 #include "VCPU32-SimDeclarations.h"
@@ -58,30 +59,6 @@ uint16_t toBigEndian32( uint32_t val ) { return ( __builtin_bswap32( val )); }
 uint16_t toBigEndian16( uint16_t val ) { return ( _byteswap_ushort( val )); }
 uint16_t toBigEndian32( uint32_t val ) { return ( _byteswap_ulong( val )); }
 #endif
-
-//------------------------------------------------------------------------------------------------------------
-// Little helpers.
-//
-//------------------------------------------------------------------------------------------------------------
-bool isEscapeChar( int ch ) {
-    
-    return ( ch == 27 );
-}
-
-bool isCarriageReturnChar( int ch ) {
-    
-    return (( ch == '\n' ) || ( ch == '\r' ));
-}
-
-bool isBackSpaceChar( int ch ) {
-    
-    return (( ch == 8 ) || ( ch == 127 ));
-}
-
-bool isLeftBracketChar( int ch ) {
-    
-    return ( ch == '[' );
-}
 
 //------------------------------------------------------------------------------------------------------------
 // "removeChar" will remove a character from the input buffer at the cursor position and adjust the string
@@ -146,7 +123,7 @@ void appendChar( char *buf, int ch, int *strSize ) {
 //
 //------------------------------------------------------------------------------------------------------------
 SimConsoleIO::SimConsoleIO( ) {
-    
+  
 #if __APPLE__
     tcgetattr( fileno( stdin ), &saveTermSetting );
 #endif
@@ -308,47 +285,41 @@ int SimConsoleIO::writeChars( const char *format, ... ) {
     
     return( len );
 }
-    
-//------------------------------------------------------------------------------------------------------------
-// "writeCarriageReturn" will emit a carriage return. This is done slighty different for Macs / Windows.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimConsoleIO::writeCarriageReturn( ) {
-    
-#if __APPLE__
-    writeChar( '\n' );
-#else
-    writeChar( '\r' );
-    writeChar( '\n' );
-#endif
-    
-}
+
+
 
 void SimConsoleIO::writeBackSpace( ) {
     
-    printChars( "\033[D\033[P" );
+    writeChars( "\033[D\033[P" );
 }
 
 void SimConsoleIO::writeCursorLeft( ) {
     
-    printChars( "\033[D" );
+    writeChars( "\033[D" );
 }
 
 void SimConsoleIO::writeCursorRight( ) {
     
-    printChars( "\033[C" );
+    writeChars( "\033[C" );
 }
 
 void SimConsoleIO::writeScrollUp( int n ) {
     
-    printChars( "\033[%dS", n );
+    writeChars( "\033[%dS", n );
 }
 
 void SimConsoleIO::writeScrollDown( int n ) {
     
-    printChars( "\033[%dT", n );
+    writeChars( "\033[%dT", n );
 }
 
+void SimConsoleIO::writeCarriageReturn( ) {
+    
+    if ( SIM_IS_APPLE )  writeChars( "\n" );
+    else            writeChars( "\r\n" );
+}
+
+// ??? check this again ....
 void SimConsoleIO::writeCharAtPos( int ch, int strSize, int pos ) {
     
     if ( pos == strSize ) {
@@ -358,202 +329,32 @@ void SimConsoleIO::writeCharAtPos( int ch, int strSize, int pos ) {
     else {
         
         // ??? ugly, we ned to know where the command line really starts
-        // terminal line...
-        printChars( "\033[%dG\033[1@%c", pos, ch );
+        writeChars( "\033[%dG\033[1@%c", pos, ch );
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
-// "readInputLine" is used by the command line interpreter to get the command. Since we run in raw mode, the
-// basic handling of backspace, carriage return, relevant escape sequences, etc. needs to be processed in
-// this routine directly. Characters other than the special characters are piled up in a local buffer until
-// we read in a carriage return. The core is a state machine that examines a character read to anaalyze
-// whether this is a special character or sequence. Any "normal" character is just added to the line buffer.
-// The states are as follows:
-//
-//      CT_NORMAL: got a character, anylyze it.
-//      CT_ESCAPE: check the characters got. If a "[" we need to handle an escape sequence.
-//      CT_ESCAPE_BRACKET: analyze the argument after "esp[" input got so far.
-//
-// A carriage return character will append a zero to the command line input got so far and if in raw mode echo
-// the carriage return. We are done reading the input line.
-//
-// A backspace character will erase the character right before the position where the line cursor is. Note
-// that the cursor is not necessarily at the end of the current input line. It could have been moved with
-// the left/right cursor key to a position somewhere in the current command line.
-//
-// The left and right arrows move the cursor in the command line. Backspacing and inserting will then take
-// place at the current cursor position shifting any content to the right of the cursor accordingly.
-//
-// We also have the option of a prefilled command buffer for editing a command line before hitting return.
-// This option is used by the REDO command which lists a previously entered command presented for editing.
-//
-// Finally, there is the cursor up and down key. These keys are used to scoll the command line window. When
-// such a key is detected, the current accumulatd input is discarded awe return with a negative value.
-//
-//  cursor up -> -2
-//  cursor down -> -3 
-//
-// ??? what if character is zero ?????? ( blocking )
-//------------------------------------------------------------------------------------------------------------
-int SimConsoleIO::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
-   
-    enum CharType : uint16_t {
-        
-        CT_NORMAL           = 0,
-        CT_ESCAPE           = 1,
-        CT_ESCAPE_BRACKET   = 2
-    };
-    
-    int         ch      = ' ';
-    int         strSize = 0;
-    int         cursor  = 0;
-    CharType    state   = CT_NORMAL;
-    
-    if (( initCmdBufLen > 0 ) && ( initCmdBufLen < CMD_LINE_BUF_SIZE - 1 )) {
-        
-        strSize = initCmdBufLen;
-        cursor  = initCmdBufLen;
-    }
-    
-    while ( true ) {
-        
-        ch = readChar( );
-     
-        switch ( state ) {
-                
-            case CT_NORMAL: {
-                
-                if ( isEscapeChar( ch )) {
-                    
-                    state = CT_ESCAPE;
-                }
-                else if ( isCarriageReturnChar( ch )) {
-                    
-                    appendChar( cmdBuf, 0, &strSize );
-                    writeCarriageReturn( );
-                    return ( strSize - 1 );
-                }
-                else if ( isBackSpaceChar( ch )) {
-                    
-                    if ( strSize > 0 ) {
-                        
-                        removeChar( cmdBuf, &strSize, &cursor );
-                        writeBackSpace( );
-                    }
-                }
-                else if ( ch == 0 ) {
-                    
-                    // ??? what to do ...
-                    
-                }
-                else {
-                    
-                    if ( strSize < CMD_LINE_BUF_SIZE - 1 ) {
-                        
-                        insertChar( cmdBuf, ch, &strSize, &cursor );
-                        if ( isprint( ch )) writeCharAtPos( ch, strSize, cursor + cursorOfs );
-                    }
-                }
-                
-            } break;
-                
-            case CT_ESCAPE: {
-                
-                if ( isLeftBracketChar( ch )) state = CT_ESCAPE_BRACKET;
-                else                          state = CT_NORMAL;
-                
-            } break;
-                
-            case CT_ESCAPE_BRACKET: {
-                
-                switch ( ch ) {
-                        
-                    case 'D': {
-                        
-                        if ( cursor > 0 ) {
-                          
-                            cursor --;
-                            writeCursorLeft( );
-                        }
-                        
-                        state = CT_NORMAL;
-                    
-                    } break;
-                        
-                    case 'C': {
-                        
-                        if ( cursor < strSize ) {
-                          
-                            cursor ++;
-                            writeCursorRight( );
-                        }
-                        
-                        state = CT_NORMAL;
-                        
-                    } break;
-                        
-                    case 'A': {
-                        
-                        return( - 2 ); // cursor up ...
-                        
-                    } break;
-                    
-                    case 'B': {
-                        
-                        return( - 3 ); // cursor dpwn ...
-                        
-                    } break;
-                 
-                    default: state = CT_NORMAL;
-                }
-        
-            } break;
-        }
-    }
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Print routines.
-//
-//------------------------------------------------------------------------------------------------------------
 void SimConsoleIO::clearScreen( ) {
     
-    printChars((char *) "\x1b[2J" );
-    printChars((char *) "\x1b[3J" );
+    writeChars((char *) "\x1b[2J" );
+    writeChars((char *) "\x1b[3J" );
 }
 
 void SimConsoleIO::setAbsCursor( int row, int col ) {
     
-    printChars((char *) "\x1b[%d;%dH", row, col );
+    writeChars((char *) "\x1b[%d;%dH", row, col );
 }
 
 void SimConsoleIO::setWindowSize( int row, int col ) {
     
-    printChars((char *) "\x1b[8;%d;%dt", row, col );
+    writeChars((char *) "\x1b[8;%d;%dt", row, col );
 }
 
 void SimConsoleIO::setScrollArea( int start, int end ) {
     
-    printChars((char *) "\x1b[%d;%dr", start, end );
+    writeChars((char *) "\x1b[%d;%dr", start, end );
 }
 
 void SimConsoleIO::clearScrollArea( ) {
     
-    printChars((char *) "\x1b[r" );
+    writeChars((char *) "\x1b[r" );
 }
-
-int SimConsoleIO::printNum( uint32_t num, int rdx ) {
-    
-    if      ( rdx == 10 )  return( printChars( "%d", num ));
-    else if ( rdx == 8  )  return( printChars( "%#012o", num ));
-    else if ( rdx == 16 )  {
-        
-        if ( num == 0 ) return( printChars( "0x0" ));
-        else return( printChars( "%#010x", num ));
-    }
-    else return( printChars( "**num**" ));
-}
-
-
-// ??? any other little helpers for printing to move here ??

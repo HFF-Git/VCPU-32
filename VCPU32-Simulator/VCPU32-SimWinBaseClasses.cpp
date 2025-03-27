@@ -170,25 +170,25 @@ void SimWin::setFieldAtributes( uint32_t fmtDesc ) {
     
     if ( fmtDesc != 0 ) {
         
-        glb -> console -> printChars((char *) "\x1b[0m" );
-        if ( fmtDesc & FMT_INVERSE )    glb -> console -> printChars((char *) "\x1b[7m" );
-        if ( fmtDesc & FMT_BLINK )      glb -> console -> printChars((char *) "\x1b[5m" );
-        if ( fmtDesc & FMT_BOLD )       glb -> console -> printChars((char *) "\x1b[1m" );
+        glb -> console -> writeChars((char *) "\x1b[0m" );
+        if ( fmtDesc & FMT_INVERSE )    glb -> console -> writeChars((char *) "\x1b[7m" );
+        if ( fmtDesc & FMT_BLINK )      glb -> console -> writeChars((char *) "\x1b[5m" );
+        if ( fmtDesc & FMT_BOLD )       glb -> console -> writeChars((char *) "\x1b[1m" );
         
         switch ( fmtDesc & 0xF ) {
                 
-            case 1:     glb -> console -> printChars((char *) "\x1b[41m"); break;
-            case 2:     glb -> console -> printChars((char *) "\x1b[42m"); break;
-            case 3:     glb -> console -> printChars((char *) "\x1b[43m"); break;
-            default:    glb -> console -> printChars((char *) "\x1b[49m");
+            case 1:     glb -> console -> writeChars((char *) "\x1b[41m"); break;
+            case 2:     glb -> console -> writeChars((char *) "\x1b[42m"); break;
+            case 3:     glb -> console -> writeChars((char *) "\x1b[43m"); break;
+            default:    glb -> console -> writeChars((char *) "\x1b[49m");
         }
         
         switch (( fmtDesc >> 4 ) & 0xF ) {
                 
-            case 1:     glb -> console -> printChars((char *) "\x1b[31m"); break;
-            case 2:     glb -> console -> printChars((char *) "\x1b[32m"); break;
-            case 3:     glb -> console -> printChars((char *) "\x1b[33m"); break;
-            default:    glb -> console -> printChars((char *) "\x1b[39m");
+            case 1:     glb -> console -> writeChars((char *) "\x1b[31m"); break;
+            case 2:     glb -> console -> writeChars((char *) "\x1b[32m"); break;
+            case 3:     glb -> console -> writeChars((char *) "\x1b[33m"); break;
+            default:    glb -> console -> writeChars((char *) "\x1b[39m");
         }
     }
 }
@@ -209,50 +209,50 @@ int SimWin::printWord( uint32_t val, int rdx, uint32_t fmtDesc ) {
             
             if ( noNum ) {
                 
-                if ( half ) len = glb -> console -> printChars((char *) "*****" );
-                else        len = glb -> console -> printChars((char *) "**********" );
+                if ( half ) len = glb -> console -> writeChars((char *) "*****" );
+                else        len = glb -> console -> writeChars((char *) "**********" );
             }
             else {
                 
-                if ( half ) len = glb -> console -> printChars((char *) "%5d", val );
-                else        len = glb -> console -> printChars((char *) "%10d", val );
+                if ( half ) len = glb -> console -> writeChars((char *) "%5d", val );
+                else        len = glb -> console -> writeChars((char *) "%10d", val );
             }
         }
         else if ( rdx == 8 ) {
             
             if ( noNum ) {
                 
-                if ( half ) len = glb -> console -> printChars((char *) "*******" );
-                else        len = glb -> console -> printChars((char *) "************" );
+                if ( half ) len = glb -> console -> writeChars((char *) "*******" );
+                else        len = glb -> console -> writeChars((char *) "************" );
             }
             else {
                 
-                if ( half ) len = glb -> console -> printChars((char *) "%07o", val );
-                else        len = glb -> console -> printChars((char *) "%#012o", val );
+                if ( half ) len = glb -> console -> writeChars((char *) "%07o", val );
+                else        len = glb -> console -> writeChars((char *) "%#012o", val );
             }
         }
         else if ( rdx == 16 ) {
             
             if ( noNum ) {
                 
-                if ( half ) len = glb -> console -> printChars((char *) "******" );
-                else        len = glb -> console -> printChars((char *) "**********" );
+                if ( half ) len = glb -> console -> writeChars((char *) "******" );
+                else        len = glb -> console -> writeChars((char *) "**********" );
             }
             else {
                 
                 if ( val == 0 ) {
                     
-                    if ( half ) len = glb -> console -> printChars((char *) "0x0000" );
-                    else        len = glb -> console -> printChars((char *) "0x00000000" );
+                    if ( half ) len = glb -> console -> writeChars((char *) "0x0000" );
+                    else        len = glb -> console -> writeChars((char *) "0x00000000" );
                     
                 } else {
                     
-                    if ( half ) len = glb -> console -> printChars((char *) "%#06x", val );
-                    else        len = glb -> console -> printChars((char *) "%#010x", val );
+                    if ( half ) len = glb -> console -> writeChars((char *) "%#06x", val );
+                    else        len = glb -> console -> writeChars((char *) "%#010x", val );
                 }
             }
         }
-        else len = glb -> console -> printChars((char *) "***num***" );
+        else len = glb -> console -> writeChars((char *) "***num***" );
     
     return( len );
 }
@@ -264,8 +264,8 @@ int SimWin::printWord( uint32_t val, int rdx, uint32_t fmtDesc ) {
 //------------------------------------------------------------------------------------------------------------
 int SimWin::printText( char *text, int len ) {
     
-    if ( strlen( text ) < MAX_TEXT_FIELD_LEN ) return(glb -> console -> printChars((char *) "%s", text ));
-    else return( glb -> console -> printChars((char *) "***Text***" ));
+    if ( strlen( text ) < MAX_TEXT_FIELD_LEN ) return( glb -> console -> writeChars((char *) "%s", text ));
+    else return( glb -> console -> writeChars((char *) "***Text***" ));
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -277,7 +277,7 @@ void SimWin::padField( int dLen, int fLen ) {
     
     while ( fLen > dLen ) {
         
-        glb -> console -> printChars((char *) " " );
+        glb -> console -> writeChars((char *) " " );
         fLen --;
     }
 }
@@ -410,11 +410,11 @@ void SimWin::printWindowIdField( int stack, int index, bool current, uint32_t fm
     
     setFieldAtributes( fmtDesc );
     
-    if      (( index >= 0   ) && ( index <= 10 ))   glb -> console -> printChars((char *) "(%1d:%1d)  ", stack, index );
-    else if (( index >= 10  ) && ( index <= 99 ))   glb -> console -> printChars((char *) "(%1d:%2d) ", stack, index );
-    else                                            glb -> console -> printChars((char *) "-***-" );
+    if      (( index >= 0   ) && ( index <= 10 ))   glb -> console -> writeChars((char *) "(%1d:%1d)  ", stack, index );
+    else if (( index >= 10  ) && ( index <= 99 ))   glb -> console -> writeChars((char *) "(%1d:%2d) ", stack, index );
+    else                                            glb -> console -> writeChars((char *) "-***-" );
     
-    glb -> console -> printChars((( current ) ? (char *) "* " : (char *) "  " ));
+    glb -> console -> writeChars((( current ) ? (char *) "* " : (char *) "  " ));
     
     lastRowPos  = row;
     lastColPos  = col + 9;

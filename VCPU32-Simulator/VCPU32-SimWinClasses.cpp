@@ -853,14 +853,12 @@ void SimWinCode::drawLine( uint32_t itemAdr ) {
     
     clearField( opCodeField );
     disAsm -> formatOpCodeAndOptions( buf, sizeof( buf ), instr );
-    glb -> console -> printChars( "%s", buf );
-    
+    printText( buf, (int) strlen( buf ));
     setWinCursor( 0, pos + opCodeField );
     
     clearField( operandField );
     disAsm -> formatTargetAndOperands( buf, sizeof( buf ), instr );
-    glb -> console -> printChars( "%s", buf );
-   
+    printText( buf, (int) strlen( buf ));
     setWinCursor( 0, pos + opCodeField + operandField );
     padLine( );
 }

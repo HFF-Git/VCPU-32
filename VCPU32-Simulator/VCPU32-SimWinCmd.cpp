@@ -4,11 +4,15 @@
 //
 //------------------------------------------------------------------------------------------------------------
 // The command window is the last screen area below all enabled windows displayed. It is actuall not a window
-// like the others in that it represents the locked scroll area of the terminal screen. Still, it has a
-// window header and a line drawing area. However, the print methods will just emit their data without
-// manipluating any window specific cursors like the other window objects. In a sense it is a simple line
-// display area. Nevertheless, to enable scrolling of this window, an output buffer needs to be implemented
-// that stores all output in a circular buffer to use for text output. Just like a "real" terminal.
+// like the others in that it represents lines written to the wondow as well as the command input line. It
+// still as a window header and a line drawing area. However, the print methods will just emit their data
+// without manipulating any window specific cursors like the other window objects. Unfortunately, we cannot
+// just lock a scroll area for thsi window. Whenerver something is scrolled out of the visible window body,
+// the lines are lost. To enable scrolling of this window, an output buffer needs to be implemented that
+// stores all output in a circular buffer to use for text output. Just like a "real" terminal. The cursor
+// up and down keys will peform the scrolling. The command line is also a bit special. It is actually the
+// one line locked scroll area. Input can be edited on this line, a carriage return will append the line
+// to the output buffer area.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -37,6 +41,8 @@
 //------------------------------------------------------------------------------------------------------------
 namespace {
 
+char outputBuffer[ MAX_WIN_OUT_LINE_SIZE ];
+
 //------------------------------------------------------------------------------------------------------------
 // A little helper functions.
 //
@@ -56,21 +62,107 @@ int setRadix( int rdx ) {
     return((( rdx == 8 ) || ( rdx == 10 ) || ( rdx == 16 )) ? rdx : 10 );
 }
 
+bool isEscapeChar( int ch ) {
+    
+    return ( ch == 27 );
+}
+
+bool isCarriageReturnChar( int ch ) {
+    
+    return (( ch == '\n' ) || ( ch == '\r' ));
+}
+
+bool isBackSpaceChar( int ch ) {
+    
+    return (( ch == 8 ) || ( ch == 127 ));
+}
+
+bool isLeftBracketChar( int ch ) {
+    
+    return ( ch == '[' );
+}
+
 //------------------------------------------------------------------------------------------------------------
 // A little helper function to remove the comment part of a command line. We do the changes on the buffer
-// passed in by just setting the end of string at the position of the "#" comment indicator.
+// passed in by just setting the end of string at the position of the "#" comment indicator. A "#" inside
+// a string is ignored.
 //
-// ??? a bit sloppy. what if the "#" is in a string ?
 //------------------------------------------------------------------------------------------------------------
 int removeComment( char *cmdBuf ) {
     
-    if ( strlen( cmdBuf ) > 0 ) {
+    bool inQuotes = false;
         
-        char *tmp = strrchr( cmdBuf, '#' );
-        if( tmp != nullptr ) *tmp = 0;
+    while ( *cmdBuf ) {
+        
+        if ( *cmdBuf == '"' ) {
+            
+            inQuotes = ! inQuotes;
+        }
+        else if ( *cmdBuf == '#' && !inQuotes ) {
+            
+            *cmdBuf = '\0';
+            break;
+        }
+        
+        cmdBuf++;
     }
     
     return((int) strlen( cmdBuf ));
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "removeChar" will remove a character from the input buffer at the cursor position and adjust the string
+// size accordingly. If the cursor is at the end of the string, both string size and cursor position are
+// decremented by one, otherwise the cursor stays where it is and just the string size is decremented.
+//
+//------------------------------------------------------------------------------------------------------------
+void removeChar( char *buf, int *strSize, int *pos ) {
+    
+    if (( *strSize > 0 ) && ( *strSize == *pos )) {
+        
+        *strSize    = *strSize - 1;
+        *pos        = *pos - 1;
+    }
+    else if (( *strSize > 0 ) && ( *pos >= 0 )) {
+   
+        for ( int i = *pos; i < *strSize; i++ ) buf[ i ] = buf[ i + 1 ];
+        *strSize    = *strSize - 1;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "insertChar" will insert a character in the input buffer at the cursor position and adjust cursor and
+// overall string size accordingly. There are twp basic cases. The first is simply appending to the buffer
+// when both current string size and cursor position are equal. The second is when the cursor is somewhere
+// in the input buffer. In this case we need to shift the characters to the right to make room first.
+//
+//------------------------------------------------------------------------------------------------------------
+void insertChar( char *buf, int ch, int *strSize, int *pos ) {
+    
+    if ( *pos == *strSize ) {
+        
+        buf[ *strSize ] = ch;
+        *strSize        = *strSize + 1;
+        *pos            = *pos + 1;
+    }
+    else if ( *pos < *strSize ) {
+        
+        for ( int i = *strSize; i > *pos; i-- ) buf[ i ] = buf[ i -1 ];
+        
+        buf[ *pos ] = ch;
+        *strSize    = *strSize + 1;
+        *pos        = *pos + 1;
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "appendChar" will add a character to the end of the buffer and adjust the overall size.
+//
+//------------------------------------------------------------------------------------------------------------
+void appendChar( char *buf, int ch, int *strSize ) {
+    
+    buf[ *strSize ] = ch;
+    *strSize        = *strSize + 1;
 }
 
 }; // namespace
@@ -79,101 +171,10 @@ int removeComment( char *cmdBuf ) {
 //************************************************************************************************************
 //************************************************************************************************************
 //
-// Object methods.
+// Object methods - SimCmdWinOutBuffer
 //
 //************************************************************************************************************
 //************************************************************************************************************
-
-
-//------------------------------------------------------------------------------------------------------------
-// Object constructor.
-//
-//------------------------------------------------------------------------------------------------------------
-SimCommandsWin::SimCommandsWin( VCPU32Globals *glb ) : SimWin( glb ) {
-    
-    this -> glb = glb;
-    
-    tok     = new SimTokenizer( );
-    eval    = new SimExprEvaluator( glb, tok );
-    hist    = new SimCmdHistory( );
-    winOut  = new SimCmdWinOutBuffer( );
-    disAsm  = new SimDisAsm( );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Get the command interpreter ready.
-//
-// One day we will handle command line arguments.... will this be part of the command win ?
-//
-//  -v           verbose
-//  -i <path>    init file
-//
-// ??? to do ...
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::setupCmdInterpreter( int argc, const char *argv[ ] ) {
-    
-    while ( argc > 0 ) {
-        
-        argc --;
-    }
-    
-    glb -> winDisplay  -> windowDefaults( );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// The default values are the initial settings when windows is brought up the first time, or for the WDEF
-// command.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::setDefaults( ) {
-    
-    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
-    setRows( 11 );
-    setColumns( 80 );
-    setDefColumns( 80 );
-    setWinType( WT_CMD_WIN );
-    setEnable( true );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// The banner line for command window.
-//
-// ??? debugging, would could print out top index, cursor index, etc.
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::drawBanner( ) {
-    
-    uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE;
-    
-    setWinCursor( 1, 1 );
-    printTextField((char *) "Commands ", ( fmtDesc | FMT_ALIGN_LFT ));
-    padLine( fmtDesc );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// The body lines of the command window are displayed after the banner line. The window is filled from the
-// putput buffer. We first set the screen lines as the length of the cmmand window may have changed.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::drawBody( ) {
-    
-    setFieldAtributes( FMT_DEF_ATTR );
-    
-    winOut -> setScreenLines( getRows( ) - 1 );
-    
-    // ??? for debugging ... stay out of the real window content... :-)
-    setWinCursor( 1, 32 );
-    printTextField((char *) "Top: " );
-    printNumericField( winOut -> getTopIndex( ));
-    
-    printTextField((char *) ", Cursor: " );
-    printNumericField( winOut -> getCursorIndex( ));
-    
-    setWinCursor( 2, 1 );
-   
-    // ??? this is the place to redraw the window with the output buffer content.
-    // ??? set the window cursor to the begin of the command window. ( +1, because of body ? )
-    
-}
 
 //------------------------------------------------------------------------------------------------------------
 // Command window output buffer. We cannot directly print to the command window when we want to support
@@ -221,9 +222,9 @@ void SimCmdWinOutBuffer::addToBuffer( const char *buf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "printChars" will add data to the window output buffer. It is modelled after the "printf" family of output
+// "printChars" will add data to the window output buffer. It is modeled after the "printf" family of output
 // routines and accepts a format string and a variable number of arguments. The resulting print string is
-// just added to the window output buffer. The actual priting to screen is peformed in the "drawBody" routine
+// just added to the window output buffer. The actual printing to screen is peformed in the "drawBody" routine
 // of the command window.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -246,7 +247,8 @@ int SimCmdWinOutBuffer::printChars( const char *format, ... ) {
         
         addToBuffer( temp );
         
-        // ??? for test only .... we fill the buffer and just print out ....
+        // ??? for testing only .... we fill the buffer and just print out .... this wll go away
+        // when the text ps printed in windows draw body...
         write( 2, temp, strlen( temp ));
     }
     
@@ -309,80 +311,14 @@ uint16_t SimCmdWinOutBuffer::getTopIndex( ) {
     return( topIndex );
 }
 
-//------------------------------------------------------------------------------------------------------------
-// "commandLineError" is a little helper that prints out the error encountered. We will print a caret marker
-// where we found the error, and then return a false. Note that the position needs to add the prompt part of
-// the command line to where the error was found in the command input.
+
+//************************************************************************************************************
+//************************************************************************************************************
 //
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::cmdLineError( SimErrMsgId errNum, char *argStr ) {
-   
-    for ( int i = 0; i < MAX_ERR_MSG_TAB; i++ ) {
-        
-        if ( errMsgTab[ i ].errNum == errNum ) {
-            
-            winOut -> printChars( "%s\n", errMsgTab[ i ].errStr );
-            return;
-        }
-    }
-    
-    winOut -> printChars( "Error: %d", errNum );
-    if ( argStr != nullptr )  winOut -> printChars( "%32s", argStr );
-    winOut -> printChars( "/n" );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "promptYesNoCancel" is a simple function to print a prompt string with a decision question. The answer can
-//  be yes/no or cancel. A positive result is a "yes" a negative result a "no", anything else a "cancel".
+// Object methods - SimCmdHistory
 //
-//------------------------------------------------------------------------------------------------------------
-int SimCommandsWin::promptYesNoCancel( char *promptStr ) {
-    
-    int len = winOut -> printChars( "%s -> ", promptStr );
-    
-    char buf[ 8 ]   = "";
-    int  ret        = 0;
-    
-    if ( glb -> console -> readCmdLine( buf, 0, len ) > 0 ) {
-    
-        if      (( buf[ 0 ] == 'Y' ) ||  ( buf[ 0 ] == 'y' ))   ret = 1;
-        else if (( buf[ 0 ] == 'N' ) ||  ( buf[ 0 ] == 'n' ))   ret = -1;
-        else                                                    ret = 0;
-    }
-    else ret = 0;
-    
-    winOut -> addToBuffer( buf );
-    winOut -> addToBuffer( "\n" );
-    
-    return( ret );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// Token analysis helper functions.
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::checkEOS( ) {
-    
-    if ( ! tok -> isToken( TOK_EOS )) throw ( ERR_TOO_MANY_ARGS_CMD_LINE );
-}
-
-void SimCommandsWin::acceptComma( ) {
-    
-    if ( tok -> isToken( TOK_COMMA )) tok -> nextToken( );
-    else throw ( ERR_EXPECTED_COMMA );
-}
-
-void SimCommandsWin::acceptLparen( ) {
-    
-    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
-    else throw ( ERR_EXPECTED_LPAREN );
-}
-
-void SimCommandsWin::acceptRparen( ) {
-    
-    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
-    else throw ( ERR_EXPECTED_LPAREN );
-}
+//************************************************************************************************************
+//************************************************************************************************************
 
 //------------------------------------------------------------------------------------------------------------
 // The simulator command interpreter features a simple command history. It is a circular buffer that holds
@@ -420,7 +356,7 @@ void SimCmdHistory::addCmdLine( char *cmdStr ) {
 //------------------------------------------------------------------------------------------------------------
 // Get a command line from the command history. If the command reference is negative, the entry relativ to
 // the top is used. "head - 1" refers to the last entry entered. If the command ID is positive, we search for
-// the entry with the matching command id, if still in the history buffer. Optionally, we return the absoolute
+// the entry with the matching command id, if still in the history buffer. Optionally, we return the absolute
 // command Id.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -469,6 +405,330 @@ int SimCmdHistory::getCmdNum( ) {
 int  SimCmdHistory::getCmdCount( ) {
     
     return( count );
+}
+
+
+//************************************************************************************************************
+//************************************************************************************************************
+//
+// Object methods - SimCommandsWin
+//
+//************************************************************************************************************
+//************************************************************************************************************
+
+//------------------------------------------------------------------------------------------------------------
+// Object constructor.
+//
+//------------------------------------------------------------------------------------------------------------
+SimCommandsWin::SimCommandsWin( VCPU32Globals *glb ) : SimWin( glb ) {
+    
+    this -> glb = glb;
+    
+    tok     = new SimTokenizer( );
+    eval    = new SimExprEvaluator( glb, tok );
+    hist    = new SimCmdHistory( );
+    winOut  = new SimCmdWinOutBuffer( );
+    disAsm  = new SimDisAsm( );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Get the command interpreter ready.
+//
+// One day we will handle command line arguments.... will this be part of the command win ?
+//
+//  -v           verbose
+//  -i <path>    init file
+//
+// ??? to do ...
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::setupCmdInterpreter( int argc, const char *argv[ ] ) {
+    
+    while ( argc > 0 ) {
+        
+        argc --;
+    }
+    
+    glb -> winDisplay  -> windowDefaults( );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The default values are the initial settings when windows is brought up the first time, or for the WDEF
+// command.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::setDefaults( ) {
+    
+    setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
+    setRows( 11 );
+    setColumns( 80 );
+    setDefColumns( 80 );
+    setWinType( WT_CMD_WIN );
+    setEnable( true );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "readCmdLine" is used by the command line interpreter to get the command. Since we run in raw mode, the
+// basic handling of backspace, carriage return, relevant escape sequences, etc. needs to be processed in
+// this routine directly. Characters other than the special characters are piled up in a local buffer until
+// we read in a carriage return. The core is a state machine that examines a character read to anaalyze
+// whether this is a special character or sequence. Any "normal" character is just added to the line buffer.
+// The states are as follows:
+//
+//      CT_NORMAL: got a character, anylyze it.
+//      CT_ESCAPE: check the characters got. If a "[" we need to handle an escape sequence.
+//      CT_ESCAPE_BRACKET: analyze the argument after "esp[" input got so far.
+//
+// A carriage return character will append a zero to the command line input got so far and if in raw mode echo
+// the carriage return. We are done reading the input line.
+//
+// A backspace character will erase the character right before the position where the line cursor is. Note
+// that the cursor is not necessarily at the end of the current input line. It could have been moved with
+// the left/right cursor key to a position somewhere in the current command line.
+//
+// The left and right arrows move the cursor in the command line. Backspacing and inserting will then take
+// place at the current cursor position shifting any content to the right of the cursor accordingly.
+//
+// We also have the option of a prefilled command buffer for editing a command line before hitting return.
+// This option is used by the REDO command which lists a previously entered command presented for editing.
+//
+// Finally, there is the cursor up and down key. These keys are used to scroll the command line window. This
+// is the case where we need to get lines form the output buffer to fill from top or bottom of the command
+// window display. We also need to ensure that when a new character is typed after a set of scroll keys, the
+// display automatically jumpt to the top of the lines displayed before up/down cursor movements.
+//
+//------------------------------------------------------------------------------------------------------------
+int SimCommandsWin::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
+   
+    enum CharType : uint16_t {
+        
+        CT_NORMAL           = 0,
+        CT_ESCAPE           = 1,
+        CT_ESCAPE_BRACKET   = 2
+    };
+    
+    int         ch      = ' ';
+    int         strSize = 0;
+    int         cursor  = 0;
+    CharType    state   = CT_NORMAL;
+    
+    if (( initCmdBufLen > 0 ) && ( initCmdBufLen < CMD_LINE_BUF_SIZE - 1 )) {
+        
+        strSize = initCmdBufLen;
+        cursor  = initCmdBufLen;
+    }
+    
+    while ( true ) {
+        
+        ch = glb -> console -> readChar( );
+     
+        switch ( state ) {
+                
+            case CT_NORMAL: {
+              
+                if ( isEscapeChar( ch )) {
+                    
+                    state = CT_ESCAPE;
+                }
+                else if ( isCarriageReturnChar( ch )) {
+                    
+                    appendChar( cmdBuf, 0, &strSize );
+                    glb -> console -> writeCarriageReturn( );
+                    
+                    winOut -> addToBuffer( cmdBuf );
+                    
+                    if ( strSize > 0 ) removeComment( cmdBuf );
+                    return ( strSize - 1 );
+                }
+                else if ( isBackSpaceChar( ch )) {
+                    
+                    if ( strSize > 0 ) {
+                        
+                        removeChar( cmdBuf, &strSize, &cursor );
+                        glb -> console -> writeBackSpace( );
+                    }
+                }
+                if ( ch == 0 ) {
+                    
+                    // ??? an input error ...
+                }
+                else {
+                    
+                    
+                    // ??? if we have been scrolling ... need to readjustthe screen content first ...
+                    
+                    
+                    if ( strSize < CMD_LINE_BUF_SIZE - 1 ) {
+                        
+                        insertChar( cmdBuf, ch, &strSize, &cursor );
+                        if ( isprint( ch )) glb -> console -> writeCharAtPos( ch, strSize, cursor + cursorOfs );
+                    }
+                }
+                
+            } break;
+                
+            case CT_ESCAPE: {
+                
+                if ( isLeftBracketChar( ch )) state = CT_ESCAPE_BRACKET;
+                else                          state = CT_NORMAL;
+                
+            } break;
+                
+            case CT_ESCAPE_BRACKET: {
+                
+                switch ( ch ) {
+                        
+                    case 'D': {
+                        
+                        if ( cursor > 0 ) {
+                          
+                            cursor --;
+                            glb -> console -> writeCursorLeft( );
+                        }
+    
+                    } break;
+                        
+                    case 'C': {
+                        
+                        if ( cursor < strSize ) {
+                          
+                            cursor ++;
+                            glb -> console -> writeCursorRight( );
+                        }
+                        
+                    } break;
+                        
+                    case 'A': {
+                      
+                        winOut -> scrollUp( );
+                        
+                    } break;
+                    
+                    case 'B': {
+                      
+                        winOut -> scrollDown( );
+                      
+                    } break;
+                 
+                    default: ;
+                }
+                
+                state = CT_NORMAL;
+        
+            } break;
+        }
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The banner line for command window. For now, we just label the bannwer line.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::drawBanner( ) {
+    
+    uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE;
+    
+    setWinCursor( 1, 1 );
+    printTextField((char *) "Commands ", ( fmtDesc | FMT_ALIGN_LFT ));
+    padLine( fmtDesc );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// The body lines of the command window are displayed after the banner line. The window is filled from the
+// putput buffer. We first set the screen lines as the length of the cmmand window may have changed.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::drawBody( ) {
+    
+    setFieldAtributes( FMT_DEF_ATTR );
+    
+    winOut -> setScreenLines( getRows( ) - 1 );
+    
+    // ??? for debugging ... stay out of the real window content... :-)
+    setWinCursor( 1, 32 );
+    printTextField((char *) "Top: " );
+    printNumericField( winOut -> getTopIndex( ));
+    
+    printTextField((char *) ", Cursor: " );
+    printNumericField( winOut -> getCursorIndex( ));
+    
+    setWinCursor( 2, 1 );
+   
+    // ??? this is the place to redraw the window with the output buffer content.
+    // ??? set the window cursor to the begin of the command window. ( +1, because of body ? )
+    
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "commandLineError" is a little helper that prints out the error encountered. We will print a caret marker
+// where we found the error, and then return a false. Note that the position needs to add the prompt part of
+// the command line to where the error was found in the command input.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::cmdLineError( SimErrMsgId errNum, char *argStr ) {
+   
+    for ( int i = 0; i < MAX_ERR_MSG_TAB; i++ ) {
+        
+        if ( errMsgTab[ i ].errNum == errNum ) {
+            
+            winOut -> printChars( "%s\n", errMsgTab[ i ].errStr );
+            return;
+        }
+    }
+    
+    winOut -> printChars( "Error: %d", errNum );
+    if ( argStr != nullptr )  winOut -> printChars( "%32s", argStr );
+    winOut -> printChars( "/n" );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// "promptYesNoCancel" is a simple function to print a prompt string with a decision question. The answer can
+//  be yes/no or cancel. A positive result is a "yes" a negative result a "no", anything else a "cancel".
+//
+//------------------------------------------------------------------------------------------------------------
+int SimCommandsWin::promptYesNoCancel( char *promptStr ) {
+    
+    int len = winOut -> printChars( "%s -> ", promptStr );
+    
+    char buf[ 8 ]   = "";
+    int  ret        = 0;
+    
+    if ( readCmdLine( buf, 0, len ) > 0 ) {
+    
+        if      (( buf[ 0 ] == 'Y' ) ||  ( buf[ 0 ] == 'y' ))   ret = 1;
+        else if (( buf[ 0 ] == 'N' ) ||  ( buf[ 0 ] == 'n' ))   ret = -1;
+        else                                                    ret = 0;
+    }
+    else ret = 0;
+    
+    winOut -> printChars( "%s\n", buf );
+    return( ret );
+}
+
+//------------------------------------------------------------------------------------------------------------
+// Token analysis helper functions.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::checkEOS( ) {
+    
+    if ( ! tok -> isToken( TOK_EOS )) throw ( ERR_TOO_MANY_ARGS_CMD_LINE );
+}
+
+void SimCommandsWin::acceptComma( ) {
+    
+    if ( tok -> isToken( TOK_COMMA )) tok -> nextToken( );
+    else throw ( ERR_EXPECTED_COMMA );
+}
+
+void SimCommandsWin::acceptLparen( ) {
+    
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
+    else throw ( ERR_EXPECTED_LPAREN );
+}
+
+void SimCommandsWin::acceptRparen( ) {
+    
+    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
+    else throw ( ERR_EXPECTED_LPAREN );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -788,31 +1048,6 @@ int SimCommandsWin::promptCmdLine( ) {
         }
         
         len += winOut -> printChars( "->" );
-    }
-    
-    return( len );
-}
-
-//------------------------------------------------------------------------------------------------------------
-// "readCmdLine" reads in the command line. The function returns the number of characters read or an error
-// code. We loop inside the routine until we receive a valid command line or an EOF. A non-empty command is
-// also added to the command history buffer. The routine returns the length of the command line, if empty
-// a minus one is returned.
-//
-// We also add the command line with a carriage return appended to the window output buffer, so it shows up
-// in the scollable lines on the screen.
-//
-//------------------------------------------------------------------------------------------------------------
-int SimCommandsWin::readInputLine( char *cmdBuf, int promptLen ) {
-  
-    int len = glb -> console -> readCmdLine( cmdBuf, 0, promptLen );
-    
-    if ( len > 0 ) {
-        
-        winOut -> addToBuffer( cmdBuf );
-        winOut -> addToBuffer( "\n" );
-       
-        if ( len > 0 ) removeComment( cmdBuf );
     }
     
     return( len );
@@ -1196,7 +1431,7 @@ void SimCommandsWin::writeLineCmd( ) {
             
         case TYP_NUM: {
             
-            glb -> console -> printNum( rExpr.numVal, rdx );
+            displayWord( rExpr.numVal, rdx );
             winOut -> printChars( "\n" );
             
         } break;
@@ -1209,9 +1444,9 @@ void SimCommandsWin::writeLineCmd( ) {
             
         case TYP_EXT_ADR: {
             
-            glb -> console -> printNum( rExpr.seg, rdx );
+            displayWord( rExpr.seg, rdx );
             winOut -> printChars( "." );
-            glb -> console -> printNum( rExpr.ofs, rdx );
+            displayWord( rExpr.ofs, rdx );
             winOut -> printChars( "\n" );
             
         } break;
@@ -1310,7 +1545,7 @@ void SimCommandsWin::redoCmd( ) {
         strncpy( tmpCmd, cmdStr, sizeof( tmpCmd ));
         
         winOut -> printChars( "%s", tmpCmd );
-        if ( glb -> console -> readCmdLine( tmpCmd, (int) strlen( tmpCmd ))) evalInputLine( tmpCmd );
+        if ( readCmdLine( tmpCmd, (int) strlen( tmpCmd ))) evalInputLine( tmpCmd );
     }
     else throw( ERR_INVALID_CMD_ID );
 }
@@ -2565,18 +2800,14 @@ void SimCommandsWin::cmdInterpreterLoop( ) {
     
     char cmdLineBuf[ CMD_LINE_BUF_SIZE ] = { 0 };
     
-    
-    
-    
-    
 #if 1
     
     printWelcome( );
     int promptLen = promptCmdLine( );
     
     do {
-        
-        int cmdLen = readInputLine( cmdLineBuf, promptLen );
+       
+        int cmdLen = readCmdLine( cmdLineBuf, 0, promptLen );
         
         if ( cmdLen > 0 ) {
             
