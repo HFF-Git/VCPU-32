@@ -27,6 +27,43 @@
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
 
+
+//------------------------------------------------------------------------------------------------------------
+//
+//
+//          |---> column (absolute)
+//          |
+//          v       :-------------------------------------------------------------------------------:
+//        rows      :                                                                               :
+//     (absolute)   :                                                                               :
+//                  :              Active windows shown space                                            :
+//                  :                                                                               :
+//                  :                                                                               :
+//                  :-------------------------------------------------------------------------------:
+//                  :                                                                               :
+//                  :              Command Window space                                                  :
+//                  :                                                                               :
+//                  :-------------------------------------------------------------------------------:
+//
+//          |---> column (relative)
+//          |
+//          v       :-------------------------------------------------------------------------------:
+//        rows      :       Window Banner Line                                                      :
+//      (relative)  :-------------------------------------------------------------------------------:
+//                  :                                                                               :
+//                  :                                                                               :
+//                  :       Window Content                                                          :
+//                  :                                                                               :
+//                  :                                                                               :
+//                  :-------------------------------------------------------------------------------:
+//
+// Total size of the screen can vary. It is the sum of all active window lines plus the command window lines.
+// Command window is a bit special on that it has an input line at the lowest line.
+// Scroll lock after the active windows before the command window.
+// Routines to move cursor, print fields with attributes.
+//
+//------------------------------------------------------------------------------------------------------------
+
 //------------------------------------------------------------------------------------------------------------
 // General maximum size for commands, etc.
 //
@@ -1274,7 +1311,6 @@ public:
     void            drawBanner( );
     void            drawBody( );
     SimTokId        getCurrentCmd( );
-    void            setupCmdInterpreter( int argc, const char *argv[ ] );
     void            cmdInterpreterLoop( );
     
 private:
@@ -1282,7 +1318,6 @@ private:
     void            printWelcome( );
     int             promptCmdLine( );
     int             readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs = 0 );
-   // int             readInputLine( char *cmdBuf, int promptLen = 0 );
     
     void            evalInputLine( char *cmdBuf );
     void            cmdLineError( SimErrMsgId errNum, char *argStr = nullptr );
@@ -1383,6 +1418,10 @@ public:
     
     SimWinDisplay( VCPU32Globals *glb );
     
+    void            setupWinDisplay( int argc, const char *argv[ ] );
+    void            cmdInterpreterLoop( );
+    SimTokId        getCurrentCmd( );
+    
     void            reDraw( bool mustRedraw = false );
     
     void            windowsOn( );
@@ -1426,9 +1465,11 @@ private:
     int             actualColumnSize            = 0;
     int             currentUserWinNum           = -1;
     bool            winStacksOn                 = true;
-    
+
     VCPU32Globals   *glb                        = nullptr;
+    SimCommandsWin  *cmdWin                     = nullptr;
     SimWin          *windowList[ MAX_WINDOWS ]  = { nullptr };
+    
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1442,9 +1483,7 @@ struct VCPU32Globals {
     
     SimConsoleIO        *console        = nullptr;
     SimEnv              *env            = nullptr;
-    SimCommandsWin      *cmdWin         = nullptr;
     SimWinDisplay       *winDisplay     = nullptr;
-    
     CpuCore             *cpu            = nullptr;
 };
 

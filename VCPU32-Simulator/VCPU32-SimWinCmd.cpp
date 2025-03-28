@@ -91,7 +91,7 @@ bool isLeftBracketChar( int ch ) {
 int removeComment( char *cmdBuf ) {
     
     bool inQuotes = false;
-        
+    
     while ( *cmdBuf ) {
         
         if ( *cmdBuf == '"' ) {
@@ -124,7 +124,7 @@ void removeChar( char *buf, int *strSize, int *pos ) {
         *pos        = *pos - 1;
     }
     else if (( *strSize > 0 ) && ( *pos >= 0 )) {
-   
+        
         for ( int i = *pos; i < *strSize; i++ ) buf[ i ] = buf[ i + 1 ];
         *strSize    = *strSize - 1;
     }
@@ -188,7 +188,7 @@ SimCmdWinOutBuffer::SimCmdWinOutBuffer( ) { }
 void SimCmdWinOutBuffer::initBuffer( ) {
     
     for (int i = 0; i < MAX_WIN_OUT_LINES; i++) buffer[i][0] = '\0';
-
+    
     topIndex     = 0;
     cursorIndex  = 0;
     charPos      = 0;
@@ -215,7 +215,7 @@ void SimCmdWinOutBuffer::addToBuffer( const char *buf ) {
                 topIndex                    = ( topIndex + 1 ) % MAX_WIN_OUT_LINES;
                 charPos                     = 0;
                 buffer[ topIndex ] [ 0 ]    = '\0'; // Clear the new line
-            
+                
             } else currentLine[ charPos++ ] = buf[ i ]; // Store character
         }
     }
@@ -236,7 +236,7 @@ int SimCmdWinOutBuffer::printChars( const char *format, ... ) {
     va_start( args, format );
     int len = vsnprintf( temp, MAX_WIN_OUT_LINE_SIZE, format, args );
     va_end(args);
-
+    
     if ( len > 0 ) {
         
         if ( len >= MAX_WIN_OUT_LINE_SIZE ) {
@@ -263,15 +263,15 @@ int SimCmdWinOutBuffer::printChars( const char *format, ... ) {
 void SimCmdWinOutBuffer::scrollUp( uint16_t lines ) {
     
     if ( cursorIndex != topIndex ) { // Prevent scrolling past top
-       
+        
         cursorIndex = ( cursorIndex + MAX_WIN_OUT_LINES - lines ) % MAX_WIN_OUT_LINES;
     }
 }
 
 void SimCmdWinOutBuffer::scrollDown( uint16_t lines ) {
-  
+    
     int bottomIndex = ( topIndex - screenLines ) % MAX_WIN_OUT_LINES;
-   
+    
     if ( cursorIndex != bottomIndex ) { // Prevent scrolling past bottom
         
         cursorIndex = ( cursorIndex + lines ) % MAX_WIN_OUT_LINES;
@@ -345,10 +345,10 @@ void SimCmdHistory::addCmdLine( char *cmdStr ) {
     
     ptr -> cmdId = nextCmdNum;
     strncpy( ptr -> cmdLine, cmdStr, 256 );
-
+    
     if ( count == MAX_CMD_HIST_BUF_SIZE ) tail = ( tail + 1 ) % MAX_CMD_HIST_BUF_SIZE;
     else count++;
-
+    
     nextCmdNum ++;
     head = ( head + 1 ) % MAX_CMD_HIST_BUF_SIZE;
 }
@@ -365,11 +365,11 @@ char *SimCmdHistory::getCmdLine( int cmdRef, int *cmdId ) {
     if (( cmdRef >= 0 ) && (( nextCmdNum - cmdRef ) > MAX_CMD_HIST_BUF_SIZE )) return ( nullptr );
     if (( cmdRef < 0  ) && ( - cmdRef > nextCmdNum )) return ( nullptr );
     if ( count == 0 ) return ( nullptr );
-        
+    
     if ( cmdRef >= 0 ) {
         
         for ( int i = 0; i < count; i++ ) {
-        
+            
             int pos = ( tail + i ) % MAX_CMD_HIST_BUF_SIZE;
             if ( history[ pos ].cmdId == cmdRef ) {
                 
@@ -377,7 +377,7 @@ char *SimCmdHistory::getCmdLine( int cmdRef, int *cmdId ) {
                 return( history[ pos ].cmdLine );
             }
         }
-     
+        
         return( nullptr );
     }
     else {
@@ -432,26 +432,6 @@ SimCommandsWin::SimCommandsWin( VCPU32Globals *glb ) : SimWin( glb ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// Get the command interpreter ready.
-//
-// One day we will handle command line arguments.... will this be part of the command win ?
-//
-//  -v           verbose
-//  -i <path>    init file
-//
-// ??? to do ...
-//------------------------------------------------------------------------------------------------------------
-void SimCommandsWin::setupCmdInterpreter( int argc, const char *argv[ ] ) {
-    
-    while ( argc > 0 ) {
-        
-        argc --;
-    }
-    
-    glb -> winDisplay  -> windowDefaults( );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // The default values are the initial settings when windows is brought up the first time, or for the WDEF
 // command.
 //
@@ -498,7 +478,7 @@ void SimCommandsWin::setDefaults( ) {
 //
 //------------------------------------------------------------------------------------------------------------
 int SimCommandsWin::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
-   
+    
     enum CharType : uint16_t {
         
         CT_NORMAL           = 0,
@@ -520,11 +500,11 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs 
     while ( true ) {
         
         ch = glb -> console -> readChar( );
-     
+        
         switch ( state ) {
                 
             case CT_NORMAL: {
-              
+                
                 if ( isEscapeChar( ch )) {
                     
                     state = CT_ESCAPE;
@@ -580,17 +560,17 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs 
                     case 'D': {
                         
                         if ( cursor > 0 ) {
-                          
+                            
                             cursor --;
                             glb -> console -> writeCursorLeft( );
                         }
-    
+                        
                     } break;
                         
                     case 'C': {
                         
                         if ( cursor < strSize ) {
-                          
+                            
                             cursor ++;
                             glb -> console -> writeCursorRight( );
                         }
@@ -598,22 +578,22 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs 
                     } break;
                         
                     case 'A': {
-                      
+                        
                         winOut -> scrollUp( );
                         
                     } break;
-                    
+                        
                     case 'B': {
-                      
+                        
                         winOut -> scrollDown( );
-                      
+                        
                     } break;
-                 
+                        
                     default: ;
                 }
                 
                 state = CT_NORMAL;
-        
+                
             } break;
         }
     }
@@ -652,7 +632,7 @@ void SimCommandsWin::drawBody( ) {
     printNumericField( winOut -> getCursorIndex( ));
     
     setWinCursor( 2, 1 );
-   
+    
     // ??? this is the place to redraw the window with the output buffer content.
     // ??? set the window cursor to the begin of the command window. ( +1, because of body ? )
     
@@ -665,7 +645,7 @@ void SimCommandsWin::drawBody( ) {
 //
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::cmdLineError( SimErrMsgId errNum, char *argStr ) {
-   
+    
     for ( int i = 0; i < MAX_ERR_MSG_TAB; i++ ) {
         
         if ( errMsgTab[ i ].errNum == errNum ) {
@@ -693,7 +673,7 @@ int SimCommandsWin::promptYesNoCancel( char *promptStr ) {
     int  ret        = 0;
     
     if ( readCmdLine( buf, 0, len ) > 0 ) {
-    
+        
         if      (( buf[ 0 ] == 'Y' ) ||  ( buf[ 0 ] == 'y' ))   ret = 1;
         else if (( buf[ 0 ] == 'N' ) ||  ( buf[ 0 ] == 'n' ))   ret = -1;
         else                                                    ret = 0;
@@ -810,7 +790,7 @@ void  SimCommandsWin::displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx 
                 }
                 else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
                     
-                   displayWord( pdcMem -> getMemDataWord( index ), rdx );
+                    displayWord( pdcMem -> getMemDataWord( index ), rdx );
                 }
                 else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
                     
@@ -818,7 +798,7 @@ void  SimCommandsWin::displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx 
                 }
                 else displayInvalidWord( rdx );
             }
-                
+            
             winOut -> printChars( " " );
             
             index += 4;
@@ -841,7 +821,7 @@ void  SimCommandsWin::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, in
     CpuMem      *physMem        = glb -> cpu -> physMem;
     CpuMem      *pdcMem         = glb -> cpu -> pdcMem;
     CpuMem      *ioMem          = glb -> cpu -> ioMem;
- 
+    
     while ( index < limit ) {
         
         displayWord( index, rdx );
@@ -852,20 +832,20 @@ void  SimCommandsWin::displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, in
             disAsm -> displayInstr( physMem -> getMemDataWord( index ), rdx );
         }
         else if (( pdcMem != nullptr ) && ( pdcMem -> validAdr( index ))) {
-                
+            
             disAsm -> displayInstr( pdcMem -> getMemDataWord( index ), rdx );
         }
         else if (( ioMem != nullptr ) && ( ioMem -> validAdr( index ))) {
-                
+            
             disAsm -> displayInstr( ioMem -> getMemDataWord( index ), rdx );
         }
         else displayInvalidWord( rdx );
         
         winOut -> printChars( "\n" );
-            
+        
         index += 4;
     }
-       
+    
     winOut -> printChars( "\n" );
 }
 
@@ -934,7 +914,7 @@ void SimCommandsWin::displayCacheEntries( CpuMem *cPtr, uint32_t index, uint32_t
     uint32_t    wordsPerBlock   = cPtr -> getBlockSize( ) / 4;
     uint32_t    wordsPerLine    = 4;
     uint32_t    linesPerBlock   = wordsPerBlock / wordsPerLine;
-   
+    
     if ( index + len >=  cPtr -> getBlockEntries( )) {
         
         winOut -> printChars( " cache index + len out of range\n" );
@@ -1022,11 +1002,11 @@ void SimCommandsWin::printWelcome( ) {
     if ( glb -> console -> isConsole( )) {
         
         winOut -> printChars( "VCPU-32 Simulator, Version: %s, Patch Level: %d\n",
-                                      glb -> env -> getEnvVarStr((char *) ENV_PROG_VERSION ),
-                                      glb -> env -> getEnvVarStr((char *) ENV_PATCH_LEVEL ));
+                             glb -> env -> getEnvVarStr((char *) ENV_PROG_VERSION ),
+                             glb -> env -> getEnvVarStr((char *) ENV_PATCH_LEVEL ));
         
         winOut -> printChars( "Git Branch: %s\n",
-                                      glb -> env -> getEnvVarStr((char *) ENV_GIT_BRANCH ));
+                             glb -> env -> getEnvVarStr((char *) ENV_GIT_BRANCH ));
     }
 }
 
@@ -1769,7 +1749,7 @@ void SimCommandsWin::displayCacheCmd( ) {
             tok -> nextToken( );
         }
         else {
-        
+            
             eval -> parseExpr( &rExpr );
             
             if ( rExpr.typ == TYP_NUM ) len = rExpr.numVal;
@@ -1792,7 +1772,7 @@ void SimCommandsWin::displayCacheCmd( ) {
     }
     
     checkEOS( );
-   
+    
     if ( cPtr != nullptr ) {
         
         uint32_t blockEntries = cPtr -> getBlockEntries( );
@@ -1950,7 +1930,7 @@ void SimCommandsWin::displayTLBCmd( ) {
     if ( len == 0 ) len = tlbSize;
     
     if (( index > tlbSize ) || ( index + len > tlbSize )) throw ( ERR_TLB_SIZE_EXCEEDED );
-   
+    
     displayTlbEntries( tPtr, index, len, rdx );
     winOut -> printChars( "\n" );
 }
@@ -2043,17 +2023,14 @@ void SimCommandsWin::winOnCmd( ) {
     
     winModeOn = true;
     glb -> winDisplay -> windowsOn( );
-    glb -> winDisplay -> reDraw( true );
 }
 
 void SimCommandsWin::winOffCmd( ) {
     
-    if ( winModeOn ) {
-        
-        winModeOn = false;
-        glb -> winDisplay -> windowsOff( );
-    }
-    else throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    
+    winModeOn = false;
+    glb -> winDisplay -> windowsOff( );
 }
 
 void SimCommandsWin::winDefCmd( ) {
@@ -2192,7 +2169,7 @@ void SimCommandsWin::winSetRadixCmd( SimTokId winCmd ) {
     }
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
-        
+    
     glb -> winDisplay -> windowRadix( winCmd, rdx, winNum );
 }
 
@@ -2279,7 +2256,7 @@ void SimCommandsWin::winBackwardCmd( SimTokId winCmd ) {
         }
         else winNum = 0;
     }
-        
+    
     checkEOS( );
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
@@ -2438,12 +2415,12 @@ void SimCommandsWin::winCurrentCmd( ) {
     else throw ( ERR_INVALID_WIN_ID );
     
     if ( ! glb -> winDisplay -> validWindowNum( rExpr.numVal )) throw ( ERR_INVALID_WIN_ID );
-            
+    
     glb -> winDisplay -> windowCurrent( rExpr.numVal );
-     
+    
     checkEOS( );
 }
-    
+
 //------------------------------------------------------------------------------------------------------------
 // This command toggles through alternate window content, if supported by the window. An example is the
 // cache sets in a two-way associative cache. The toggle command will just flip through the sets.
@@ -2496,7 +2473,7 @@ void SimCommandsWin::winExchangeCmd( ) {
     checkEOS( );
     
     if ( ! glb -> winDisplay -> validWindowNum( winNum )) throw ( ERR_INVALID_WIN_ID );
-
+    
     glb -> winDisplay -> windowExchangeOrder( tok -> tokVal( ));
 }
 
@@ -2513,7 +2490,7 @@ void SimCommandsWin::winNewWinCmd( ) {
     char    *argStr = nullptr;
     
     if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
-   
+    
     if ( tok -> tokTyp( ) == TYP_SYM ) {
         
         winType = tok -> tokId( );
@@ -2636,27 +2613,27 @@ void SimCommandsWin::winSetStackCmd( ) {
         winNumEnd   = winNumStart;
     }
     else if ( tok -> tokId( ) == TOK_COMMA ) {
-            
+        
         tok -> nextToken( );
         eval -> parseExpr( &rExpr );
-            
+        
         if ( rExpr.typ == TYP_NUM ) winNumStart = rExpr.numVal;
         else throw ( ERR_EXPECTED_NUMERIC );
-            
+        
         if ( tok -> tokId( ) == TOK_COMMA ) {
-                
+            
             tok -> nextToken( );
             eval -> parseExpr( &rExpr );
-                
+            
             if ( rExpr.typ == TYP_NUM ) winNumEnd = rExpr.numVal;
             else throw ( ERR_EXPECTED_NUMERIC );
         }
         else winNumEnd = winNumStart;
     }
     else throw ( ERR_EXPECTED_COMMA );
-        
+    
     if ( winNumStart == -1 ) {
-            
+        
         winNumStart = glb -> winDisplay -> getFirstUserWinIndex( );
         winNumEnd   = glb -> winDisplay -> getLastUserWinIndex( );
     }
@@ -2700,11 +2677,11 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
                         
                     case TOK_NIL:                                           break;
                     case CMD_EXIT:          exitCmd( );                     break;
-                    
+                        
                     case CMD_HELP:          helpCmd( );                     break;
                     case CMD_ENV:           envCmd( );                      break;
                     case CMD_XF:            execFileCmd( );                 break;
-                   
+                        
                     case CMD_WRITE_LINE:    writeLineCmd( );                break;
                         
                     case CMD_HIST:          histCmd( );                     break;
@@ -2744,19 +2721,19 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
                     case CMD_WB:            winBackwardCmd( cmdId );        break;
                     case CMD_WH:            winHomeCmd( cmdId );            break;
                     case CMD_WJ:            winJumpCmd( cmdId );            break;
-                  
+                        
                     case CMD_PSE:
                     case CMD_SRE:
                     case CMD_PLE:
                     case CMD_SWE:
                     case CMD_WE:            winEnableCmd( cmdId );          break;
-                       
+                        
                     case CMD_PSD:
                     case CMD_SRD:
                     case CMD_PLD:
                     case CMD_SWD:
                     case CMD_WD:            winDisableCmd( cmdId );         break;
-                  
+                        
                     case CMD_PSR:
                     case CMD_SRR:
                     case CMD_PLR:
@@ -2806,7 +2783,7 @@ void SimCommandsWin::cmdInterpreterLoop( ) {
     int promptLen = promptCmdLine( );
     
     do {
-       
+        
         int cmdLen = readCmdLine( cmdLineBuf, 0, promptLen );
         
         if ( cmdLen > 0 ) {
@@ -2833,7 +2810,7 @@ void SimCommandsWin::cmdInterpreterLoop( ) {
         }
         
     } while ( true );
-
+    
 #else
     
     printWelcome( );

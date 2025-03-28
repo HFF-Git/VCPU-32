@@ -339,6 +339,11 @@ void SimConsoleIO::clearScreen( ) {
     writeChars((char *) "\x1b[3J" );
 }
 
+void SimConsoleIO::clearLine( ) {
+    
+    writeChars((char *) "\x1b[2K" );
+}
+
 void SimConsoleIO::setAbsCursor( int row, int col ) {
     
     writeChars((char *) "\x1b[%d;%dH", row, col );

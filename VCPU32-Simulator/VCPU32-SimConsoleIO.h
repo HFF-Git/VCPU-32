@@ -98,6 +98,7 @@ struct SimConsoleIO {
     void    writeCharAtPos( int ch, int strSize, int pos );
   
     void    clearScreen( );
+    void    clearLine( );
     void    setAbsCursor( int row, int col );
     void    setWindowSize( int row, int col );
     void    setScrollArea( int start, int end );

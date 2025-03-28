@@ -771,7 +771,7 @@ void SimWinCode::drawBanner( ) {
     uint32_t    currentItemAdr      = getCurrentItemAdr( );
     uint32_t    currentItemAdrLimit = currentItemAdr + (( getRows( ) - 1 ) * getLineIncrement( ));
     uint32_t    currentIaOfs        = (int) glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1  );
-    SimTokId    currentCmd          = glb -> cmdWin -> getCurrentCmd( );
+    SimTokId    currentCmd          = glb -> winDisplay -> getCurrentCmd( );
     bool        isCurrent           = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
     bool        hasIaOfsAdr         = (( currentIaOfs >= currentItemAdr ) && ( currentIaOfs <= currentItemAdrLimit ));
     

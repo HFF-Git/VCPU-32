@@ -110,13 +110,11 @@ int main( int argc, const char* argv[ ] ) {
     
     glbDesc.env                         = new SimEnv( MAX_ENV_VARIABLES );
     glbDesc.console                     = new SimConsoleIO( );
-    glbDesc.cmdWin                      = new SimCommandsWin( &glbDesc );
     glbDesc.winDisplay                  = new SimWinDisplay( &glbDesc );
    
-    glbDesc.console  -> initConsoleIO( );
-    glbDesc.env      -> setupPredefined( );
-    glbDesc.cmdWin   -> setupCmdInterpreter( argc, argv );
-    glbDesc.cpu      -> reset( );
-    
-    glbDesc.cmdWin   -> cmdInterpreterLoop( );
+    glbDesc.console     -> initConsoleIO( );
+    glbDesc.env         -> setupPredefined( );
+    glbDesc.winDisplay  -> setupWinDisplay( argc, argv );
+    glbDesc.cpu         -> reset( );
+    glbDesc.winDisplay  -> cmdInterpreterLoop( );
 }
