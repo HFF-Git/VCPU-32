@@ -27,53 +27,6 @@
 #include "VCPU32-SimTables.h"
 
 //------------------------------------------------------------------------------------------------------------
-//
-//  Global Window commands:
-//
-//  WON, WOFF   -> on, off
-//  WRED        -> Redraw
-//  WDEF        -> window defaults, show initial screen.
-//
-//  Stacks:
-//
-//  WSE, WSD        -> winStackEnable/Disable
-//  UWSA, UWSB      -> setUserWinStack
-//
-//  Window:
-//
-//  enable, disable -> winEnable        -> E, D
-//  back, forward   -> winMove          -> B, F
-//  home, jump      -> winJump          -> H, J
-//  rows            -> setRows          -> L
-//  radix           -> setRadix         -> R
-//  new             -> newUserWin       -> N
-//  kill            -> winUserKill      -> K
-//  current         -> currentUserWin   -> C
-//  toggle          -> winToggle        -> T
-//
-//  Windows:
-//
-//  Program Regs    -> PS
-//  General Regs    -> GR
-//  Special Regs    -> CR
-//  Pipeline Regs   -> PL
-//  Statistics      -> ST
-//  Program Code    -> PC
-//  TLB             -> IT, DT
-//  T-Controller    -> ITR, DTR
-//  Cache           -> IC, DC, UC
-//  C-Controller    -> ICR, DCR, UCR
-//  Text Window     -> TX
-//  User Defined    -> UW
-//  Commands        -> n/a
-//
-//  Combine the window command with the window to form the command to type.
-//  Example: PSE -> enable general regs window.
-//  Note: not all combinations are possible...
-//
-//------------------------------------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------------------------------------
 // Local name space. We try to keep utility functions local to the file. None so far.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -85,7 +38,6 @@ namespace {
 // Object constructor. We initialize the windows list and create all the predefined windows. The remainder
 // of the window list is used by the user defined windows.
 //
-// ??? is this the logical place to create the special reg windows ?
 //-----------------------------------------------------------------------------------------------------------
 SimWinDisplay::SimWinDisplay( VCPU32Globals *glb ) {
     
@@ -120,19 +72,23 @@ void SimWinDisplay::setupWinDisplay( int argc, const char *argv[ ] ) {
     glb -> winDisplay  -> windowDefaults( );
 }
 
-
-void SimWinDisplay::cmdInterpreterLoop( ) {
+//------------------------------------------------------------------------------------------------------------
+// Start the window display. We start in screen mode and print the initial screen. All left to do is to
+// enter the command loop.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimWinDisplay::startWinDisplay( ) {
     
-    
+    reDraw( true );
     cmdWin -> cmdInterpreterLoop( );
 }
 
+// ??? a bit ugly.... a better way to get to this data ?
+// how about an ENV with the current command Id ?
 SimTokId SimWinDisplay::getCurrentCmd( ) {
     
     return( cmdWin -> getCurrentCmd( ));
 }
-
-
 
 //-----------------------------------------------------------------------------------------------------------
 // The current window number defines which user window is marked "current" and commands that omit the window
@@ -206,7 +162,7 @@ bool SimWinDisplay::isWinEnabled( int winNum ) {
 // Before drawing the screen content after the execution of a command line, we need to check whether the
 // number of columns needed for a stack of windows has changed. This function just runs through the window
 // list for a given stack and determines the widest column needed for that stack. When no window is enabled
-// the column size will be set to the command wondow default size.
+// the column size will be set to the command window default size.
 //
 //-----------------------------------------------------------------------------------------------------------
 int SimWinDisplay::computeColumnsNeeded( int winStack ) {
@@ -380,24 +336,19 @@ void SimWinDisplay::reDraw( bool mustRedraw ) {
     
     if ( mustRedraw ) {
        
-        actualRowSize      = maxRowsNeeded;
-        actualColumnSize   = maxColumnsNeeded;
-        
-        glb -> console -> setWindowSize( actualRowSize, actualColumnSize );
+        glb -> console -> setWindowSize( maxRowsNeeded, maxColumnsNeeded );
         glb -> console -> setAbsCursor( 1, 1 );
-        
-        
         
         // ??? do we need to clear the scroll area
         glb -> console -> clearScrollArea( );
         glb -> console -> clearScreen( );
         
         // ??? this is the key line. Where do we set the scroll lock ?
-        glb -> console -> setScrollArea( actualRowSize - cmdWin -> getRows( ) + 2, actualRowSize );
+        // ??? we should set the last line as the scroll area, ->
+        // glb -> console -> setScrollArea( maxRowsNeeded, maxRowsNeeded );
+        
+        glb -> console -> setScrollArea( maxRowsNeeded - cmdWin -> getRows( ) + 2, maxRowsNeeded );
     }
-    
-    // now we just draw the widows content. Should teh command windo just be in the list ? It does not
-    // matter which order the windows are drawn...
     
     for ( int i = 0; i < MAX_WINDOWS; i++ ) {
         
@@ -408,7 +359,7 @@ void SimWinDisplay::reDraw( bool mustRedraw ) {
     }
     
     cmdWin -> reDraw( );
-    glb -> console -> setAbsCursor( actualRowSize, 1 );
+    glb -> console -> setAbsCursor( maxRowsNeeded, 1 );
 }
 
 //-----------------------------------------------------------------------------------------------------------
@@ -425,7 +376,6 @@ void SimWinDisplay::reDraw( bool mustRedraw ) {
 //
 //-----------------------------------------------------------------------------------------------------------
 void SimWinDisplay::windowsOn( ) {
-    
     
     reDraw( true );
 }

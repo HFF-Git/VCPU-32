@@ -122,6 +122,7 @@ void removeChar( char *buf, int *strSize, int *pos ) {
         
         *strSize    = *strSize - 1;
         *pos        = *pos - 1;
+        buf[ *pos ]  = '\0';
     }
     else if (( *strSize > 0 ) && ( *pos >= 0 )) {
         
@@ -262,45 +263,42 @@ int SimCmdWinOutBuffer::printChars( const char *format, ... ) {
 //------------------------------------------------------------------------------------------------------------
 void SimCmdWinOutBuffer::scrollUp( uint16_t lines ) {
     
+    // the content moves up on the screen
+    
     if ( cursorIndex != topIndex ) { // Prevent scrolling past top
-        
-        cursorIndex = ( cursorIndex + MAX_WIN_OUT_LINES - lines ) % MAX_WIN_OUT_LINES;
-    }
-}
-
-void SimCmdWinOutBuffer::scrollDown( uint16_t lines ) {
-    
-    int bottomIndex = ( topIndex - screenLines ) % MAX_WIN_OUT_LINES;
-    
-    if ( cursorIndex != bottomIndex ) { // Prevent scrolling past bottom
         
         cursorIndex = ( cursorIndex + lines ) % MAX_WIN_OUT_LINES;
     }
 }
 
-//------------------------------------------------------------------------------------------------------------
-// When the screen lines changes, the "setScreenLines" is used to tell how many lines the command window will
-// have for display. The cursor is set to be "screenLines" below the topIndex. For safety, we ensure that the
-// new lines to set are in the bounds of the maximum command window..
-//
-//------------------------------------------------------------------------------------------------------------
-void SimCmdWinOutBuffer::setScreenLines( uint16_t lines ) {
+void SimCmdWinOutBuffer::scrollDown( uint16_t lines ) {
     
-    screenLines = lines % MAX_WIN_CMD_LINES;
-    cursorIndex = ( topIndex + MAX_WIN_OUT_LINES - screenLines ) % MAX_WIN_OUT_LINES;
+    // the content moves down on the screen.
+    
+    if ( cursorIndex != topIndex ) {
+        
+        cursorIndex = ( cursorIndex + MAX_WIN_OUT_LINES - lines ) % MAX_WIN_OUT_LINES;
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------
+// For printing the output buffer lines, we will get a line pointer relative to the actual cursor. In the
+// typical case the cursor is identical with the top if the output buffer. If it was moved, the we just
+// get the lines from that position. The line argument is referring to the nth line below the cursor.
 //
-//
-// ??? we need a way to get lines to display... get the line based on cursor or top index ?
 //------------------------------------------------------------------------------------------------------------
 char *SimCmdWinOutBuffer::getLinePointer( uint16_t line ) {
     
-    uint16_t lineToGet = ( topIndex - line ) % MAX_WIN_OUT_LINES;
+    uint16_t lineToGet = ( cursorIndex + MAX_WIN_OUT_LINES - line ) % MAX_WIN_OUT_LINES;
     return( &buffer[ lineToGet ][ 0 ] );
 }
 
+void SimCmdWinOutBuffer::resetCursor( ) {
+    
+    cursorIndex = topIndex;
+}
+
+// ??? needed ?
 uint16_t SimCmdWinOutBuffer::getCursorIndex( ) {
     
     return( cursorIndex );
@@ -476,6 +474,12 @@ void SimCommandsWin::setDefaults( ) {
 // window display. We also need to ensure that when a new character is typed after a set of scroll keys, the
 // display automatically jumpt to the top of the lines displayed before up/down cursor movements.
 //
+//
+//
+// ??? need a good way to detect when to reset the screen with topIndex content. It should hapen when
+// we just have an empty line or type the first character of a command ...
+//
+// ??? also need to figure out the stop conditions for scrolling ....
 //------------------------------------------------------------------------------------------------------------
 int SimCommandsWin::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs ) {
     
@@ -493,9 +497,11 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs 
     
     if (( initCmdBufLen > 0 ) && ( initCmdBufLen < CMD_LINE_BUF_SIZE - 1 )) {
         
-        strSize = initCmdBufLen;
-        cursor  = initCmdBufLen;
+        strSize                 = initCmdBufLen;
+        cursor                  = initCmdBufLen;
+        cmdBuf[ initCmdBufLen ] = 0;
     }
+    else cmdBuf[ 0 ] = 0;
     
     while ( true ) {
         
@@ -510,7 +516,7 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs 
                     state = CT_ESCAPE;
                 }
                 else if ( isCarriageReturnChar( ch )) {
-                    
+                   
                     appendChar( cmdBuf, 0, &strSize );
                     glb -> console -> writeCarriageReturn( );
                     
@@ -521,22 +527,25 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs 
                 }
                 else if ( isBackSpaceChar( ch )) {
                     
+                    // ??? this still fails when we moved into teh string with cursor movement...
+                    // ??? when used from the back, t seems OK.
                     if ( strSize > 0 ) {
                         
                         removeChar( cmdBuf, &strSize, &cursor );
-                        glb -> console -> writeBackSpace( );
+                        glb -> console -> eraseChar( );
+                        glb -> console -> writeCursorLeft( );
                     }
-                }
-                if ( ch == 0 ) {
-                    
-                    // ??? an input error ...
                 }
                 else {
                     
-                    
-                    // ??? if we have been scrolling ... need to readjustthe screen content first ...
-                    
-                    
+                    if ( strSize == 0 ) {
+                        
+                        // ??? if we have been scrolling ... need to re-adjust the screen content first ...
+                        
+                        winOut -> resetCursor( );
+                        reDraw( );   // ??? too brutal ?
+                    }
+                   
                     if ( strSize < CMD_LINE_BUF_SIZE - 1 ) {
                         
                         insertChar( cmdBuf, ch, &strSize, &cursor );
@@ -580,12 +589,14 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs 
                     case 'A': {
                         
                         winOut -> scrollUp( );
+                        reDraw( );   // ??? too brutal ?
                         
                     } break;
                         
                     case 'B': {
                         
                         winOut -> scrollDown( );
+                        reDraw( );   // ??? too brutal ?
                         
                     } break;
                         
@@ -620,9 +631,7 @@ void SimCommandsWin::drawBanner( ) {
 void SimCommandsWin::drawBody( ) {
     
     setFieldAtributes( FMT_DEF_ATTR );
-    
-    winOut -> setScreenLines( getRows( ) - 1 );
-    
+  
     // ??? for debugging ... stay out of the real window content... :-)
     setWinCursor( 1, 32 );
     printTextField((char *) "Top: " );
@@ -631,11 +640,23 @@ void SimCommandsWin::drawBody( ) {
     printTextField((char *) ", Cursor: " );
     printNumericField( winOut -> getCursorIndex( ));
     
-    setWinCursor( 2, 1 );
+    setWinCursor( getRows( ), 1 );
     
-    // ??? this is the place to redraw the window with the output buffer content.
-    // ??? set the window cursor to the begin of the command window. ( +1, because of body ? )
+#if 0
+    int rowsToShow = getRows( ) - 1;
+    setWinCursor( rowsToShow, 1 );
     
+    for ( int i = 0; i < rowsToShow; i++ ) {
+        
+        char *lineBufPtr = winOut -> getLinePointer( i );
+        if ( lineBufPtr != nullptr ) {
+            
+            glb -> console -> writeChars( "%\n", lineBufPtr );
+        }
+        
+        setWinCursor( rowsToShow - i, 0 );
+    }
+#endif
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2662,18 +2683,18 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
             
             if (( tok -> isTokenTyp( TYP_CMD )) || ( tok -> isTokenTyp( TYP_WCMD ))) {
                 
-                SimTokId cmdId = tok -> tokId( );
+                currentCmd = tok -> tokId( );
                 tok -> nextToken( );
                 
-                if (( cmdId != CMD_HIST ) &&
-                    ( cmdId != CMD_DO ) &&
-                    ( cmdId != CMD_REDO )) {
+                if (( currentCmd != CMD_HIST ) &&
+                    ( currentCmd != CMD_DO ) &&
+                    ( currentCmd != CMD_REDO )) {
                     
                     hist -> addCmdLine( cmdBuf );
                     glb -> env -> setEnvVar((char *) ENV_CMD_CNT, hist -> getCmdNum( ));
                 }
                 
-                switch( cmdId ) {
+                switch( currentCmd ) {
                         
                     case TOK_NIL:                                           break;
                     case CMD_EXIT:          exitCmd( );                     break;
@@ -2717,38 +2738,38 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
                     case CMD_WT:            winToggleCmd( );                break;
                     case CMD_WX:            winExchangeCmd( );              break;
                         
-                    case CMD_WF:            winForwardCmd( cmdId );         break;
-                    case CMD_WB:            winBackwardCmd( cmdId );        break;
-                    case CMD_WH:            winHomeCmd( cmdId );            break;
-                    case CMD_WJ:            winJumpCmd( cmdId );            break;
+                    case CMD_WF:            winForwardCmd( currentCmd );    break;
+                    case CMD_WB:            winBackwardCmd( currentCmd );   break;
+                    case CMD_WH:            winHomeCmd( currentCmd );       break;
+                    case CMD_WJ:            winJumpCmd( currentCmd );       break;
                         
                     case CMD_PSE:
                     case CMD_SRE:
                     case CMD_PLE:
                     case CMD_SWE:
-                    case CMD_WE:            winEnableCmd( cmdId );          break;
+                    case CMD_WE:            winEnableCmd( currentCmd );     break;
                         
                     case CMD_PSD:
                     case CMD_SRD:
                     case CMD_PLD:
                     case CMD_SWD:
-                    case CMD_WD:            winDisableCmd( cmdId );         break;
+                    case CMD_WD:            winDisableCmd( currentCmd );    break;
                         
                     case CMD_PSR:
                     case CMD_SRR:
                     case CMD_PLR:
                     case CMD_SWR:
-                    case CMD_WR:            winSetRadixCmd( cmdId );        break;
+                    case CMD_WR:            winSetRadixCmd( currentCmd );   break;
                         
                     case CMD_CWL:
-                    case CMD_WL:            winSetRowsCmd( cmdId );         break;
+                    case CMD_WL:            winSetRowsCmd( currentCmd );    break;
                         
                     default:                throw ( ERR_INVALID_CMD );
                 }
             }
             else {
                 
-                printf( "Got: %s\n", cmdBuf );
+                printf( "Got: %s\n", cmdBuf ); // ??? for debugging
                 
                 hist -> addCmdLine( cmdBuf );
                 glb -> env -> setEnvVar((char *) ENV_CMD_CNT, hist -> getCmdNum( ));
@@ -2769,56 +2790,17 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
 // "cmdLoop" is the command line input interpreter. The basic loop is to prompt for the next input, read the
 // input and evaluates it. If we are in windows mode, we also redraw the screen.
 //
-// ??? when is the best point to redraw the windows... exactly once ?
-// ??? this is a bit copmplex... how do we best react to scroll up and scroll down ?
-// ??? they are not commands and should not trigger a command promt nor evaluation... sigh.
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::cmdInterpreterLoop( ) {
     
     char cmdLineBuf[ CMD_LINE_BUF_SIZE ] = { 0 };
-    
-#if 1
-    
-    printWelcome( );
-    int promptLen = promptCmdLine( );
-    
-    do {
-        
-        int cmdLen = readCmdLine( cmdLineBuf, 0, promptLen );
-        
-        if ( cmdLen > 0 ) {
-            
-            evalInputLine( cmdLineBuf );
-            if ( winModeOn ) glb -> winDisplay -> reDraw( );
-            
-            promptLen = promptCmdLine( );
-        }
-        else if ( cmdLen == 0 ) {
-            
-            promptLen = promptCmdLine( );
-        }
-        else if ( cmdLen == -2 ) {
-            
-            winOut -> scrollUp( );
-            // if ( winModeOn ) glb -> winDisplay -> reDraw( true );
-            
-        }
-        else if ( cmdLen == -3 ) {
-            
-            winOut -> scrollDown( );
-            // if ( winModeOn ) glb -> winDisplay -> reDraw( true );
-        }
-        
-    } while ( true );
-    
-#else
-    
+   
     printWelcome( );
     
     while ( true ) {
         
         int promptLen   = promptCmdLine( );
-        int cmdLen      = readInputLine( cmdLineBuf, promptLen );
+        int cmdLen      = readCmdLine( cmdLineBuf, 0, promptLen );
         
         if ( cmdLen > 0 ) {
             
@@ -2826,6 +2808,4 @@ void SimCommandsWin::cmdInterpreterLoop( ) {
             if ( winModeOn ) glb -> winDisplay -> reDraw( );
         }
     }
-#endif
 }
-

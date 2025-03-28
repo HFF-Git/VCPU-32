@@ -161,11 +161,9 @@ void SimConsoleIO::initConsoleIO( ) {
     struct termios term;
     tcgetattr( fileno( stdin ), &term );
     term.c_lflag &= ~ ( ICANON | ECHO );
-    term.c_iflag &= ~IGNBRK;
-    term.c_cc[VDISCARD] = _POSIX_VDISABLE;
     term.c_cc[VMIN] = 1;
     term.c_cc[VTIME] = 0;
-    tcsetattr( STDIN_FILENO, TCSAFLUSH, &term );
+    tcsetattr( STDIN_FILENO, TCSANOW, &term );
 #endif
     
     blockingMode  = true;
@@ -286,11 +284,9 @@ int SimConsoleIO::writeChars( const char *format, ... ) {
     return( len );
 }
 
-
-
-void SimConsoleIO::writeBackSpace( ) {
+void SimConsoleIO::eraseChar( ) {
     
-    writeChars( "\033[D\033[P" );
+    writeChars( "\033[D \033[P" );
 }
 
 void SimConsoleIO::writeCursorLeft( ) {

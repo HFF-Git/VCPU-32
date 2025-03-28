@@ -451,7 +451,7 @@ void SimWinPipeLineRegs::drawBanner( ) {
 //------------------------------------------------------------------------------------------------------------
 // The pipeline window shows the pipeline registers of the three stages.
 //
-// ??? can we also print entire lines using pritChars ?
+// ??? can we also print entire lines using printChars ?
 //------------------------------------------------------------------------------------------------------------
 void SimWinPipeLineRegs::drawBody( ) {
     
@@ -767,18 +767,18 @@ void SimWinCode::setDefaults( ) {
 //------------------------------------------------------------------------------------------------------------
 void SimWinCode::drawBanner( ) {
     
-    uint32_t    fmtDesc             = FMT_BOLD | FMT_INVERSE;
-    uint32_t    currentItemAdr      = getCurrentItemAdr( );
-    uint32_t    currentItemAdrLimit = currentItemAdr + (( getRows( ) - 1 ) * getLineIncrement( ));
-    uint32_t    currentIaOfs        = (int) glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1  );
-    SimTokId    currentCmd          = glb -> winDisplay -> getCurrentCmd( );
-    bool        isCurrent           = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
-    bool        hasIaOfsAdr         = (( currentIaOfs >= currentItemAdr ) && ( currentIaOfs <= currentItemAdrLimit ));
+    uint32_t    fmtDesc         = FMT_BOLD | FMT_INVERSE;
+    uint32_t    currentIa       = getCurrentItemAdr( );
+    uint32_t    currentIaLimit  = currentIa + (( getRows( ) - 1 ) * getLineIncrement( ));
+    uint32_t    currentIaOfs    = (int) glb -> cpu -> getReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1  );
+    SimTokId    currentCmd      = glb -> winDisplay -> getCurrentCmd( );
+    bool        isCurrent       = glb -> winDisplay -> isCurrentWin( getWinIndex( ));
+    bool        hasIaOfsAdr     = (( currentIaOfs >= currentIa ) && ( currentIaOfs <= currentIaLimit ));
     
     if (( currentCmd == CMD_STEP ) && ( hasIaOfsAdr )) {
         
-        if      ( currentIaOfs >= currentItemAdrLimit ) winJump( currentIaOfs );
-        else if ( currentIaOfs < currentItemAdr )       winJump( currentIaOfs );
+        if      ( currentIaOfs >= currentIaLimit ) winJump( currentIaOfs );
+        else if ( currentIaOfs < currentIa )       winJump( currentIaOfs );
     }
     
     setWinCursor( 1, 1 );
@@ -840,10 +840,7 @@ void SimWinCode::drawLine( uint32_t itemAdr ) {
         
         printTextField((char *) "    >", fmtDesc, 5 );
     }
-    else {
-        
-        printTextField((char *) "     ", fmtDesc, 5 );
-    }
+    else printTextField((char *) "     ", fmtDesc, 5 );
    
     printNumericField( instr, fmtDesc | FMT_ALIGN_LFT, 12 );
     

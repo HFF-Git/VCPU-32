@@ -116,5 +116,5 @@ int main( int argc, const char* argv[ ] ) {
     glbDesc.env         -> setupPredefined( );
     glbDesc.winDisplay  -> setupWinDisplay( argc, argv );
     glbDesc.cpu         -> reset( );
-    glbDesc.winDisplay  -> cmdInterpreterLoop( );
+    glbDesc.winDisplay  -> startWinDisplay( );
 }

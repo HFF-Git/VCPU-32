@@ -90,7 +90,7 @@ struct SimConsoleIO {
     int     writeChars( const char *format, ... );
     
     void    writeCarriageReturn( );
-    void    writeBackSpace( );
+    void    eraseChar( );
     void    writeCursorLeft( );
     void    writeCursorRight( );
     void    writeScrollUp( int n );

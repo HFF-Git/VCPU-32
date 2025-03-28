@@ -27,9 +27,8 @@
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
 
-
 //------------------------------------------------------------------------------------------------------------
-//
+// General screen structure:
 //
 //          |---> column (absolute)
 //          |
@@ -44,6 +43,8 @@
 //                  :              Command Window space                                                  :
 //                  :                                                                               :
 //                  :-------------------------------------------------------------------------------:
+//
+// General window strcuture:
 //
 //          |---> column (relative)
 //          |
@@ -61,6 +62,53 @@
 // Command window is a bit special on that it has an input line at the lowest line.
 // Scroll lock after the active windows before the command window.
 // Routines to move cursor, print fields with attributes.
+//
+//------------------------------------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------------------------------------
+//
+//  Global Window commands:
+//
+//  WON, WOFF   -> on, off
+//  WRED        -> Redraw
+//  WDEF        -> window defaults, show initial screen.
+//
+//  Stacks:
+//
+//  WSE, WSD        -> winStackEnable/Disable
+//  UWSA, UWSB      -> setUserWinStack
+//
+//  Window:
+//
+//  enable, disable -> winEnable        -> E, D
+//  back, forward   -> winMove          -> B, F
+//  home, jump      -> winJump          -> H, J
+//  rows            -> setRows          -> L
+//  radix           -> setRadix         -> R
+//  new             -> newUserWin       -> N
+//  kill            -> winUserKill      -> K
+//  current         -> currentUserWin   -> C
+//  toggle          -> winToggle        -> T
+//
+//  Windows:
+//
+//  Program Regs    -> PS
+//  General Regs    -> GR
+//  Special Regs    -> CR
+//  Pipeline Regs   -> PL
+//  Statistics      -> ST
+//  Program Code    -> PC
+//  TLB             -> IT, DT
+//  T-Controller    -> ITR, DTR
+//  Cache           -> IC, DC, UC
+//  C-Controller    -> ICR, DCR, UCR
+//  Text Window     -> TX
+//  User Defined    -> UW
+//  Commands        -> n/a
+//
+//  Combine the window command with the window to form the command to type.
+//  Example: PSE -> enable general regs window.
+//  Note: not all combinations are possible...
 //
 //------------------------------------------------------------------------------------------------------------
 
@@ -883,21 +931,21 @@ public:
     void        addToBuffer( const char *data );
     int         printChars( const char *format, ... );
     
+    void        resetCursor( );
     char        *getLinePointer( uint16_t line );
+    
+    // ??? needed ?
     uint16_t    getCursorIndex( );
     uint16_t    getTopIndex( );
     
-    void        setScreenLines( uint16_t lines );
     void        scrollUp( uint16_t lines = 1 );
     void        scrollDown( uint16_t lines = 1 );
-    
     
 private:
     
     char        buffer[ MAX_WIN_OUT_LINES ] [ MAX_WIN_OUT_LINE_SIZE ] = { 0 };
     uint16_t    topIndex;       // Index of the most recent line
-    uint16_t    cursorIndex;    // Screen start position
-    uint16_t    screenLines;    // Number of visible lines (8-32)
+    uint16_t    cursorIndex;    // Index of the last line currently shown in window.
     uint16_t    charPos;        // Current character position in the last line
 };
 
@@ -1396,7 +1444,7 @@ private:
     SimCommandsWin          *cmdWin         = nullptr;
     SimDisAsm               *disAsm         = nullptr;
    
-    bool                    winModeOn       = false;
+    bool                    winModeOn       = true;
     SimTokId                currentCmd      = TOK_NIL;
    
 };
@@ -1419,7 +1467,7 @@ public:
     SimWinDisplay( VCPU32Globals *glb );
     
     void            setupWinDisplay( int argc, const char *argv[ ] );
-    void            cmdInterpreterLoop( );
+    void            startWinDisplay( );
     SimTokId        getCurrentCmd( );
     
     void            reDraw( bool mustRedraw = false );
@@ -1461,8 +1509,6 @@ private:
     void            setWindowColumns( int winStack, int columns );
     void            setWindowOrigins( int winStack, int rowOffset = 1, int colOffset = 1 );
    
-    int             actualRowSize               = 0;
-    int             actualColumnSize            = 0;
     int             currentUserWinNum           = -1;
     bool            winStacksOn                 = true;
 

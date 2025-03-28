@@ -255,7 +255,12 @@ void SimTokenizer::parseIdent( ) {
                 currentToken.val &= 0xFFFFFC00;
                 return;
             }
-            else throw ( ERR_INVALID_CHAR_IN_IDENT );
+            else {
+             
+                printf( "invalid ch: %d\n", currentChar );
+                throw ( ERR_INVALID_CHAR_IN_IDENT );
+                
+            }
         }
     }
     else if (( currentChar == 'R' ) || ( currentChar == 'r' )) {
@@ -274,7 +279,12 @@ void SimTokenizer::parseIdent( ) {
                 currentToken.val &= 0x3FF;
                 return;
             }
-            else throw ( ERR_INVALID_CHAR_IN_IDENT );
+            else {
+                
+                printf( "invalid ch: %d\n", currentChar );
+                throw ( ERR_INVALID_CHAR_IN_IDENT );
+                
+            }
         }
     }
     
@@ -407,6 +417,11 @@ void SimTokenizer::nextToken( ) {
     else {
     
         currentToken.tid = TOK_ERR;
-        throw ( ERR_INVALID_CHAR_IN_TOKEN_LINE );
+        {
+         
+            printf( "invalid ch: %d\n", currentChar );
+            throw ( ERR_INVALID_CHAR_IN_IDENT );
+            
+        }
     }
 }
