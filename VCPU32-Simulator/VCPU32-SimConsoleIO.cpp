@@ -315,18 +315,9 @@ void SimConsoleIO::writeCarriageReturn( ) {
     else            writeChars( "\r\n" );
 }
 
-// ??? check this again ....
-void SimConsoleIO::writeCharAtPos( int ch, int strSize, int pos ) {
+void SimConsoleIO::writeCharAtLinePos( int ch, int pos ) {
     
-    if ( pos == strSize ) {
-        
-        writeChar((char) ch );
-    }
-    else {
-        
-        // ??? ugly, we ned to know where the command line really starts
-        writeChars( "\033[%dG\033[1@%c", pos, ch );
-    }
+    writeChars( "\033[%dG\033[1@%c", pos, ch );
 }
 
 void SimConsoleIO::clearScreen( ) {

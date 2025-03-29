@@ -117,7 +117,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 const int MAX_CMD_HIST_BUF_SIZE     = 32;
-const int MAX_WIN_OUT_LINES         = 128;
+const int MAX_WIN_OUT_LINES         = 64;
 const int MAX_WIN_OUT_LINE_SIZE     = 256;
 const int MAX_WIN_CMD_LINES         = 64;
 const int CMD_LINE_BUF_SIZE         = 256;
@@ -931,21 +931,21 @@ public:
     void        addToBuffer( const char *data );
     int         printChars( const char *format, ... );
     
-    void        resetCursor( );
-    char        *getLinePointer( uint16_t line );
+    void        resetLineCursor( );
+    char        *getLinePointer( int line );
     
     // ??? needed ?
     uint16_t    getCursorIndex( );
     uint16_t    getTopIndex( );
     
-    void        scrollUp( uint16_t lines = 1 );
-    void        scrollDown( uint16_t lines = 1 );
+    void        scrollUp( int lines = 1 );
+    void        scrollDown( int lines = 1 );
     
 private:
     
     char        buffer[ MAX_WIN_OUT_LINES ] [ MAX_WIN_OUT_LINE_SIZE ] = { 0 };
-    uint16_t    topIndex;       // Index of the most recent line
-    uint16_t    cursorIndex;    // Index of the last line currently shown in window.
+    int         topIndex;       // Index of the most recent line
+    int         cursorIndex;    // Index of the last line currently shown in window.
     uint16_t    charPos;        // Current character position in the last line
 };
 
@@ -1364,8 +1364,8 @@ public:
 private:
     
     void            printWelcome( );
-    int             promptCmdLine( );
-    int             readCmdLine( char *cmdBuf, int initCmdBufLen, int cursorOfs = 0 );
+    int             buildCmdPrompt( char *promptStr, int promptStrLen );
+    int             readCmdLine( char *cmdBuf, int initialCmdBufLen, char *promptStr );
     
     void            evalInputLine( char *cmdBuf );
     void            cmdLineError( SimErrMsgId errNum, char *argStr = nullptr );

@@ -95,7 +95,7 @@ struct SimConsoleIO {
     void    writeCursorRight( );
     void    writeScrollUp( int n );
     void    writeScrollDown( int n );
-    void    writeCharAtPos( int ch, int strSize, int pos );
+    void    writeCharAtLinePos( int ch, int pos );
   
     void    clearScreen( );
     void    clearLine( );
