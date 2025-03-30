@@ -1444,7 +1444,6 @@ private:
     SimCommandsWin          *cmdWin         = nullptr;
     SimDisAsm               *disAsm         = nullptr;
    
-    bool                    winModeOn       = true;
     SimTokId                currentCmd      = TOK_NIL;
    
 };
@@ -1469,8 +1468,10 @@ public:
     void            setupWinDisplay( int argc, const char *argv[ ] );
     void            startWinDisplay( );
     SimTokId        getCurrentCmd( );
+    bool            isWinModeOn( );
     
     void            reDraw( bool mustRedraw = false );
+    void            setWinMode( bool winOn );
     
     void            windowsOn( );
     void            windowsOff( );
@@ -1511,6 +1512,7 @@ private:
    
     int             currentUserWinNum           = -1;
     bool            winStacksOn                 = true;
+    bool            winModeOn                   = true;
 
     VCPU32Globals   *glb                        = nullptr;
     SimCommandsWin  *cmdWin                     = nullptr;

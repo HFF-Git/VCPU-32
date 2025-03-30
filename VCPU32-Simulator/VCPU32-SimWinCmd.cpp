@@ -111,23 +111,27 @@ int removeComment( char *cmdBuf ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "removeChar" will remove a character from the input buffer at the cursor position and adjust the string
-// size accordingly. If the cursor is at the end of the string, both string size and cursor position are
-// decremented by one, otherwise the cursor stays where it is and just the string size is decremented.
+// "removeChar" will remove a character from the input buffer left of the cursor position and adjust the
+// input buffer string size accordingly. If the cursor is at the end of the string, both string size and
+// cursor position are decremented by one.
 //
+// ??? can we simplify this ?
 //------------------------------------------------------------------------------------------------------------
 void removeChar( char *buf, int *strSize, int *pos ) {
     
     if (( *strSize > 0 ) && ( *strSize == *pos )) {
         
-        *strSize    = *strSize - 1;
-        *pos        = *pos - 1;
-        buf[ *pos ]  = '\0';
+        *strSize        = *strSize - 1;
+        *pos            = *pos - 1;
+        buf[ *strSize ] = '\0';
     }
-    else if (( *strSize > 0 ) && ( *pos >= 0 )) {
+    else if (( *strSize > 0 ) && ( *pos > 0 )) {
         
         for ( int i = *pos; i < *strSize; i++ ) buf[ i ] = buf[ i + 1 ];
-        *strSize    = *strSize - 1;
+        
+        *strSize        = *strSize - 1;
+        *pos            = *pos - 1;
+        buf[ *strSize ] = '\0';
     }
 }
 
@@ -145,14 +149,16 @@ void insertChar( char *buf, int ch, int *strSize, int *pos ) {
         buf[ *strSize ] = ch;
         *strSize        = *strSize + 1;
         *pos            = *pos + 1;
+        buf[ *strSize ] = '\0';
     }
     else if ( *pos < *strSize ) {
         
         for ( int i = *strSize; i > *pos; i-- ) buf[ i ] = buf[ i - 1 ];
         
-        buf[ *pos ] = ch;
-        *strSize    = *strSize + 1;
-        *pos        = *pos + 1;
+        buf[ *pos ]     = ch;
+        *strSize        = *strSize + 1;
+        *pos            = *pos + 1;
+        buf[ *strSize ] = '\0';
     }
 }
 
@@ -449,30 +455,29 @@ void SimCommandsWin::setDefaults( ) {
 //      CT_ESCAPE: check the characters got. If a "[" we need to handle an escape sequence.
 //      CT_ESCAPE_BRACKET: analyze the argument after "esp[" input got so far.
 //
-// A carriage return character will append a zero to the command line input got so far and if in raw mode echo
-// the carriage return. We are done reading the input line.
+// A carriage return character will append a zero to the command line input got so far. We are done reading
+// the input line. Next, we emit a carriage return to the console. The promot and the command string along
+// with a carriage return are apended to the command output buffer. Before returning to the caller, the
+// last thing to do is to remove any comment from the line.
+//
+// The left and right arrows move the cursor in the command line. Backspacing and inserting will then take
+// place at the current cursor position shifting any content to the right of the cursor accordingly.
 //
 // A backspace character will erase the character right before the position where the line cursor is. Note
 // that the cursor is not necessarily at the end of the current input line. It could have been moved with
 // the left/right cursor key to a position somewhere in the current command line.
 //
-// The left and right arrows move the cursor in the command line. Backspacing and inserting will then take
-// place at the current cursor position shifting any content to the right of the cursor accordingly.
+// A printable character typed will be inserted at the cursor spot and the cursor advanced one position to
+// the left.
 //
 // We also have the option of a prefilled command buffer for editing a command line before hitting return.
 // This option is used by the REDO command which lists a previously entered command presented for editing.
 //
 // Finally, there is the cursor up and down key. These keys are used to scroll the command line window. This
-// is the case where we need to get lines form the output buffer to fill from top or bottom of the command
-// window display. We also need to ensure that when a new character is typed after a set of scroll keys, the
-// display automatically jumpt to the top of the lines displayed before up/down cursor movements.
+// is the case where we need to get lines from the output buffer to fill from top or bottom of the command
+// window display. We also need to ensure that when a new command line is read in, we are with our cursor
+// at the input line, right after the prompt string.
 //
-//
-//
-// ??? need a good way to detect when to reset the screen with topIndex content. It should hapen when
-// we just have an empty line or type the first character of a command ...
-//
-// ??? also need to figure out the stop conditions for scrolling ....
 //------------------------------------------------------------------------------------------------------------
 int SimCommandsWin::readCmdLine( char *cmdBuf, int initialCmdBufLen, char *promptBuf ) {
     
@@ -528,6 +533,7 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initialCmdBufLen, char *promp
                     if ( cmdBufLen > 0 ) {
                         
                         removeChar( cmdBuf, &cmdBufLen, &cmdBufCursor );
+                        
                         glb -> console -> eraseChar( );
                         glb -> console -> writeCursorLeft( );
                     }
@@ -535,6 +541,8 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initialCmdBufLen, char *promp
                 else {
                    
                     if ( cmdBufLen < CMD_LINE_BUF_SIZE - 1 ) {
+                        
+                        // ??? also an issue...
                         
                         insertChar( cmdBuf, ch, &cmdBufLen, &cmdBufCursor );
                         
@@ -2030,47 +2038,38 @@ void SimCommandsWin::purgeTLBCmd( ) {
 //
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::winOnCmd( ) {
-    
-    winModeOn = true;
+   
     glb -> winDisplay -> windowsOn( );
 }
 
 void SimCommandsWin::winOffCmd( ) {
-    
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
-    
-    winModeOn = false;
+  
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     glb -> winDisplay -> windowsOff( );
 }
 
 void SimCommandsWin::winDefCmd( ) {
     
-    if ( winModeOn ) {
-        
-        glb -> winDisplay -> windowDefaults( );
-        glb -> winDisplay -> reDraw( true );
-    }
-    else throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
+    
+    glb -> winDisplay -> windowDefaults( );
+    glb -> winDisplay -> reDraw( true );
 }
 
 void SimCommandsWin::winStacksEnable( ) {
     
-    if ( winModeOn ) {
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
         
         glb -> winDisplay -> winStacksEnable( true );
         glb -> winDisplay -> reDraw( true );
-    }
-    else throw ( ERR_NOT_IN_WIN_MODE );
 }
 
 void SimCommandsWin::winStacksDisable( ) {
     
-    if ( winModeOn ) {
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
         
         glb -> winDisplay -> winStacksEnable( false );
         glb -> winDisplay -> reDraw( true );
-    }
-    else throw ( ERR_NOT_IN_WIN_MODE );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -2084,7 +2083,7 @@ void SimCommandsWin::winEnableCmd( SimTokId winCmd ) {
     
     int winNum = 0;
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     if ( tok -> tokId( ) != TOK_EOS ) {
         
@@ -2107,7 +2106,7 @@ void SimCommandsWin::winDisableCmd( SimTokId winCmd ) {
     
     int winNum = 0;
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     if ( tok -> tokId( ) != TOK_EOS ) {
         
@@ -2135,7 +2134,7 @@ void SimCommandsWin::winDisableCmd( SimTokId winCmd ) {
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::winSetRadixCmd( SimTokId winCmd ) {
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     SimExpr rExpr;
     int     winNum  = 0;
@@ -2198,7 +2197,7 @@ void SimCommandsWin::winForwardCmd( SimTokId winCmd ) {
     int     winItems = 0;
     int     winNum   = 0;
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     if ( tok -> tokId( ) == TOK_EOS ) {
         
@@ -2236,7 +2235,7 @@ void SimCommandsWin::winBackwardCmd( SimTokId winCmd ) {
     int     winItems = 0;
     int     winNum   = 0;
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     if ( tok -> tokId( ) == TOK_EOS ) {
         
@@ -2288,7 +2287,7 @@ void SimCommandsWin::winHomeCmd( SimTokId winCmd ) {
     int     winPos   = 0;
     int     winNum   = 0;
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     if ( tok -> tokId( ) == TOK_EOS ) {
         
@@ -2330,7 +2329,7 @@ void SimCommandsWin::winJumpCmd( SimTokId winCmd ) {
     int     winPos   = 0;
     int     winNum   = 0;
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     if ( tok -> tokId( ) == TOK_EOS ) {
         
@@ -2373,7 +2372,7 @@ void SimCommandsWin::winSetRowsCmd( SimTokId winCmd ) {
     int     winLines    = 0;
     int     winNum      = 0;
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     if ( tok -> tokId( ) == TOK_EOS ) {
         
@@ -2412,7 +2411,7 @@ void SimCommandsWin::winSetRowsCmd( SimTokId winCmd ) {
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::winCurrentCmd( ) {
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     SimExpr     rExpr;
     uint32_t    winNum = 0;
@@ -2439,7 +2438,7 @@ void SimCommandsWin::winCurrentCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void  SimCommandsWin::winToggleCmd( ) {
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     SimExpr     rExpr;
     uint32_t    winNum = 0;
@@ -2468,7 +2467,7 @@ void  SimCommandsWin::winToggleCmd( ) {
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::winExchangeCmd( ) {
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     SimExpr     rExpr;
     uint32_t    winNum = 0;
@@ -2499,7 +2498,7 @@ void SimCommandsWin::winNewWinCmd( ) {
     SimTokId   winType = TOK_NIL;
     char    *argStr = nullptr;
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     if ( tok -> tokTyp( ) == TYP_SYM ) {
         
@@ -2555,7 +2554,7 @@ void SimCommandsWin::winKillWinCmd( ) {
     int         winNumStart     = 0;
     int         winNumEnd       = 0;
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     if ( tok -> tokId( ) == TOK_EOS ) {
         
@@ -2607,7 +2606,7 @@ void SimCommandsWin::winSetStackCmd( ) {
     int     winNumStart = 0;
     int     winNumEnd   = 0;
     
-    if ( ! winModeOn ) throw ( ERR_NOT_IN_WIN_MODE );
+    if ( ! glb -> winDisplay -> isWinModeOn( )) throw ( ERR_NOT_IN_WIN_MODE );
     
     eval -> parseExpr( &rExpr );
     
@@ -2795,7 +2794,7 @@ void SimCommandsWin::cmdInterpreterLoop( ) {
         if ( cmdLen > 0 ) {
             
             evalInputLine( cmdLineBuf );
-            if ( winModeOn ) glb -> winDisplay -> reDraw( );
+            glb -> winDisplay -> reDraw( );
         }
     }
 }

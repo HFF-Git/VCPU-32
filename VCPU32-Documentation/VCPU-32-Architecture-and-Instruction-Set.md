@@ -4106,7 +4106,17 @@ Part of the I/O memory address range is allocated to processor dependent code.
 
 ### Entry and Exit condition
 
+- expect to be called privileged, translation off.
+- ARG0 -> request Id.
+- ARG1 -> return area pointer.
+- ARG2 -> argument 1
+- ARG3 -> argument 2.
+
+
 ### Calling sequence
+
+- args are passed in registers. 
+
 
 ### PDC Services
 
@@ -4134,9 +4144,11 @@ VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory add
 
 ### Concept of an I/O Module
 
-// Bus and IO Module 
-
-// hard physical pages
+- A bus has 16 slots, 16Mb memory space after the PDC memory space.
+- each module has up to 1Mb space then.
+- Modules host devices.
+- Each device has a 16 word area for configuration data, followed by more chunks of 16 words, depending on the device type.
+- CPU and Memory are also devices and occupy a slot.
 
 ### External Interrupts
 

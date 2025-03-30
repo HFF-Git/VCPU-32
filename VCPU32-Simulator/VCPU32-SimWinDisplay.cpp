@@ -90,6 +90,16 @@ SimTokId SimWinDisplay::getCurrentCmd( ) {
     return( cmdWin -> getCurrentCmd( ));
 }
 
+bool SimWinDisplay::isWinModeOn( ) {
+    
+    return( winModeOn );
+}
+
+void SimWinDisplay::setWinMode( bool winOn ) {
+    
+    winModeOn = winOn;
+}
+
 //-----------------------------------------------------------------------------------------------------------
 // The current window number defines which user window is marked "current" and commands that omit the window
 // number in their command will use this number. There is a routine to check that we have a valid window
@@ -272,89 +282,100 @@ void SimWinDisplay::setWindowOrigins( int winStack, int rowOffset, int colOffset
 //
 //
 //
-// ??? scroll area business ?
 //-----------------------------------------------------------------------------------------------------------
 void SimWinDisplay::reDraw( bool mustRedraw ) {
     
     int winStackColumns[ MAX_WIN_STACKS ]   = { 0 };
     int winStackRows[ MAX_WIN_STACKS ]      = { 0 };
-    int defRowSize                          = glb -> env -> getEnvVarInt((char *) ENV_WIN_MIN_ROWS );
+    int minRowSize                          = glb -> env -> getEnvVarInt((char *) ENV_WIN_MIN_ROWS );
     int maxRowsNeeded                       = 0;
     int maxColumnsNeeded                    = 0;
     int stackColumnGap                      = 2;
+    
+    if ( winModeOn ) {
+       
+        for ( int i = 0; i < MAX_WIN_STACKS; i++ ) {
+            
+            winStackColumns[ i ] = computeColumnsNeeded( i );
+            winStackRows[ i ]    = computeRowsNeeded( i );
+            
+            if ( winStacksOn ) {
+                
+                if ( winStackColumns[ i ] > 0 ) maxColumnsNeeded += winStackColumns[ i ] + stackColumnGap;
+                if ( winStackRows[ i ] > maxRowsNeeded ) maxRowsNeeded = winStackRows[ i ];
+            }
+            else {
+                
+                if ( winStackColumns[ i ] > maxColumnsNeeded ) maxColumnsNeeded = winStackColumns[ i ];
+                maxRowsNeeded += winStackRows[ i ];
+            }
+        }
+        
+        int curColumn = 1;
+        int curRows   = 1;
+        
+        for ( int i = 0; i < MAX_WIN_STACKS; i++ ) {
+            
+            setWindowColumns( i, winStackColumns[ i ] );
+            setWindowOrigins( i, curRows, curColumn );
+            
+            if ( winStacksOn ) {
+                
+                curColumn += winStackColumns[ i ];
+                if ( winStackColumns[ i ] > 0 ) curColumn += stackColumnGap;
+            }
+            else {
+                
+                setWindowColumns( i, maxColumnsNeeded );
+                curRows += winStackRows[ i ];
+            }
+        }
+        
+        if (( maxRowsNeeded + cmdWin -> getRows( )) < minRowSize ) {
+            
+            cmdWin -> setRows( minRowSize - maxRowsNeeded );
+            maxRowsNeeded += cmdWin -> getRows();
+        }
+        else maxRowsNeeded += cmdWin -> getRows( );
+        
+        if ( maxColumnsNeeded == 0 ) maxColumnsNeeded = cmdWin -> getDefColumns( ) + stackColumnGap;
+        
+        if ( winStacksOn )  cmdWin -> setColumns( maxColumnsNeeded - stackColumnGap );
+        else                cmdWin -> setColumns( maxColumnsNeeded );
+        
+        cmdWin -> setWinOrigin( maxRowsNeeded - cmdWin -> getRows( ) + 1, 1 );
+    }
+    else {
+        
+        // winMode is off. We will use the dimension of the CmdWindow.
+        
+        maxRowsNeeded       = cmdWin -> getRows( );
+        maxColumnsNeeded    = cmdWin -> getDefColumns( );
+        
+        cmdWin -> setWinOrigin( 1, 1 );
+    }
    
-    for ( int i = 0; i < MAX_WIN_STACKS; i++ ) {
-        
-        winStackColumns[ i ] = computeColumnsNeeded( i );
-        winStackRows[ i ]    = computeRowsNeeded( i );
-        
-        if ( winStacksOn ) {
-            
-            if ( winStackColumns[ i ] > 0 ) maxColumnsNeeded += winStackColumns[ i ] + stackColumnGap;
-            if ( winStackRows[ i ] > maxRowsNeeded ) maxRowsNeeded = winStackRows[ i ];
-        }
-        else {
-            
-            if ( winStackColumns[ i ] > maxColumnsNeeded ) maxColumnsNeeded = winStackColumns[ i ];
-            maxRowsNeeded += winStackRows[ i ];
-        }
-    }
-    
-    int curColumn = 1;
-    int curRows   = 1;
-    
-    for ( int i = 0; i < MAX_WIN_STACKS; i++ ) {
-    
-        setWindowColumns( i, winStackColumns[ i ] );
-        setWindowOrigins( i, curRows, curColumn );
-        
-        if ( winStacksOn ) {
-            
-            curColumn += winStackColumns[ i ];
-            if ( winStackColumns[ i ] > 0 ) curColumn += stackColumnGap;
-        }
-        else {
-            
-            setWindowColumns( i, maxColumnsNeeded );
-            curRows += winStackRows[ i ];
-        }
-    }
-    
-    if (( maxRowsNeeded + cmdWin -> getRows( )) < defRowSize ) {
-        
-        cmdWin -> setRows( defRowSize - maxRowsNeeded );
-        maxRowsNeeded += cmdWin -> getRows();
-    }
-    else maxRowsNeeded += cmdWin -> getRows( );
-    
-    if ( maxColumnsNeeded == 0 ) maxColumnsNeeded = cmdWin -> getDefColumns( ) + stackColumnGap;
-    
-    if ( winStacksOn )  cmdWin -> setColumns( maxColumnsNeeded - stackColumnGap );
-    else                cmdWin -> setColumns( maxColumnsNeeded );
-    
-    cmdWin -> setWinOrigin( maxRowsNeeded - cmdWin -> getRows( ) + 1, 1 );
-    
     if ( mustRedraw ) {
        
         glb -> console -> setWindowSize( maxRowsNeeded, maxColumnsNeeded );
         glb -> console -> setAbsCursor( 1, 1 );
-        
-        // ??? do we need to clear the scroll area
         glb -> console -> clearScrollArea( );
         glb -> console -> clearScreen( );
         
-        // ??? this is the key line. Where do we set the scroll lock ?
-        // ??? we should set the last line as the scroll area, ->
-        // glb -> console -> setScrollArea( maxRowsNeeded, maxRowsNeeded );
-        
-        glb -> console -> setScrollArea( maxRowsNeeded - cmdWin -> getRows( ) + 2, maxRowsNeeded );
+        if ( winModeOn )
+            glb -> console -> setScrollArea( maxRowsNeeded - 1, maxRowsNeeded );
+        else
+            glb -> console -> setScrollArea( 2, maxRowsNeeded );
     }
     
-    for ( int i = 0; i < MAX_WINDOWS; i++ ) {
-        
-        if (( windowList[ i ] != nullptr ) && ( windowList[ i ] -> isEnabled( ))) {
+    if ( winModeOn ) {
+       
+        for ( int i = 0; i < MAX_WINDOWS; i++ ) {
             
-            windowList[ i ] -> reDraw( );
+            if (( windowList[ i ] != nullptr ) && ( windowList[ i ] -> isEnabled( ))) {
+                
+                windowList[ i ] -> reDraw( );
+            }
         }
     }
     
@@ -377,13 +398,16 @@ void SimWinDisplay::reDraw( bool mustRedraw ) {
 //-----------------------------------------------------------------------------------------------------------
 void SimWinDisplay::windowsOn( ) {
     
+    winModeOn = true;
     reDraw( true );
 }
 
 void SimWinDisplay::windowsOff( ) {
     
+    winModeOn = false;
     glb -> console -> clearScrollArea( );
     glb -> console -> clearScreen( );
+    reDraw( true );
 }
 
 void SimWinDisplay::windowDefaults( ) {
