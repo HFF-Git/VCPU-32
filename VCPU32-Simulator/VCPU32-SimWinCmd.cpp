@@ -265,6 +265,9 @@ int SimCmdWinOutBuffer::printChars( const char *format, ... ) {
 //------------------------------------------------------------------------------------------------------------
 void SimCmdWinOutBuffer::scrollUp( int lines ) {
     
+    // ??? this has a problem .... the oldest valid is always the one below topIndex. We want
+    // to calculate the oldestValidd to be what the curent cursor minus the lines to show is... or so.
+    
     int oldestValid = ( topIndex - ( MAX_WIN_OUT_LINES - lines ) + MAX_WIN_OUT_LINES ) % MAX_WIN_OUT_LINES;
     
     if ( cursorIndex != oldestValid ) {
@@ -291,7 +294,7 @@ void SimCmdWinOutBuffer::scrollDown( int lines ) {
 //------------------------------------------------------------------------------------------------------------
 char *SimCmdWinOutBuffer::getLinePointer( int line ) {
     
-    uint16_t lineToGet = ( cursorIndex + MAX_WIN_OUT_LINES - line ) % MAX_WIN_OUT_LINES;
+    int lineToGet = ( cursorIndex + MAX_WIN_OUT_LINES - line ) % MAX_WIN_OUT_LINES;
     return( &buffer[ lineToGet ][ 0 ] );
 }
 
@@ -640,7 +643,6 @@ void SimCommandsWin::drawBody( ) {
     
     printTextField((char *) ", Cursor: " );
     printNumericField( winOut -> getCursorIndex( ));
-    
     
     int rowsToShow = getRows( ) - 2;
     setWinCursor( rowsToShow + 1, 1 );
