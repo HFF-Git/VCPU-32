@@ -117,7 +117,7 @@
 //
 //------------------------------------------------------------------------------------------------------------
 const int MAX_CMD_HIST_BUF_SIZE     = 32;
-const int MAX_WIN_OUT_LINES         = 32;
+const int MAX_WIN_OUT_LINES         = 256;
 const int MAX_WIN_OUT_LINE_SIZE     = 256;
 const int MAX_WIN_CMD_LINES         = 64;
 const int CMD_LINE_BUF_SIZE         = 256;

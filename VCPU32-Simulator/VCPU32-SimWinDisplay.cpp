@@ -347,8 +347,6 @@ void SimWinDisplay::reDraw( bool mustRedraw ) {
     }
     else {
         
-        // winMode is off. We will use the dimension of the CmdWindow.
-        
         maxRowsNeeded       = cmdWin -> getRows( );
         maxColumnsNeeded    = cmdWin -> getDefColumns( );
         

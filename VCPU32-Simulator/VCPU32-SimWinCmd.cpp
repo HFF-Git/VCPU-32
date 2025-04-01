@@ -538,8 +538,6 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initialCmdBufLen, char *promp
                         
                         glb -> console -> eraseChar( );
                         glb -> console -> writeCursorLeft( );
-                        glb -> console -> writeChar( cmdBuf[ cmdBufCursor ] );
-                        glb -> console -> writeCursorLeft( );
                     }
                 }
                 else {
@@ -630,15 +628,15 @@ void SimCommandsWin::drawBanner( ) {
 // putput buffer. We first set the screen lines as the length of the cmmand window may have changed.
 //
 // Rows to show is the number of lines between the header line and the last line, which is out command input
-// line. We fill from the lowest line upward to the header line. Notethe additional blank when writing to
-// the console. This is due to the clearLine posiioning the cursor at column zero. Finally, we set the cursor
-// to the last line in the command window.
+// line. We fill from the lowest line upward to the header line. Finally, we set the cursor to the last line
+// in the command window.
 //
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::drawBody( ) {
     
     setFieldAtributes( FMT_DEF_ATTR );
   
+#if 0
     // ??? for debugging ... stay out of the real window content... :-)
     setWinCursor( 1, 32 );
     printTextField((char *) "Top: " );
@@ -646,6 +644,7 @@ void SimCommandsWin::drawBody( ) {
     
     printTextField((char *) ", Cursor: " );
     printNumericField( winOut -> getCursorIndex( ));
+#endif
     
     int rowsToShow = getRows( ) - 2;
     winOut -> setScrollWindowSize( rowsToShow );
@@ -1035,8 +1034,6 @@ void SimCommandsWin::printWelcome( ) {
                              glb -> env -> getEnvVarStr((char *) ENV_GIT_BRANCH ));
         
         winOut -> printChars( "\n" );
-       
-        reDraw( );
     }
 }
 
@@ -2787,6 +2784,7 @@ void SimCommandsWin::cmdInterpreterLoop( ) {
     char cmdPrompt[ CMD_LINE_BUF_SIZE ];
    
     printWelcome( );
+    glb -> winDisplay -> reDraw( );
     
     while ( true ) {
         
