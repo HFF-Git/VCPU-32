@@ -191,14 +191,14 @@ void SimCmdWinOutBuffer::initBuffer( ) {
     topIndex     = 0;
     cursorIndex  = 0;
     charPos      = 0;
+    screenSize   = 0;
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Add new data to the output buffer. Note that we do not add entire lines, but rather add what ever is in
 // the input buffer. When we encounter a "\n", the current line string is terminated with the zero character
-// and a new line is started.
-//
-// When we are adding to the buffer, the cursor is at topIndex minus one. (?)
+// and a new line is started. When we are adding to the buffer, we always set the cursor to the line below
+// topIndex.
 //------------------------------------------------------------------------------------------------------------
 void SimCmdWinOutBuffer::addToBuffer( const char *buf ) {
     
@@ -233,22 +233,22 @@ void SimCmdWinOutBuffer::addToBuffer( const char *buf ) {
 //------------------------------------------------------------------------------------------------------------
 int SimCmdWinOutBuffer::printChars( const char *format, ... ) {
     
-    char    temp[ MAX_WIN_OUT_LINE_SIZE ];
+    char    lineBuf[ MAX_WIN_OUT_LINE_SIZE ];
     va_list args;
     
     va_start( args, format );
-    int len = vsnprintf( temp, MAX_WIN_OUT_LINE_SIZE, format, args );
+    int len = vsnprintf( lineBuf, MAX_WIN_OUT_LINE_SIZE, format, args );
     va_end(args);
     
     if ( len > 0 ) {
         
         if ( len >= MAX_WIN_OUT_LINE_SIZE ) {
             
-            len = MAX_WIN_OUT_LINE_SIZE - 1; // Ensure null termination
-            temp[ len ] = '\0';
+            len = MAX_WIN_OUT_LINE_SIZE - 1;
+            lineBuf[ len ] = '\0';
         }
         
-        addToBuffer( temp );
+        addToBuffer( lineBuf );
     }
     
     return( len );
@@ -260,17 +260,17 @@ int SimCmdWinOutBuffer::printChars( const char *format, ... ) {
 // pointing to the last active line. This is the line from which we start for example printing downward to
 // fill the command window. The scroll up function will move the cursor away from the top up to the oldest
 // entry in the ouput line buffer. The scroll down function will move the cursor toward the top index. Both
-// directions stop when either oldest or last entry is reached.
+// directions stop when either oldest or last entry is reached. We cannot move logically above the current
+// top index, and we cannot move below the last valid line plus the current line display screen. This is due
+// to the logic that we print the screen content from top line by line away from the top.
 //
 //------------------------------------------------------------------------------------------------------------
 void SimCmdWinOutBuffer::scrollUp( int lines ) {
     
-    // ??? this has a problem .... the oldest valid is always the one below topIndex. We want
-    // to calculate the oldestValidd to be what the curent cursor minus the lines to show is... or so.
-    
     int oldestValid = ( topIndex - ( MAX_WIN_OUT_LINES - lines ) + MAX_WIN_OUT_LINES ) % MAX_WIN_OUT_LINES;
+    int scrollUpLimit = ( oldestValid + screenSize ) % MAX_WIN_OUT_LINES;
     
-    if ( cursorIndex != oldestValid ) {
+    if ( cursorIndex != scrollUpLimit ) {
         
         cursorIndex = ( cursorIndex - lines + MAX_WIN_OUT_LINES )  % MAX_WIN_OUT_LINES;
     }
@@ -292,9 +292,9 @@ void SimCmdWinOutBuffer::scrollDown( int lines ) {
 // get the lines from that position. The line argument is referring to the nth line below the cursor.
 //
 //------------------------------------------------------------------------------------------------------------
-char *SimCmdWinOutBuffer::getLinePointer( int line ) {
+char *SimCmdWinOutBuffer::getLineRelative( int lineBelowTop ) {
     
-    int lineToGet = ( cursorIndex + MAX_WIN_OUT_LINES - line ) % MAX_WIN_OUT_LINES;
+    int lineToGet = ( cursorIndex + MAX_WIN_OUT_LINES - lineBelowTop ) % MAX_WIN_OUT_LINES;
     return( &buffer[ lineToGet ][ 0 ] );
 }
 
@@ -303,7 +303,6 @@ void SimCmdWinOutBuffer::resetLineCursor( ) {
     cursorIndex = topIndex;
 }
 
-// ??? needed ?
 uint16_t SimCmdWinOutBuffer::getCursorIndex( ) {
     
     return( cursorIndex );
@@ -314,6 +313,10 @@ uint16_t SimCmdWinOutBuffer::getTopIndex( ) {
     return( topIndex );
 }
 
+void SimCmdWinOutBuffer::setScrollWindowSize( int size ) {
+    
+    screenSize = size;
+}
 
 //************************************************************************************************************
 //************************************************************************************************************
@@ -645,11 +648,12 @@ void SimCommandsWin::drawBody( ) {
     printNumericField( winOut -> getCursorIndex( ));
     
     int rowsToShow = getRows( ) - 2;
+    winOut -> setScrollWindowSize( rowsToShow );
     setWinCursor( rowsToShow + 1, 1 );
     
     for ( int i = 0; i < rowsToShow; i++ ) {
         
-        char *lineBufPtr = winOut -> getLinePointer( i );
+        char *lineBufPtr = winOut -> getLineRelative( i );
         if ( lineBufPtr != nullptr ) {
             
             glb -> console -> clearLine( );

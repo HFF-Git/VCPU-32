@@ -916,9 +916,12 @@ private:
 
 //-----------------------------------------------------------------------------------------------------------
 // Command Window output buffer. The ouput buffer will store all putput from the command window to support
-// scrolling. This is the price you pay when noraml terminal scrollling is restricted to an area of the
-// screen.
-//
+// scrolling. This is the price you pay when noraml terminal scrolling is restricted to an area of the
+// screen. The buffer offers a simple interface. Any character added will be stored in a line, a "\n" will
+// advance to the next line to store. The buffer itself is a circular buffer. Each time a command line is
+// entered, the display will show the last N lines entered. A cursor is defined which is manipulated by
+// the cursor up or down routines. For correct cursor computatons, we also keep track of the actual screen
+// lines that we can show.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct SimCmdWinOutBuffer {
@@ -930,11 +933,10 @@ public:
     void        initBuffer( );
     void        addToBuffer( const char *data );
     int         printChars( const char *format, ... );
+    void        setScrollWindowSize( int size );
     
     void        resetLineCursor( );
-    char        *getLinePointer( int line );
-    
-    // ??? needed ?
+    char        *getLineRelative( int lineBelowTop );
     uint16_t    getCursorIndex( );
     uint16_t    getTopIndex( );
     
@@ -944,8 +946,9 @@ public:
 private:
     
     char        buffer[ MAX_WIN_OUT_LINES ] [ MAX_WIN_OUT_LINE_SIZE ] = { 0 };
-    int         topIndex;       // Index of the most recent line
+    int         topIndex;       // Index of the next line to use
     int         cursorIndex;    // Index of the last line currently shown in window.
+    int         screenSize;     // size of lines displayed in the command window.
     uint16_t    charPos;        // Current character position in the last line
 };
 
