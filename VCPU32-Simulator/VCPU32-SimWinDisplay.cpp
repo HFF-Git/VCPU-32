@@ -405,6 +405,9 @@ void SimWinDisplay::windowsOff( ) {
     winModeOn = false;
     glb -> console -> clearScrollArea( );
     glb -> console -> clearScreen( );
+    
+    cmdWin -> setDefaults( );
+    
     reDraw( true );
 }
 

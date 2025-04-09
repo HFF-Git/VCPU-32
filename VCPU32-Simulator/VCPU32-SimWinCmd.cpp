@@ -445,9 +445,9 @@ SimCommandsWin::SimCommandsWin( VCPU32Globals *glb ) : SimWin( glb ) {
 void SimCommandsWin::setDefaults( ) {
     
     setRadix( glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT ));
-    setRows( 11 );
-    setColumns( 80 );
-    setDefColumns( 80 );
+    setRows( 21 );
+    setColumns( 128 );
+    setDefColumns( 128 );
     setWinType( WT_CMD_WIN );
     setEnable( true );
 }
@@ -636,16 +636,6 @@ void SimCommandsWin::drawBody( ) {
     
     setFieldAtributes( FMT_DEF_ATTR );
   
-#if 0
-    // ??? for debugging ... stay out of the real window content... :-)
-    setWinCursor( 1, 32 );
-    printTextField((char *) "Top: " );
-    printNumericField( winOut -> getTopIndex( ));
-    
-    printTextField((char *) ", Cursor: " );
-    printNumericField( winOut -> getCursorIndex( ));
-#endif
-    
     int rowsToShow = getRows( ) - 2;
     winOut -> setScrollWindowSize( rowsToShow );
     setWinCursor( rowsToShow + 1, 1 );

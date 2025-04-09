@@ -28,7 +28,7 @@
 
 const char SIM_VERSION[ ]   = "B.00.09";
 const char SIM_GIT_BRANCH[] = "Terminal-Win-Changes";
-const int  SIM_PATCH_LEVEL  = 11;
+const int  SIM_PATCH_LEVEL  = 12;
 
 #if __APPLE__
 const bool SIM_IS_APPLE = true;
