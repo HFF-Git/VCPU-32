@@ -67,6 +67,11 @@ bool isEscapeChar( int ch ) {
     return ( ch == 27 );
 }
 
+bool isWInSpecialChar( int ch ) {
+    
+    return ( ch == 0xe0 );
+}
+
 bool isCarriageReturnChar( int ch ) {
     
     return (( ch == '\n' ) || ( ch == '\r' ));
@@ -463,6 +468,7 @@ void SimCommandsWin::setDefaults( ) {
 //      CT_NORMAL: got a character, anylyze it.
 //      CT_ESCAPE: check the characters got. If a "[" we need to handle an escape sequence.
 //      CT_ESCAPE_BRACKET: analyze the argument after "esp[" input got so far.
+//      CT_WIN_SPECIAL: analyze a MS windows special character.
 //
 // A carriage return character will append a zero to the command line input got so far. We are done reading
 // the input line. Next, we emit a carriage return to the console. The promot and the command string along
@@ -472,6 +478,9 @@ void SimCommandsWin::setDefaults( ) {
 // The left and right arrows move the cursor in the command line. Backspacing and inserting will then take
 // place at the current cursor position shifting any content to the right of the cursor when inserting and
 // shifting to the left when deleting.
+//
+// On MS windows a special character indicates the start of a special button pressed. We currently recognize
+// the cursor keys.
 //
 // We also have the option of a prefilled command buffer for editing a command line before hitting return.
 // This option is used by the REDO command which lists a previously entered command presented for editing.
@@ -484,7 +493,7 @@ void SimCommandsWin::setDefaults( ) {
 //------------------------------------------------------------------------------------------------------------
 int SimCommandsWin::readCmdLine( char *cmdBuf, int initialCmdBufLen, char *promptBuf ) {
     
-    enum CharType : uint16_t { CT_NORMAL, CT_ESCAPE, CT_ESCAPE_BRACKET };
+    enum CharType : uint16_t { CT_NORMAL, CT_ESCAPE, CT_ESCAPE_BRACKET, CT_WIN_SPECIAL };
     
     int         promptBufLen    = (int) strlen( promptBuf );
     int         cmdBufCursor    = 0;
@@ -517,6 +526,10 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initialCmdBufLen, char *promp
                 if ( isEscapeChar( ch )) {
                     
                     state = CT_ESCAPE;
+                }
+                else if ( isWInSpecialChar( ch )) {
+                    
+                    state = CT_WIN_SPECIAL;
                 }
                 else if ( isCarriageReturnChar( ch )) {
                   
@@ -593,6 +606,53 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initialCmdBufLen, char *promp
                     } break;
                         
                     case 'B': {
+                        
+                        winOut -> scrollDown( );
+                        reDraw( );
+                        setWinCursor( 0, promptBufLen  );
+                        
+                    } break;
+                        
+                    default: ;
+                }
+                
+                state = CT_NORMAL;
+                
+            } break;
+                
+            case CT_WIN_SPECIAL: {
+                
+                switch ( ch ) {
+                        
+                    case 'K': {
+                        
+                        if ( cmdBufCursor > 0 ) {
+                            
+                            cmdBufCursor --;
+                            glb -> console -> writeCursorLeft( );
+                        }
+                        
+                    } break;
+                        
+                    case 'M' : {
+                        
+                        if ( cmdBufCursor < cmdBufLen ) {
+                            
+                            cmdBufCursor ++;
+                            glb -> console -> writeCursorRight( );
+                        }
+                        
+                    } break;
+                        
+                    case 'H' : {
+                        
+                        winOut -> scrollUp( );
+                        reDraw( );
+                        setWinCursor( 0, promptBufLen );
+                        
+                    } break;
+                        
+                    case 'P': {
                         
                         winOut -> scrollDown( );
                         reDraw( );
