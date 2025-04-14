@@ -187,11 +187,14 @@ void insertChar( char *buf, int ch, int *strSize, int *pos ) {
 // the window body content, the data is taken from the windows ouput buffer.
 //
 //------------------------------------------------------------------------------------------------------------
-SimCmdWinOutBuffer::SimCmdWinOutBuffer( ) { }
+SimCmdWinOutBuffer::SimCmdWinOutBuffer( ) {
+    
+    initBuffer( );
+}
 
 void SimCmdWinOutBuffer::initBuffer( ) {
     
-    for (int i = 0; i < MAX_WIN_OUT_LINES; i++) buffer[i][0] = '\0';
+    for ( int i = 0; i < MAX_WIN_OUT_LINES; i++ ) buffer[i][0] = '\0';
     
     topIndex     = 0;
     cursorIndex  = 0;
