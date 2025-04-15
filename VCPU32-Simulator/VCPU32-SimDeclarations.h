@@ -656,8 +656,7 @@ public:
     
 private:
     
-    char *inputStr;
-    
+    char *inputStr = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -876,9 +875,9 @@ struct SimEnv {
     
     uint8_t         displayEnvTableEntry( SimEnvTabEntry *entry );
     
-    SimEnvTabEntry  *table;
-    SimEnvTabEntry  *hwm;
-    SimEnvTabEntry  *limit;
+    SimEnvTabEntry  *table  = nullptr;
+    SimEnvTabEntry  *hwm    = nullptr;
+    SimEnvTabEntry  *limit  = nullptr;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -946,10 +945,10 @@ public:
 private:
     
     char        buffer[ MAX_WIN_OUT_LINES ] [ MAX_WIN_OUT_LINE_SIZE ] = { 0 };
-    int         topIndex;       // Index of the next line to use
-    int         cursorIndex;    // Index of the last line currently shown in window.
-    int         screenSize;     // size of lines displayed in the command window.
-    uint16_t    charPos;        // Current character position in the last line
+    int         topIndex    = 0;    // Index of the next line to use
+    int         cursorIndex = 0;    // Index of the last line currently shown in window.
+    int         screenSize  = 0;    // nnumber of lines displayed in the command window.
+    uint16_t    charPos     = 0;    // Current character position in the actual line
 };
 
 
@@ -1318,7 +1317,7 @@ private:
     FILE    *textFile          = nullptr;
     int     fileSizeLines      = 0;
     int     lastLinePos        = 0;
-    char    fileName[ 256 ];
+    char    fileName[ 256 ]    = { 0 };
 };
 
 //-----------------------------------------------------------------------------------------------------------

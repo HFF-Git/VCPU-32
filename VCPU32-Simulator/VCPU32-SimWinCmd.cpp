@@ -1561,15 +1561,14 @@ void SimCommandsWin::doCmd( ) {
     
     char *cmdStr = hist -> getCmdLine( cmdId );
     
-    if ( cmdStr != nullptr )    evalInputLine( cmdStr );
-    else                        throw( ERR_INVALID_CMD_ID );
+    if ( cmdStr != nullptr ) evalInputLine( cmdStr );
 }
 
 //------------------------------------------------------------------------------------------------------------
 // REDO is almost like DO, except that we retrieve the selected command and put it already into the input
 // command line string for the readCmdLine routine. We also print it without a carriaage return. The idea
-// is that it can now be edited. The edited command is added to teh history buffer and then executed. The
-// REDO command itself is not added to the command history stack. If he cmdNum is omitted, REDO will take
+// is that it can now be edited. The edited command is added to the history buffer and then executed. The
+// REDO command itself is not added to the command history stack. If the cmdNum is omitted, REDO will take
 // the last command entered.
 //
 // REDO <cmdNum>
@@ -1597,7 +1596,6 @@ void SimCommandsWin::redoCmd( ) {
         glb -> console -> writeChars( "%s", tmpCmd );
         if ( readCmdLine( tmpCmd, (int) strlen( tmpCmd ), (char *)"" )) evalInputLine( tmpCmd );
     }
-    else throw( ERR_INVALID_CMD_ID );
 }
 
 //------------------------------------------------------------------------------------------------------------
