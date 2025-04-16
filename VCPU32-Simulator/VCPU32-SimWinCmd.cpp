@@ -189,7 +189,7 @@ void insertChar( char *buf, int ch, int *strSize, int *pos ) {
 //------------------------------------------------------------------------------------------------------------
 SimCmdWinOutBuffer::SimCmdWinOutBuffer( ) {
     
-    initBuffer( );
+   // initBuffer( ); // test on windows....
 }
 
 void SimCmdWinOutBuffer::initBuffer( ) {
@@ -493,6 +493,8 @@ void SimCommandsWin::setDefaults( ) {
 // window display. We also need to ensure that when a new command line is read in, we are with our cursor
 // at the input line, right after the prompt string.
 //
+//
+// ??? perhaps also detect a cursor home / clear display sequence ?
 //------------------------------------------------------------------------------------------------------------
 int SimCommandsWin::readCmdLine( char *cmdBuf, int initialCmdBufLen, char *promptBuf ) {
     
@@ -554,6 +556,7 @@ int SimCommandsWin::readCmdLine( char *cmdBuf, int initialCmdBufLen, char *promp
                         
                         glb -> console -> eraseChar( );
                         glb -> console -> writeCursorLeft( );
+                        glb -> console -> writeChar( cmdBuf[ cmdBufCursor ] );
                     }
                 }
                 else {
@@ -707,6 +710,11 @@ void SimCommandsWin::drawBody( ) {
         
         char *lineBufPtr = winOut -> getLineRelative( i );
         if ( lineBufPtr != nullptr ) {
+            
+            // ??? what would we do about escape sequences ?
+            // ??? the command input does not pass on any sequences directly.
+            // ??? but something like "\27 [ H" wold be interpreted by the terminal screen, which might
+            // be ugly. We need to make sure that any printing wil stay inside the output window.
             
             glb -> console -> clearLine( );
             glb -> console -> writeChars( "%s", lineBufPtr );

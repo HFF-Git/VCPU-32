@@ -60,13 +60,9 @@ const SimToken cmdTokTab[ ] = {
     //
     //--------------------------------------------------------------------------------------------------------
     { .name = "COMMANDS",           .typ = TYP_CMD,                 .tid = CMD_SET                          },
-    
     { .name = "WCOMMANDS",          .typ = TYP_WCMD,                .tid = WCMD_SET                         },
-    
     { .name = "PREDEFINED",         .typ = TYP_PREDEFINED_FUNC,     .tid = PF_SET                           },
-    
     { .name = "REGSET",             .typ = TYP_RSET,                .tid = REG_SET                          },
-    
     { .name = "WTYPES",             .typ = TYP_WTYP,                .tid = WTYPE_SET                        },
     
     //--------------------------------------------------------------------------------------------------------

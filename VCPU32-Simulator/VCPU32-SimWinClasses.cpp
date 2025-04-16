@@ -1430,15 +1430,13 @@ int SimWinText::readTextFileLine( int linePos, char *lineBuf, int bufLen  ) {
 //***********************************************************************************************************
 
 //------------------------------------------------------------------------------------------------------------
-// Object constructor / Destructor.
+// Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
 SimWinConsole::SimWinConsole( VCPU32Globals *glb ) : SimWin( glb ) {
     
-}
-
-SimWinConsole:: ~SimWinConsole( ) {
-    
+    this -> glb = glb;
+    winOut      = new SimCmdWinOutBuffer( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1457,7 +1455,7 @@ void SimWinConsole::setDefaults( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The banner line for command window.
+// The banner line for console window.
 //
 //------------------------------------------------------------------------------------------------------------
 void SimWinConsole::drawBanner( ) {
@@ -1465,19 +1463,42 @@ void SimWinConsole::drawBanner( ) {
     uint32_t fmtDesc = FMT_BOLD | FMT_INVERSE;
     
     setWinCursor( 1, 1 );
-    printTextField((char *) "Commands ", fmtDesc );
+    printTextField((char *) "Console ", fmtDesc );
     padLine( fmtDesc );
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The body lines of the command window are displayed after the banner line. We will never draw in this
-// window via the window routines. The body is the terminal scroll area. What we do however, is to reset
-// any character drawing attribute.
+// The body lines of the console window are displayed after the banner line.
+//
+// ??? we need to analyze what we draw. An escape sequence detected needs to be analyzed and interpreted.
+// ??? we need to make sure that we do stay inside the allocated window lines. Actually, the command
+// window has the same issue.... to think about ...
 //
 //------------------------------------------------------------------------------------------------------------
 void SimWinConsole::drawBody( ) {
     
     setFieldAtributes( FMT_DEF_ATTR );
+    
+    int rowsToShow = getRows( ) - 2;
+    winOut -> setScrollWindowSize( rowsToShow );
+    setWinCursor( rowsToShow + 1, 1 );
+    
+    for ( int i = 0; i < rowsToShow; i++ ) {
+        
+        char *lineBufPtr = winOut -> getLineRelative( i );
+        if ( lineBufPtr != nullptr ) {
+            
+            // ??? this needs to be adapted...
+            
+            glb -> console -> clearLine( );
+            glb -> console -> writeChars( "%s", lineBufPtr );
+        }
+        
+        setWinCursor( rowsToShow - i, 1 );
+    }
+    
+    setWinCursor( getRows( ), 1 );
+    
 }
 
 

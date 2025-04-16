@@ -914,13 +914,12 @@ private:
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// Command Window output buffer. The ouput buffer will store all putput from the command window to support
-// scrolling. This is the price you pay when noraml terminal scrolling is restricted to an area of the
-// screen. The buffer offers a simple interface. Any character added will be stored in a line, a "\n" will
-// advance to the next line to store. The buffer itself is a circular buffer. Each time a command line is
-// entered, the display will show the last N lines entered. A cursor is defined which is manipulated by
-// the cursor up or down routines. For correct cursor computatons, we also keep track of the actual screen
-// lines that we can show.
+// Command and Console Window output buffer. The ouput buffer will store all putput from the command window
+// to support scrolling. This is the price you pay when normal terminal scrolling is restricted to an area
+// of the screen. The buffer offers a simple interface. Any character added will be stored in a line, a "\n"
+// will advance to the next line to store. The buffer itself is a circular buffer. Each time a command line
+// is entered, the display will show the last N lines entered. A cursor is defined which is manipulated by
+// the cursor up or down routines.
 //
 //-----------------------------------------------------------------------------------------------------------
 struct SimCmdWinOutBuffer {
@@ -945,10 +944,10 @@ public:
 private:
     
     char        buffer[ MAX_WIN_OUT_LINES ] [ MAX_WIN_OUT_LINE_SIZE ] = { 0 };
-    int         topIndex    = 0;    // Index of the next line to use
+    int         topIndex    = 0;    // Index of the next line to use.
     int         cursorIndex = 0;    // Index of the last line currently shown in window.
-    int         screenSize  = 0;    // nnumber of lines displayed in the command window.
-    uint16_t    charPos     = 0;    // Current character position in the actual line
+    int         screenSize  = 0;    // Number of lines displayed in the window.
+    uint16_t    charPos     = 0;    // Current character position in the actual line.
 };
 
 
@@ -1327,22 +1326,21 @@ private:
 // Likewise scrolling and line editing are to be handheld. This class is a placeholder for now.
 //
 //
-// ??? to think about .... it is not a scrollabl window in our sense here. Still, it would be nice to move
-// the content up and down... hard to do ... we are not a terminal !!!!
-// ??? turns out the command winwod has a similar problem, and we impoemented an output buffer there...
 //-----------------------------------------------------------------------------------------------------------
 struct SimWinConsole : SimWin {
     
 public:
     
     SimWinConsole( VCPU32Globals *glb );
-    ~ SimWinConsole( );
-    
+   
     void    setDefaults( );
     void    drawBanner( );
     void    drawBody( );
     
 private:
+    
+    VCPU32Globals           *glb    = nullptr;
+    SimCmdWinOutBuffer      *winOut = nullptr;
 
 };
 
