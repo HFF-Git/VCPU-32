@@ -169,6 +169,67 @@ void insertChar( char *buf, int ch, int *strSize, int *pos ) {
     buf[ *strSize ] = '\0';
 }
 
+//------------------------------------------------------------------------------------------------------------
+// Line sanitizing. We cannot just print out whatever is in the line buffer, since it may contains dangerous
+// escape sequeu8nces, which woud garble our terminal screen layout. In teh command window we just allow
+// "safe" escape sequences, such as changing the font color and so on. When we encounter an escape character
+// followed by a "[" character we scan the escape sequence untill the final character, which lies between
+// 0x40 and 0x7E. Based on the last character, we distringuish between "safe" and "unsafe" escape sequences.
+// In the other cases, we just copy input to output.
+//
+//------------------------------------------------------------------------------------------------------------
+bool isSafeFinalByte( char finalByte ) {
+    
+    //Example:  m = SGR (color/formatting), others can be added
+    return finalByte == 'm';
+}
+
+bool isDangerousFinalByte( char finalByte ) {
+    
+    return strchr("ABCDHfJKnsu", finalByte) != NULL;
+}
+
+void sanitizeLine( const char *inputStr, char *outputStr ) {
+    
+    const char  *src = inputStr;
+    char        *dst = outputStr;
+    
+    while ( *src ) {
+        
+        if ( *src == '\x1B' ) {
+            
+            if ( *( src + 1 ) == '\0' ) {
+                
+                *dst++ = *src++;
+            }
+            else if ( *( src + 1 ) == '[' ) {
+                
+                const char *escSeqStart = src;
+                src += 2;
+                
+                while (( *src ) && ( ! ( *src >= 0x40 && *src <= 0x7E ))) src++;
+                
+                if ( *src ) {
+                    
+                    char finalByte = *src++;
+                    
+                    if ( isSafeFinalByte( finalByte )) {
+                        
+                        while ( escSeqStart < src ) *dst++ = *escSeqStart++;
+                        
+                    } else continue;
+                    
+                } else break;
+                
+            }
+            else *dst++ = *src++;
+        }
+        else *dst++ = *src++;
+    }
+    
+    *dst = '\0';
+}
+
 }; // namespace
 
 
@@ -689,6 +750,7 @@ void SimCommandsWin::drawBanner( ) {
     padLine( fmtDesc );
 }
 
+
 //------------------------------------------------------------------------------------------------------------
 // The body lines of the command window are displayed after the banner line. The window is filled from the
 // putput buffer. We first set the screen lines as the length of the cmmand window may have changed.
@@ -699,6 +761,8 @@ void SimCommandsWin::drawBanner( ) {
 //
 //------------------------------------------------------------------------------------------------------------
 void SimCommandsWin::drawBody( ) {
+    
+    char lineOutBuf[ MAX_WIN_OUT_LINE_SIZE ];
     
     setFieldAtributes( FMT_DEF_ATTR );
   
@@ -711,11 +775,7 @@ void SimCommandsWin::drawBody( ) {
         char *lineBufPtr = winOut -> getLineRelative( i );
         if ( lineBufPtr != nullptr ) {
             
-            // ??? what would we do about escape sequences ?
-            // ??? the command input does not pass on any sequences directly.
-            // ??? but something like "\27 [ H" wold be interpreted by the terminal screen, which might
-            // be ugly. We need to make sure that any printing wil stay inside the output window.
-            
+           sanitizeLine( lineBufPtr, lineOutBuf );
             glb -> console -> clearLine( );
             glb -> console -> writeChars( "%s", lineBufPtr );
         }
