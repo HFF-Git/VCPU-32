@@ -420,7 +420,7 @@ const SimErrMsgTabEntry errMsgTab [ ] = {
     { .errNum = ERR_EXPECTED_REG_OR_SET,        .errStr = (char *) "Expected a register or register set" },
     { .errNum = ERR_EXPECTED_NUMERIC,           .errStr = (char *) "Expected a numeric value" },
     { .errNum = ERR_EXPECTED_EXT_ADR,           .errStr = (char *) "Expected a virtual address" },
-    { .errNum = ERR_EXPECTED_GENERAL_REG,       .errStr = (char *) "Expression a general reg" },
+    { .errNum = ERR_EXPECTED_GENERAL_REG,       .errStr = (char *) "Expected a general reg" },
     { .errNum = ERR_EXPECTED_STEPS,             .errStr = (char *) "Expected number of steps/instr" },
     { .errNum = ERR_EXPECTED_START_OFS,         .errStr = (char *) "Expected start offset" },
     { .errNum = ERR_EXPECTED_LEN,               .errStr = (char *) "Expected length argument" },

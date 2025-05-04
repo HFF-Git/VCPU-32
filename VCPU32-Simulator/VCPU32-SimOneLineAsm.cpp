@@ -137,28 +137,6 @@ bool isInRangeForBitFieldU( uint32_t val, uint8_t bitLen ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "asmError" is a little helper that prints out the original input line and a caret marker where we found
-// the error.
-//
-//------------------------------------------------------------------------------------------------------------
-SimErrMsgId markAsmError( SimErrMsgId errNum ) {
-    
-    fprintf( stdout, "%s\n", tok -> tokenLineStr( ));
-    
-    int i           = 0;
-    int tokIndex    = tok -> tokCharIndex( );
-    
-    while ( i < tokIndex ) {
-        
-        fprintf( stdout, " " );
-        i ++;
-    }
-    
-    fprintf( stdout, "^ \n" );
-    return( errNum );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // Check that the ASM line does not contain any extra tokens when the parser completed the analysis of the
 // assembly line.
 //
@@ -1992,7 +1970,6 @@ SimErrMsgId SimOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {
     catch ( SimErrMsgId errNum ) {
         
         *instr = 0;
-        markAsmError( errNum );
         return( errNum );
     }
 }

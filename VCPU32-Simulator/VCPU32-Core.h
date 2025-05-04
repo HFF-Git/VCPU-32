@@ -793,16 +793,16 @@ public:
     // ??? unified cache, physical memory, PDC and IO should be moved out of the core when we have many
     // cores...
     //--------------------------------------------------------------------------------------------------------
-    CpuTlb        *iTlb       = nullptr;
-    CpuTlb        *dTlb       = nullptr;
-    L1CacheMem    *iCacheL1   = nullptr;
-    L1CacheMem    *dCacheL1   = nullptr;
-    L2CacheMem    *uCacheL2   = nullptr;
-    PhysMem       *physMem    = nullptr;
-    PdcMem        *pdcMem     = nullptr;
-    IoMem         *ioMem      = nullptr;
+    CpuTlb          *iTlb       = nullptr;
+    CpuTlb          *dTlb       = nullptr;
+    L1CacheMem      *iCacheL1   = nullptr;
+    L1CacheMem      *dCacheL1   = nullptr;
+    L2CacheMem      *uCacheL2   = nullptr;
+    PhysMem         *physMem    = nullptr;
+    PdcMem          *pdcMem     = nullptr;
+    IoMem           *ioMem      = nullptr;
     
-    CpuStatistics stats;
+    CpuStatistics   stats;
     
 private:
     
@@ -815,7 +815,7 @@ private:
     CpuReg          gReg[ MAX_GREGS ];
     CpuReg          sReg[ MAX_SREGS ];
     CpuReg          cReg[ MAX_CREGS ];
-  
+    
     //--------------------------------------------------------------------------------------------------------
     // Utility routines.
     //
