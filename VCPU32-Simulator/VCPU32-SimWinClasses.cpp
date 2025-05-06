@@ -145,10 +145,9 @@ void sanitizeLine( const char *inputStr, char *outputStr ) {
                     
                 } else break;
                 
-            }
-            else *dst++ = *src++;
-        }
-        else *dst++ = *src++;
+            } else *dst++ = *src++;
+            
+        } else *dst++ = *src++;
     }
     
     *dst = '\0';
@@ -1498,7 +1497,7 @@ int SimWinText::readTextFileLine( int linePos, char *lineBuf, int bufLen  ) {
 SimWinConsole::SimWinConsole( VCPU32Globals *glb ) : SimWin( glb ) {
     
     this -> glb = glb;
-    winOut      = new SimCmdWinOutBuffer( );
+    winOut      = new SimWinOutBuffer( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -1517,6 +1516,23 @@ void SimWinConsole::setDefaults( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// The console offers two basic routines to read a character and to write a character. The write function
+// will just add the character to the output buffer.
+//
+//------------------------------------------------------------------------------------------------------------
+void SimWinConsole::putChar( char ch ) {
+    
+    winOut -> printChar( ch );
+}
+
+
+// ??? what about the read part. Do we just get a character from the terminal input and add it to the
+// output side ? Or is this a function of the console driver code written for the emulator ?
+
+// ??? should we add the switch to and from the console in this class ?
+
+
+//------------------------------------------------------------------------------------------------------------
 // The banner line for console window.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -1530,11 +1546,8 @@ void SimWinConsole::drawBanner( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// The body lines of the console window are displayed after the banner line.
-//
-// ??? we need to analyze what we draw. An escape sequence detected needs to be analyzed and interpreted.
-// ??? we need to make sure that we do stay inside the allocated window lines. Actually, the command
-// window has the same issue.... to think about ...
+// The body lines of the console window are displayed after the banner line. Each line is "sanitized" before
+// we print it out. This way, dangerous escape sequences are simply filtered out.
 //
 //------------------------------------------------------------------------------------------------------------
 void SimWinConsole::drawBody( ) {
@@ -1561,7 +1574,4 @@ void SimWinConsole::drawBody( ) {
     }
     
     setWinCursor( getRows( ), 1 );
-    
 }
-
-

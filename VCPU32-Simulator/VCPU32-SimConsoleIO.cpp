@@ -249,9 +249,8 @@ int SimConsoleIO::readChar( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "writeConsoleChar" is the single entry point to write to the terminal. On a Mac/Linux, this is the
-// "write" system call. On windows there is a similar call, which does just prints one character at a
-// time.
+// "writeChar" is the single entry point to write to the terminal. On a Mac/Linux, this is the "write" system
+// call. On windows there is a similar call, which does just prints one character at a time.
 //
 //------------------------------------------------------------------------------------------------------------
 void SimConsoleIO::writeChar( char ch  ) {
@@ -264,10 +263,6 @@ void SimConsoleIO::writeChar( char ch  ) {
     
 }
 
-//------------------------------------------------------------------------------------------------------------
-//
-// ??? another version which does not use templates... try it ...
-//------------------------------------------------------------------------------------------------------------
 int SimConsoleIO::writeChars( const char *format, ... ) {
     
     va_list args;

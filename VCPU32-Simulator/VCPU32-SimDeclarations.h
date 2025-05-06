@@ -922,15 +922,16 @@ private:
 // the cursor up or down routines.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct SimCmdWinOutBuffer {
+struct SimWinOutBuffer {
     
 public:
     
-    SimCmdWinOutBuffer( );
+    SimWinOutBuffer( );
     
     void        initBuffer( );
     void        addToBuffer( const char *data );
     int         printChars( const char *format, ... );
+    int         printChar( const char ch );
     void        setScrollWindowSize( int size );
     
     void        resetLineCursor( );
@@ -1325,7 +1326,6 @@ private:
 // example, escape sequences cannot be just printed out as it would severly impact the simulator windwos.
 // Likewise scrolling and line editing are to be handheld. This class is a placeholder for now.
 //
-//
 //-----------------------------------------------------------------------------------------------------------
 struct SimWinConsole : SimWin {
     
@@ -1337,11 +1337,15 @@ public:
     void    drawBanner( );
     void    drawBody( );
     
+    void    putChar( char ch );
+    
+    // ??? methods to read a chracter ?
+    // ??? methods to switch between command and console mode ?
+    
 private:
     
-    VCPU32Globals           *glb    = nullptr;
-    SimCmdWinOutBuffer      *winOut = nullptr;
-
+    VCPU32Globals   *glb    = nullptr;
+    SimWinOutBuffer *winOut = nullptr;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -1440,7 +1444,7 @@ private:
     SimCmdHistory           *hist           = nullptr;
     SimTokenizer            *tok            = nullptr;
     SimExprEvaluator        *eval           = nullptr;
-    SimCmdWinOutBuffer      *winOut         = nullptr;
+    SimWinOutBuffer      *winOut         = nullptr;
     SimCommandsWin          *cmdWin         = nullptr;
     SimDisAsm               *disAsm         = nullptr;
    
