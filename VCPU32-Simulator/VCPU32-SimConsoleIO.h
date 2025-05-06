@@ -28,9 +28,8 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-
-#ifndef VCPU32_ConsoleIo_h
-#define VCPU32_ConsoleIo_h
+#ifndef VCPU32_SimConsoleIo_h
+#define VCPU32_SimConsoleIo_h
 
 //------------------------------------------------------------------------------------------------------------
 // Mac and Windows know different include files and procedure names for some POSIX routines.
@@ -50,6 +49,7 @@
 #include <fcntl.h>
 #else
 //#include <unistd.h>
+#include <windows.h>
 #include <conio.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -66,7 +66,6 @@
 #endif
 
 #include "VCPU32-Types.h"
-#include "VCPU32-ConsoleIO.h"
 
 //------------------------------------------------------------------------------------------------------------
 // Console IO object. The simulator is a character based interface. The typical terminal IO functionality
@@ -76,62 +75,40 @@
 // address space. This interface will also write and read a character at a time.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvConsoleIO {
+struct SimConsoleIO {
     
     public:
     
-    DrvConsoleIO( );
+    SimConsoleIO( );
+    ~SimConsoleIO( );
     
+    void    initConsoleIO( );
+    void    setBlockingMode( bool enabled );
     bool    isConsole( );
     int     readChar( );
     void    writeChar( char ch  );
-    void    saveConsoleMode( );
-    void    restoreConsoleMode( );
-    void    setConsoleModeRaw( bool nonBlocking = false );
-   
-    int     readLine( char *cmdBuf );
-    int     printNum( uint32_t num, int rdx );
+    int     writeChars( const char *format, ... );
     
-    template<typename... Args> int printChars( const char* fmt, Args&&... args );
+    void    writeCarriageReturn( );
+    void    eraseChar( );
+    void    writeCursorLeft( );
+    void    writeCursorRight( );
+    void    writeScrollUp( int n );
+    void    writeScrollDown( int n );
+    void    writeCharAtLinePos( int ch, int pos );
+  
+    void    clearScreen( );
+    void    clearLine( );
+    void    setAbsCursor( int row, int col );
+    void    setWindowSize( int row, int col );
+    void    setScrollArea( int start, int end );
+    void    clearScrollArea( );
+    
     
     private:
-
-    char printBuf[ 1024 ];
-    bool nonBlockingEnabled = false;
-    bool rawModeEnabled     = false;
+    
+    char    outputPrintBuf[ 1024 ]  = { 0 };
+    bool    blockingMode            = false;
 };
-
-//------------------------------------------------------------------------------------------------------------
-// "printChars" is the entry point to printing characters to the console. It is a template function to accept
-// different formats and arguments. As such it need to be included in the include file, so that the compiler
-// knows what to do to built the actual function calls. Since we had a couple of issues with the window
-// drawing functions of the simulator, there is additional code to catch the issue. So far, it did not occur
-// again.
-//
-//------------------------------------------------------------------------------------------------------------
-template<typename... Args> int DrvConsoleIO::printChars( const char* fmt, Args&&... args ) {
-    
-    size_t len = 0;
-    
-    do {
-        
-        len = snprintf( printBuf, sizeof( printBuf ), fmt, args... );
-       
-        if (( len < 0 ) && ( errno != EINTR )) {
-            
-            fprintf( stderr, "winPrintf (snprintf) error, errno: %d, %s\n", errno, strerror( errno ));
-            fflush( stderr );
-            exit( errno );
-        }
-        
-    } while ( len < 0 );
-    
-    if ( len > 0 ) {
-        
-        for ( int i = 0; i < len; i++  ) writeChar( printBuf[ i ] );
-    }
-    
-    return( static_cast<int>(len));
-}
 
 #endif /* VCPU32_ConsoleIo_h */

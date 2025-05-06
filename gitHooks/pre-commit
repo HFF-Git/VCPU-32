@@ -29,7 +29,7 @@ if [ -z "$FILES_TO_UPDATE" ] && [ -z "$STAGED_FILES" ]; then
 fi
 
 # Version file path
-VERSION_FILE="$REPO_ROOT/VCPU32-Simulator/VCPU32-Version.h"
+VERSION_FILE="$REPO_ROOT/VCPU32-Simulator/VCPU32-SimVersion.h"
 
 # Update the patch level using Python
 python "$SCRIPT_PATH" "$VERSION_FILE"
@@ -37,7 +37,7 @@ python "$SCRIPT_PATH" "$VERSION_FILE"
 # Stage the modified version file
 git add "$VERSION_FILE"
 
-echo "PATCH_LEVEL updated in VCPU32-Version.h."
+echo "PATCH_LEVEL updated in VCPU32-SimVersion.h."
 
 # Allow the commit to proceed
 exit 0

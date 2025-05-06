@@ -3,13 +3,13 @@
 // VCPU32 - A 32-bit CPU - Simulator expressions
 //
 //------------------------------------------------------------------------------------------------------------
-// ...
-//
+// The command interpreter features expression evaluation for command arguments. It is a straightforward
+// recursive top down interpeter.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Simulator Commands
-// Copyright (C) 2022 - 2024 Helmut Fieres
+// VCPU32 - A 32-bit CPU - Simulator expressions
+// Copyright (C) 2022 - 2025 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -21,19 +21,15 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#include "VCPU32-Version.h"
+#include "VCPU32-SimVersion.h"
 #include "VCPU32-Types.h"
-#include "VCPU32-Driver.h"
-#include "VCPU32-DrvTables.h"
+#include "VCPU32-SimDeclarations.h"
+#include "VCPU32-SimTables.h"
 #include "VCPU32-Core.h"
 
+
 //------------------------------------------------------------------------------------------------------------
-// Idea:
-//
-// It turns out that a better command line parser would be a more powerful way to analyze a command line.
-// We have commands that just execute a command and functions that return a value. When we have a parser
-// we could implement such functions as arguments to the commands. Commands them selves may just be just a
-// function with a void return.
+// The commadn line features an expression evaluator for the arguments. The overall syntaxt is as follows:
 //
 //      <command>   ->  <cmdId> [ <argList> ]
 //      <function>  ->  <funcId> “(“ [ <argList> ] ")"
@@ -57,7 +53,7 @@
 //      <expr>      ->  [ ( "+" | "-" ) ] <term> { <exprOp> <term> }
 //      <exprOp>    ->  "+" | "-" | "|" | "^"
 //
-// If a command is called, there is no output another than what the command was issuing itself.
+// If a command is called, there is no output other than what the command was issuing.
 // If a function is called in the command place, the function result will be printed.
 // If an argument represents a function, its return value will be the argument in the command.
 //
@@ -81,10 +77,10 @@ enum logicalOpId : int {
 };
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Add operation.
 //
 //------------------------------------------------------------------------------------------------------------
-void addOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+void addOp( SimExpr *rExpr, SimExpr *lExpr ) {
     
     switch ( rExpr -> typ ) {
             
@@ -115,10 +111,10 @@ void addOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Sub operation.
 //
 //------------------------------------------------------------------------------------------------------------
-void subOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+void subOp( SimExpr *rExpr, SimExpr *lExpr ) {
     
     switch ( rExpr -> typ ) {
             
@@ -149,10 +145,10 @@ void subOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Multiply operation.
 //
 //------------------------------------------------------------------------------------------------------------
-void multOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+void multOp( SimExpr *rExpr, SimExpr *lExpr ) {
     
     switch ( rExpr -> typ ) {
             
@@ -183,10 +179,10 @@ void multOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Divide Operation.
 //
 //------------------------------------------------------------------------------------------------------------
-void divOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+void divOp( SimExpr *rExpr, SimExpr *lExpr ) {
     
     switch ( rExpr -> typ ) {
             
@@ -217,10 +213,10 @@ void divOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Modulo operation.
 //
 //------------------------------------------------------------------------------------------------------------
-void modOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
+void modOp( SimExpr *rExpr, SimExpr *lExpr ) {
     
     switch ( rExpr -> typ ) {
             
@@ -251,10 +247,10 @@ void modOp( DrvExpr *rExpr, DrvExpr *lExpr ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-//
+// Logical operation.
 //
 //------------------------------------------------------------------------------------------------------------
-void logicalOp( DrvExpr *rExpr, DrvExpr *lExpr, logicalOpId op ) {
+void logicalOp( SimExpr *rExpr, SimExpr *lExpr, logicalOpId op ) {
     
     switch ( rExpr -> typ ) {
             
@@ -304,9 +300,13 @@ void logicalOp( DrvExpr *rExpr, DrvExpr *lExpr, logicalOpId op ) {
 // Evaluation Expression Object constructor.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvExprEvaluator::DrvExprEvaluator( VCPU32Globals *glb ) {
+SimExprEvaluator::SimExprEvaluator( VCPU32Globals *glb, SimTokenizer *tok ) {
     
-    this -> glb = glb;
+    this -> glb         = glb;
+    this -> tok         = tok;
+    
+    disAsm      = new SimDisAsm( );
+    oneLineAsm  = new SimOneLineAsm( );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -316,13 +316,13 @@ DrvExprEvaluator::DrvExprEvaluator( VCPU32Globals *glb ) {
 // is the first characters of a string, right justified if shorter than 4 bytes.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::pFuncS32( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncS32( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
+    SimExpr     lExpr;
     uint32_t    res = 0;
      
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
         
     parseExpr( &lExpr );
@@ -342,17 +342,17 @@ void DrvExprEvaluator::pFuncS32( DrvExpr *rExpr ) {
     rExpr -> typ    = TYP_NUM;
     rExpr -> numVal = res;
 
-    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_RPAREN );
 }
 
-void DrvExprEvaluator::pFuncU32( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncU32( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
+    SimExpr     lExpr;
     uint32_t    res = 0;
      
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
         
     parseExpr( &lExpr );
@@ -372,7 +372,7 @@ void DrvExprEvaluator::pFuncU32( DrvExpr *rExpr ) {
     rExpr -> typ    = TYP_NUM;
     rExpr -> numVal = res;
 
-    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_RPAREN );
 }
 
@@ -381,20 +381,20 @@ void DrvExprEvaluator::pFuncU32( DrvExpr *rExpr ) {
 //
 // ASSEMBLE "(" <str> ")"
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::pFuncAssemble( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncAssemble( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
-    uint32_t    instr;
-    ErrMsgId    ret;
+    SimExpr         lExpr;
+    uint32_t        instr;
+    SimErrMsgId     ret = NO_ERR;
     
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
         
     parseExpr( &lExpr );
     if ( lExpr.typ == TYP_STR ) {
         
-        ret = glb -> oneLineAsm -> parseAsmLine( lExpr.strVal, &instr );
+        ret = oneLineAsm -> parseAsmLine( lExpr.strVal, &instr );
         
         if ( ret == NO_ERR ) {
             
@@ -405,7 +405,7 @@ void DrvExprEvaluator::pFuncAssemble( DrvExpr *rExpr ) {
     }
     else throw ( ERR_EXPECTED_STR );
 
-    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_RPAREN );
 }
 
@@ -414,46 +414,46 @@ void DrvExprEvaluator::pFuncAssemble( DrvExpr *rExpr ) {
 //
 // DISASSEMBLE "(" <str> [ "," <rdx> ] ")"
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::pFuncDisAssemble( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncDisAssemble( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
+    SimExpr     lExpr;
     uint32_t    instr;
     char        asmStr[ CMD_LINE_BUF_SIZE ];
     int         rdx = glb -> env -> getEnvVarInt((char *) ENV_RDX_DEFAULT );
     
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
     
-    glb -> eval -> parseExpr( &lExpr );
+    parseExpr( &lExpr );
     
     if ( lExpr.typ == TYP_NUM ) {
         
         instr = lExpr.numVal;
         
-        if ( glb -> tok -> tokId( ) == TOK_COMMA ) {
+        if ( tok -> tokId( ) == TOK_COMMA ) {
             
-            glb -> tok -> nextToken( );
+            tok -> nextToken( );
             
-            if (( glb -> tok -> tokId( ) == TOK_HEX ) ||
-                ( glb -> tok -> tokId( ) == TOK_OCT ) ||
-                ( glb -> tok -> tokId( ) == TOK_DEC )) {
+            if (( tok -> tokId( ) == TOK_HEX ) ||
+                ( tok -> tokId( ) == TOK_OCT ) ||
+                ( tok -> tokId( ) == TOK_DEC )) {
                 
-                rdx = glb -> tok -> tokVal( );
+                rdx = tok -> tokVal( );
                 
-                glb -> tok -> nextToken( );
+                tok -> nextToken( );
             }
-            else if ( glb -> tok -> tokId( ) == TOK_EOS ) {
+            else if ( tok -> tokId( ) == TOK_EOS ) {
                 
                 throw ( ERR_UNEXPECTED_EOS );
             }
             else throw ( ERR_INVALID_FMT_OPT );
         }
         
-        if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+        if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
         else throw ( ERR_EXPECTED_RPAREN );
         
-        glb -> disAsm -> formatInstr( asmStr, sizeof( asmStr ), instr );
+        disAsm -> formatInstr( asmStr, sizeof( asmStr ), instr );
         
         rExpr -> typ = TYP_STR;
         strcpy( rExpr -> strVal, asmStr );
@@ -466,13 +466,13 @@ void DrvExprEvaluator::pFuncDisAssemble( DrvExpr *rExpr ) {
 //
 // HASH "(" <extAdr> ")"
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::pFuncHash( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncHash( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
+    SimExpr     lExpr;
     uint32_t    hashVal;
     
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
         
     parseExpr( &lExpr );
@@ -485,7 +485,7 @@ void DrvExprEvaluator::pFuncHash( DrvExpr *rExpr ) {
     }
     else throw ( ERR_EXPECTED_STR );
 
-    if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+    if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_RPAREN );
 }
 
@@ -497,22 +497,22 @@ void DrvExprEvaluator::pFuncHash( DrvExpr *rExpr ) {
 // ADR "(" <expr> "," <expr> ")"
 // ADR "(" <ofs> ")"
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::pFuncExtAdr( DrvExpr *rExpr ) {
+void SimExprEvaluator::pFuncExtAdr( SimExpr *rExpr ) {
     
-    DrvExpr     lExpr;
+    SimExpr     lExpr;
     uint32_t    seg;
     
-    glb -> tok -> nextToken( );
-    if ( glb -> tok -> isToken( TOK_LPAREN )) glb -> tok -> nextToken( );
+    tok -> nextToken( );
+    if ( tok -> isToken( TOK_LPAREN )) tok -> nextToken( );
     else throw ( ERR_EXPECTED_LPAREN );
     
-    if ( glb -> tok -> isTokenTyp( TYP_SREG )) {
+    if ( tok -> isTokenTyp( TYP_SREG )) {
         
-        seg = glb -> cpu -> getReg( RC_SEG_REG_SET, glb -> tok -> tokVal( ));
+        seg = glb -> cpu -> getReg( RC_SEG_REG_SET, tok -> tokVal( ));
         
-        glb -> tok -> nextToken( );
-        if ( ! glb -> tok -> isToken( TOK_COMMA )) throw ( ERR_EXPECTED_COMMA );
-        else glb -> tok -> nextToken( );
+        tok -> nextToken( );
+        if ( ! tok -> isToken( TOK_COMMA )) throw ( ERR_EXPECTED_COMMA );
+        else tok -> nextToken( );
         
         parseExpr( &lExpr );
         
@@ -522,7 +522,7 @@ void DrvExprEvaluator::pFuncExtAdr( DrvExpr *rExpr ) {
             rExpr -> seg = seg;
             rExpr -> ofs = lExpr.numVal;
             
-            if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+            if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
             else throw ( ERR_EXPECTED_RPAREN );
         }
         else throw ( ERR_EXPECTED_OFS );
@@ -540,7 +540,7 @@ void DrvExprEvaluator::pFuncExtAdr( DrvExpr *rExpr ) {
             rExpr -> seg = glb -> cpu -> getReg( RC_SEG_REG_SET, segId );
             rExpr -> ofs = lExpr.numVal;
             
-            if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+            if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
             else throw ( ERR_EXPECTED_RPAREN );
         }
         else if ( lExpr.typ == TYP_EXT_ADR ) {
@@ -549,7 +549,7 @@ void DrvExprEvaluator::pFuncExtAdr( DrvExpr *rExpr ) {
             rExpr -> seg = lExpr.seg;
             rExpr -> ofs = lExpr.ofs;
             
-            if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+            if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
             else throw ( ERR_EXPECTED_RPAREN );
         }
         else throw( ERR_INVALID_EXPR );
@@ -560,7 +560,7 @@ void DrvExprEvaluator::pFuncExtAdr( DrvExpr *rExpr ) {
 // Entry point to the predefined functions. We dispatch based on the predefined function token Id.
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr ) {
+void SimExprEvaluator::parsePredefinedFunction( SimToken funcId, SimExpr *rExpr ) {
     
     switch( funcId.tid ) {
             
@@ -588,55 +588,55 @@ void DrvExprEvaluator::parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr 
 //                  "(" <expr> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
+void SimExprEvaluator::parseFactor( SimExpr *rExpr ) {
     
     rExpr -> typ       = TYP_NIL;
     rExpr -> numVal    = 0;
     
-    if ( glb -> tok -> isTokenTyp( TYP_NUM ))  {
+    if ( tok -> isTokenTyp( TYP_NUM ))  {
         
         rExpr -> typ     = TYP_NUM;
-        rExpr -> numVal  = glb -> tok -> tokVal( );
-        glb -> tok -> nextToken( );
+        rExpr -> numVal  = tok -> tokVal( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_EXT_ADR )) {
+    else if ( tok -> isTokenTyp( TYP_EXT_ADR )) {
         
         rExpr -> typ    = TYP_EXT_ADR;
-        rExpr -> seg    = glb -> tok -> tokSeg( );
-        rExpr -> ofs    = glb -> tok -> tokOfs( );
-        glb -> tok -> nextToken( );
+        rExpr -> seg    = tok -> tokSeg( );
+        rExpr -> ofs    = tok -> tokOfs( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_STR ))  {
+    else if ( tok -> isTokenTyp( TYP_STR ))  {
         
         rExpr -> typ = TYP_STR;
-        strcpy( rExpr -> strVal, glb -> tok -> tokStr( ));
-        glb -> tok -> nextToken( );
+        strcpy( rExpr -> strVal, tok -> tokStr( ));
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_GREG ))  {
+    else if ( tok -> isTokenTyp( TYP_GREG ))  {
         
         rExpr -> typ    = TYP_NUM;
-        rExpr -> numVal = glb -> cpu -> getReg( RC_GEN_REG_SET, glb -> tok -> tokVal( ));
-        glb -> tok -> nextToken( );
+        rExpr -> numVal = glb -> cpu -> getReg( RC_GEN_REG_SET, tok -> tokVal( ));
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_SREG ))  {
+    else if ( tok -> isTokenTyp( TYP_SREG ))  {
         
         rExpr -> typ    = TYP_SREG;
-        rExpr -> numVal = glb -> cpu -> getReg( RC_SEG_REG_SET, glb -> tok -> tokVal( ));
-        glb -> tok -> nextToken( );
+        rExpr -> numVal = glb -> cpu -> getReg( RC_SEG_REG_SET, tok -> tokVal( ));
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_CREG ))  {
+    else if ( tok -> isTokenTyp( TYP_CREG ))  {
         
         rExpr -> typ    = TYP_CREG;
-        rExpr -> numVal = glb -> cpu -> getReg( RC_CTRL_REG_SET, glb -> tok -> tokVal( ));
-        glb -> tok -> nextToken( );
+        rExpr -> numVal = glb -> cpu -> getReg( RC_CTRL_REG_SET, tok -> tokVal( ));
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isTokenTyp( TYP_PREDEFINED_FUNC )) {
+    else if ( tok -> isTokenTyp( TYP_PREDEFINED_FUNC )) {
         
-        parsePredefinedFunction( glb -> tok -> token( ), rExpr );
+        parsePredefinedFunction( tok -> token( ), rExpr );
     }
-    else if ( glb -> tok -> isToken( TOK_IDENT )) {
+    else if ( tok -> isToken( TOK_IDENT )) {
         
-        DrvEnvTabEntry *entry = glb -> env -> getEnvVarEntry ( glb -> tok -> tokStr( ));
+        SimEnvTabEntry *entry = glb -> env -> getEnvVarEntry ( tok -> tokStr( ));
         
         if ( entry != nullptr ) {
             
@@ -661,23 +661,23 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
         }
         else throw( ERR_ENV_VAR_NOT_FOUND );
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
     }
-    else if ( glb -> tok -> isToken( TOK_NEG )) {
+    else if ( tok -> isToken( TOK_NEG )) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseFactor( rExpr );
         rExpr -> numVal = ~ rExpr -> numVal;
     }
-    else if ( glb -> tok -> isToken( TOK_LPAREN )) {
+    else if ( tok -> isToken( TOK_LPAREN )) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseExpr( rExpr );
             
-        if ( glb -> tok -> isToken( TOK_RPAREN )) glb -> tok -> nextToken( );
+        if ( tok -> isToken( TOK_RPAREN )) tok -> nextToken( );
         else throw ( ERR_EXPECTED_RPAREN );
     }
-    else if (( glb -> tok -> tokTyp( ) == TYP_NIL ) && ( glb -> tok -> tokId( ) == TOK_EOS )) {
+    else if (( tok -> tokTyp( ) == TYP_NIL ) && ( tok -> tokId( ) == TOK_EOS )) {
         
         rExpr -> typ = TYP_NIL;
     }
@@ -692,20 +692,20 @@ void DrvExprEvaluator::parseFactor( DrvExpr *rExpr ) {
 //
 // ??? type mix options ?
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::parseTerm( DrvExpr *rExpr ) {
+void SimExprEvaluator::parseTerm( SimExpr *rExpr ) {
     
-    DrvExpr lExpr;
+    SimExpr lExpr;
    
     parseFactor( rExpr );
     
-    while (( glb -> tok -> tokId( ) == TOK_MULT )   ||
-           ( glb -> tok -> tokId( ) == TOK_DIV  )   ||
-           ( glb -> tok -> tokId( ) == TOK_MOD  )   ||
-           ( glb -> tok -> tokId( ) == TOK_AND  ))  {
+    while (( tok -> tokId( ) == TOK_MULT )   ||
+           ( tok -> tokId( ) == TOK_DIV  )   ||
+           ( tok -> tokId( ) == TOK_MOD  )   ||
+           ( tok -> tokId( ) == TOK_AND  ))  {
         
-        uint8_t op = glb -> tok -> tokId( );
+        uint8_t op = tok -> tokId( );
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseFactor( &lExpr );
         
         if ( lExpr.typ == TYP_NIL ) throw ( ERR_UNEXPECTED_EOS );
@@ -729,20 +729,20 @@ void DrvExprEvaluator::parseTerm( DrvExpr *rExpr ) {
 //
 // ??? type mix options ?
 //------------------------------------------------------------------------------------------------------------
-void DrvExprEvaluator::parseExpr( DrvExpr *rExpr ) {
+void SimExprEvaluator::parseExpr( SimExpr *rExpr ) {
     
-    DrvExpr lExpr;
+    SimExpr lExpr;
     
-    if ( glb -> tok -> isToken( TOK_PLUS )) {
+    if ( tok -> isToken( TOK_PLUS )) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseTerm( rExpr );
         
         if ( rExpr -> typ != TYP_NUM ) throw ( ERR_EXPECTED_NUMERIC );
     }
-    else if ( glb -> tok -> isToken( TOK_MINUS )) {
+    else if ( tok -> isToken( TOK_MINUS )) {
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseTerm( rExpr );
         
         if ( rExpr -> typ == TYP_NUM ) rExpr -> numVal = - (int32_t) rExpr -> numVal;
@@ -750,14 +750,14 @@ void DrvExprEvaluator::parseExpr( DrvExpr *rExpr ) {
     }
     else parseTerm( rExpr );
     
-    while (( glb -> tok -> isToken( TOK_PLUS   )) ||
-           ( glb -> tok -> isToken( TOK_MINUS  )) ||
-           ( glb -> tok -> isToken( TOK_OR     )) ||
-           ( glb -> tok -> isToken( TOK_XOR    ))) {
+    while (( tok -> isToken( TOK_PLUS   )) ||
+           ( tok -> isToken( TOK_MINUS  )) ||
+           ( tok -> isToken( TOK_OR     )) ||
+           ( tok -> isToken( TOK_XOR    ))) {
         
-        uint8_t op = glb -> tok -> tokId( );
+        uint8_t op = tok -> tokId( );
         
-        glb -> tok -> nextToken( );
+        tok -> nextToken( );
         parseTerm( &lExpr );
         
         if ( lExpr.typ == TYP_NIL ) throw ( ERR_UNEXPECTED_EOS );
@@ -771,4 +771,3 @@ void DrvExprEvaluator::parseExpr( DrvExpr *rExpr ) {
         }
     }
 }
-

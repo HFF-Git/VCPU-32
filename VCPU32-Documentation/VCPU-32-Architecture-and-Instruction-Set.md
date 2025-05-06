@@ -3769,14 +3769,14 @@ The following assembly code snippets shows examples of the local calling sequenc
       Source code:
 
       void func1 {                                          int func2( int a, b ) {
-         func( 500, 300 );                                        return( a + b );
+         func( 500, 300 );                                     return( a + b );
       }                                                     }
 
       Assembly:
 
       func1:   LDI ARG0, 500
                LDI ARG1, 300
-               B   RL,   func2        ------------->       func2:   ADD RET0, ACRG0, ARG1
+               B   func2, RL           ------------->       func2:  ADD RET0, ACRG0, ARG1
                ...                     <------------                BV (RL) 
 ```
 
@@ -3793,17 +3793,17 @@ The called function will just use the two incoming arguments, adds them and stor
 
       func1:   LDI ARG0, 500
                LDI ARG1, 300
-               B   RL,   func1   -------->   func2:   ST -8(SP), RL
-                                                      LDO SP, 56(SP)
+               B   func1, RL    -------->   func2:  ST -8(SP), RL
+                                                    LDO SP, 56(SP)
                  
                                                       ...
 
-                                                      B RL,  func3     --------->      func3: ADD RET0, ACRG0, ARG1
-                                                      ...               <--------             BV (RL)
+                                                    B func3, RL         --------->    func3: ADD RET0, ACRG0, ARG1
+                                                      ...               <--------            BV (RL)
 
-                                                      LDO -56(SP), SP
-                                                      LD RL, -8(SP)
-      ...                        <--------            BV (RL) 
+                                                    LDO -56(SP), SP
+                                                    LD RL, -8(SP)
+      ...                       <--------           BV (RL) 
 ```
 
 The caller "func1" will produce its arguments and stores them in ARG0 and ARG1, as in the example before. If there were more than four arguments, they would have been stored with a ST instruction in their stack frame location. The callee "func2" is this time a procedure that calls another procedure and this needs a stack frame. First, the return link is saved to the frame marker of "Func1". RL would be overwritten by the call to "func3" and hence needs to be saved. Next the stack frame for "Func2" is allocated. The size is 32bytes for the frame marker, 16 bytes for the 4 arguments ARG0 to ARG1. Note that even when there are fewer than 4 arguments, the space is allocated. Finally there are two local variables. In sum the frame is 56 bytes. The LDO instruction will move the stack accordingly. 
@@ -3828,10 +3828,10 @@ The branch instruction has a reach of +/- 8Mbytes. There is the situation where 
       func1:   LDI  ARG0, 500
                LDI  ARG1, 300
                LDIL R1,   L%func2
-               BE   RL,   R%func2 ( SR4, R1 )   ---------->   func2:  ADD RET0, ACRG0, ARG1
-               ...                              <---------            BV RL 
+               BE  R%func2 (SR4, R1), RL        ---------->   func2:  ADD RET0, ACRG0, ARG1
+               ...                              <---------            BV (RL) 
       
-               BV RL
+               BV (RL)
 ```
 
 The function address is loaded by loading the left-hand portion with LDIL instruction and performing a BE instruction, adding the right-hand portion of the function address to R1. The segment used is SR4 which by definition tracks the code segment. Note that the function address is a segment relative address. The **BE** instruction uses a segment relative offset stored in R1. This address is however only know when the module is placed in the code segment at its address. A linker is expected to "patch" the LDIL / BE instruction sequence with the final address of the function. Since the **BV** return instruction always works segment relative, no fix is required here.
@@ -4106,7 +4106,17 @@ Part of the I/O memory address range is allocated to processor dependent code.
 
 ### Entry and Exit condition
 
+- expect to be called privileged, translation off.
+- ARG0 -> request Id.
+- ARG1 -> return area pointer.
+- ARG2 -> argument 1
+- ARG3 -> argument 2.
+
+
 ### Calling sequence
+
+- args are passed in registers. 
+
 
 ### PDC Services
 
@@ -4134,9 +4144,11 @@ VCPU-32 implements a memory mapped I/O architecture. 1/16 of physical memory add
 
 ### Concept of an I/O Module
 
-// Bus and IO Module 
-
-// hard physical pages
+- A bus has 16 slots, 16Mb memory space after the PDC memory space.
+- each module has up to 1Mb space then.
+- Modules host devices.
+- Each device has a 16 word area for configuration data, followed by more chunks of 16 words, depending on the device type.
+- CPU and Memory are also devices and occupy a slot.
 
 ### External Interrupts
 

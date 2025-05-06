@@ -25,8 +25,8 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Types.h"
-#include "VCPU32-Driver.h"
-#include "VCPU32-DrvTables.h"
+#include "VCPU32-SimDeclarations.h"
+#include "VCPU32-SimTables.h"
 #include "VCPU32-Core.h"
 
 //------------------------------------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ namespace {
 // tokenizer input is set for the current work task.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvTokenizer *tok;
+SimTokenizer *tok;
 
 //------------------------------------------------------------------------------------------------------------
 // Token flags. They are used to communicate additional information about the the token to the assembly
@@ -137,28 +137,6 @@ bool isInRangeForBitFieldU( uint32_t val, uint8_t bitLen ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// "asmError" is a little helper that prints out the original input line and a caret marker where we found
-// the error.
-//
-//------------------------------------------------------------------------------------------------------------
-ErrMsgId markAsmError( ErrMsgId errNum ) {
-    
-    fprintf( stdout, "%s\n", tok -> tokenLineStr( ));
-    
-    int i           = 0;
-    int tokIndex    = tok -> tokCharIndex( );
-    
-    while ( i < tokIndex ) {
-        
-        fprintf( stdout, " " );
-        i ++;
-    }
-    
-    fprintf( stdout, "^ \n" );
-    return( errNum );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // Check that the ASM line does not contain any extra tokens when the parser completed the analysis of the
 // assembly line.
 //
@@ -191,7 +169,7 @@ void acceptRparen( ) {
 // "parseExpr" needs to be declared forward.
 //
 //------------------------------------------------------------------------------------------------------------
-void parseExpr( DrvExpr *rExpr );
+void parseExpr( SimExpr *rExpr );
 
 //------------------------------------------------------------------------------------------------------------
 // "parseFactor" parses the factor syntax part of an expression.
@@ -205,7 +183,7 @@ void parseExpr( DrvExpr *rExpr );
 //                  "(" <expr> ")"
 //
 //------------------------------------------------------------------------------------------------------------
-void parseFactor( DrvExpr *rExpr ) {
+void parseFactor( SimExpr *rExpr ) {
     
     rExpr -> typ  = TYP_NIL;
     rExpr -> numVal = 0;
@@ -284,9 +262,9 @@ void parseFactor( DrvExpr *rExpr ) {
 //      <termOp>    ->  "*" | "/" | "%" | "&"
 //
 //------------------------------------------------------------------------------------------------------------
-void parseTerm( DrvExpr *rExpr ) {
+void parseTerm( SimExpr *rExpr ) {
     
-    DrvExpr lExpr;
+    SimExpr lExpr;
     
     parseFactor( rExpr );
     
@@ -320,9 +298,9 @@ void parseTerm( DrvExpr *rExpr ) {
 //      <exprOp>    ->  "+" | "-" | "|" | "^"
 //
 //------------------------------------------------------------------------------------------------------------
-void parseExpr( DrvExpr *rExpr ) {
+void parseExpr( SimExpr *rExpr ) {
     
-    DrvExpr lExpr;
+    SimExpr lExpr;
     
     if ( tok -> isToken( TOK_PLUS )) {
         
@@ -576,7 +554,7 @@ void parseInstrOptions( uint32_t *instr, uint32_t *flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseLogicalAdr( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
    
     parseExpr( &rExpr );
    
@@ -610,7 +588,7 @@ void parseLogicalAdr( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr  rExpr;
+    SimExpr  rExpr;
     
     if      ( flags & TF_BYTE_INSTR ) setBitField( instr, 15, 2, 0 );
     else if ( flags & TF_HALF_INSTR ) setBitField( instr, 15, 2, 1 );
@@ -669,7 +647,7 @@ void parseLoadStoreOperand( uint32_t *instr, uint32_t flags ) {
 void parseModeTypeInstr( uint32_t *instr, uint32_t flags ) {
     
     uint8_t     targetRegId = 0;
-    DrvExpr     rExpr;
+    SimExpr     rExpr;
    
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -800,7 +778,7 @@ void parseInstrLSID( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrDEP( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -925,7 +903,7 @@ void parseInstrDS( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrDSR( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -979,7 +957,7 @@ void parseInstrDSR( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1039,7 +1017,7 @@ void parseInstrEXTR( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrSHLA( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
    
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1135,7 +1113,7 @@ void parseInstrCMR( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1165,7 +1143,7 @@ void parseInstrLDILandADDIL( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrLDO( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
    
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1207,7 +1185,7 @@ void parseInstrLDO( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrBandGATE( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     
     parseExpr( &rExpr );
     
@@ -1310,7 +1288,7 @@ void parseInstrBV( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrBE( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
    
     parseExpr( &rExpr );
     
@@ -1352,7 +1330,7 @@ void parseInstrBE( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrBVE( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1392,7 +1370,7 @@ void parseInstrBVE( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrCBRandCBRU( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1537,7 +1515,7 @@ void parseInstrMR( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrMST( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1607,7 +1585,7 @@ void parseInstrLDPA( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrPRB( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
    
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1724,7 +1702,7 @@ void parseInstrPCA( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrDIAG( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     
     if ( tok -> isTokenTyp( TYP_GREG )) {
         
@@ -1787,7 +1765,7 @@ void parseInstrRFI( uint32_t *instr, uint32_t flags ) {
 //------------------------------------------------------------------------------------------------------------
 void parseInstrBRK( uint32_t *instr, uint32_t flags ) {
     
-    DrvExpr rExpr;
+    SimExpr rExpr;
     
     parseExpr( &rExpr );
     
@@ -1846,9 +1824,9 @@ void parseSynthInstrNop( uint32_t *instr, uint32_t flags ) {
 void parseLine( char *inputStr, uint32_t *instr ) {
     
     uint32_t    flags   = 0;
-    TokId       opCode  = TOK_NIL;
+    SimTokId       opCode  = TOK_NIL;
     
-    tok -> setupTokenizer( inputStr, (DrvToken *) asmTokTab );
+    tok -> setupTokenizer( inputStr, (SimToken *) asmTokTab );
     tok -> nextToken( );
     
     if ( tok -> isTokenTyp( TYP_OP_CODE )) {
@@ -1974,14 +1952,12 @@ void parseLine( char *inputStr, uint32_t *instr ) {
 // comments, only the opcode and the operands.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvOneLineAsm::DrvOneLineAsm( VCPU32Globals *glb ) {
-    
-    this -> glb = glb;
-    
-    tok = new DrvTokenizer( glb );
+SimOneLineAsm::SimOneLineAsm( ) {
+ 
+    tok = new SimTokenizer( );
 }
 
-ErrMsgId DrvOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {
+SimErrMsgId SimOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {
     
     try {
         
@@ -1991,10 +1967,9 @@ ErrMsgId DrvOneLineAsm::parseAsmLine( char *inputStr, uint32_t *instr ) {
         parseLine( tmpBuf, instr );
         return( NO_ERR );
     }
-    catch ( ErrMsgId errNum ) {
+    catch ( SimErrMsgId errNum ) {
         
         *instr = 0;
-        markAsmError( errNum );
         return( errNum );
     }
 }

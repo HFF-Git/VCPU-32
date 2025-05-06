@@ -14,7 +14,7 @@
 // This file contains the methods for the memory access pipeline stage. Each stage is a structure with
 // the pipeline register data and the methods to call from the CPU24 core object for controlling the stages.
 // Each stage also has access to all other stages. We need this access for implementing stalling and bypassing
-// capabilities. 
+// capabilities.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -101,15 +101,15 @@ bool isReadIstr( uint32_t instr ) {
             
         case OP_ADD:    case OP_ADC:    case OP_SUB:    case OP_SBC:    case OP_AND:
         case OP_OR:     case OP_XOR:    case OP_CMP:    case OP_CMPU:  {
-                    
+            
             return( getBitField( instr, 13, 2 ) >= 2 );
         }
-                
+            
         case OP_LD:     case OP_LDA:    case OP_LDR:    {
             
             return( true );
         }
-    
+            
         default: return( false );
     }
 }
@@ -122,7 +122,7 @@ bool isWriteInstr( uint32_t instr ) {
             
             return( true );
         }
-    
+            
         default: return( false );
     }
 }
@@ -134,7 +134,7 @@ bool isWriteInstr( uint32_t instr ) {
 bool checkAlignment( uint32_t instr, uint32_t adr ) {
     
     uint8_t align = getBitField( instr, 15, 2 );
-
+    
     return ((( align == 1 ) && (( adr & 0x1 ) == 0 )) ||
             (( align == 2 ) && (( adr & 0x3 ) == 0 )) ||
             (( align == 3 ) && (( adr & 0x7 ) == 0 )));
@@ -248,7 +248,7 @@ void MemoryAccessStage::flushPipeLine( ) {
     psValA.set( 0 );
     psValB.set( 0 );
     psValX.set( 0 );
- 
+    
     if ( core -> fdStage -> isStalled( )) {
         
         core -> fdStage -> setStalled( false );
@@ -299,7 +299,7 @@ void MemoryAccessStage::setupTrapData( uint32_t trapId,
 bool MemoryAccessStage::dependencyValA( uint32_t regId ) {
     
     if ( regId == 0 ) return( false );
-  
+    
     uint32_t instr = psInstr.get( );
     
     switch ( getBitField( instr, 5, 6 )) {
@@ -317,11 +317,11 @@ bool MemoryAccessStage::dependencyValA( uint32_t regId ) {
             
         case OP_DSR:    case OP_SHLA:   case OP_CMR:    case OP_BVE:    case OP_CBR:    case OP_CBRU:
         case OP_LDPA:   case OP_PRB:    case OP_PTLB:   case OP_PCA:    case OP_DIAG: {
-        
+            
             return( getBitField( instr, 27, 4 ) == regId );
         }
             
-       case OP_ST:     case OP_STA: {
+        case OP_ST:     case OP_STA: {
             
             return( getBitField( instr, 9, 4 ) == regId );
         }
@@ -376,7 +376,7 @@ bool MemoryAccessStage::dependencyValB( uint32_t regId ) {
 bool MemoryAccessStage::dependencyValX( uint32_t regId ) {
     
     if ( regId == 0 ) return( false );
-   
+    
     uint32_t instr = psInstr.get( );
     
     switch ( getBitField( instr, 5, 6 )) {
@@ -568,7 +568,7 @@ void MemoryAccessStage::process( ) {
             else segAdr = 0;
             
             if ( ! checkAlignment( instr, ofsAdr )) {
-            
+                
                 setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                 stallPipeLine( );
                 return;
@@ -583,7 +583,7 @@ void MemoryAccessStage::process( ) {
             
             dLen   = mapDataLen( instr );
             ofsAdr = psValB.get( ) + psValX.get( );
-           
+            
             if ( psPstate0.getBit( ST_DATA_TRANSLATION_ENABLE )) {
                 
                 uint8_t segSelect = getBitField( instr, 13, 2 );
@@ -597,7 +597,7 @@ void MemoryAccessStage::process( ) {
             else segAdr = 0;
             
             if ( ! checkAlignment( instr, ofsAdr )) {
-            
+                
                 setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                 stallPipeLine( );
                 return;
@@ -615,7 +615,7 @@ void MemoryAccessStage::process( ) {
             ofsAdr  = psValB.get( ) + psValX.get( );
             
             if ( ! checkAlignment( instr, ofsAdr )) {
-            
+                
                 setupTrapData( DATA_ALIGNMENT_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
                 stallPipeLine( );
                 return;
@@ -623,7 +623,7 @@ void MemoryAccessStage::process( ) {
             
             exStage -> psValA.set( psValA.get( ));
             exStage -> psValX.set( ofsAdr );
-          
+            
         } break;
             
         case OP_LDO: {
@@ -717,7 +717,7 @@ void MemoryAccessStage::process( ) {
             
             ofsAdr = psPstate1.get( ) + psValX.get( );
             exStage -> psValX.set( ofsAdr );
-           
+            
         } break;
             
         case OP_MR: {
@@ -782,7 +782,7 @@ void MemoryAccessStage::process( ) {
             else segAdr = 0;
             
             CpuTlb *tlbPtr = ( getBit( instr, 11 )) ? core -> dTlb : core -> iTlb;
-          
+            
             if ( ! tlbPtr -> purgeTlbEntry( segAdr, ofsAdr )) {
                 
                 stallPipeLine( );
@@ -836,6 +836,8 @@ void MemoryAccessStage::process( ) {
         }
     }
     
+    // ??? the LDR and STC instruction are different...
+    
     //--------------------------------------------------------------------------------------------------------
     // Data load or store section. This is the second half for instructions that read or write to memory.
     // There are a couple of cases. If the segment is zero, we must be privileged. The address is "0.ofs".
@@ -875,12 +877,12 @@ void MemoryAccessStage::process( ) {
             }
             else if ( opCodeTab[ opCode ].flags & WRITE_INSTR ) {
                 
-                 if (( tlbEntryPtr -> tPageType( ) != ACC_READ_WRITE )) {
-                 
-                     setupTrapData( DTLB_ACC_RIGHTS_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
-                     stallPipeLine( );
-                     return;
-                 }
+                if (( tlbEntryPtr -> tPageType( ) != ACC_READ_WRITE )) {
+                    
+                    setupTrapData( DTLB_ACC_RIGHTS_TRAP, psPstate0.get( ), psPstate1.get( ), instr, segAdr, ofsAdr );
+                    stallPipeLine( );
+                    return;
+                }
                 
                 if ( instrPrivLevel > tlbEntryPtr -> tPrivL2( )) {
                     
@@ -920,7 +922,7 @@ void MemoryAccessStage::process( ) {
             stallPipeLine( );
             return;
         }
-     
+        
         bool rStat = false;
         
         if ( physAdr <= core -> physMem -> getEndAdr(  )) {
@@ -931,10 +933,23 @@ void MemoryAccessStage::process( ) {
                 rStat = core -> dCacheL1 -> readWord( segAdr, ofsAdr, physAdr, dLen, &dataWord );
                 
                 if ( rStat ) exStage -> psValB.set( dataWord );
+                
+                if ( opCode == OP_LDR ) {
+                    
+                    // ??? set address and reserved flag ...
+                }
             }
             else if ( isWriteInstr( instr )) {
                 
-                rStat = core -> dCacheL1 -> writeWord( segAdr, ofsAdr, physAdr, dLen, psValA.get( ));
+                if ( opCode == OP_STC ) {
+                    
+                    // ??? check reserved flag. if set, all OK, store the data, reset the flag.
+                    //     pass on a zero as result, else return 1.
+                }
+                else {
+                    
+                    rStat = core -> dCacheL1 -> writeWord( segAdr, ofsAdr, physAdr, dLen, psValA.get( ));
+                }
             }
         }
         else if (( physAdr >= core -> pdcMem -> getStartAdr( )) && ( physAdr <= core -> pdcMem -> getEndAdr( ))) {

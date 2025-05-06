@@ -1,15 +1,14 @@
 //------------------------------------------------------------------------------------------------------------
 //
-//  VCPU32 - A 32-bit CPU - Simulator Driver
+//  VCPU32 - A 32-bit CPU - Simulator Declarations
 //
 //------------------------------------------------------------------------------------------------------------
-// We need a simple command line and windows interface for the CPU to do testing and debugging. Well, here it
-// is. All constant, type and object declarations are done in this include file.
+// We need a simple command interface for the simulator. All definitions are in this one global file.
 //
 //------------------------------------------------------------------------------------------------------------
 //
-// VCPU32 - A 32-bit CPU - Simulator Driver
-// Copyright (C) 2022 - 2024 Helmut Fieres
+// VCPU32 - A 32-bit CPU - Simulator Declarations
+// Copyright (C) 2022 - 2025 Helmut Fieres
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU
 // General Public License as published by the Free Software Foundation, either version 3 of the License,
@@ -21,29 +20,217 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#ifndef VCPU32Driver_h
-#define VCPU32Driver_h
+#ifndef VCPU32SimDeclarations_h
+#define VCPU32SimDeclarations_h
 
-#include "VCPU32-ConsoleIO.h"
+#include "VCPU32-SimConsoleIO.h"
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
+
+//------------------------------------------------------------------------------------------------------------
+// General screen structure:
+//
+//          |---> column (absolute)
+//          |
+//          v       :-------------------------------------------------------------------------------:
+//        rows      :                                                                               :
+//     (absolute)   :                                                                               :
+//                  :              Active windows shown space                                            :
+//                  :                                                                               :
+//                  :                                                                               :
+//                  :-------------------------------------------------------------------------------:
+//                  :                                                                               :
+//                  :              Command Window space                                                  :
+//                  :                                                                               :
+//                  :-------------------------------------------------------------------------------:
+//
+// General window strcuture:
+//
+//          |---> column (relative)
+//          |
+//          v       :-------------------------------------------------------------------------------:
+//        rows      :       Window Banner Line                                                      :
+//      (relative)  :-------------------------------------------------------------------------------:
+//                  :                                                                               :
+//                  :                                                                               :
+//                  :       Window Content                                                          :
+//                  :                                                                               :
+//                  :                                                                               :
+//                  :-------------------------------------------------------------------------------:
+//
+// Total size of the screen can vary. It is the sum of all active window lines plus the command window lines.
+// Command window is a bit special on that it has an input line at the lowest line.
+// Scroll lock after the active windows before the command window.
+// Routines to move cursor, print fields with attributes.
+//
+//------------------------------------------------------------------------------------------------------------
+
+//------------------------------------------------------------------------------------------------------------
+//
+//  Global Window commands:
+//
+//  WON, WOFF   -> on, off
+//  WRED        -> Redraw
+//  WDEF        -> window defaults, show initial screen.
+//
+//  Stacks:
+//
+//  WSE, WSD        -> winStackEnable/Disable
+//  UWSA, UWSB      -> setUserWinStack
+//
+//  Window:
+//
+//  enable, disable -> winEnable        -> E, D
+//  back, forward   -> winMove          -> B, F
+//  home, jump      -> winJump          -> H, J
+//  rows            -> setRows          -> L
+//  radix           -> setRadix         -> R
+//  new             -> newUserWin       -> N
+//  kill            -> winUserKill      -> K
+//  current         -> currentUserWin   -> C
+//  toggle          -> winToggle        -> T
+//
+//  Windows:
+//
+//  Program Regs    -> PS
+//  General Regs    -> GR
+//  Special Regs    -> CR
+//  Pipeline Regs   -> PL
+//  Statistics      -> ST
+//  Program Code    -> PC
+//  TLB             -> IT, DT
+//  T-Controller    -> ITR, DTR
+//  Cache           -> IC, DC, UC
+//  C-Controller    -> ICR, DCR, UCR
+//  Text Window     -> TX
+//  User Defined    -> UW
+//  Commands        -> n/a
+//
+//  Combine the window command with the window to form the command to type.
+//  Example: PSE -> enable general regs window.
+//  Note: not all combinations are possible...
+//
+//------------------------------------------------------------------------------------------------------------
 
 //------------------------------------------------------------------------------------------------------------
 // General maximum size for commands, etc.
 //
 //------------------------------------------------------------------------------------------------------------
-const int MAX_CMD_HIST_BUF_SIZE = 100;
-const int CMD_LINE_BUF_SIZE     = 256;
-const int TOK_STR_SIZE          = 256;
-const int MAX_TOKEN_NAME_SIZE   = 32;
-const int MAX_ENV_NAME_SIZE     = 32;
-const int MAX_ENV_VARIABLES     = 256;
+const int MAX_CMD_HIST_BUF_SIZE     = 32;
+const int MAX_WIN_OUT_LINES         = 256;
+const int MAX_WIN_OUT_LINE_SIZE     = 256;
+const int MAX_WIN_CMD_LINES         = 64;
+const int CMD_LINE_BUF_SIZE         = 256;
+
+const int TOK_STR_SIZE              = 256;
+const int MAX_TOKEN_NAME_SIZE       = 32;
+const int MAX_ENV_NAME_SIZE         = 32;
+const int MAX_ENV_VARIABLES         = 256;
 
 //------------------------------------------------------------------------------------------------------------
-// Tokens and Expression have a type.
+// Fundamental constants for the window system.
 //
 //------------------------------------------------------------------------------------------------------------
-enum TypeId : uint16_t {
+const int MAX_TEXT_FIELD_LEN    = 132;
+const int MAX_TEXT_LINE_SIZE    = 256;
+
+const int MAX_WIN_ROW_SIZE      = 64;
+const int MAX_WIN_COL_SIZE      = 256;
+const int MAX_WINDOWS           = 32;
+const int MAX_WIN_STACKS        = 4;
+
+//------------------------------------------------------------------------------------------------------------
+// Windows have a type. The type is primarily used to specify what type of window to create.
+//
+//------------------------------------------------------------------------------------------------------------
+enum SimWinType : int {
+    
+    WT_NIL          = 0,
+    WT_CMD_WIN      = 1,
+    WT_CONSOLE_WIN  = 2,
+    WT_TEXT_WIN     = 3,
+    
+    WT_GR_WIN       = 10,
+    WT_PS_WIN       = 11,
+    WT_CR_WIN       = 12,
+    WT_PL_WIN       = 13,
+    WT_ST_WIN       = 14,
+    WT_PM_WIN       = 15,
+    WT_PC_WIN       = 16,
+    
+    WT_ITLB_WIN     = 20,
+    WT_DTLB_WIN     = 21,
+    WT_ITLB_S_WIN   = 22,
+    WT_DTLB_S_WIN   = 23,
+    
+    WT_ICACHE_WIN   = 30,
+    WT_ICACHE_S_WIN = 31,
+    WT_DCACHE_WIN   = 32,
+    WT_DCACHE_S_WIN = 33,
+    WT_UCACHE_WIN   = 43,
+    WT_UCACHE_S_WIN = 44,
+    
+    WT_MEM_S_WIN    = 50,
+    WT_PDC_S_WIN    = 51,
+    WT_IO_S_WIN     = 52,
+};
+
+//------------------------------------------------------------------------------------------------------------
+// Predefined windows are displayed in a fixed order when enabled. The following constants are the index of
+// these windows in the window table. The first entries are used by the fixed windows and their order is
+// determined by the index number assigned. All these windows are created at program start time. An index
+// starting with the first user index is used for dynamically created windows.
+//
+//------------------------------------------------------------------------------------------------------------
+enum SimWinIndex : int {
+    
+    PS_REG_WIN      = 0,
+    CTRL_REG_WIN    = 1,
+    PL_REG_WIN      = 2,
+    STATS_WIN       = 3,
+    FIRST_UWIN      = 4,
+    LAST_UWIN       = 31
+};
+
+// ??? should this become part of cosole IO ?
+//------------------------------------------------------------------------------------------------------------
+// Format descriptor for putting out a field. The options are simply ORed. The idea is that a format descriptor
+// can be assembled once and used for many fields. A value of zero will indicate to simply use the previously
+// established descriptor set by the attributes routine.
+//
+//------------------------------------------------------------------------------------------------------------
+enum FmtDescOptions : uint32_t {
+    
+    FMT_USE_ACTUAL_ATTR = 0x0,
+    
+    FMT_BG_COL_DEF      = 0x00000001,
+    FMT_BG_COL_RED      = 0x00000002,
+    FMT_BG_COL_GREEN    = 0x00000003,
+    FMT_BG_COL_YELLOW   = 0x00000004,
+    
+    FMT_FG_COL_DEF      = 0x00000010,
+    FMT_FG_COL_RED      = 0x00000020,
+    FMT_FG_COL_GREEN    = 0x00000030,
+    FMT_FG_COL_YELLOW   = 0x00000040,
+    
+    FMT_BOLD            = 0x00000100,
+    FMT_BLINK           = 0x00000200,
+    FMT_INVERSE         = 0x00000400,
+    FMT_ALIGN_LFT       = 0x00000800,
+    FMT_TRUNC_LFT       = 0x00001000,
+    
+    FMT_LAST_FIELD      = 0x00002000,
+    FMT_HALF_WORD       = 0x00004000,
+    FMT_INVALID_NUM     = 0x00008000,
+    
+    FMT_DEF_ATTR        = 0x10000000
+};
+
+//------------------------------------------------------------------------------------------------------------
+// Command line tokens and expression have a type.
+//
+//------------------------------------------------------------------------------------------------------------
+enum SimTokTypeId : uint16_t {
 
     TYP_NIL                 = 0,        TYP_CMD                 = 1,        TYP_WCMD                = 2,
     TYP_WTYP                = 3,        TYP_RSET                = 4,        TYP_SYM                 = 5,
@@ -61,7 +248,6 @@ enum TypeId : uint16_t {
     
     TYP_IC_L1_REG           = 40,       TYP_DC_L1_REG           = 41,       TYP_UC_L2_REG           = 42,
     TYP_MEM_REG             = 43,       TYP_ITLB_REG            = 44,       TYP_DTLB_REG            = 45
-    
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -69,7 +255,7 @@ enum TypeId : uint16_t {
 // name, a token id, a token type and an optional value with further data.
 //
 //------------------------------------------------------------------------------------------------------------
-enum TokId : uint16_t {
+enum SimTokId : uint16_t {
     
     //--------------------------------------------------------------------------------------------------------
     // General tokens and symbols.
@@ -117,7 +303,7 @@ enum TokId : uint16_t {
     CMD_SET                 = 1000,
     
     CMD_EXIT                = 1001,     CMD_HELP                = 1002,
-    
+   
     CMD_DO                  = 1010,     CMD_REDO                = 1011,     CMD_HIST                = 1012,
     CMD_ENV                 = 1013,     CMD_XF                  = 1014,     CMD_WRITE_LINE          = 1015,
     
@@ -188,15 +374,14 @@ enum TokId : uint16_t {
     CR_30                   = 4330,     CR_31                   = 4331,     CR_SET                  = 4332,
     
     FD_PSW0                 = 4500,     FD_PSW1                 = 4501,
-    FD_SET                  = 4502,
     
     MA_PSW0                 = 4600,     MA_PSW1                 = 4601,     MA_INSTR                = 4602,
     MA_A                    = 4603,     MA_B                    = 4604,     MA_X                    = 4605,
-    MA_S                    = 4606,     MA_SET                  = 4607,
+    MA_S                    = 4606,     MA_SET2                  = 4607,
     
     EX_PSW0                 = 4650,     EX_PSW1                 = 4651,     EX_INSTR                = 4652,
     EX_A                    = 4653,     EX_B                    = 4654,     EX_X                    = 4655,
-    EX_S                    = 4656,     EX_SET                  = 4657,
+    EX_S                    = 4656,     EX_SET2                  = 4657,
     
     IC_L1_STATE             = 4700,     IC_L1_REQ               = 4701,     IC_L1_REQ_SEG           = 4702,
     IC_L1_REQ_OFS           = 4703,     IC_L1_REQ_TAG           = 4704,     IC_L1_REQ_LEN           = 4705,
@@ -289,7 +474,7 @@ enum TokId : uint16_t {
 // Our error messages IDs. There is a routine that maps the ID to a text string.
 //
 //------------------------------------------------------------------------------------------------------------
-enum ErrMsgId : uint16_t {
+enum SimErrMsgId : uint16_t {
     
     NO_ERR                          = 0,
     ERR_NOT_SUPPORTED               = 1,
@@ -316,6 +501,7 @@ enum ErrMsgId : uint16_t {
     ERR_INVALID_REG_COMBO           = 26,
     ERR_INVALID_OP_CODE             = 27,
     ERR_INVALID_S_OP_CODE           = 28,
+    ERR_INVALID_CMD_ID              = 29,
     
     ERR_EXPECTED_COMMA              = 100,
     ERR_EXPECTED_LPAREN             = 101,
@@ -436,9 +622,9 @@ struct VCPU32Globals;
 // An error is described in the error message table, found in the DrvTables.h file.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvErrMsgTabEntry {
+struct SimErrMsgTabEntry {
     
-    ErrMsgId    errNum;
+    SimErrMsgId errNum;
     char        *errStr;
 };
 
@@ -446,13 +632,51 @@ struct DrvErrMsgTabEntry {
 // An help message is described in the help message table, found in the DrvTables.h file.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvHelpMsgEntry {
+struct SimHelpMsgEntry {
     
-    TypeId      helpTypeId;
-    TokId       helpTokId;
-    char        *cmdNameStr;
-    char        *cmdSyntaxStr;
-    char        *helpStr;
+    SimTokTypeId    helpTypeId;
+    SimTokId        helpTokId;
+    char            *cmdNameStr;
+    char            *cmdSyntaxStr;
+    char            *helpStr;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// A simple one line assembler. This object is the counter part to the disassembler. We will parse a one
+// line input string for a valid instruction, using the syntax of the real assembler. There will be no
+// labels and comments, only the opcode and the operands.
+//
+//------------------------------------------------------------------------------------------------------------
+struct SimOneLineAsm {
+    
+public:
+    
+    SimOneLineAsm( );
+    SimErrMsgId parseAsmLine( char *inputStr, uint32_t *instr );
+    
+private:
+    
+    char *inputStr = nullptr;
+};
+
+//------------------------------------------------------------------------------------------------------------
+// The disassembler function. The disassembler takes a machine instruction word and displays it in human
+// readable form.
+//
+//------------------------------------------------------------------------------------------------------------
+struct SimDisAsm {
+    
+public:
+    
+    SimDisAsm( );
+    
+    int formatOpCodeAndOptions( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int formatTargetAndOperands( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int formatInstr( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
+    int displayInstr( uint32_t instr, int rdx = 16 );
+    
+    int getOpCodeOptionsFieldWidth( );
+    int getTargetAndOperandsFieldWidth( );
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -461,11 +685,11 @@ struct DrvHelpMsgEntry {
 // types are numeric, virtual address and string.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvToken {
+struct SimToken {
 
-    char        name[ MAX_TOKEN_NAME_SIZE ] = { };
-    TypeId      typ                         = TYP_NIL;
-    TokId       tid                         = TOK_NIL;
+    char            name[ MAX_TOKEN_NAME_SIZE ] = { };
+    SimTokTypeId    typ                         = TYP_NIL;
+    SimTokId        tid                         = TOK_NIL;
     
     union {
         
@@ -481,21 +705,21 @@ struct DrvToken {
 // token table found in the tokenizer source file. The tokenizer raises exceptions.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvTokenizer {
+struct SimTokenizer {
 
     public:
 
-    DrvTokenizer( VCPU32Globals *glb );
+    SimTokenizer( );
 
-    void            setupTokenizer( char *lineBuf, DrvToken *tokTab );
+    void            setupTokenizer( char *lineBuf, SimToken *tokTab );
     void            nextToken( );
     
-    bool            isToken( TokId tokId );
-    bool            isTokenTyp( TypeId typId );
+    bool            isToken( SimTokId tokId );
+    bool            isTokenTyp( SimTokTypeId typId );
 
-    DrvToken        token( );
-    TypeId          tokTyp( );
-    TokId           tokId( );
+    SimToken        token( );
+    SimTokTypeId    tokTyp( );
+    SimTokId        tokId( );
     int             tokVal( );
     char            *tokStr( );
     uint32_t        tokSeg( );
@@ -512,8 +736,8 @@ struct DrvTokenizer {
     void            parseString( );
     void            parseIdent( );
 
-    DrvToken        currentToken;
-    DrvToken        *tokTab                 = nullptr;
+    SimToken        currentToken;
+    SimToken        *tokTab                 = nullptr;
     char            tokenLine[ 256 ]        = { 0 };
     int             currentLineLen          = 0;
     int             currentCharIndex        = 0;
@@ -528,19 +752,19 @@ struct DrvTokenizer {
 // values are simple scalar values or a structured value, such as a register pair or virtual address.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvExpr {
+struct SimExpr {
     
-    TypeId typ;
+    SimTokTypeId typ;
    
     union {
         
-        struct {    TokId       tokId;                      };
+        struct {    SimTokId    tokId;                      };
         struct {    bool        bVal;                       };
         struct {    uint32_t    numVal;                     };
         struct {    char        strVal[ TOK_STR_SIZE ];     };
-        struct {    uint32_t adr;                           };
-        struct {    uint8_t  sReg;  uint8_t gReg;           };
-        struct {    uint32_t seg;   uint32_t ofs;           };
+        struct {    uint32_t    adr;                        };
+        struct {    uint8_t     sReg;  uint8_t gReg;        };
+        struct {    uint32_t    seg;   uint32_t ofs;        };
     };
 };
 
@@ -549,31 +773,35 @@ struct DrvExpr {
 // command line. The evaluator raises exceptions.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvExprEvaluator {
+struct SimExprEvaluator {
     
     public:
     
-    DrvExprEvaluator( VCPU32Globals *glb );
+    SimExprEvaluator( VCPU32Globals *glb, SimTokenizer *tok );
     
-    void        setTokenizer( DrvTokenizer *tok );
-    void        parseExpr( DrvExpr *rExpr );
+    void        setTokenizer( SimTokenizer *tok );
+    void        parseExpr( SimExpr *rExpr );
     
     private:
     
-    void        parseTerm( DrvExpr *rExpr );
-    void        parseFactor( DrvExpr *rExpr );
-    void        parsePredefinedFunction( DrvToken funcId, DrvExpr *rExpr );
+    void        parseTerm( SimExpr *rExpr );
+    void        parseFactor( SimExpr *rExpr );
+    void        parsePredefinedFunction( SimToken funcId, SimExpr *rExpr );
     
-    void        pFuncS32( DrvExpr *rExpr );
-    void        pFuncU32( DrvExpr *rExpr );
+    void        pFuncS32( SimExpr *rExpr );
+    void        pFuncU32( SimExpr *rExpr );
     
-    void        pFuncAssemble( DrvExpr *rExpr );
-    void        pFuncDisAssemble( DrvExpr *rExpr );
-    void        pFuncHash( DrvExpr *rExpr );
-    void        pFuncExtAdr( DrvExpr *rExpr );
+    void        pFuncAssemble( SimExpr *rExpr );
+    void        pFuncDisAssemble( SimExpr *rExpr );
+    void        pFuncHash( SimExpr *rExpr );
+    void        pFuncExtAdr( SimExpr *rExpr );
     
-  
-    VCPU32Globals   *glb = nullptr;
+private:
+    
+    VCPU32Globals   *glb        = nullptr;
+    SimTokenizer    *tok        = nullptr;
+    SimDisAsm       *disAsm     = nullptr;
+    SimOneLineAsm   *oneLineAsm = nullptr;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -581,14 +809,13 @@ struct DrvExprEvaluator {
 // predefined variabls and user defeind variables.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvEnvTabEntry {
+struct SimEnvTabEntry {
     
-    char    name[ 32 ]  = { 0 };
-    bool    valid       = false;
-    bool    predefined  = false;
-    bool    readOnly    = false;
-   
-    TypeId  typ         = TYP_NIL;
+    char            name[ MAX_ENV_NAME_SIZE ]   = { 0 };
+    bool            valid                       = false;
+    bool            predefined                  = false;
+    bool            readOnly                    = false;
+    SimTokTypeId    typ                         = TYP_NIL;
     
     union {
     
@@ -607,9 +834,9 @@ struct DrvEnvTabEntry {
 // with a high water mark concept. The table will be allocated at simulator start.
 //
 //------------------------------------------------------------------------------------------------------------
-struct DrvEnv {
+struct SimEnv {
     
-    DrvEnv( VCPU32Globals *glb, uint32_t size );
+    SimEnv( uint32_t size );
     
     uint8_t         displayEnvTable( );
     uint8_t         displayEnvTableEntry( char *name );
@@ -627,7 +854,7 @@ struct DrvEnv {
     uint32_t        getEnvVarExtAdrSeg( char *name, uint32_t def = 0U );
     uint32_t        getEnvVarExtAdrOfs( char *name, uint32_t def = 0U );
     char            *getEnvVarStr( char *name, char *def = nullptr );
-    DrvEnvTabEntry  *getEnvVarEntry( char *name );
+    SimEnvTabEntry  *getEnvVarEntry( char *name );
     
     bool            isValid( char *name );
     bool            isReadOnly( char *name );
@@ -646,13 +873,11 @@ struct DrvEnv {
     void            enterEnvVar( char *name, char *str, bool predefined = false, bool rOnly = false );
     void            enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined = false, bool rOnly = false );
     
-    uint8_t         displayEnvTableEntry( DrvEnvTabEntry *entry );
+    uint8_t         displayEnvTableEntry( SimEnvTabEntry *entry );
     
-    DrvEnvTabEntry  *table;
-    DrvEnvTabEntry  *hwm;
-    DrvEnvTabEntry  *limit;
-    
-    VCPU32Globals   *glb = nullptr;
+    SimEnvTabEntry  *table  = nullptr;
+    SimEnvTabEntry  *hwm    = nullptr;
+    SimEnvTabEntry  *limit  = nullptr;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -660,37 +885,72 @@ struct DrvEnv {
 // buffer that holds the last commands. There are functions to show the command history, re-execute a
 // previous command and to retrieve a previous command for editing.
 //
-// ??? this becomes part of the new command interpreter
 //-----------------------------------------------------------------------------------------------------------
-struct DrvCmdHistEntry {
+struct SimCmdHistEntry {
     
     int  cmdId;
     char cmdLine[ CMD_LINE_BUF_SIZE ];
 };
 
-struct DrvCmdHistory {
+struct SimCmdHistory {
     
 public:
     
-    DrvCmdHistory( VCPU32Globals *glb );
+    SimCmdHistory( );
     
     void addCmdLine( char *cmdStr );
-    void removeTopCmdLine( );
-    char *getCmdLine( int index );
-    int  getCmdId( );
-    
-    void printCmdistory( int depth = MAX_CMD_HIST_BUF_SIZE );
-    
+    char *getCmdLine( int cmdRef, int *cmdId = nullptr );
+    int  getCmdCount( );
+    int  getCmdNum( );
+   
 private:
     
-    VCPU32Globals   *glb    = nullptr;
-    int cmdIdCount          = 0;
+    int nextCmdNum          = 0;
     int head                = 0;
     int tail                = 0;
     int count               = 0;
     
-    DrvCmdHistEntry history[ MAX_CMD_HIST_BUF_SIZE ];
+    SimCmdHistEntry history[ MAX_CMD_HIST_BUF_SIZE ];
 };
+
+//-----------------------------------------------------------------------------------------------------------
+// Command and Console Window output buffer. The ouput buffer will store all putput from the command window
+// to support scrolling. This is the price you pay when normal terminal scrolling is restricted to an area
+// of the screen. The buffer offers a simple interface. Any character added will be stored in a line, a "\n"
+// will advance to the next line to store. The buffer itself is a circular buffer. Each time a command line
+// is entered, the display will show the last N lines entered. A cursor is defined which is manipulated by
+// the cursor up or down routines.
+//
+//-----------------------------------------------------------------------------------------------------------
+struct SimWinOutBuffer {
+    
+public:
+    
+    SimWinOutBuffer( );
+    
+    void        initBuffer( );
+    void        addToBuffer( const char *data );
+    int         printChars( const char *format, ... );
+    int         printChar( const char ch );
+    void        setScrollWindowSize( int size );
+    
+    void        resetLineCursor( );
+    char        *getLineRelative( int lineBelowTop );
+    uint16_t    getCursorIndex( );
+    uint16_t    getTopIndex( );
+    
+    void        scrollUp( int lines = 1 );
+    void        scrollDown( int lines = 1 );
+    
+private:
+    
+    char        buffer[ MAX_WIN_OUT_LINES ] [ MAX_WIN_OUT_LINE_SIZE ] = { 0 };
+    int         topIndex    = 0;    // Index of the next line to use.
+    int         cursorIndex = 0;    // Index of the last line currently shown in window.
+    int         screenSize  = 0;    // Number of lines displayed in the window.
+    uint16_t    charPos     = 0;    // Current character position in the actual line.
+};
+
 
 //-----------------------------------------------------------------------------------------------------------
 // The "CPU24DrvBaseWin" class. The simulator will in screen mode feature a set of stacks each with a list
@@ -701,12 +961,12 @@ private:
 // Examples are to initialize a window, redraw and so on.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWin {
+struct SimWin {
     
 public:
     
-    DrvWin( VCPU32Globals *glb );
-    virtual         ~ DrvWin( );
+    SimWin( VCPU32Globals *glb );
+    virtual         ~ SimWin( );
     
     void            setWinType( int type );
     int             getWinType( );
@@ -776,7 +1036,6 @@ protected:
     
     VCPU32Globals   *glb;
     
-    void            setAbsCursor( int row, int col );
     void            setFieldAtributes( uint32_t fmtDesc );
     int             printWord( uint32_t val, int rdx = 16, uint32_t fmtDesc = 0 );
     int             printText( char *text, int len );
@@ -813,14 +1072,12 @@ private:
 // correct interpretation of this address. The "lineIncrement" is the increment value for the item address
 // passed. Item addresses are unsigned 32-bit quantities.
 //
-//
-// ??? wouldn't it be nice to react to cursor up and down with scrolling one line ?
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinScrollable : DrvWin {
+struct SimWinScrollable : SimWin {
     
 public:
     
-    DrvWinScrollable( VCPU32Globals *glb );
+    SimWinScrollable( VCPU32Globals *glb );
     
     void            setHomeItemAdr( uint32_t adr );
     uint32_t        getHomeItemAdr( );
@@ -848,33 +1105,15 @@ private:
 };
 
 //-----------------------------------------------------------------------------------------------------------
-// Driver terminal type windows. The simulator command window and the simulation console window will inherit
-// form this struct.
-//
-// ??? perhaps not needed...
-//-----------------------------------------------------------------------------------------------------------
-struct DrvWinTerm : DrvWin {
-    
-public:
-    
-    DrvWinTerm( VCPU32Globals *glb );
-    ~ DrvWinTerm( );
-    
-private:
-    
-    
-};
-
-//-----------------------------------------------------------------------------------------------------------
 // Program State Register Window. This window holds the programmer visible state with the exception of the
 // program relevant control register values. They are a separate window.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinProgState : DrvWin {
+struct SimWinProgState : SimWin {
     
 public:
     
-    DrvWinProgState( VCPU32Globals *glb );
+    SimWinProgState( VCPU32Globals *glb );
     
     void setDefaults( );
     void setRadix( int rdx );
@@ -886,11 +1125,11 @@ public:
 // Special Register Window. This window holds the control registers.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinSpecialRegs : DrvWin {
+struct SimWinSpecialRegs : SimWin {
     
 public:
     
-    DrvWinSpecialRegs( VCPU32Globals *glb );
+    SimWinSpecialRegs( VCPU32Globals *glb );
     
     void setDefaults( );
     void setRadix( int rdx );
@@ -902,11 +1141,11 @@ public:
 // Pipeline Register Window. This window holds the CPU pipeline registers.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinPipeLineRegs : DrvWin {
+struct SimWinPipeLineRegs : SimWin {
     
 public:
     
-    DrvWinPipeLineRegs( VCPU32Globals *glb );
+    SimWinPipeLineRegs( VCPU32Globals *glb );
     
     void setDefaults( );
     void setRadix( int rdx );
@@ -918,11 +1157,11 @@ public:
 // Statistics Window. This window displays the CPU statistics collected during execution.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinStatistics : DrvWin {
+struct SimWinStatistics : SimWin {
     
 public:
     
-    DrvWinStatistics( VCPU32Globals *glb );
+    SimWinStatistics( VCPU32Globals *glb );
     
     void setDefaults( );
     void drawBanner( );
@@ -935,11 +1174,11 @@ public:
 // window times the number of items, ie.e words, on a line.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinAbsMem : DrvWinScrollable {
+struct SimWinAbsMem : SimWinScrollable {
     
 public:
     
-    DrvWinAbsMem( VCPU32Globals *glb );
+    SimWinAbsMem( VCPU32Globals *glb );
     
     void setDefaults( );
     void setRadix( int rdx );
@@ -952,26 +1191,30 @@ public:
 // current address followed by the instruction and a human readable disassembled version.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinCode : DrvWinScrollable {
+struct SimWinCode : SimWinScrollable {
     
 public:
     
-    DrvWinCode( VCPU32Globals *glb );
+    SimWinCode( VCPU32Globals *glb );
     
     void setDefaults( );
     void drawBanner( );
     void drawLine( uint32_t index );
+    
+private:
+    
+    SimDisAsm *disAsm = nullptr;
 };
 
 //-----------------------------------------------------------------------------------------------------------
 // TLB Window. The TLB data window displays the TLB entries.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinTlb : DrvWinScrollable {
+struct SimWinTlb : SimWinScrollable {
     
 public:
     
-    DrvWinTlb( VCPU32Globals *glb, int winType );
+    SimWinTlb( VCPU32Globals *glb, int winType );
     
     void setDefaults( );
     void setRadix( int rdx );
@@ -989,11 +1232,11 @@ private:
 // caches with more than one set, the toggle function allows to flip through the sets, one at a time.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinCache : DrvWinScrollable {
+struct SimWinCache : SimWinScrollable {
     
 public:
     
-    DrvWinCache( VCPU32Globals *glb, int winType );
+    SimWinCache( VCPU32Globals *glb, int winType );
     
     void setDefaults( );
     void setRadix( int rdx );
@@ -1013,11 +1256,11 @@ private:
 // through several states. This window displays the state machine control information.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinMemController : DrvWin {
+struct SimWinMemController : SimWin {
     
 public:
     
-    DrvWinMemController( VCPU32Globals *glb, int winType );
+    SimWinMemController( VCPU32Globals *glb, int winType );
     
     void setDefaults( );
     void drawBanner( );
@@ -1034,11 +1277,11 @@ private:
 // several states. This window displays the state machine control information.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinTlbController : DrvWin {
+struct SimWinTlbController : SimWin {
     
 public:
     
-    DrvWinTlbController( VCPU32Globals *glb, int winType );
+    SimWinTlbController( VCPU32Globals *glb, int winType );
     
     void setDefaults( );
     void drawBanner( );
@@ -1055,12 +1298,12 @@ private:
 // display for example the source code to a running program when symbolic debugging is supported.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinText : DrvWinScrollable {
+struct SimWinText : SimWinScrollable {
     
 public:
     
-    DrvWinText( VCPU32Globals *glb, char *fName );
-    ~ DrvWinText( );
+    SimWinText( VCPU32Globals *glb, char *fName );
+    ~ SimWinText( );
     
     void    setDefaults( );
     void    drawBanner( );
@@ -1074,7 +1317,7 @@ private:
     FILE    *textFile          = nullptr;
     int     fileSizeLines      = 0;
     int     lastLinePos        = 0;
-    char    fileName[ 256 ];
+    char    fileName[ 256 ]    = { 0 };
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -1083,23 +1326,26 @@ private:
 // example, escape sequences cannot be just printed out as it would severly impact the simulator windwos.
 // Likewise scrolling and line editing are to be handheld. This class is a placeholder for now.
 //
-//
-// ??? to think about .... it is not a scrollabl window in our sense here. Still, it would be nice to move
-// the content up and down... hard to do ... we are not a terminal !!!!
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinConsole : DrvWinTerm {
+struct SimWinConsole : SimWin {
     
 public:
     
-    DrvWinConsole( VCPU32Globals *glb );
-    ~ DrvWinConsole( );
-    
+    SimWinConsole( VCPU32Globals *glb );
+   
     void    setDefaults( );
     void    drawBanner( );
     void    drawBody( );
     
+    void    putChar( char ch );
+    
+    // ??? methods to read a chracter ?
+    // ??? methods to switch between command and console mode ?
+    
 private:
-
+    
+    VCPU32Globals   *glb    = nullptr;
+    SimWinOutBuffer *winOut = nullptr;
 };
 
 //-----------------------------------------------------------------------------------------------------------
@@ -1107,208 +1353,48 @@ private:
 // and cannot be disabled. It is intended to be a scrollable window, where only the banner line is fixed.
 //
 //-----------------------------------------------------------------------------------------------------------
-struct DrvWinCommands : DrvWinTerm {
+struct SimCommandsWin : SimWin {
     
 public:
     
-    DrvWinCommands( VCPU32Globals *glb );
+    SimCommandsWin( VCPU32Globals *glb );
     
-    void setDefaults( );
-    void drawBanner( );
-    void drawBody( );
-};
-
-//-----------------------------------------------------------------------------------------------------------
-// The window display screen object is the central object that represents the screen where we have windows
-// turned on. All commands send from the command input in windows mode will eventually end up as calls to
-// this object. A screen is an ordered list of windows. Although you can disable a window such that it
-// disappears on the screen, when enabled, it will show up in the place intended for it. For example, the
-// program state register window will always be on top, follow by the special regs, followed by the pipeline
-// regs. The command input scroll area is always last and is the only window that cannot be disabled.
-//
-//-----------------------------------------------------------------------------------------------------------
-struct DrvWinDisplay {
-    
-public:
-    
-    DrvWinDisplay( VCPU32Globals *glb );
-    
-    void            reDraw( bool mustRedraw = false );
-    
-    void            windowsOn( );
-    void            windowsOff( );
-    void            windowDefaults( );
-    void            windowCurrent( int winNum = 0 );
-    void            windowEnable( TokId winCmd, int winNum = 0, bool show = true );
-    void            winStacksEnable( bool arg );
-    void            windowRadix( TokId winCmd, int rdx, int winNum = 0 );
-    void            windowSetRows( TokId winCmd, int rows, int winNum = 0 );
-    
-    void            windowHome( TokId winCmd, int amt, int winNum = 0 );
-    void            windowForward( TokId winCmd, int amt, int winNum = 0 );
-    void            windowBackward( TokId winCmd, int amt, int winNum = 0 );
-    void            windowJump( TokId winCmd, int amt, int winNum = 0 );
-    void            windowToggle( int winNum = 0 );
-    void            windowExchangeOrder( int winNum );
-    void            windowNew( TokId winType = TOK_NIL, char *argStr = nullptr );
-    void            windowKill( int winNumStart, int winNumEnd = 0  );
-    void            windowSetStack( int winStack, int winNumStart, int winNumEnd = 0 );
-    
-    int             getCurrentUserWindow( );
-    void            setCurrentUserWindow( int num );
-    int             getFirstUserWinIndex( );
-    int             getLastUserWinIndex( );
-    bool            validWindowNum( int num );
-    bool            validUserWindowNum( int num );
-    bool            validWindowStackNum( int num );
-    bool            validUserWindowType( TokId winType );
-    bool            isCurrentWin( int winNum );
-    bool            isWinEnabled( int winNum );
-    
-    void            clearScreen( );
-    void            setAbsCursor( int row, int col );
-    void            setWindowSize( int row, int col );
-    void            setScrollArea( int start, int end );
-    void            clearScrollArea( );
-    
-private:
-    
-    int             computeColumnsNeeded( int winStack );
-    int             computeRowsNeeded( int winStack );
-    void            setWindowColumns( int winStack, int columns );
-    void            setWindowOrigins( int winStack, int rowOffset = 1, int colOffset = 1 );
-    
-    int             actualRowSize       = 0;
-    int             actualColumnSize    = 0;
-    int             currentUserWinNum   = -1;
-    bool            winStacksOn         = true;
-    
-    VCPU32Globals   *glb                = nullptr;
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The line mode display functions. This class combines most of the line mode display functions for displaying
-// registers, memory content, data entries and so on.
-//
-//------------------------------------------------------------------------------------------------------------
-struct DrvLineDisplay {
-    
-public:
-    
-    DrvLineDisplay( VCPU32Globals *glb );
-    
-    void        lineDefaults( );
-    void        displayInvalidWord( int rdx );
-    void        displayWord( uint32_t val, int rdx = 16 );
-    void        displayHalfWord( uint32_t val, int rdx = 16 );
-    void        displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx = 16 );
-    void        displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, int rdx = 16 );
-    
-    void        displayGeneralRegSet( int rdx = 16 );
-    void        displaySegmentRegSet( int rdx = 16);
-    void        displayControlRegSet( int rdx = 16 );
-    void        displayPStateRegSet( int rdx = 16 );
-    void        displayPlIFetchDecodeRegSet( int rdx = 16 );
-    void        displayPlMemoryAccessRegSet( int rdx = 16 );
-    void        displayPlExecuteRegSet( int rdx = 16 );
-    void        displayPlRegSets( int rdx = 16 );
-    void        displayAllRegSets( int rdx = 16 );
-    void        displayTlbEntry( TlbEntry *entry, int rdx = 16 );
-    void        displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, int rdx = 16 );
-    void        displayCacheEntries( CpuMem *cache, uint32_t index, uint32_t len, int rdx = 16 );
-    void        displayMemObjRegSet( CpuMem *mem, int rdx = 16 );
-    void        displayTlbObjRegSet( CpuTlb *tlb, int rdx = 16 );
-    
-private:
-    
-    void        displayRegsAndLabel( RegClass   regSetId,
-                                    int         regStart,
-                                    int         numOfRegs   = 4,
-                                    char        *LineLabel  = ((char *)"" ),
-                                    int         rdx = 16 );
-    
-    VCPU32Globals *glb = nullptr;
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The disassembler function. The disassembler takes a machine instruction word and displays it in human
-// readable form.
-//
-//------------------------------------------------------------------------------------------------------------
-struct DrvDisAssembler {
-    
-public:
-    
-    DrvDisAssembler( VCPU32Globals *glb );
-    
-    int formatOpCodeAndOptions( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
-    int formatTargetAndOperands( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
-    int formatInstr( char *buf, int bufLen, uint32_t instr, int rdx = 16 );
-    int displayInstr( uint32_t instr, int rdx = 16 );
-    
-    int getOpCodeOptionsFieldWidth( );
-    int getTargetAndOperandsFieldWidth( );
-    
-private:
-    
-    VCPU32Globals *glb = nullptr;
-};
-
-//------------------------------------------------------------------------------------------------------------
-// A simple one line assembler. This object is the counter part to the disassembler. We will parse a one
-// line input string for a valid instruction, using the syntax of the real assembler. There will be no
-// labels and comments, only the opcode and the operands.
-//
-//------------------------------------------------------------------------------------------------------------
-struct DrvOneLineAsm {
-    
-public:
-    
-    DrvOneLineAsm( VCPU32Globals *glb );
-    ErrMsgId parseAsmLine( char *inputStr, uint32_t *instr );
-    
-private:
-    
-    VCPU32Globals   *glb = nullptr;
-    char            *inputStr;
-    
-};
-
-//------------------------------------------------------------------------------------------------------------
-// The CPU driver main object. This objects implements the command interpreter loop. It is essentially a list
-// of the command handlers and the functions needed to read in and analyze a command line.
-//
-//------------------------------------------------------------------------------------------------------------
-struct DrvCmds {
-    
-    public:
-    
-    DrvCmds( VCPU32Globals *glb );
-   
-    void            setupCmdInterpreter( int argc, const char *argv[ ] );
-    void            printWelcome( );
-    TokId           getCurrentCmd( );
+    void            setDefaults( );
+    void            drawBanner( );
+    void            drawBody( );
+    SimTokId        getCurrentCmd( );
     void            cmdInterpreterLoop( );
+    
+private:
+    
+    void            printWelcome( );
+    int             buildCmdPrompt( char *promptStr, int promptStrLen );
+    int             readCmdLine( char *cmdBuf, int initialCmdBufLen, char *promptStr );
+    
+    void            evalInputLine( char *cmdBuf );
+    void            cmdLineError( SimErrMsgId errNum, char *argStr = nullptr );
+    int             promptYesNoCancel( char *promptStr );
   
-    private:
-    
-    void            cmdLineError( ErrMsgId errNum, char *argStr = nullptr );
-    
     void            checkEOS( );
     void            acceptComma( );
     void            acceptLparen( );
     void            acceptRparen( );
     
-    void            promptCmdLine( );
-    int             readInputLine( char *cmdBuf );
-    void            evalInputLine( char *cmdBuf );
-    void            execCmdsFromFile( char* fileName );
+    void            displayInvalidWord( int rdx );
+    void            displayWord( uint32_t val, int rdx = 16 );
+    void            displayHalfWord( uint32_t val, int rdx = 16 );
+    void            displayAbsMemContent( uint32_t ofs, uint32_t len, int rdx = 16 );
+    void            displayAbsMemContentAsCode( uint32_t ofs, uint32_t len, int rdx = 16 );
+    void            displayTlbEntry( TlbEntry *entry, int rdx = 16 );
+    void            displayTlbEntries( CpuTlb *tlb, uint32_t index, uint32_t len, int rdx = 16 );
+    void            displayCacheEntries( CpuMem *cache, uint32_t index, uint32_t len, int rdx = 16 );
     
     void            exitCmd( );
     void            helpCmd( );
     void            envCmd( );
     void            execFileCmd( );
     void            writeLineCmd( );
+    void            execCmdsFromFile( char* fileName );
     
     void            histCmd( );
     void            doCmd( );
@@ -1318,12 +1404,14 @@ struct DrvCmds {
     void            runCmd( );
     void            stepCmd( );
    
-    void            displayRegCmd( );
     void            modifyRegCmd( );
+    
     void            displayAbsMemCmd( );
     void            modifyAbsMemCmd( );
+    
     void            displayCacheCmd( );
     void            purgeCacheCmd( );
+    
     void            displayTLBCmd( );
     void            insertTLBCmd( );
     void            purgeTLBCmd( );
@@ -1335,15 +1423,15 @@ struct DrvCmds {
     void            winStacksDisable( );
 
     void            winCurrentCmd( );
-    void            winEnableCmd( TokId winCmd );
-    void            winDisableCmd( TokId winCmd );
-    void            winSetRadixCmd( TokId winCmd );
+    void            winEnableCmd( SimTokId winCmd );
+    void            winDisableCmd( SimTokId winCmd );
+    void            winSetRadixCmd( SimTokId winCmd );
     
-    void            winForwardCmd( TokId winCmd );
-    void            winBackwardCmd( TokId winCmd );
-    void            winHomeCmd( TokId winCmd );
-    void            winJumpCmd( TokId winCmd );
-    void            winSetRowsCmd( TokId winCmd );
+    void            winForwardCmd( SimTokId winCmd );
+    void            winBackwardCmd( SimTokId winCmd );
+    void            winHomeCmd( SimTokId winCmd );
+    void            winJumpCmd( SimTokId winCmd );
+    void            winSetRowsCmd( SimTokId winCmd );
     void            winNewWinCmd( );
     void            winKillWinCmd( );
     void            winSetStackCmd( );
@@ -1352,10 +1440,87 @@ struct DrvCmds {
     
     private:
     
-    VCPU32Globals   *glb       = nullptr;
-    bool            winModeOn  = false;
-    TokId           currentCmd = TOK_NIL;
-    int             promptLen  = 0;
+    VCPU32Globals           *glb            = nullptr;
+    SimCmdHistory           *hist           = nullptr;
+    SimTokenizer            *tok            = nullptr;
+    SimExprEvaluator        *eval           = nullptr;
+    SimWinOutBuffer      *winOut         = nullptr;
+    SimCommandsWin          *cmdWin         = nullptr;
+    SimDisAsm               *disAsm         = nullptr;
+   
+    SimTokId                currentCmd      = TOK_NIL;
+   
+};
+
+//-----------------------------------------------------------------------------------------------------------
+// The window display screen object is the central object that represents the simulator. All commands send
+// from the command input will eventually end up as calls to this object. A simulator screen is an ordered
+// list of windows. Although you can disable a window such that it disappears on the screen, when enabled,
+// it will show up in the place intended for it. For example, the program state register window will always
+// be on top, follow by the special regs, followed by the pipeline regs. The command input scroll area is
+// always last and is the only window that cannot be disabled. In addition, windows can be grouped in stacks
+// that are displayed next to each other. The excpetion is the command window area which is always displyed
+// across the entire terminal window width.
+//
+//-----------------------------------------------------------------------------------------------------------
+struct SimWinDisplay {
+    
+public:
+    
+    SimWinDisplay( VCPU32Globals *glb );
+    
+    void            setupWinDisplay( int argc, const char *argv[ ] );
+    void            startWinDisplay( );
+    SimTokId        getCurrentCmd( );
+    bool            isWinModeOn( );
+    
+    void            reDraw( bool mustRedraw = false );
+    void            setWinMode( bool winOn );
+    
+    void            windowsOn( );
+    void            windowsOff( );
+    void            windowDefaults( );
+    void            windowCurrent( int winNum = 0 );
+    void            windowEnable( SimTokId winCmd, int winNum = 0, bool show = true );
+    void            winStacksEnable( bool arg );
+    void            windowRadix( SimTokId winCmd, int rdx, int winNum = 0 );
+    void            windowSetRows( SimTokId winCmd, int rows, int winNum = 0 );
+    
+    void            windowHome( SimTokId winCmd, int amt, int winNum = 0 );
+    void            windowForward( SimTokId winCmd, int amt, int winNum = 0 );
+    void            windowBackward( SimTokId winCmd, int amt, int winNum = 0 );
+    void            windowJump( SimTokId winCmd, int amt, int winNum = 0 );
+    void            windowToggle( int winNum = 0 );
+    void            windowExchangeOrder( int winNum );
+    void            windowNew( SimTokId winType = TOK_NIL, char *argStr = nullptr );
+    void            windowKill( int winNumStart, int winNumEnd = 0  );
+    void            windowSetStack( int winStack, int winNumStart, int winNumEnd = 0 );
+    
+    int             getCurrentUserWindow( );
+    void            setCurrentUserWindow( int num );
+    int             getFirstUserWinIndex( );
+    int             getLastUserWinIndex( );
+    bool            validWindowNum( int num );
+    bool            validUserWindowNum( int num );
+    bool            validWindowStackNum( int num );
+    bool            validUserWindowType( SimTokId winType );
+    bool            isCurrentWin( int winNum );
+    bool            isWinEnabled( int winNum );
+    
+private:
+    
+    int             computeColumnsNeeded( int winStack );
+    int             computeRowsNeeded( int winStack );
+    void            setWindowColumns( int winStack, int columns );
+    void            setWindowOrigins( int winStack, int rowOffset = 1, int colOffset = 1 );
+   
+    int             currentUserWinNum           = -1;
+    bool            winStacksOn                 = true;
+    bool            winModeOn                   = true;
+
+    VCPU32Globals   *glb                        = nullptr;
+    SimCommandsWin  *cmdWin                     = nullptr;
+    SimWin          *windowList[ MAX_WINDOWS ]  = { nullptr };
     
 };
 
@@ -1368,18 +1533,10 @@ struct DrvCmds {
 //------------------------------------------------------------------------------------------------------------
 struct VCPU32Globals {
     
-    DrvConsoleIO        *console        = nullptr;
-    DrvTokenizer        *tok            = nullptr;
-    DrvExprEvaluator    *eval           = nullptr;
-    DrvDisAssembler     *disAsm         = nullptr;
-    DrvOneLineAsm       *oneLineAsm     = nullptr;
-    DrvLineDisplay      *lineDisplay    = nullptr;
-    DrvWinDisplay       *winDisplay     = nullptr;
-    DrvCmds             *cmds           = nullptr;
-    DrvEnv              *env            = nullptr;
-    DrvCmdHistory       *hist           = nullptr;
-   
+    SimConsoleIO        *console        = nullptr;
+    SimEnv              *env            = nullptr;
+    SimWinDisplay       *winDisplay     = nullptr;
     CpuCore             *cpu            = nullptr;
 };
 
-#endif  // VCPU32Driver_h
+#endif  // VCPU32SimDeclarations_h

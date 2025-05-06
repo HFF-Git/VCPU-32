@@ -40,6 +40,17 @@ enum FileTypes : uint16_t {
 };
 
 //------------------------------------------------------------------------------------------------------------
+// File Flags.
+//
+//------------------------------------------------------------------------------------------------------------
+enum FileFlags : uint16_t {
+    
+  FF_NO_FLAGS       = 0x0000,
+  FF_LITTLE_ENDIAN  = 0x0001
+    
+};
+
+//------------------------------------------------------------------------------------------------------------
 // Segment Types.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -70,9 +81,9 @@ enum SectionTypes : uint16_t {
     
     SEC_T_GLOBAL_INIT       = 10,
     SEC_T_GLOBAL_NON_INIT   = 11,
-    SEC_T_PRIV_NON_INIT     = 12,
-    SEC_T_PRIV_STACK        = 13,
-
+    SEC_T_PRIV_INIT         = 12,
+    SEC_T_PRIV_NON_INIT     = 13,
+    
 };
 
 enum SectionFlags : uint16_t {
@@ -109,6 +120,7 @@ struct FileHeader {
     uint32_t        magicWord;                  // quick check if the file is a VCPU32 file.
     FileTypes       fileType;                   // VCPU32 file type.
     uint16_t        fileVersion;                // VCPU32 file version.
+    uint16_t        fileFlags;                  // File flags.
     
     uint32_t        segTabOfs;                  // Header relative offset of the segement table.
     uint32_t        segTabEntrySize;            // Segement table entry size.
@@ -158,12 +170,12 @@ struct SectionEntry {
     uint32_t        nameOfs;                    // Header relative offset to the name in name Tab.
     uint32_t        segIndex;                   // Index of segment in segment tab.
     uint32_t        secIndex;                   // Index of section start in section tab.
-    
+
     uint32_t        secSegOfs;                  // Segment relative offset of section in segment.
     uint32_t        secSize;                    // Segment relative offset of section in segment.
     uint16_t        secAlignment;               // Alignment of the section.
     
-    uint32_t        secFileOfs;                 // Header relative offset of the seftion in the file.
+    uint32_t        secFileOfs;                 // Header relative offset of the section in the file.
     
     // ... more to come ...
 };

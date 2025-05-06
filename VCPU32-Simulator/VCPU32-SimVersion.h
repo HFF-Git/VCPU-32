@@ -3,7 +3,10 @@
 //  VCPU32 - A 32-bit CPU Version ID
 //
 //------------------------------------------------------------------------------------------------------------
-// The whole purpose of  this file is to define the current Version String.
+// The whole purpose of  this file is to define the current Version String. We also set a constant to use
+// for APPle vs. Windows specific coding. We use it in the command handler. It is not designed for compiling
+// different code sequence, but rather make logical decisions on some ouput specifics, such as carriage return
+// handling.
 //
 //------------------------------------------------------------------------------------------------------------
 //
@@ -20,11 +23,17 @@
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //------------------------------------------------------------------------------------------------------------
-#ifndef VCPU32Version_hpp
-#define VCPU32Version_hpp
+#ifndef VCPU32SimVersion_h
+#define VCPU32SimVersion_h
 
 const char SIM_VERSION[ ]   = "B.00.09";
-const char SIM_GIT_BRANCH[] = "main";
-const int  SIM_PATCH_LEVEL  = 2;
+const char SIM_GIT_BRANCH[] = "Terminal-Win-Changes";
+const int  SIM_PATCH_LEVEL  = 16;
 
+#if __APPLE__
+const bool SIM_IS_APPLE = true;
+#else
+const bool SIM_IS_APPLE = false;
 #endif
+
+#endif // VCPU32SimVersion_h

@@ -555,6 +555,12 @@ void ExecuteStage::process( ) {
             
         } break;
             
+        case OP_LDR: {
+            
+            // ??? do anything here, or do in EX stage ?
+            
+        } break;
+            
         case OP_LDIL:
         case OP_LDO: {
             
@@ -622,6 +628,14 @@ void ExecuteStage::process( ) {
         case OP_STA:    {
             
             if ( getBit( instr, 11 )) core -> gReg[ getBitField( instr, 31, 4 ) ].set( psValX.get( ));
+            
+        } break;
+            
+        case OP_STC: {
+            
+            // ??? need to store the result ...
+            uint32_t valR = 0;
+            core -> gReg[ getBitField( instr, 9, 4 ) ].set( valR );
             
         } break;
             

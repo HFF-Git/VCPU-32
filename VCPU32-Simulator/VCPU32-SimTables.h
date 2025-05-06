@@ -30,7 +30,7 @@
 // The value allows for a constant token. The parser can directly use the value in expressions.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvToken const cmdTokTab[ ] = {
+const SimToken cmdTokTab[ ] = {
     
     //--------------------------------------------------------------------------------------------------------
     // General tokens.
@@ -60,13 +60,9 @@ DrvToken const cmdTokTab[ ] = {
     //
     //--------------------------------------------------------------------------------------------------------
     { .name = "COMMANDS",           .typ = TYP_CMD,                 .tid = CMD_SET                          },
-    
     { .name = "WCOMMANDS",          .typ = TYP_WCMD,                .tid = WCMD_SET                         },
-    
     { .name = "PREDEFINED",         .typ = TYP_PREDEFINED_FUNC,     .tid = PF_SET                           },
-    
     { .name = "REGSET",             .typ = TYP_RSET,                .tid = REG_SET                          },
-    
     { .name = "WTYPES",             .typ = TYP_WTYP,                .tid = WTYPE_SET                        },
     
     //--------------------------------------------------------------------------------------------------------
@@ -269,11 +265,9 @@ DrvToken const cmdTokTab[ ] = {
     //--------------------------------------------------------------------------------------------------------
     { .name = "FD_PSW0",            .typ = TYP_FD_PREG,         .tid = FD_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "FD_PSW1",            .typ = TYP_FD_PREG,         .tid = FD_PSW1,             .val = PSTAGE_REG_ID_PSW_1      },
-    { .name = "PLFD",               .typ = TYP_FD_PREG,         .tid = FD_SET,              .val = 0                        },
-    
+  
     { .name = "PSW0",               .typ = TYP_FD_PREG,         .tid = FD_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "PSW1",               .typ = TYP_FD_PREG,         .tid = FD_PSW1,             .val = PSTAGE_REG_ID_PSW_1      },
-    { .name = "PS",                 .typ = TYP_FD_PREG,         .tid = FD_SET,              .val = 0                        },
     
     { .name = "MA_PSW0",            .typ = TYP_MA_PREG,         .tid = MA_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "MA_PSW1",            .typ = TYP_MA_PREG,         .tid = MA_PSW1,             .val = PSTAGE_REG_ID_PSW_0      },
@@ -282,8 +276,7 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "MA_B",               .typ = TYP_MA_PREG,         .tid = MA_B,                .val = PSTAGE_REG_ID_VAL_B      },
     { .name = "MA_X",               .typ = TYP_MA_PREG,         .tid = MA_X,                .val = PSTAGE_REG_ID_VAL_X      },
     { .name = "MA_S",               .typ = TYP_MA_PREG,         .tid = MA_S,                .val = PSTAGE_REG_ID_VAL_S      },
-    { .name = "PLMA",               .typ = TYP_MA_PREG,         .tid = MA_SET,              .val = 0                        },
-    
+   
     { .name = "EX_PSW0",            .typ = TYP_EX_PREG,         .tid = EX_PSW0,             .val = PSTAGE_REG_ID_PSW_0      },
     { .name = "EX_PSW1",            .typ = TYP_EX_PREG,         .tid = EX_PSW1,             .val = PSTAGE_REG_ID_PSW_1      },
     { .name = "EX_INSTR",           .typ = TYP_EX_PREG,         .tid = EX_INSTR,            .val = PSTAGE_REG_ID_INSTR      },
@@ -291,7 +284,6 @@ DrvToken const cmdTokTab[ ] = {
     { .name = "EX_B",               .typ = TYP_EX_PREG,         .tid = EX_B,                .val = PSTAGE_REG_ID_VAL_B      },
     { .name = "EX_X",               .typ = TYP_EX_PREG,         .tid = EX_X,                .val = PSTAGE_REG_ID_VAL_X      },
     { .name = "EX_S",               .typ = TYP_EX_PREG,         .tid = EX_S,                .val = PSTAGE_REG_ID_VAL_S      },
-    { .name = "PLEX",               .typ = TYP_EX_PREG,         .tid = EX_SET,              .val = 0                        },
     
     //--------------------------------------------------------------------------------------------------------
     // I-Cache register tokens.
@@ -385,14 +377,14 @@ DrvToken const cmdTokTab[ ] = {
     
 };
 
-const int MAX_CMD_TOKEN_TAB = sizeof( cmdTokTab ) / sizeof( DrvToken );
+const int MAX_CMD_TOKEN_TAB = sizeof( cmdTokTab ) / sizeof( SimToken );
 
 //------------------------------------------------------------------------------------------------------------
 // The error message table. Each entry has the error number and the corresponding error message text.
 //
 // ??? sort the entries... a little ...
 //------------------------------------------------------------------------------------------------------------
-DrvErrMsgTabEntry const errMsgTab [ ] = {
+const SimErrMsgTabEntry errMsgTab [ ] = {
     
     { .errNum = NO_ERR,                         .errStr = (char *) "NO_ERR" },
     { .errNum = ERR_NOT_SUPPORTED,              .errStr = (char *) "Command or Function not supported (yet)" },
@@ -414,6 +406,7 @@ DrvErrMsgTabEntry const errMsgTab [ ] = {
     { .errNum = ERR_INVALID_S_OP_CODE,          .errStr = (char *) "Invalid synthetic instruction opcode" },
     { .errNum = ERR_INVALID_FMT_OPT,            .errStr = (char *) "Invalid format option" },
     { .errNum = ERR_INVALID_WIN_TYPE,           .errStr = (char *) "Invalid window type" },
+    { .errNum = ERR_INVALID_CMD_ID,             .errStr = (char *) "Invalid command Id" },
     
     { .errNum = ERR_EXPECTED_INSTR_VAL,         .errStr = (char *) "Expected the instruction value" },
     { .errNum = ERR_EXPECTED_FILE_NAME,         .errStr = (char *) "Expected a file name" },
@@ -427,7 +420,7 @@ DrvErrMsgTabEntry const errMsgTab [ ] = {
     { .errNum = ERR_EXPECTED_REG_OR_SET,        .errStr = (char *) "Expected a register or register set" },
     { .errNum = ERR_EXPECTED_NUMERIC,           .errStr = (char *) "Expected a numeric value" },
     { .errNum = ERR_EXPECTED_EXT_ADR,           .errStr = (char *) "Expected a virtual address" },
-    { .errNum = ERR_EXPECTED_GENERAL_REG,       .errStr = (char *) "Expression a general reg" },
+    { .errNum = ERR_EXPECTED_GENERAL_REG,       .errStr = (char *) "Expected a general reg" },
     { .errNum = ERR_EXPECTED_STEPS,             .errStr = (char *) "Expected number of steps/instr" },
     { .errNum = ERR_EXPECTED_START_OFS,         .errStr = (char *) "Expected start offset" },
     { .errNum = ERR_EXPECTED_LEN,               .errStr = (char *) "Expected length argument" },
@@ -479,14 +472,14 @@ DrvErrMsgTabEntry const errMsgTab [ ] = {
     
 };
 
-const int MAX_ERR_MSG_TAB = sizeof( errMsgTab ) / sizeof( DrvErrMsgTabEntry );
+const int MAX_ERR_MSG_TAB = sizeof( errMsgTab ) / sizeof( SimErrMsgTabEntry );
 
 //------------------------------------------------------------------------------------------------------------
 // Help message text table. Each entry has a type field, a token field, a command syntax field and an
 // explanation field.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvHelpMsgEntry const cmdHelpTab[ ] = {
+const SimHelpMsgEntry cmdHelpTab[ ] = {
     
     //--------------------------------------------------------------------------------------------------------
     // Commands.
@@ -504,6 +497,27 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
         .cmdNameStr     = (char *) "exit",
         .cmdSyntaxStr   = (char *) "exit (e) [ <val> ]",
         .helpStr        = (char *) "program exit"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_HIST,
+        .cmdNameStr     = (char *) "hist",
+        .cmdSyntaxStr   = (char *) "hist [ depth ]",
+        .helpStr        = (char *) "command history"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_DO,
+        .cmdNameStr     = (char *) "do",
+        .cmdSyntaxStr   = (char *) "do [ cmdNum ]",
+        .helpStr        = (char *) "re-execute command"
+    },
+    
+    {
+        .helpTypeId = TYP_CMD,  .helpTokId  = CMD_REDO,
+        .cmdNameStr     = (char *) "redo",
+        .cmdSyntaxStr   = (char *) "redo [ cmdNum ]",
+        .helpStr        = (char *) "edit and then re-execute command"
     },
     
     {
@@ -641,7 +655,6 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     // Window commands and types.
     //
     //--------------------------------------------------------------------------------------------------------
-    
     {
         .helpTypeId = TYP_WCMD,  .helpTokId  = CMD_WOFF,
         .cmdNameStr     = (char *) "woff",
@@ -928,7 +941,7 @@ DrvHelpMsgEntry const cmdHelpTab[ ] = {
     }
 };
 
-const int MAX_CMD_HELP_TAB = sizeof( cmdHelpTab ) / sizeof( DrvHelpMsgEntry );
+const int MAX_CMD_HELP_TAB = sizeof( cmdHelpTab ) / sizeof( SimHelpMsgEntry );
 
 //------------------------------------------------------------------------------------------------------------
 // The global token table or the one line assembler. All reserved words are allocated in this table. Each
@@ -936,7 +949,7 @@ const int MAX_CMD_HELP_TAB = sizeof( cmdHelpTab ) / sizeof( DrvHelpMsgEntry );
 // token. The value allows for a constant token. The parser can directly use the value in expressions.
 //
 //------------------------------------------------------------------------------------------------------------
-DrvToken const asmTokTab[ ] = {
+const SimToken asmTokTab[ ] = {
     
     //--------------------------------------------------------------------------------------------------------
     // General registers.
@@ -1144,6 +1157,6 @@ DrvToken const asmTokTab[ ] = {
      
 };
 
-const int MAX_ASM_TOKEN_TAB = sizeof( asmTokTab ) / sizeof( DrvToken );
+const int MAX_ASM_TOKEN_TAB = sizeof( asmTokTab ) / sizeof( SimToken );
 
 #endif  // VCPU32DriverTables_h
