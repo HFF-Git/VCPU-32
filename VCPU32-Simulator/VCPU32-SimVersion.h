@@ -27,8 +27,8 @@
 #define VCPU32SimVersion_h
 
 const char SIM_VERSION[ ]   = "B.00.09";
-const char SIM_GIT_BRANCH[] = "Terminal-Win-Changes";
-const int  SIM_PATCH_LEVEL  = 16;
+const char SIM_GIT_BRANCH[] = "main";
+const int  SIM_PATCH_LEVEL  = 2;
 
 #if __APPLE__
 const bool SIM_IS_APPLE = true;
