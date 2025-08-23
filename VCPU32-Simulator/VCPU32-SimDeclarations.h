@@ -26,6 +26,7 @@
 #include "VCPU32-SimConsoleIO.h"
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
+#include "elfio.hpp"
 
 //------------------------------------------------------------------------------------------------------------
 // General screen structure:
@@ -35,12 +36,12 @@
 //          v       :-------------------------------------------------------------------------------:
 //        rows      :                                                                               :
 //     (absolute)   :                                                                               :
-//                  :              Active windows shown space                                            :
+//                  :              Active windows shown space                                       :
 //                  :                                                                               :
 //                  :                                                                               :
 //                  :-------------------------------------------------------------------------------:
 //                  :                                                                               :
-//                  :              Command Window space                                                  :
+//                  :              Command Window space                                             :
 //                  :                                                                               :
 //                  :-------------------------------------------------------------------------------:
 //
@@ -1394,7 +1395,9 @@ private:
     void            envCmd( );
     void            execFileCmd( );
     void            writeLineCmd( );
-    void            execCmdsFromFile( char* fileName );
+    void            execCmdsFromFile( char *fileName );
+    
+    void            loadElfFile( char *fileName );
     
     void            histCmd( );
     void            doCmd( );

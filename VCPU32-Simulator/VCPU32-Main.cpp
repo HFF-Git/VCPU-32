@@ -18,7 +18,6 @@
 //
 //------------------------------------------------------------------------------------------------------------
 #include "VCPU32-Types.h"
-#include "VCPU32-File-Format.h"
 #include "VCPU32-SimDeclarations.h"
 #include "VCPU32-SimTables.h"
 #include "VCPU32-Core.h"
