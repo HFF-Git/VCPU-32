@@ -1398,7 +1398,6 @@ private:
     void            loadElfFileCmd( );
     void            writeLineCmd( );
     void            execCmdsFromFile( char *fileName );
-    
     void            loadElfFile( char *fileName );
     
     void            histCmd( );

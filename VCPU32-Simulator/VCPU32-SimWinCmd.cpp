@@ -1218,7 +1218,7 @@ void SimCommandsWin::envCmd( ) {
     }
     else if ( tok -> tokTyp( ) == TYP_IDENT ) {
         
-        char envName[ MAX_ENV_NAME_SIZE ];e
+        char envName[ MAX_ENV_NAME_SIZE ];
         
         strcpy( envName, tok -> tokStr( ));
         upshiftStr( envName );
