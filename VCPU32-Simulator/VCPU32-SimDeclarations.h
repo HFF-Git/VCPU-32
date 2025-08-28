@@ -840,8 +840,10 @@ struct SimEnv {
     
     SimEnv( uint32_t size );
     
-    uint8_t         displayEnvTable( );
-    uint8_t         displayEnvTableEntry( char *name );
+    int             formatEnvEntry( char *name, char *buf, int bufLen );
+    int             formatEnvEntry( int index, char *buf, int bufLen );
+    int             getEnvHwm( );
+    
     void            setupPredefined( );
     
     void            setEnvVar( char *name, int iVal );
@@ -874,8 +876,6 @@ struct SimEnv {
     void            enterEnvVar( char *name, bool bVal, bool predefined = false, bool rOnly = false );
     void            enterEnvVar( char *name, char *str, bool predefined = false, bool rOnly = false );
     void            enterEnvVar( char *name, uint32_t seg, uint32_t ofs, bool predefined = false, bool rOnly = false );
-    
-    uint8_t         displayEnvTableEntry( SimEnvTabEntry *entry );
     
     SimEnvTabEntry  *table  = nullptr;
     SimEnvTabEntry  *hwm    = nullptr;

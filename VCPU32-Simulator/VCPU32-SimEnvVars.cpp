@@ -36,15 +36,6 @@ namespace {
 }; // namespace
 
 
-
-
-// !!!???? need to fix the display logic. We need to write to the winOut object and not fprintf.
-// Twin-64 reworked this coding to juats work on buffers that are then printed in the command handler.
-
-
-
-
-
 //************************************************************************************************************
 //************************************************************************************************************
 //
@@ -382,6 +373,11 @@ SimEnvTabEntry *SimEnv::getEnvVarEntry( char *name ) {
     else return( nullptr );
 }
 
+int SimEnv::getEnvHwm( ) {
+
+    return((int) ( hwm - table ));
+}
+
 //------------------------------------------------------------------------------------------------------------
 // Look a variable. We just do a linear search up to the HWM. If not found a -1 is returned. Straightforward.
 //
@@ -423,74 +419,67 @@ int SimEnv::findFreeEntry( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
-// List the entire ENV table up to the high water mark.
-//
-//------------------------------------------------------------------------------------------------------------
-uint8_t SimEnv::displayEnvTable( ) {
-    
-    SimEnvTabEntry *entry = table;
-    
-    while ( entry < hwm ) {
-        
-        if ( entry -> valid ) displayEnvTableEntry( entry );
-        entry ++;
-    }
-    
-    return( NO_ERR );
-}
-
-//------------------------------------------------------------------------------------------------------------
 // Display a ENV entry by name.
 //
 //------------------------------------------------------------------------------------------------------------
-uint8_t SimEnv::displayEnvTableEntry( char *name ) {
+int SimEnv::formatEnvEntry( char *name, char *buf, int bufLen ) {
     
     int index = lookupEntry( name );
-    
-    if ( index >= 0 )   return( displayEnvTableEntry( &table[ index ] ));
-    else                return( 99 );
+    return( formatEnvEntry( index, buf, bufLen ));
 }
 
 //------------------------------------------------------------------------------------------------------------
 // Display the ENV entry.
 //
 // ??? what about the uVal variables.... TYP_NUM is not correct ...
-    
-
-// rework to return a buffer to be printed elsewhere...
-    
-    
+//
 //------------------------------------------------------------------------------------------------------------
-uint8_t SimEnv::displayEnvTableEntry( SimEnvTabEntry *entry ) {
+int SimEnv::formatEnvEntry( int index, char *buf, int bufLen ) {
     
-    fprintf( stdout, "%-32s", entry -> name );
-    
-    switch ( entry -> typ ) {
-            
-        case TYP_NUM:       fprintf( stdout, "NUM:     %i", entry -> iVal ); break;
-        case TYP_EXT_ADR:   fprintf( stdout, "EXT_ADR: 0x%04x.0x%08x", entry -> seg, entry -> ofs ); break;
-            
-        case TYP_STR: {
-            
-            // ??? any length checks ?
-            fprintf( stdout, "STR:     \"%s\"", entry -> strVal );
-            
-        } break;
-            
-        case TYP_BOOL:      {
-            
-            if ( entry -> bVal ) fprintf( stdout, "BOOL:    TRUE");
-            else                 fprintf( stdout, "BOOL:    FALSE"); break;
+    if (( index >= 0 ) && ( index < ( hwm - table ))) {
         
-        } break;
+        SimEnvTabEntry *e = &table[ index ];
         
-        default: printf( "Unknown type" );
+        if ( e -> valid ) {
+            
+            int len = snprintf( buf, 128, "%-32s", e -> name );
+            
+            switch ( e -> typ ) {
+                    
+                case TYP_NUM: {
+                    
+                    len += snprintf( buf + len, 128, "NUM:     %i", e -> iVal );
+                    
+                } break;
+                
+                case TYP_EXT_ADR:  {
+                    
+                    len += snprintf( buf + len, 128, "EXT_ADR: 0x%04x.0x%08x", e -> seg, e -> ofs );
+                } break;
+                    
+                case TYP_STR: {
+                    
+                    // ??? any length checks ?
+                    len += snprintf( buf + len, 128, "STR:     \"%s\"", e -> strVal );
+                    
+                } break;
+                    
+                case TYP_BOOL: {
+                    
+                    if ( e -> bVal )  len += snprintf( buf + len, 128, "BOOL:    TRUE");
+                    else              len += snprintf( buf + len, 128, "BOOL:    FALSE");
+                
+                } break;
+                
+                default:  len += snprintf( buf + len, 128, "Unknown type" );
+            }
+            
+            return( len );
+        }
     }
-    
-    fprintf( stdout, "\n" );
-    return( NO_ERR );
+   
+    return( 0 );
 }
-
 
 //------------------------------------------------------------------------------------------------------------
 // Enter the predefined entries.

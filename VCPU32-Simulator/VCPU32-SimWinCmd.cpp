@@ -1204,11 +1204,21 @@ void SimCommandsWin::envCmd( ) {
     
     if ( tok -> tokId( ) == TOK_EOS ) {
         
-        env -> displayEnvTable( );
+        int hwm = env -> getEnvHwm( );
+        
+        if ( hwm > 0 ) {
+
+            for ( int i = 0; i < hwm; i++ ) {
+
+                char buf[ 128 ];
+                int len = env -> formatEnvEntry( i, buf, sizeof( buf ));
+                if ( len > 0 ) winOut -> printChars( "%s\n", buf );
+            }
+        }
     }
     else if ( tok -> tokTyp( ) == TYP_IDENT ) {
         
-        char envName[ MAX_ENV_NAME_SIZE ];
+        char envName[ MAX_ENV_NAME_SIZE ];e
         
         strcpy( envName, tok -> tokStr( ));
         upshiftStr( envName );
@@ -1216,7 +1226,12 @@ void SimCommandsWin::envCmd( ) {
         tok -> nextToken( );
         if ( tok -> tokId( ) == TOK_EOS ) {
             
-            if ( env -> isValid( envName )) env -> displayEnvTableEntry( envName );
+            if ( env -> isValid( envName )) {
+                
+                char buf[ 128 ];
+                int len = env -> formatEnvEntry( envName, buf, sizeof( buf ));
+                if ( len > 0 ) winOut -> printChars( "%s\n", buf );
+            }
             else throw ( ERR_ENV_VAR_NOT_FOUND );
         }
         else {
