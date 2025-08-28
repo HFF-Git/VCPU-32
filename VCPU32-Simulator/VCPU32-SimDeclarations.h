@@ -26,7 +26,7 @@
 #include "VCPU32-SimConsoleIO.h"
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
-#include "elfio.hpp"
+#include <elfio/elfio.hpp>
 
 //------------------------------------------------------------------------------------------------------------
 // General screen structure:
@@ -306,7 +306,8 @@ enum SimTokId : uint16_t {
     CMD_EXIT                = 1001,     CMD_HELP                = 1002,
    
     CMD_DO                  = 1010,     CMD_REDO                = 1011,     CMD_HIST                = 1012,
-    CMD_ENV                 = 1013,     CMD_XF                  = 1014,     CMD_WRITE_LINE          = 1015,
+    CMD_ENV                 = 1013,     CMD_XF                  = 1014,     CMD_LF                  = 1015,
+    CMD_WRITE_LINE          = 1016,
     
     CMD_RESET               = 1020,     CMD_RUN                 = 1021,     CMD_STEP                = 1022,
     
@@ -1394,6 +1395,7 @@ private:
     void            helpCmd( );
     void            envCmd( );
     void            execFileCmd( );
+    void            loadElfFileCmd( );
     void            writeLineCmd( );
     void            execCmdsFromFile( char *fileName );
     

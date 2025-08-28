@@ -1248,6 +1248,22 @@ void SimCommandsWin::execFileCmd( ) {
 }
 
 //------------------------------------------------------------------------------------------------------------
+// Loads and ELF file and place the segments in main memiry - first version. The actual work is done in the
+// "loadElfFile" routine.
+//
+// LF "<filename>"
+//------------------------------------------------------------------------------------------------------------
+void SimCommandsWin::loadElfFileCmd( ) {
+    
+    if ( tok -> tokTyp( ) == TYP_STR ) {
+        
+        winOut -> printChars( "Load an ELF file - stay tuned ... \n" );
+        loadElfFile( tok -> tokStr( ));
+    }
+    else throw( ERR_EXPECTED_FILE_NAME );
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Reset command.
 //
 //  RESET [ ( 'CPU' | 'MEM' | 'STATS' | 'ALL' ) ]
@@ -2650,6 +2666,7 @@ void SimCommandsWin::evalInputLine( char *cmdBuf ) {
                     case CMD_HELP:          helpCmd( );                     break;
                     case CMD_ENV:           envCmd( );                      break;
                     case CMD_XF:            execFileCmd( );                 break;
+                    case CMD_LF:            loadElfFileCmd( );             break;
                         
                     case CMD_WRITE_LINE:    writeLineCmd( );                break;
                         

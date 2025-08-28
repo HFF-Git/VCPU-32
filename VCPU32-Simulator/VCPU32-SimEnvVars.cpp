@@ -36,6 +36,15 @@ namespace {
 }; // namespace
 
 
+
+
+// !!!???? need to fix the display logic. We need to write to the winOut object and not fprintf.
+// Twin-64 reworked this coding to juats work on buffers that are then printed in the command handler.
+
+
+
+
+
 //************************************************************************************************************
 //************************************************************************************************************
 //
@@ -445,7 +454,12 @@ uint8_t SimEnv::displayEnvTableEntry( char *name ) {
 //------------------------------------------------------------------------------------------------------------
 // Display the ENV entry.
 //
-// ??? what about the uVal variables.... TYP_NUM is not correct ....
+// ??? what about the uVal variables.... TYP_NUM is not correct ...
+    
+
+// rework to return a buffer to be printed elsewhere...
+    
+    
 //------------------------------------------------------------------------------------------------------------
 uint8_t SimEnv::displayEnvTableEntry( SimEnvTabEntry *entry ) {
     
