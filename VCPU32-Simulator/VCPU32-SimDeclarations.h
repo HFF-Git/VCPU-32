@@ -505,6 +505,11 @@ enum SimErrMsgId : uint16_t {
     ERR_INVALID_S_OP_CODE           = 28,
     ERR_INVALID_CMD_ID              = 29,
     
+    ERR_INVALID_ELF_FILE            = 40,
+    ERR_INVALID_ELF_BYTE_ORDER      = 41,
+    ERR_ELF_MEMORY_SIZE_EXCEEDED    = 42,
+    ERR_ELF_INVALID_ADR_RANGE       = 43,
+    
     ERR_EXPECTED_COMMA              = 100,
     ERR_EXPECTED_LPAREN             = 101,
     ERR_EXPECTED_RPAREN             = 102,
@@ -1448,7 +1453,7 @@ private:
     SimCmdHistory           *hist           = nullptr;
     SimTokenizer            *tok            = nullptr;
     SimExprEvaluator        *eval           = nullptr;
-    SimWinOutBuffer      *winOut         = nullptr;
+    SimWinOutBuffer         *winOut         = nullptr;
     SimCommandsWin          *cmdWin         = nullptr;
     SimDisAsm               *disAsm         = nullptr;
    

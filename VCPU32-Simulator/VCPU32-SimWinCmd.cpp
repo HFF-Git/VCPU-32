@@ -1272,7 +1272,6 @@ void SimCommandsWin::loadElfFileCmd( ) {
     
     if ( tok -> tokTyp( ) == TYP_STR ) {
         
-        winOut -> printChars( "Load an ELF file - stay tuned ... \n" );
         loadElfFile( tok -> tokStr( ));
     }
     else throw( ERR_EXPECTED_FILE_NAME );

@@ -55,23 +55,6 @@
 #include "VCPU32-Types.h"
 #include "VCPU32-Core.h"
 
-
-//------------------------------------------------------------------------------------------------------------
-// ??? what about a victim cache complement?
-//
-// We add this as an option to an L1 or L2 cache.
-//
-// Cache Hit: No action
-//
-// Cache Miss, Victim Hit: The block is in the victim cache and the one in the cache are replaced with each
-// other. This new entry in victim cache becomes the most recently used block.
-//
-// Cache Miss, Victim Miss: The block is brought to cache from next level. The block evicted from the cache
-// gets stored in Victim cache.
-//------------------------------------------------------------------------------------------------------------
-
-
-
 //------------------------------------------------------------------------------------------------------------
 // File local declarations. There are constants and routines used internally and not visible outside of this
 // file.
