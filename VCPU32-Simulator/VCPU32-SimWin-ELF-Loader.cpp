@@ -34,6 +34,18 @@ using namespace ELFIO;
 namespace {
 
 //------------------------------------------------------------------------------------------------------------
+// A little helper to convert the byte order.
+//
+//------------------------------------------------------------------------------------------------------------
+inline uint32_t swap32(uint32_t val) {
+    
+    return ((val & 0xFF) << 24) |
+           ((val & 0xFF00) << 8) |
+           ((val & 0xFF0000) >> 8) |
+           ((val & 0xFF000000) >> 24);
+}
+
+//------------------------------------------------------------------------------------------------------------
 // Open and close the ELF file. On opening we also check that it is a Big Endian type file.
 //
 //------------------------------------------------------------------------------------------------------------
@@ -94,19 +106,22 @@ bool writeMem( CpuCore *cpu, uint32_t ofs, uint32_t val ) {
 // physical memory. First we get the segment attributes and validate them for size, etc. Next we clear the
 // physical memory in the size of what it sould be according to the segment data. Next, we copy the segment
 // data word by word up to the segment file size attribute. Note that a segment needs to have loadable data.
+// Since our memory access is on a word basis, there is one more thing. The data is correctly encoded in
+// big endian format. Howeber, the coercion from that byte array to a word array will place the data in the
+// host system order, i.e. littlle endian. We need to swap each word accordigly.
 //
 //------------------------------------------------------------------------------------------------------------
 void loadSegmentIntoMemory( elfio *reader, segment *segment, CpuCore *cpu, SimWinOutBuffer *winOut ) {
     
     if ( segment ->get_type( ) == PT_LOAD ) {
       
-        Elf_Xword   index       = segment -> get_index( );
-        Elf_Xword   fileSize    = segment -> get_file_size( );
-        Elf_Xword   memorySize  = segment -> get_memory_size( );
-        const char  *dataPtr    = segment -> get_data( );
-        uint32_t    *wordPtr    = (uint32_t *) dataPtr;
-        Elf64_Addr  vAdr        = segment -> get_physical_address( );
-        Elf_Xword   align       = segment -> get_align( );
+        Elf_Xword       index       = segment -> get_index( );
+        Elf_Xword       fileSize    = segment -> get_file_size( );
+        Elf_Xword       memorySize  = segment -> get_memory_size( );
+        const char      *dataPtr    = segment -> get_data( );
+        const uint32_t  *wordPtr    = reinterpret_cast<const uint32_t*> ( dataPtr );
+        Elf64_Addr      vAdr        = segment -> get_physical_address( );
+        Elf_Xword       align       = segment -> get_align( );
         
         winOut -> printChars( "Loading: Seg: %2d, adr: 0x%08x, mSize: 0x%08x, align: 0x%08x\n",
                               index, vAdr, memorySize, align );
@@ -133,13 +148,12 @@ void loadSegmentIntoMemory( elfio *reader, segment *segment, CpuCore *cpu, SimWi
         
         for ( Elf64_Addr i = 0; i < fileSize; i += 4  ) {
             
-            writeMem( cpu, uint32_t( vAdr + i ), wordPtr[ i / 4 ] );
+            writeMem( cpu, uint32_t( vAdr + i ), swap32( wordPtr[ i / 4 ] ));
         }
     }
 }
 
 } // namespace
-
 
 //------------------------------------------------------------------------------------------------------------
 // Loading a basic ELF file. This routine is rather simple. All we do is to locate the segments and load
