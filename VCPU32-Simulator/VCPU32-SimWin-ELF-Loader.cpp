@@ -123,6 +123,8 @@ void loadSegmentIntoMemory( elfio *reader, segment *segment, CpuCore *cpu, SimWi
         Elf64_Addr      vAdr        = segment -> get_physical_address( );
         Elf_Xword       align       = segment -> get_align( );
         
+        
+        
         winOut -> printChars( "Loading: Seg: %2d, adr: 0x%08x, mSize: 0x%08x, align: 0x%08x\n",
                               index, vAdr, memorySize, align );
         
@@ -183,7 +185,13 @@ void SimCommandsWin::loadElfFile( char *fileName ) {
             
             loadSegmentIntoMemory( reader, reader -> segments[ i ], glb -> cpu, winOut );
         }
-       
+        
+        Elf64_Addr entry = reader -> get_entry( );
+        
+        winOut -> printChars( "Set entry: 0x%08x\n", entry );
+        glb -> cpu -> setReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_0, (uint32_t) 0 );
+        glb -> cpu -> setReg( RC_FD_PSTAGE, PSTAGE_REG_ID_PSW_1, (uint32_t) entry );
+        
         winOut -> printChars( "Done\n" );
     }
     
