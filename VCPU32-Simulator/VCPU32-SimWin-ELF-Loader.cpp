@@ -123,8 +123,6 @@ void loadSegmentIntoMemory( elfio *reader, segment *segment, CpuCore *cpu, SimWi
         Elf64_Addr      vAdr        = segment -> get_physical_address( );
         Elf_Xword       align       = segment -> get_align( );
         
-        
-        
         winOut -> printChars( "Loading: Seg: %2d, adr: 0x%08x, mSize: 0x%08x, align: 0x%08x\n",
                               index, vAdr, memorySize, align );
         
@@ -156,6 +154,7 @@ void loadSegmentIntoMemory( elfio *reader, segment *segment, CpuCore *cpu, SimWi
 }
 
 } // namespace
+
 
 //------------------------------------------------------------------------------------------------------------
 // Loading a basic ELF file. This routine is rather simple. All we do is to locate the segments and load

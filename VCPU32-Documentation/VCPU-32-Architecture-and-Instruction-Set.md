@@ -757,7 +757,7 @@ VCPU-32 features a register memory model, which means that one operand may come 
       :-----------------:-----------------------------------------------------------------------------:
 ```
 
-The **immediate operand mode** supports a signed 18-bit value. The sign bit is in the rightmost position of the field. Depending on the sign, the remaining value in the field is sign extended or zero extended. 
+The **immediate operand mode** supports a signed 18-bit value. Depending on the sign, the remaining value in the field is sign extended or zero extended. 
 
 The **register modes** specify two registers "a" and "b" for the operation and store the result in "r". An example would be a the ADD instruction that adds the register content of "a" and "b" and stores the result into "r".
 

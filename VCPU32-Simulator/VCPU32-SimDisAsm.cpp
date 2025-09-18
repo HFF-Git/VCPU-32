@@ -734,7 +734,7 @@ int SimDisAsm::formatInstr( char *buf, int bufLen, uint32_t instr, int rdx ) {
     int cursor = 0;
     
     cursor += formatOpCodeAndOptions( buf + cursor, bufLen, instr, rdx );
-    cursor += formatTargetAndOperands( buf + cursor, bufLen, instr );
+    cursor += formatTargetAndOperands( buf + cursor, bufLen, instr, rdx );
     return( cursor );
 }
 
