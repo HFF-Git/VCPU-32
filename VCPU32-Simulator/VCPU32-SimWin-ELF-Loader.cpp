@@ -108,7 +108,7 @@ bool writeMem( CpuCore *cpu, uint32_t ofs, uint32_t val ) {
 // data word by word up to the segment file size attribute. Note that a segment needs to have loadable data.
 // Since our memory access is on a word basis, there is one more thing. The data is correctly encoded in
 // big endian format. Howeber, the coercion from that byte array to a word array will place the data in the
-// host system order, i.e. littlle endian. We need to swap each word accordigly.
+// host system order, i.e. littlle endian. We need to swap each word accordingly.
 //
 //------------------------------------------------------------------------------------------------------------
 void loadSegmentIntoMemory( elfio *reader, segment *segment, CpuCore *cpu, SimWinOutBuffer *winOut ) {
@@ -122,9 +122,16 @@ void loadSegmentIntoMemory( elfio *reader, segment *segment, CpuCore *cpu, SimWi
         const uint32_t  *wordPtr    = reinterpret_cast<const uint32_t*> ( dataPtr );
         Elf64_Addr      vAdr        = segment -> get_physical_address( );
         Elf_Xword       align       = segment -> get_align( );
+        Elf_Word        flags       = segment -> get_flags( );
         
-        winOut -> printChars( "Loading: Seg: %2d, adr: 0x%08x, mSize: 0x%08x, align: 0x%08x\n",
+        winOut -> printChars( "Loading: Seg: %2d, adr: 0x%08x, mSize: 0x%08x, align: 0x%08x, ",
                               index, vAdr, memorySize, align );
+        
+        winOut -> printChars( "R" );
+        if ( flags & SHF_WRITE )     winOut -> printChars( "W" );
+        if ( flags & SHF_EXECINSTR ) winOut -> printChars( "X" );
+       
+        winOut -> printChars( "\n" );
         
         if ( memorySize >= MAX_MEMORY_SIZE ) {
             
